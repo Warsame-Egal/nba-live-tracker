@@ -1,0 +1,25 @@
+"nba-tracker-api/venv/" 
+"nba-tracker-api/__pycache__/" 
+
+# Ignore virtual environment
+venv/
+.env
+
+# Ignore Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore logs
+*.log
+logs/
+
+# Ignore IDE/Editor settings
+.vscode/
+.idea/
+*.swp
+
+# Ignore dependency lock files (optional)
+Pipfile.lock
+
