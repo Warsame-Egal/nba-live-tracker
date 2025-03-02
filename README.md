@@ -23,10 +23,9 @@ pip install -r requirements.txt
 
 uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
 
-## Test API
+## API
 
 Main Page: http://localhost:8000/
-Live Scores: http://localhost:8000/live_scores
 Health Check: http://localhost:8000/health
 Swagger Docs: http://localhost:8000/docs
 ReDoc Docs: http://localhost:8000/redoc
