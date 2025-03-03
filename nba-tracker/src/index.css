@@ -1,1 +1,93 @@
 @import "tailwindcss";
+
+/* Global styles */
+body {
+  @apply bg-gray-900 text-white font-sans;
+}
+
+/* Header */
+.header {
+  @apply bg-black p-4 text-center text-3xl font-extrabold uppercase;
+}
+
+/* Loading state */
+.loading {
+  @apply text-center mt-10 text-gray-400 text-lg;
+}
+
+/* Main Container */
+.container {
+  @apply max-w-7xl mx-auto px-4;
+}
+
+/* Game Grid */
+.game-grid {
+  @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8;
+}
+
+/* Game Card */
+.game-card {
+  @apply bg-gray-800 p-6 rounded-lg shadow-lg transition-transform transform hover:scale-105 border border-gray-700;
+}
+
+.game-status {
+  @apply flex justify-between text-gray-400 text-sm;
+}
+
+/* Teams Section */
+.team-section {
+  @apply flex items-center justify-between mt-4;
+}
+
+/* Team Logos */
+.team-logo {
+  @apply w-20 h-20;
+}
+
+/* Team Info */
+.team-info {
+  @apply flex flex-col items-center;
+}
+
+.team-name {
+  @apply text-xl font-bold;
+}
+
+.team-record {
+  @apply text-sm text-gray-400;
+}
+
+.team-score {
+  @apply text-3xl font-extrabold;
+}
+
+/* Game Leaders */
+.game-leaders {
+  @apply mt-4 text-gray-400 text-sm;
+}
+
+.leader-title {
+  @apply font-bold uppercase text-gray-300;
+}
+
+.leader-stats {
+  @apply flex justify-between border-t border-gray-600 pt-2;
+}
+
+/* Game Clock */
+.game-clock {
+  @apply text-center mt-3 text-lg font-bold text-yellow-400;
+}
+
+/* Game Status Tags */
+.live-game {
+  @apply bg-red-600 text-white px-2 py-1 rounded-full text-xs font-semibold;
+}
+
+.final-game {
+  @apply bg-gray-700 text-white px-2 py-1 rounded-full text-xs font-semibold;
+}
+
+.upcoming-game {
+  @apply bg-blue-500 text-white px-2 py-1 rounded-full text-xs font-semibold;
+}
