@@ -1,35 +1,53 @@
 import { useEffect, useState } from "react";
-import { Game } from "./types/game"
+import { ScoreboardResponse, Game } from "./types/scoreboard";
+import GameCard from "./components/GameCard";
 
 export default function App() {
   const [games, setGames] = useState<Game[]>([]);
+  const [loading, setLoading] = useState(true);
+  const API_URL = import.meta.env.VITE_BACKEND_URL || "http://127.0.0.1:8000/api/v1/scoreboard";
 
   useEffect(() => {
-    async function fetchLiveScores() {
+    async function fetchScoreboard() {
       try {
-        const response = await fetch("http://127.0.0.1:8000/live_scores");
-        const data = await response.json();
-        setGames(data.games);
+        const response = await fetch(API_URL);
+        const data: ScoreboardResponse = await response.json();
+        setGames(data.scoreboard.games);
       } catch (error) {
-        console.error("Error fetching live scores:", error);
+        console.error("Error fetching scoreboard:", error);
+      } finally {
+        setLoading(false);
       }
     }
-    fetchLiveScores();
-  }, []);
+
+    fetchScoreboard();
+
+    // Auto-refresh scoreboard every 30 seconds
+    const interval = setInterval(fetchScoreboard, 30000);
+    return () => clearInterval(interval);
+  }, [API_URL]);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 text-white">
-      <h1 className="text-4xl font-bold">🏀 NBA Live Tracker</h1>
-      {games.length === 0 ? (
-        <p className="text-gray-400">No live games currently.</p>
+    <div className="min-h-screen bg-white text-white">
+      {/* Header */}
+      <header className="header">NBA Scoreboard</header>
+
+      {/* Loading State */}
+      {loading ? (
+        <p className="loading">Loading games...</p>
       ) : (
-        <ul className="mt-4">
-          {games.map((game) => (
-            <li key={game.gameId} className="text-lg">
-              {game.homeTeam.teamName} vs {game.awayTeam.teamName} - {game.gameClock}
-            </li>
-          ))}
-        </ul>
+        <div className="container">
+          {/* Game Grid */}
+          <div className="game-grid">
+            {games.length > 0 ? (
+              games.map((game) => <GameCard key={game.gameId} game={game} />)
+            ) : (
+              <p className="text-center col-span-3 text-gray-400">
+                No live games currently.
+              </p>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );
