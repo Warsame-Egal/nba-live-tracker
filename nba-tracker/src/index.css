@@ -53,30 +53,56 @@ body {
   @apply text-xl font-bold;
 }
 
-.team-record {
-  @apply text-sm text-gray-400;
-}
-
 .team-score {
   @apply text-3xl font-extrabold;
 }
 
 /* Game Leaders */
 .game-leaders {
-  @apply mt-4 text-gray-400 text-sm;
+  @apply mt-4 text-gray-400 text-sm p-4 border border-gray-700 rounded-lg;
 }
 
 .leader-title {
-  @apply font-bold uppercase text-gray-300;
+  @apply font-bold uppercase text-gray-300 text-lg;
 }
 
 .leader-stats {
   @apply flex justify-between border-t border-gray-600 pt-2;
 }
 
+.leader-name {
+  @apply font-semibold text-white;
+}
+
+.leader-stats-numbers {
+  @apply text-gray-300;
+}
+
 /* Game Clock */
 .game-clock {
   @apply text-center mt-3 text-lg font-bold text-yellow-400;
+}
+
+/* Quarter-by-Quarter Scores Table */
+.quarter-scores {
+  @apply w-full mt-4 text-center text-sm;
+}
+
+.score-row {
+  @apply flex justify-between border-b border-gray-600 py-1;
+}
+
+.team-col {
+  @apply w-10 font-bold;
+}
+
+.score-col {
+  @apply w-8 text-center;
+}
+
+/* Timeout & Bonus */
+.team-timeout {
+  @apply text-sm text-gray-400 mt-1;
 }
 
 /* Game Status Tags */
