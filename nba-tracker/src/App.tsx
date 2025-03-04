@@ -5,12 +5,11 @@ import GameCard from "./components/GameCard";
 export default function App() {
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
-  const API_URL = import.meta.env.VITE_BACKEND_URL || "http://127.0.0.1:8000/api/v1/scoreboard";
 
   useEffect(() => {
     async function fetchScoreboard() {
       try {
-        const response = await fetch(API_URL);
+        const response = await fetch("http://127.0.0.1:8000/api/v1/scoreboard");
         const data: ScoreboardResponse = await response.json();
         setGames(data.scoreboard.games);
       } catch (error) {
@@ -25,10 +24,10 @@ export default function App() {
     // Auto-refresh scoreboard every 30 seconds
     const interval = setInterval(fetchScoreboard, 30000);
     return () => clearInterval(interval);
-  }, [API_URL]);
+  }, []);
 
   return (
-    <div className="min-h-screen bg-white text-white">
+    <div className="min-h-screen bg-gray-900 text-white">
       {/* Header */}
       <header className="header">NBA Scoreboard</header>
 
