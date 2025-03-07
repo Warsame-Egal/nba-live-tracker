@@ -4,7 +4,10 @@ from app.routers.scoreboard import router as scoreboard_router
 from app.routers.health import router as health_router
 
 # Initialize FastAPI app
-app = FastAPI()
+app = FastAPI(title="NBA tracker API",
+              description="An API providing NBA live scoreboard, schedule, and game stats.",
+              version="1.0.0",
+              )
 
 # Enable Cross-Origin Resource Sharing frontend access
 app.add_middleware(
@@ -21,8 +24,8 @@ def home():
     """Root endpoint for API health check."""
     return {"message": "NBA Live Tracker API is running"}
 
-# Register API route for live scores
-app.include_router(scoreboard_router, prefix="/api/v1")
-
 # Register API route for health check
 app.include_router(health_router, prefix="/api/v1")
+
+# Register API route for live scores
+app.include_router(scoreboard_router, prefix="/api/v1")
