@@ -43,5 +43,6 @@ Health Check: http://localhost:8000/api/v1/health
 ## Frontend (React)
 
     React.js
+    TypeScript
     Tailwind CSS
     Vite
