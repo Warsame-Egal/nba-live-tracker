@@ -24,6 +24,13 @@ Health Check: http://localhost:8000/api/v1/health
 Swagger Docs: http://localhost:8000/docs
 ReDoc Docs: http://localhost:8000/redoc
 
+# Endpoints
+
+Scoreboard: http://localhost:8000/api/v1/scoreboard
+A Game http://127.0.0.1:8000/api/v1/scoreboard/game/gameid
+A Team http://localhost:8000/api/v1/scoreboard/team/teamid
+Health Check: http://localhost:8000/api/v1/health
+
 ## Tech Stack
 
 ## Backend (FastAPI)
