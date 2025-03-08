@@ -2,9 +2,8 @@ from pydantic import BaseModel, Field, field_validator
 from typing import List, Optional
 import re
 from enum import Enum
-from datetime import date
 
-
+### Schema ###
 class PeriodType(str, Enum):
     """Indicates whether the period is a regular quarter or overtime."""
     REGULAR = "REGULAR"
@@ -16,7 +15,6 @@ class Period(BaseModel):
     period: int = Field(..., description="The period number (1-4 for quarters, 5+ for overtime).")
     periodType: PeriodType = Field(..., description="Type of period: REGULAR or OVERTIME.")
     score: int = Field(..., ge=0, description="Points scored by the team in this period.")
-
 
 class Team(BaseModel):
     """Represents an NBA team participating in a game."""
@@ -67,21 +65,21 @@ class PbOdds(BaseModel):
     suspended: Optional[int] = Field(0, description="Indicates if betting is suspended (1 = Yes, 0 = No).")
 
 
-class Game(BaseModel):
+class LiveGame(BaseModel):
     """Represents an NBA game with details on status, teams, and score."""
     gameId: str = Field(..., description="Unique identifier for the game.")
     gameCode: str = Field(..., description="Game code formatted as YYYYMMDD/HOMETEAMAWAYTEAM.")
-    gameStatus: int = Field(..., description="Current status of the game (1 = Not started, 2 = In progress, 3 = Final).")
-    gameStatusText: str = Field(..., description="Text description of the game status (e.g., 'Final', '4th Qtr').")
+    gameStatus: int = Field(..., description="Current status of the game")
+    gameStatusText: str = Field(..., description="Text description of the game status ('Final', '4th Qtr').")
     period: int = Field(..., description="Current period of the game (1-4 for quarters, 5+ for overtime).")
     gameClock: Optional[str] = Field(None, description="Time remaining in the current period (MM:SS format).")
     gameTimeUTC: str = Field(..., description="Scheduled start time in UTC format.")
     gameEt: str = Field(..., description="Scheduled start time in Eastern Time (ET).")
     regulationPeriods: int = Field(..., description="Number of regulation periods (usually 4).")
-    ifNecessary: Optional[bool] = Field(False, description="Indicates if the game is conditional (e.g., playoff series).")
-    isNeutral: Optional[bool] = Field(False, description="Indicates if the game is played on a neutral site.")
     homeTeam: Team = Field(..., description="Information about the home team.")
     awayTeam: Team = Field(..., description="Information about the away team.")
+    ifNecessary: Optional[bool] = Field(False, description="Indicates if the game is conditional (playoff series).")
+    isNeutral: Optional[bool] = Field(False, description="Indicates if the game is played on a neutral site.")
     gameLeaders: Optional[GameLeaders] = Field(None, description="Top-performing players from each team.")
     pbOdds: Optional[PbOdds] = Field(None, description="Pre-game betting odds.")
 
@@ -106,7 +104,7 @@ class Game(BaseModel):
 class Scoreboard(BaseModel):
     """Represents the scoreboard for a specific game date."""
     gameDate: str = Field(..., description="Date of the games in YYYY-MM-DD format.")
-    games: List[Game] = Field(..., description="List of games played on the specified date.")
+    games: List[LiveGame] = Field(..., description="List of games played on the specified date.")
 
 
 class ScoreboardResponse(BaseModel):
@@ -114,29 +112,103 @@ class ScoreboardResponse(BaseModel):
     scoreboard: Scoreboard = Field(..., description="Scoreboard data containing game details.")
 
 
-class TeamSchedule(BaseModel):
-    """Represents a team's schedule and standing information."""
-    teamId: int = Field(..., description="Unique identifier for the team.")
-    teamName: str = Field(..., description="Full name of the team.")
-    teamCity: str = Field(..., description="City where the team is based.")
-    teamTricode: str = Field(..., description="Three-letter abbreviation of the team.")
-    teamSlug: Optional[str] = Field(None, description="URL-friendly identifier for the team.")
-    wins: Optional[int] = Field(None, description="Total wins for the season.")
-    losses: Optional[int] = Field(None, description="Total losses for the season.")
-    score: Optional[int] = Field(None, description="Current game score (if in progress).")
-    seed: Optional[int] = Field(None, description="Playoff seeding position (if applicable).")
+###Scheduled Game Schema (for Season Schedule) ###
+class ScheduledGame(BaseModel):
+    """Represents a single scheduled or completed game in a season."""
+    season_id: int
+    team_id: int
+    team_abbreviation: str
+    team_name: str
+    game_id: str
+    game_date: str
+    matchup: str
+    win_loss: Optional[str]
+    minutes: int
+    points: int
+    field_goals_made: int
+    field_goals_attempted: int
+    field_goal_pct: float
+    three_point_made: int
+    three_point_attempted: int
+    three_point_pct: float
+    free_throws_made: int
+    free_throws_attempted: int
+    free_throw_pct: float
+    offensive_rebounds: int
+    defensive_rebounds: int
+    total_rebounds: int
+    assists: int
+    steals: int
+    blocks: int
+    turnovers: int
+    personal_fouls: int
+    plus_minus: float 
 
 
-class GameSchedule(BaseModel):
-    """Represents a scheduled NBA game."""
-    gameId: str = Field(..., description="Unique identifier for the game.")
-    gameCode: str = Field(..., description="Game code formatted as YYYYMMDD/HOMETEAMAWAYTEAM.")
-    gameStatus: int = Field(..., description="Current status of the game (1 = Upcoming, 2 = In progress, 3 = Final).")
-    gameStatusText: str = Field(..., description="Text description of the game status.")
-    gameDate: date = Field(..., description="Date of the game.")
-    gameTimeUTC: str = Field(..., description="Scheduled start time in UTC format.")
-    gameTimeEst: str = Field(..., description="Scheduled start time in Eastern Time (ET).")
-    isNeutral: bool = Field(..., description="Indicates if the game is played at a neutral venue.")
-    arenaName: Optional[str] = Field(None, description="Name of the arena where the game is played.")
-    homeTeam: TeamSchedule = Field(..., description="Information about the home team.")
-    awayTeam: TeamSchedule = Field(..., description="Information about the away team.")
+class ScheduleResponse(BaseModel):
+    """Response schema for retrieving season schedule."""
+    games: List[ScheduledGame]
+
+class TeamDetails(BaseModel):
+    team_id: int = Field(..., description="Unique ID for the team")
+    team_name: str = Field(..., description="Team's full name")
+    conference: str = Field(..., description="Conference the team belongs to (East/West)")
+    division: str = Field(..., description="Division within the conference")
+    wins: int = Field(..., description="Total wins in the current season")
+    losses: int = Field(..., description="Total losses in the current season")
+    win_pct: float = Field(..., description="Winning percentage")
+    home_record: str = Field(..., description="Home record (Wins-Losses)")
+    road_record: str = Field(..., description="Road record (Wins-Losses)")
+    last_10: str = Field(..., description="Record in last 10 games")
+    current_streak: str = Field(..., description="Current win/loss streak")
+
+
+class Player(BaseModel):
+    """Schema for a player in the team roster."""
+    player_id: int
+    name: str
+    jersey_number: Optional[str] = None
+    position: Optional[str] = None
+    height: Optional[str] = None 
+    weight: Optional[int] = None
+    birth_date: Optional[str] = None
+    age: Optional[int] = None
+    experience: Optional[str] = None
+    school: Optional[str] = None
+
+class Coach(BaseModel):
+    """Schema for a coach in the team staff."""
+    coach_id: int
+    name: str
+    role: str
+    is_assistant: bool
+
+class TeamRoster(BaseModel):
+    """Schema combining team roster and coaching staff."""
+    team_id: int
+    team_name: str
+    season: str
+    players: List[Player]
+    coaches: List[Coach]
+
+class PlayerSummary(BaseModel):
+    """Schema for a player's basic profile from PlayerIndex API."""
+    player_id: int = Field(..., description="Unique ID for the player.")
+    full_name: str = Field(..., description="Full name of the player.")
+    team_id: Optional[int] = Field(None, description="Current team ID.")
+    team_name: Optional[str] = Field(None, description="Current team name.")
+    team_abbreviation: Optional[str] = Field(None, description="Team abbreviation (LAL, BOS).")
+    jersey_number: Optional[str] = Field(None, description="Player's jersey number.")
+    position: Optional[str] = Field(None, description="Player's position (G, F, C).")
+    height: Optional[str] = Field(None, description="Player's height in feet-inches format (6-8).")
+    weight: Optional[int] = Field(None, description="Player's weight in pounds.")
+    college: Optional[str] = Field(None, description="College or international team attended.")
+    country: Optional[str] = Field(None, description="Country of origin.")
+    draft_year: Optional[int] = Field(None, description="Year the player was drafted.")
+    draft_round: Optional[int] = Field(None, description="Draft round the player was selected in.")
+    draft_number: Optional[int] = Field(None, description="Overall pick number in the draft.")
+    from_year: Optional[int] = Field(None, description="First year the player played in the NBA.")
+    to_year: Optional[int] = Field(None, description="Most recent year the player played in the NBA.")
+    points_per_game: Optional[float] = Field(None, description="Average points per game.")
+    rebounds_per_game: Optional[float] = Field(None, description="Average rebounds per game.")
+    assists_per_game: Optional[float] = Field(None, description="Average assists per game.")
