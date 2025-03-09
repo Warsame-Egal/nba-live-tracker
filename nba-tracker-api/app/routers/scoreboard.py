@@ -1,9 +1,9 @@
 from typing import List
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from app.services.scoreboard import (
     getScoreboard, getTeamGamesByDate, getMatchupGames,
-    getTeamInfo, getCurrentTeamRecord, getTeamRoster,
-    searchPlayerByName, getPlayerDetails
+    getTeamInfo, getCurrentTeamRecord, fetchTeamRoster,
+    getPlayerDetails, fetchPlayersByName
 )
 from app.schemas.scoreboard import ScoreboardResponse
 from app.schemas.player import TeamRoster, PlayerSummary
@@ -84,29 +84,52 @@ async def currentTeamRecord(team_id: int):
         raise e
 
     
-@router.get("/scoreboard/team/{team_id}/roster/{season}", response_model=TeamRoster, tags=["teams"],
+@router.get("/scoreboard/team/{team_id}/roster/{season}", response_model=TeamRoster, tags=["teams"], 
             summary="Get Team Roster", description="Fetch the full roster and coaching staff for a given team and season.")
-async def team_roster(team_id: int, season: str):
-    """Fetches team roster (players & coaches) for a given season."""
+async def getTeamRoster(team_id: int, season: str):
+    """
+    API endpoint to retrieve the full roster of a given NBA team for a specific season.
+    Args:
+        team_id (int): The unique identifier for the NBA team.
+        season (str): The NBA season identifier (e.g., "2023-24").
+    Returns:
+        TeamRoster: A structured response containing player details.
+    """
     try:
-        return getTeamRoster(team_id, season)
+        return fetchTeamRoster(team_id, season)
     except HTTPException as e:
         raise e
 
-@router.get("/scoreboard/player/{player_id}/details", response_model=PlayerSummary, tags=["players"],
-            summary="Get Player Details", description="Retrieve detailed information about a specific player.")
-async def get_player_details(player_id: int):
-    """Fetch details for a specific player using PlayerIndex API."""
+@router.get("/players/{player_id}/details", response_model=PlayerSummary, tags=["players"],
+            summary="Get Player Details",
+            description="Retrieve detailed information about a specific player.")
+async def fetchPlayerDetails(player_id: int):
+    """
+    API route to fetch detailed information about a specific player.
+
+    Args:
+        player_id (int): Unique identifier for the player.
+
+    Returns:
+        PlayerSummary: Structured response with player details.
+    """
     try:
-        return getPlayerDetails(player_id)
+        return await getPlayerDetails(player_id)
     except HTTPException as e:
         raise e
     
-@router.get("/scoreboard/player/search", response_model=List[PlayerSummary], tags=["players"],
-            summary="Search Players", description="Search for a player by name.")
-async def search_player(name: str):
-    """Search for a player by name using PlayerIndex API."""
+@router.get("/players/search", response_model=List[PlayerSummary], tags=["players"])
+async def searchPlayers(name: str):
+    """
+    API route to search for players by name.
+
+    Args:
+        name (str): The player's full name, first name, or last name.
+
+    Returns:
+        List[PlayerSummary]: A list of players matching the search query.
+    """
     try:
-        return searchPlayerByName(name)
+        return await fetchPlayersByName(name)
     except HTTPException as e:
         raise e

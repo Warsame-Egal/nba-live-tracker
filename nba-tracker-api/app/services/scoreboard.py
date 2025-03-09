@@ -12,7 +12,6 @@ from app.schemas.player import TeamRoster, Player, PlayerSummary
 from app.schemas.team import TeamDetails
 from app.schemas.schedule import ScheduledGame, ScheduleResponse
 from fastapi import HTTPException
-from pydantic import ValidationError
 from datetime import datetime
 from app.utils.formatters import format_matchup
 
@@ -348,135 +347,169 @@ async def getCurrentTeamRecord(team_id: int) -> TeamDetails:
 
     
     
-def getTeamRoster(team_id: int, season: str) -> TeamRoster:
-    """Fetch the full roster from NBA API."""
+def fetchTeamRoster(team_id: int, season: str) -> TeamRoster:
+    """
+    Fetches the full team roster (players & coaching staff) from the NBA API.
+
+    Args:
+        team_id (int): The NBA team ID.
+        season (str): The season year in "YYYY-YY" format.
+
+    Returns:
+        TeamRoster: A structured response containing team roster details.
+
+    Raises:
+        HTTPException:
+            - 404 if no roster is found for the given team/season.
+            - 500 for any other errors.
+    """
     try:
-        # Fetch roster
+        # Fetch roster data from NBA API
         raw_roster = commonteamroster.CommonTeamRoster(team_id=team_id, season=season).get_dict()
         player_data = raw_roster["resultSets"][0]["rowSet"]
 
         if not player_data:
             raise HTTPException(status_code=404, detail=f"No roster found for team ID {team_id} in {season}")
 
-        # Convert player data to schema
-        players = []
+        # Extract column headers for mapping
         column_names = raw_roster["resultSets"][0]["headers"]
 
+        # Convert player data into structured Player objects
+        players: List[Player] = []
         for row in player_data:
             player_dict = dict(zip(column_names, row))
 
-            players.append(
-                Player(
-                    player_id=int(player_dict["PLAYER_ID"]),
-                    name=player_dict["PLAYER"],
-                    jersey_number=player_dict["NUM"] or None,
-                    position=player_dict["POSITION"] or None,
-                    height=player_dict["HEIGHT"] or None,
-                    weight=int(player_dict["WEIGHT"]) or None,
-                    birth_date=player_dict["BIRTH_DATE"] or None,
-                    age=int(player_dict["AGE"]) or None,
-                    experience=str(player_dict["EXP"]),
-                    school=player_dict["SCHOOL"] or None
-                )
-            )
+            players.append(Player(
+                player_id=int(player_dict["PLAYER_ID"]),
+                name=player_dict["PLAYER"],
+                jersey_number=player_dict["NUM"] or None,
+                position=player_dict["POSITION"] or None,
+                height=player_dict["HEIGHT"] or None,
+                weight=int(player_dict["WEIGHT"]) if player_dict["WEIGHT"] else None,
+                birth_date=player_dict["BIRTH_DATE"] or None,
+                age=int(player_dict["AGE"]) if player_dict["AGE"] else None,
+                experience="Rookie" if str(player_dict["EXP"]).upper() == "R" else str(player_dict["EXP"]), # Update 'R' to 'Rookie
+                school=player_dict["SCHOOL"] or None
+            ))
 
-        # Return schema
+        # Return formatted response
         return TeamRoster(
             team_id=team_id,
-            team_name=player_data[0][1],
+            team_name=player_data[0][1],  # Extract team name
             season=season,
-            players=players,
+            players=players
         )
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching team roster: {e}")
 
-def getPlayerDetails(player_id: int) -> PlayerSummary:
-    """Fetch details for a specific player using PlayerIndex API."""
+async def getPlayerDetails(player_id: int) -> PlayerSummary:
+    """
+    Fetches detailed player information using the NBA PlayerIndex API.
+
+    Args:
+        player_id (int): Unique identifier for the player.
+
+    Returns:
+        PlayerSummary: Player details including stats, team, and career history.
+
+    Raises:
+        HTTPException: If no data is found or an error occurs during processing.
+    """
     try:
-        # Fetch player data from API
+        # Fetch player data from NBA API
         raw_data = playerindex.PlayerIndex().get_dict()
         column_names = raw_data["resultSets"][0]["headers"]  # Column names from API
         player_list = raw_data["resultSets"][0]["rowSet"]  # Player data rows
 
-        # Convert rows into a list of dictionaries
+        # Convert API response into a list of dictionaries
         players = [dict(zip(column_names, row)) for row in player_list]
 
-        # Find the player by ID
-        player_dict = next((player for player in players if player["PERSON_ID"] == player_id), None)
+        # Find the requested player by ID
+        player_data = next((player for player in players if player["PERSON_ID"] == player_id), None)
 
-        if not player_dict:
+        if not player_data:
             raise HTTPException(status_code=404, detail=f"No details found for player ID {player_id}")
 
-        #Return response using dictionary
+        # Map API response to PlayerSummary schema
         return PlayerSummary(
-            player_id=player_dict["PERSON_ID"],
-            full_name=f"{player_dict['PLAYER_FIRST_NAME']} {player_dict['PLAYER_LAST_NAME']}",
-            team_id=player_dict["TEAM_ID"] if player_dict["TEAM_ID"] else None,
-            team_name=player_dict["TEAM_NAME"] if player_dict["TEAM_NAME"] else None,
-            team_abbreviation=player_dict["TEAM_ABBREVIATION"] if player_dict["TEAM_ABBREVIATION"] else None,
-            jersey_number=player_dict["JERSEY_NUMBER"] if player_dict["JERSEY_NUMBER"] else None,
-            position=player_dict["POSITION"] if player_dict["POSITION"] else None,
-            height=player_dict["HEIGHT"] if player_dict["HEIGHT"] else None,
-            weight=int(player_dict["WEIGHT"]) if player_dict["WEIGHT"] else None,
-            college=player_dict["COLLEGE"] if player_dict["COLLEGE"] else None,
-            country=player_dict["COUNTRY"] if player_dict["COUNTRY"] else None,
-            draft_year=int(player_dict["DRAFT_YEAR"]) if player_dict["DRAFT_YEAR"] else None,
-            draft_round=int(player_dict["DRAFT_ROUND"]) if player_dict["DRAFT_ROUND"] else None,
-            draft_number=int(player_dict["DRAFT_NUMBER"]) if player_dict["DRAFT_NUMBER"] else None,
-            from_year=int(player_dict["FROM_YEAR"]) if player_dict["FROM_YEAR"] else None,
-            to_year=int(player_dict["TO_YEAR"]) if player_dict["TO_YEAR"] else None,
-            points_per_game=float(player_dict["PTS"]) if player_dict["PTS"] else None,
-            rebounds_per_game=float(player_dict["REB"]) if player_dict["REB"] else None,
-            assists_per_game=float(player_dict["AST"]) if player_dict["AST"] else None
+            player_id=player_data["PERSON_ID"],
+            full_name=f"{player_data['PLAYER_FIRST_NAME']} {player_data['PLAYER_LAST_NAME']}",
+            team_id=player_data.get("TEAM_ID"),
+            team_name=player_data.get("TEAM_NAME"),
+            team_abbreviation=player_data.get("TEAM_ABBREVIATION"),
+            jersey_number=player_data.get("JERSEY_NUMBER"),
+            position=player_data.get("POSITION"),
+            height=player_data.get("HEIGHT"),
+            weight=int(player_data["WEIGHT"]) if player_data.get("WEIGHT") else None,
+            college=player_data.get("COLLEGE"),
+            country=player_data.get("COUNTRY"),
+            draft_year=int(player_data["DRAFT_YEAR"]) if player_data.get("DRAFT_YEAR") else None,
+            draft_round=int(player_data["DRAFT_ROUND"]) if player_data.get("DRAFT_ROUND") else None,
+            draft_number=int(player_data["DRAFT_NUMBER"]) if player_data.get("DRAFT_NUMBER") else None,
+            from_year=int(player_data["FROM_YEAR"]) if player_data.get("FROM_YEAR") else None,
+            to_year=int(player_data["TO_YEAR"]) if player_data.get("TO_YEAR") else None,
+            points_per_game=float(player_data["PTS"]) if player_data.get("PTS") else None,
+            rebounds_per_game=float(player_data["REB"]) if player_data.get("REB") else None,
+            assists_per_game=float(player_data["AST"]) if player_data.get("AST") else None
         )
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching player details: {e}")
 
+async def fetchPlayersByName(name: str) -> List[PlayerSummary]:
+    """
+    Retrieves players matching the search query.
 
-def searchPlayerByName(player_name: str) -> List[PlayerSummary]:
-    """Search for players by name using PlayerIndex API."""
+    Args:
+        name (str): The player's full name, first name, or last name.
+
+    Returns:
+        List[PlayerSummary]: List of matching players.
+    """
     try:
-        # Fetch player data from API
+        # Fetch player data from NBA API
         raw_data = playerindex.PlayerIndex().get_dict()
-        column_names = raw_data["resultSets"][0]["headers"]  # Column names from API
-        player_list = raw_data["resultSets"][0]["rowSet"]  # Player data rows
+        column_names = raw_data["resultSets"][0]["headers"]
+        player_list = raw_data["resultSets"][0]["rowSet"]
 
-        # Convert rows into a list of dictionaries
+        # Convert player list to dictionary format
         players = [dict(zip(column_names, row)) for row in player_list]
 
-        # Filter players that match the search query
+        # Convert search query to lowercase for case-insensitive comparison
+        name = name.lower()
+
+        # Filter players by checking if query matches full name, first name, or last name
         matching_players = [
             player for player in players
-            if player_name.lower() in f"{player['PLAYER_FIRST_NAME']} {player['PLAYER_LAST_NAME']}".lower()
+            if name in f"{player['PLAYER_FIRST_NAME']} {player['PLAYER_LAST_NAME']}".lower()
         ]
 
         if not matching_players:
-            raise HTTPException(status_code=404, detail=f"No players found matching '{player_name}'")
+            raise HTTPException(status_code=404, detail=f"No players found matching '{name}'")
 
-        #Return list of players
+        # Process matching players into structured response
         return [
             PlayerSummary(
                 player_id=player["PERSON_ID"],
                 full_name=f"{player['PLAYER_FIRST_NAME']} {player['PLAYER_LAST_NAME']}",
-                team_id=player["TEAM_ID"] if player["TEAM_ID"] else None,
-                team_name=player["TEAM_NAME"] if player["TEAM_NAME"] else None,
-                team_abbreviation=player["TEAM_ABBREVIATION"] if player["TEAM_ABBREVIATION"] else None,
-                jersey_number=player["JERSEY_NUMBER"] if player["JERSEY_NUMBER"] else None,
-                position=player["POSITION"] if player["POSITION"] else None,
-                height=player["HEIGHT"] if player["HEIGHT"] else None,
-                weight=int(player["WEIGHT"]) if player["WEIGHT"] else None,
-                college=player["COLLEGE"] if player["COLLEGE"] else None,
-                country=player["COUNTRY"] if player["COUNTRY"] else None,
-                draft_year=int(player["DRAFT_YEAR"]) if player["DRAFT_YEAR"] else None,
-                draft_round=int(player["DRAFT_ROUND"]) if player["DRAFT_ROUND"] else None,
-                draft_number=int(player["DRAFT_NUMBER"]) if player["DRAFT_NUMBER"] else None,
-                from_year=int(player["FROM_YEAR"]) if player["FROM_YEAR"] else None,
-                to_year=int(player["TO_YEAR"]) if player["TO_YEAR"] else None,
-                points_per_game=float(player["PTS"]) if player["PTS"] else None,
-                rebounds_per_game=float(player["REB"]) if player["REB"] else None,
-                assists_per_game=float(player["AST"]) if player["AST"] else None
+                team_id=player.get("TEAM_ID"),
+                team_name=player.get("TEAM_NAME"),
+                team_abbreviation=player.get("TEAM_ABBREVIATION"),
+                jersey_number=player.get("JERSEY_NUMBER"),
+                position=player.get("POSITION"),
+                height=player.get("HEIGHT"),
+                weight=int(player["WEIGHT"]) if player.get("WEIGHT") else None,
+                college=player.get("COLLEGE"),
+                country=player.get("COUNTRY"),
+                draft_year=int(player["DRAFT_YEAR"]) if player.get("DRAFT_YEAR") else None,
+                draft_round=int(player["DRAFT_ROUND"]) if player.get("DRAFT_ROUND") else None,
+                draft_number=int(player["DRAFT_NUMBER"]) if player.get("DRAFT_NUMBER") else None,
+                from_year=int(player["FROM_YEAR"]) if player.get("FROM_YEAR") else None,
+                to_year=int(player["TO_YEAR"]) if player.get("TO_YEAR") else None,
+                points_per_game=float(player["PTS"]) if player.get("PTS") else None,
+                rebounds_per_game=float(player["REB"]) if player.get("REB") else None,
+                assists_per_game=float(player["AST"]) if player.get("AST") else None
             )
             for player in matching_players
         ]
