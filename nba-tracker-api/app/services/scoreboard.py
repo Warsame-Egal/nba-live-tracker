@@ -12,8 +12,8 @@ from app.schemas.player import TeamRoster, Player, PlayerSummary
 from app.schemas.team import TeamDetails
 from app.schemas.schedule import ScheduledGame, ScheduleResponse
 from fastapi import HTTPException
-from pydantic import ValidationError
 from datetime import datetime
+from app.utils.formatters import format_matchup
 
 async def getScoreboard() -> ScoreboardResponse:
     """
@@ -112,221 +112,224 @@ async def getScoreboard() -> ScoreboardResponse:
         raise HTTPException(status_code=500, detail=f"Error fetching live scores: {e}")
     
     
-def getTeamGamesByDate(team_id: int, game_date: str) -> ScheduleResponse:
-    """Retrieve all games played by a specific team on a given date."""
+async def getTeamGamesByDate(team_id: int, game_date: str) -> ScheduleResponse:
+    """
+    Retrieves all games played by a specific team on a given date.
+
+    Steps:
+    1. Converts the input date format from "YYYY-MM-DD" to "MM/DD/YYYY" for the NBA API.
+    2. Queries the NBA API to fetch games played by the given team on the specified date.
+    3. Processes the retrieved data into structured game objects.
+    4. Returns the structured game data.
+
+    Args:
+        team_id (int): Unique NBA team identifier.
+        game_date (str): Game date in "YYYY-MM-DD" format.
+
+    Returns:
+        ScheduleResponse: A structured list of games played by the team.
+
+    Raises:
+        HTTPException:
+            - 404: If no games are found for the given team on the specified date.
+            - 500: If an error occurs during data retrieval.
+    """
     try:
-        # Convert date from "YYYY-MM-DD" to "MM/DD/YYYY"
+        # Convert date from "YYYY-MM-DD" to "MM/DD/YYYY" (required by NBA API)
         formatted_date = datetime.strptime(game_date, "%Y-%m-%d").strftime("%m/%d/%Y")
 
-        # Fetch data from NBA API
+        # Fetch games played by the team on the specified date
         game_finder = leaguegamefinder.LeagueGameFinder(
             date_from_nullable=formatted_date,
             date_to_nullable=formatted_date,
-            team_id_nullable=team_id,
+            team_id_nullable=str(team_id),
             league_id_nullable="00"
         )
 
         df_list = game_finder.get_data_frames()
-        
-        if not df_list or len(df_list) == 0 or df_list[0].empty:
+
+        # Handle cases where no data is returned
+        if not df_list or df_list[0].empty:
             raise HTTPException(status_code=404, detail=f"No games found for team ID {team_id} on date {game_date}")
 
         df = df_list[0]
+
+        # Replace NaN values with None to prevent validation errors
         df.replace({np.nan: None}, inplace=True)
 
+        # Process game records into structured objects
         games = []
-        for _, row in df.iterrows():
-            try:
-                game = ScheduledGame(
-                    season_id=int(row["SEASON_ID"]),
-                    team_id=int(row["TEAM_ID"]),
-                    team_abbreviation=row["TEAM_ABBREVIATION"],
-                    team_name=row["TEAM_NAME"],
-                    game_id=row["GAME_ID"],
-                    game_date=row["GAME_DATE"],
-                    matchup=row["MATCHUP"],
-                    win_loss=row["WL"],
-                    minutes=int(row["MIN"]) if row["MIN"] is not None else 0,
-                    points=int(row["PTS"]) if row["PTS"] is not None else 0,
-                    field_goals_made=int(row["FGM"]) if row["FGM"] is not None else 0,
-                    field_goals_attempted=int(row["FGA"]) if row["FGA"] is not None else 0,
-                    field_goal_pct=float(row["FG_PCT"]) if row["FG_PCT"] is not None else 0.0,
-                    three_point_made=int(row["FG3M"]) if row["FG3M"] is not None else 0,
-                    three_point_attempted=int(row["FG3A"]) if row["FG3A"] is not None else 0,
-                    three_point_pct=float(row["FG3_PCT"]) if row["FG3_PCT"] is not None else 0.0,
-                    free_throws_made=int(row["FTM"]) if row["FTM"] is not None else 0,
-                    free_throws_attempted=int(row["FTA"]) if row["FTA"] is not None else 0,
-                    free_throw_pct=float(row["FT_PCT"]) if row["FT_PCT"] is not None else 0.0,
-                    offensive_rebounds=int(row["OREB"]) if row["OREB"] is not None else 0,
-                    defensive_rebounds=int(row["DREB"]) if row["DREB"] is not None else 0,
-                    total_rebounds=int(row["REB"]) if row["REB"] is not None else 0,
-                    assists=int(row["AST"]) if row["AST"] is not None else 0,
-                    steals=int(row["STL"]) if row["STL"] is not None else 0,
-                    blocks=int(row["BLK"]) if row["BLK"] is not None else 0,
-                    turnovers=int(row["TOV"]) if row["TOV"] is not None else 0,
-                    personal_fouls=int(row["PF"]) if row["PF"] is not None else 0,
-                    plus_minus=float(row["PLUS_MINUS"]) if row["PLUS_MINUS"] is not None else 0.0
-                )
-                games.append(game)
-            except Exception as ve:
-                print(f"Validation error for game {row['GAME_ID']}: {ve}")
+        for game in df.to_dict(orient="records"):
+            scheduled_game = ScheduledGame(
+                season_id=int(str(game["SEASON_ID"])[1:]),  # Removes the leading digit
+                team_id=int(game["TEAM_ID"]),
+                team_abbreviation=game["TEAM_ABBREVIATION"],
+                game_id=game["GAME_ID"],
+                game_date=game["GAME_DATE"],
+                matchup=format_matchup(game["MATCHUP"]),  # Converts matchup format from 'TEAM @ TEAM' to 'TEAM vs TEAM'
+                win_loss=game.get("WL"),
+                points_scored=int(game["PTS"]) if game.get("PTS") else None,
+                field_goal_pct=float(game["FG_PCT"]) if game.get("FG_PCT") else None,
+                three_point_pct=float(game["FG3_PCT"]) if game.get("FG3_PCT") else None
+            )
+            games.append(scheduled_game)
 
         return ScheduleResponse(games=games)
 
     except HTTPException as http_exc:
         raise http_exc
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching team games for team ID {team_id} on date {game_date}: {e}")
+        raise HTTPException(status_code=500, detail=f"Error fetching games for team ID {team_id} on date {game_date}: {e}")
 
-def getMatchupGames(team1_id: int, team2_id: int) -> ScheduleResponse:
-    """Fetch past games where two teams played against each other."""
+
+
+async def getMatchupGames(team1_id: int, team2_id: int) -> ScheduleResponse:
+    """
+    Retrieves and structures past games where two teams have faced each other.
+
+    Args:
+        team1_id (int): Unique identifier for the first NBA team.
+        team2_id (int): Unique identifier for the second NBA team.
+
+    Returns:
+        ScheduleResponse: A structured list of past head-to-head games.
+
+    Raises:
+        HTTPException:
+            - 404: If no matchups are found between the two teams.
+            - 500: If an error occurs during data retrieval.
+    """
     try:
-        raw_schedule_data = {
-            "team_id_nullable": str(team1_id),
-            "vs_team_id_nullable": str(team2_id),
-            "league_id_nullable": "00"
-        }
+        # Fetch past matchups between the two teams
+        game_finder = leaguegamefinder.LeagueGameFinder(
+            team_id_nullable=str(team1_id),
+            vs_team_id_nullable=str(team2_id),
+            league_id_nullable="00"
+        )
+        df_list = game_finder.get_data_frames()
 
-        game_finder = leaguegamefinder.LeagueGameFinder(**raw_schedule_data)
-        df = game_finder.get_data_frames()[0]
-
-        # Fix NaN values
-        df.replace({np.nan: None}, inplace=True)
-
-        if df.empty:
+        if not df_list or df_list[0].empty:
             raise HTTPException(status_code=404, detail=f"No matchups found between {team1_id} and {team2_id}")
 
-        games = []
-        for _, row in df.iterrows():
-            try:
-                game = ScheduledGame(
-                    season_id=int(row["SEASON_ID"]),
-                    team_id=int(row["TEAM_ID"]),
-                    team_abbreviation=row["TEAM_ABBREVIATION"],
-                    team_name=row["TEAM_NAME"],
-                    game_id=row["GAME_ID"],
-                    game_date=row["GAME_DATE"],
-                    matchup=row["MATCHUP"],
-                    win_loss=row["WL"],
-                    minutes=int(row["MIN"]) if row["MIN"] is not None else 0,
-                    points=int(row["PTS"]) if row["PTS"] is not None else 0,
-                    field_goals_made=int(row["FGM"]) if row["FGM"] is not None else 0,
-                    field_goals_attempted=int(row["FGA"]) if row["FGA"] is not None else 0,
-                    field_goal_pct=float(row["FG_PCT"]) if row["FG_PCT"] is not None else 0.0,
-                    three_point_made=int(row["FG3M"]) if row["FG3M"] is not None else 0,
-                    three_point_attempted=int(row["FG3A"]) if row["FG3A"] is not None else 0,
-                    three_point_pct=float(row["FG3_PCT"]) if row["FG3_PCT"] is not None else 0.0,
-                    free_throws_made=int(row["FTM"]) if row["FTM"] is not None else 0,
-                    free_throws_attempted=int(row["FTA"]) if row["FTA"] is not None else 0,
-                    free_throw_pct=float(row["FT_PCT"]) if row["FT_PCT"] is not None else 0.0,
-                    offensive_rebounds=int(row["OREB"]) if row["OREB"] is not None else 0,
-                    defensive_rebounds=int(row["DREB"]) if row["DREB"] is not None else 0,
-                    total_rebounds=int(row["REB"]) if row["REB"] is not None else 0,
-                    assists=int(row["AST"]) if row["AST"] is not None else 0,
-                    steals=int(row["STL"]) if row["STL"] is not None else 0,
-                    blocks=int(row["BLK"]) if row["BLK"] is not None else 0,
-                    turnovers=int(row["TOV"]) if row["TOV"] is not None else 0,
-                    personal_fouls=int(row["PF"]) if row["PF"] is not None else 0,
-                    plus_minus=float(row["PLUS_MINUS"]) if row["PLUS_MINUS"] is not None else 0.0
-                )
-                games.append(game)
+        df = df_list[0]
 
-            except ValidationError as ve:
-                print(f"Validation error for game {row['GAME_ID']}: {ve}")
+        # Replace NaN values with None to prevent validation errors
+        df.replace({np.nan: None}, inplace=True)
+
+        # Process game records into structured objects
+        games = []
+        for game in df.to_dict(orient="records"):
+            scheduled_game = ScheduledGame(
+                season_id=int(str(game["SEASON_ID"])[1:]),  # Removes leading digit
+                team_id=int(game["TEAM_ID"]),
+                team_abbreviation=game["TEAM_ABBREVIATION"],
+                game_id=game["GAME_ID"],
+                game_date=game["GAME_DATE"],
+                matchup=format_matchup(game["MATCHUP"]),  # Converts matchup format
+                win_loss=game.get("WL"),
+                points_scored=int(game["PTS"]) if game.get("PTS") else None,
+                field_goal_pct=float(game["FG_PCT"]) if game.get("FG_PCT") else None,
+                three_point_pct=float(game["FG3_PCT"]) if game.get("FG3_PCT") else None
+            )
+            games.append(scheduled_game)
 
         return ScheduleResponse(games=games)
 
-    except HTTPException as e:
-        raise e
+    except HTTPException as http_exc:
+        raise http_exc
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching matchup games: {e}")
+        raise HTTPException(status_code=500, detail=f"Error fetching matchup games between {team1_id} and {team2_id}: {e}")
+
     
 
-def getTeamInfo(team_id: int) -> ScheduleResponse:
-    """Fetch and validate team information and schedule from NBA API using LeagueGameFinder."""
+async def getTeamInfo(team_id: int) -> ScheduleResponse:
+    """
+    Retrieves and structures all games played by a specific NBA team across seasons.
+
+    Args:
+        team_id (int): Unique identifier for the NBA team.
+
+    Returns:
+        ScheduleResponse: A structured list of all games played by the team.
+
+    Raises:
+        HTTPException:
+            - 404: If no data is found for the given team.
+            - 500: If an error occurs during data retrieval.
+    """
     try:
-        raw_schedule_data = {
-            "team_id_nullable": str(team_id),
-            "league_id_nullable": "00"
-        }
+        # Fetch team-related game data
+        game_finder = leaguegamefinder.LeagueGameFinder(
+            team_id_nullable=str(team_id),
+            league_id_nullable="00"
+        )
+        df_list = game_finder.get_data_frames()
 
-        game_finder = leaguegamefinder.LeagueGameFinder(**raw_schedule_data)
-        df = game_finder.get_data_frames()[0]
-
-        if df.empty:
+        if not df_list or df_list[0].empty:
             raise HTTPException(status_code=404, detail=f"No data found for team ID {team_id}")
 
-        # Fix NaN values
+        df = df_list[0]
+
+        # Replace NaN values with None to prevent validation errors
         df.replace({np.nan: None}, inplace=True)
 
+        # Process game records into structured objects
         games = []
-        for _, row in df.iterrows():
-            try:
-                game = ScheduledGame(
-                    season_id=int(row["SEASON_ID"]),
-                    team_id=int(row["TEAM_ID"]),
-                    team_abbreviation=row["TEAM_ABBREVIATION"],
-                    team_name=row["TEAM_NAME"],
-                    game_id=row["GAME_ID"],
-                    game_date=row["GAME_DATE"],
-                    matchup=row["MATCHUP"],
-                    win_loss=row["WL"],
-                    minutes=int(row["MIN"]) if row["MIN"] is not None else 0,
-                    points=int(row["PTS"]) if row["PTS"] is not None else 0,
-                    field_goals_made=int(row["FGM"]) if row["FGM"] is not None else 0,
-                    field_goals_attempted=int(row["FGA"]) if row["FGA"] is not None else 0,
-                    field_goal_pct=float(row["FG_PCT"]) if row["FG_PCT"] is not None else 0.0,
-                    three_point_made=int(row["FG3M"]) if row["FG3M"] is not None else 0,
-                    three_point_attempted=int(row["FG3A"]) if row["FG3A"] is not None else 0,
-                    three_point_pct=float(row["FG3_PCT"]) if row["FG3_PCT"] is not None else 0.0,
-                    free_throws_made=int(row["FTM"]) if row["FTM"] is not None else 0,
-                    free_throws_attempted=int(row["FTA"]) if row["FTA"] is not None else 0,
-                    free_throw_pct=float(row["FT_PCT"]) if row["FT_PCT"] is not None else 0.0,
-                    offensive_rebounds=int(row["OREB"]) if row["OREB"] is not None else 0,
-                    defensive_rebounds=int(row["DREB"]) if row["DREB"] is not None else 0,
-                    total_rebounds=int(row["REB"]) if row["REB"] is not None else 0,
-                    assists=int(row["AST"]) if row["AST"] is not None else 0,
-                    steals=int(row["STL"]) if row["STL"] is not None else 0,
-                    blocks=int(row["BLK"]) if row["BLK"] is not None else 0,
-                    turnovers=int(row["TOV"]) if row["TOV"] is not None else 0,
-                    personal_fouls=int(row["PF"]) if row["PF"] is not None else 0,
-                    plus_minus=float(row["PLUS_MINUS"])
-                )
-                games.append(game)
+        for game in df.to_dict(orient="records"):
+            scheduled_game = ScheduledGame(
+                season_id=int(str(game["SEASON_ID"])[1:]),  # Removes the leading digit
+                team_id=int(game["TEAM_ID"]),
+                team_abbreviation=game["TEAM_ABBREVIATION"],
+                game_id=game["GAME_ID"],
+                game_date=game["GAME_DATE"],
+                matchup=format_matchup(game["MATCHUP"]),  # Converts matchup format
+                win_loss=game.get("WL"),
+                points_scored=int(game["PTS"]) if game.get("PTS") is not None else None,
+                field_goal_pct=float(game["FG_PCT"]) if game.get("FG_PCT") is not None else 0.0,
+                three_point_pct=float(game["FG3_PCT"]) if game.get("FG3_PCT") is not None else 0.0,
+                free_throw_pct=float(game["FT_PCT"]) if game.get("FT_PCT") is not None else 0.0,
+                plus_minus=float(game["PLUS_MINUS"]) if game.get("PLUS_MINUS") is not None else 0.0
+            )
+            games.append(scheduled_game)
 
-            except ValidationError as ve:
-                print(f"Validation error for game {row['GAME_ID']}: {ve}")
+        return ScheduleResponse(games=games)
 
-        return ScheduleResponse(season="N/A", games=games)
-
-    except HTTPException as e:
-        raise e
+    except HTTPException as http_exc:
+        raise http_exc
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching team info: {e}")
+        raise HTTPException(status_code=500, detail=f"Error fetching team info for team ID {team_id}: {e}")
+
+
     
-def getLiveTeam(team_id: int) -> TeamDetails:
-    """Fetch team standings and details from NBA API."""
+async def getCurrentTeamRecord(team_id: int) -> TeamDetails:
+    """
+    Fetches a team record in the current season.
+    Args:
+        team_id (int): Unique identifier for the NBA team.
+    Returns:
+        TeamDetails: Team ranking, win-loss record, and other performance stats.
+    """
     try:
         raw_standings = leaguestandingsv3.LeagueStandingsV3(
             league_id="00", 
-            season="2023-24", 
+            season="2023-24",  # Always fetches the current season
             season_type="Regular Season"
         ).get_dict()
 
         standings_data = raw_standings["resultSets"][0]["rowSet"]
         column_names = raw_standings["resultSets"][0]["headers"]
 
-        # Find team data
+        # Find the specific team's data
         team_data = next((team for team in standings_data if team[2] == team_id), None)
 
         if not team_data:
             raise HTTPException(status_code=404, detail=f"No team details found for team ID {team_id}")
 
-        # Convert to dictionary for mapping
+        # Convert data to dictionary for easy mapping
         team_dict = dict(zip(column_names, team_data))
 
         return TeamDetails(
-            team_id=team_dict["TeamID"],  
+            team_id=team_dict["TeamID"],
             team_name=team_dict["TeamName"],
             conference=team_dict["Conference"],
             division=team_dict["Division"],
@@ -340,138 +343,173 @@ def getLiveTeam(team_id: int) -> TeamDetails:
         )
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching team details: {e}")
+        raise HTTPException(status_code=500, detail=f"Error fetching team standings: {e}")
+
     
     
-def getTeamRoster(team_id: int, season: str) -> TeamRoster:
-    """Fetch the full roster from NBA API."""
+def fetchTeamRoster(team_id: int, season: str) -> TeamRoster:
+    """
+    Fetches the full team roster (players & coaching staff) from the NBA API.
+
+    Args:
+        team_id (int): The NBA team ID.
+        season (str): The season year in "YYYY-YY" format.
+
+    Returns:
+        TeamRoster: A structured response containing team roster details.
+
+    Raises:
+        HTTPException:
+            - 404 if no roster is found for the given team/season.
+            - 500 for any other errors.
+    """
     try:
-        # Fetch roster
+        # Fetch roster data from NBA API
         raw_roster = commonteamroster.CommonTeamRoster(team_id=team_id, season=season).get_dict()
         player_data = raw_roster["resultSets"][0]["rowSet"]
 
         if not player_data:
             raise HTTPException(status_code=404, detail=f"No roster found for team ID {team_id} in {season}")
 
-        # Convert player data to schema
-        players = []
+        # Extract column headers for mapping
         column_names = raw_roster["resultSets"][0]["headers"]
 
+        # Convert player data into structured Player objects
+        players: List[Player] = []
         for row in player_data:
             player_dict = dict(zip(column_names, row))
 
-            players.append(
-                Player(
-                    player_id=int(player_dict["PLAYER_ID"]),
-                    name=player_dict["PLAYER"],
-                    jersey_number=player_dict["NUM"] or None,
-                    position=player_dict["POSITION"] or None,
-                    height=player_dict["HEIGHT"] or None,
-                    weight=int(player_dict["WEIGHT"]) or None,
-                    birth_date=player_dict["BIRTH_DATE"] or None,
-                    age=int(player_dict["AGE"]) or None,
-                    experience=str(player_dict["EXP"]),
-                    school=player_dict["SCHOOL"] or None
-                )
-            )
+            players.append(Player(
+                player_id=int(player_dict["PLAYER_ID"]),
+                name=player_dict["PLAYER"],
+                jersey_number=player_dict["NUM"] or None,
+                position=player_dict["POSITION"] or None,
+                height=player_dict["HEIGHT"] or None,
+                weight=int(player_dict["WEIGHT"]) if player_dict["WEIGHT"] else None,
+                birth_date=player_dict["BIRTH_DATE"] or None,
+                age=int(player_dict["AGE"]) if player_dict["AGE"] else None,
+                experience="Rookie" if str(player_dict["EXP"]).upper() == "R" else str(player_dict["EXP"]), # Update 'R' to 'Rookie
+                school=player_dict["SCHOOL"] or None
+            ))
 
-        # Return schema
+        # Return formatted response
         return TeamRoster(
             team_id=team_id,
-            team_name=player_data[0][1],
+            team_name=player_data[0][1],  # Extract team name
             season=season,
-            players=players,
+            players=players
         )
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching team roster: {e}")
 
-def getPlayerDetails(player_id: int) -> PlayerSummary:
-    """Fetch details for a specific player using PlayerIndex API."""
+async def getPlayerDetails(player_id: int) -> PlayerSummary:
+    """
+    Fetches detailed player information using the NBA PlayerIndex API.
+
+    Args:
+        player_id (int): Unique identifier for the player.
+
+    Returns:
+        PlayerSummary: Player details including stats, team, and career history.
+
+    Raises:
+        HTTPException: If no data is found or an error occurs during processing.
+    """
     try:
-        # Fetch player data from API
+        # Fetch player data from NBA API
         raw_data = playerindex.PlayerIndex().get_dict()
         column_names = raw_data["resultSets"][0]["headers"]  # Column names from API
         player_list = raw_data["resultSets"][0]["rowSet"]  # Player data rows
 
-        # Convert rows into a list of dictionaries
+        # Convert API response into a list of dictionaries
         players = [dict(zip(column_names, row)) for row in player_list]
 
-        # Find the player by ID
-        player_dict = next((player for player in players if player["PERSON_ID"] == player_id), None)
+        # Find the requested player by ID
+        player_data = next((player for player in players if player["PERSON_ID"] == player_id), None)
 
-        if not player_dict:
+        if not player_data:
             raise HTTPException(status_code=404, detail=f"No details found for player ID {player_id}")
 
-        #Return response using dictionary
+        # Map API response to PlayerSummary schema
         return PlayerSummary(
-            player_id=player_dict["PERSON_ID"],
-            full_name=f"{player_dict['PLAYER_FIRST_NAME']} {player_dict['PLAYER_LAST_NAME']}",
-            team_id=player_dict["TEAM_ID"] if player_dict["TEAM_ID"] else None,
-            team_name=player_dict["TEAM_NAME"] if player_dict["TEAM_NAME"] else None,
-            team_abbreviation=player_dict["TEAM_ABBREVIATION"] if player_dict["TEAM_ABBREVIATION"] else None,
-            jersey_number=player_dict["JERSEY_NUMBER"] if player_dict["JERSEY_NUMBER"] else None,
-            position=player_dict["POSITION"] if player_dict["POSITION"] else None,
-            height=player_dict["HEIGHT"] if player_dict["HEIGHT"] else None,
-            weight=int(player_dict["WEIGHT"]) if player_dict["WEIGHT"] else None,
-            college=player_dict["COLLEGE"] if player_dict["COLLEGE"] else None,
-            country=player_dict["COUNTRY"] if player_dict["COUNTRY"] else None,
-            draft_year=int(player_dict["DRAFT_YEAR"]) if player_dict["DRAFT_YEAR"] else None,
-            draft_round=int(player_dict["DRAFT_ROUND"]) if player_dict["DRAFT_ROUND"] else None,
-            draft_number=int(player_dict["DRAFT_NUMBER"]) if player_dict["DRAFT_NUMBER"] else None,
-            from_year=int(player_dict["FROM_YEAR"]) if player_dict["FROM_YEAR"] else None,
-            to_year=int(player_dict["TO_YEAR"]) if player_dict["TO_YEAR"] else None,
-            points_per_game=float(player_dict["PTS"]) if player_dict["PTS"] else None,
-            rebounds_per_game=float(player_dict["REB"]) if player_dict["REB"] else None,
-            assists_per_game=float(player_dict["AST"]) if player_dict["AST"] else None
+            player_id=player_data["PERSON_ID"],
+            full_name=f"{player_data['PLAYER_FIRST_NAME']} {player_data['PLAYER_LAST_NAME']}",
+            team_id=player_data.get("TEAM_ID"),
+            team_name=player_data.get("TEAM_NAME"),
+            team_abbreviation=player_data.get("TEAM_ABBREVIATION"),
+            jersey_number=player_data.get("JERSEY_NUMBER"),
+            position=player_data.get("POSITION"),
+            height=player_data.get("HEIGHT"),
+            weight=int(player_data["WEIGHT"]) if player_data.get("WEIGHT") else None,
+            college=player_data.get("COLLEGE"),
+            country=player_data.get("COUNTRY"),
+            draft_year=int(player_data["DRAFT_YEAR"]) if player_data.get("DRAFT_YEAR") else None,
+            draft_round=int(player_data["DRAFT_ROUND"]) if player_data.get("DRAFT_ROUND") else None,
+            draft_number=int(player_data["DRAFT_NUMBER"]) if player_data.get("DRAFT_NUMBER") else None,
+            from_year=int(player_data["FROM_YEAR"]) if player_data.get("FROM_YEAR") else None,
+            to_year=int(player_data["TO_YEAR"]) if player_data.get("TO_YEAR") else None,
+            points_per_game=float(player_data["PTS"]) if player_data.get("PTS") else None,
+            rebounds_per_game=float(player_data["REB"]) if player_data.get("REB") else None,
+            assists_per_game=float(player_data["AST"]) if player_data.get("AST") else None
         )
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching player details: {e}")
 
+async def fetchPlayersByName(name: str) -> List[PlayerSummary]:
+    """
+    Retrieves players matching the search query.
 
-def searchPlayerByName(player_name: str) -> List[PlayerSummary]:
-    """Search for players by name using PlayerIndex API."""
+    Args:
+        name (str): The player's full name, first name, or last name.
+
+    Returns:
+        List[PlayerSummary]: List of matching players.
+    """
     try:
-        # Fetch player data from API
+        # Fetch player data from NBA API
         raw_data = playerindex.PlayerIndex().get_dict()
-        column_names = raw_data["resultSets"][0]["headers"]  # Column names from API
-        player_list = raw_data["resultSets"][0]["rowSet"]  # Player data rows
+        column_names = raw_data["resultSets"][0]["headers"]
+        player_list = raw_data["resultSets"][0]["rowSet"]
 
-        # Convert rows into a list of dictionaries
+        # Convert player list to dictionary format
         players = [dict(zip(column_names, row)) for row in player_list]
 
-        # Filter players that match the search query
+        # Convert search query to lowercase for case-insensitive comparison
+        name = name.lower()
+
+        # Filter players by checking if query matches full name, first name, or last name
         matching_players = [
             player for player in players
-            if player_name.lower() in f"{player['PLAYER_FIRST_NAME']} {player['PLAYER_LAST_NAME']}".lower()
+            if name in f"{player['PLAYER_FIRST_NAME']} {player['PLAYER_LAST_NAME']}".lower()
         ]
 
         if not matching_players:
-            raise HTTPException(status_code=404, detail=f"No players found matching '{player_name}'")
+            raise HTTPException(status_code=404, detail=f"No players found matching '{name}'")
 
-        #Return list of players
+        # Process matching players into structured response
         return [
             PlayerSummary(
                 player_id=player["PERSON_ID"],
                 full_name=f"{player['PLAYER_FIRST_NAME']} {player['PLAYER_LAST_NAME']}",
-                team_id=player["TEAM_ID"] if player["TEAM_ID"] else None,
-                team_name=player["TEAM_NAME"] if player["TEAM_NAME"] else None,
-                team_abbreviation=player["TEAM_ABBREVIATION"] if player["TEAM_ABBREVIATION"] else None,
-                jersey_number=player["JERSEY_NUMBER"] if player["JERSEY_NUMBER"] else None,
-                position=player["POSITION"] if player["POSITION"] else None,
-                height=player["HEIGHT"] if player["HEIGHT"] else None,
-                weight=int(player["WEIGHT"]) if player["WEIGHT"] else None,
-                college=player["COLLEGE"] if player["COLLEGE"] else None,
-                country=player["COUNTRY"] if player["COUNTRY"] else None,
-                draft_year=int(player["DRAFT_YEAR"]) if player["DRAFT_YEAR"] else None,
-                draft_round=int(player["DRAFT_ROUND"]) if player["DRAFT_ROUND"] else None,
-                draft_number=int(player["DRAFT_NUMBER"]) if player["DRAFT_NUMBER"] else None,
-                from_year=int(player["FROM_YEAR"]) if player["FROM_YEAR"] else None,
-                to_year=int(player["TO_YEAR"]) if player["TO_YEAR"] else None,
-                points_per_game=float(player["PTS"]) if player["PTS"] else None,
-                rebounds_per_game=float(player["REB"]) if player["REB"] else None,
-                assists_per_game=float(player["AST"]) if player["AST"] else None
+                team_id=player.get("TEAM_ID"),
+                team_name=player.get("TEAM_NAME"),
+                team_abbreviation=player.get("TEAM_ABBREVIATION"),
+                jersey_number=player.get("JERSEY_NUMBER"),
+                position=player.get("POSITION"),
+                height=player.get("HEIGHT"),
+                weight=int(player["WEIGHT"]) if player.get("WEIGHT") else None,
+                college=player.get("COLLEGE"),
+                country=player.get("COUNTRY"),
+                draft_year=int(player["DRAFT_YEAR"]) if player.get("DRAFT_YEAR") else None,
+                draft_round=int(player["DRAFT_ROUND"]) if player.get("DRAFT_ROUND") else None,
+                draft_number=int(player["DRAFT_NUMBER"]) if player.get("DRAFT_NUMBER") else None,
+                from_year=int(player["FROM_YEAR"]) if player.get("FROM_YEAR") else None,
+                to_year=int(player["TO_YEAR"]) if player.get("TO_YEAR") else None,
+                points_per_game=float(player["PTS"]) if player.get("PTS") else None,
+                rebounds_per_game=float(player["REB"]) if player.get("REB") else None,
+                assists_per_game=float(player["AST"]) if player.get("AST") else None
             )
             for player in matching_players
         ]

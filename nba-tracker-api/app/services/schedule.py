@@ -2,6 +2,7 @@ import numpy as np
 from nba_api.stats.endpoints import leaguegamefinder
 from app.schemas.schedule import ScheduledGame, ScheduleResponse
 from fastapi import HTTPException
+from app.utils.formatters import format_matchup
 
 async def getSeasonSchedule(season: str) -> ScheduleResponse:
     """
@@ -99,10 +100,3 @@ async def getTeamSchedule(team_id: int, season: str) -> ScheduleResponse:
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching team schedule: {e}")
-
-def format_matchup(matchup: str) -> str:
-    """Converts matchup format from 'TEAM @ TEAM' to 'TEAM vs. TEAM'."""
-    teams = matchup.split(" @ ")
-    if len(teams) == 2:
-        return f"{teams[1]} vs {teams[0]}"  # Swap for home vs away format
-    return matchup  # Return original if format doesn't match
