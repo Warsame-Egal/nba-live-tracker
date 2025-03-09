@@ -29,16 +29,23 @@ async def scoreboard():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/scoreboard/team/{team_id}/date/{game_date}", response_model=ScheduleResponse, tags=["schedule"],
-            summary="Get Team Games by Date", description="Retrieve all games played by a team on a given date.")
+@router.get("/scoreboard/team/{team_id}/game-date/{game_date}", 
+            response_model=ScheduleResponse, 
+            tags=["scoreboard"],
+            summary="Get Team's Games on a Specific Date", 
+            description="Retrieve all games played by a team on a given date.")
 async def team_games_by_date(team_id: int, game_date: str):
     """
     API route to fetch and return all games played by a team on a given date.
+    Args:
+        team_id (int): Unique NBA team identifier.
+        game_date (str): The game date in "YYYY-MM-DD" format.
     """
     try:
-        return getTeamGamesByDate(team_id, game_date)
+        return await getTeamGamesByDate(team_id, game_date)
     except HTTPException as e:
         raise e
+
     
 @router.get("/scoreboard/matchup/{team1_id}/{team2_id}", response_model=ScheduleResponse, tags=["schedule"],
             summary="Get Head-to-Head Matchups", description="Retrieve past games where two teams played against each other.")

@@ -60,7 +60,7 @@ The NBA Schedule API provides endpoints to retrieve game schedules for an entire
 | `team_abbreviation` | `str`   | Three-letter team abbreviation (e.g., `"GSW"`). |
 | `game_id`           | `str`   | Unique game identifier.                         |
 | `game_date`         | `str`   | Scheduled date of the game (`YYYY-MM-DD`).      |
-| `matchup`           | `str`   | Matchup format (`"GSW vs. SAC"`).               |
+| `matchup`           | `str`   | Matchup format (`"GSW vs SAC"`).                |
 | `win_loss`          | `str`   | `"W"` (Win) or `"L"` (Loss).                    |
 | `points_scored`     | `int`   | Total points scored by the team.                |
 | `field_goal_pct`    | `float` | Field goal percentage (`0.427 = 42.7%`).        |
@@ -82,7 +82,7 @@ The NBA Schedule API provides endpoints to retrieve game schedules for an entire
 ### Future Enhancements:
 
 - Add player statistics per game.
-- Filter schedule by home vs. away games.
+- Filter schedule by home vs away games.
 
 ---
 
