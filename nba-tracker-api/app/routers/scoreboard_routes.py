@@ -2,7 +2,7 @@ from typing import List
 from fastapi import APIRouter, HTTPException
 from app.services.scoreboard_service import (
     getScoreboard, getSeasonSchedule, getTeamGamesByDate,
-      getTeamSchedule, getMatchupGames, getTeamInfo, getTeamDetails,
+      getTeamSchedule, getMatchupGames, getTeamInfo, getLiveTeam,
       getTeamRoster, searchPlayerByName, getPlayerDetails
 )
 from app.schemas.scoreboard_schema import (
@@ -82,14 +82,14 @@ async def get_team_info(team_id: int):
     except HTTPException as e:
         raise e
     
-@router.get("/scoreboard/team/{team_id}/details/{season}", response_model=TeamDetails, tags=["teams"],
-            summary="Get Team Details", description="Fetch a team's record, ranking, and performance for a given season.")
-async def team_details(team_id: int, season: str):
+@router.get("/scoreboard/team/{team_id}", response_model=TeamDetails, tags=["teams"],
+            summary="Get Live Team ", description="Fetch a team's record, ranking, and performance for a team that is playing today")
+async def live_team(team_id: int):
     """
-    Fetches team details (rank, record, performance) for a given season.
+    Fetches team details (rank, record, performance).
     """
     try:
-        return getTeamDetails(team_id)
+        return getLiveTeam(team_id)
     except HTTPException as e:
         raise e
     

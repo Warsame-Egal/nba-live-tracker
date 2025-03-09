@@ -2,6 +2,7 @@ export interface ScoreboardResponse {
   scoreboard: Scoreboard
 }
 
+// Main scoreboard structure
 export interface Scoreboard {
   gameDate: string
   leagueId: string
@@ -9,6 +10,7 @@ export interface Scoreboard {
   games: Game[]
 }
 
+// each game
 export interface Game {
   gameId: string
   gameCode: string
@@ -34,7 +36,29 @@ export interface Game {
   pbOdds: PbOdds
 }
 
+// game leaders (top performers)
+export interface GameLeaders {
+  homeLeaders: HomeLeaders
+  awayLeaders: AwayLeaders
+}
+
+// home team details
 export interface HomeTeam {
+  teamId: number
+  teamName: string
+  teamCity: string
+  teamTricode: string
+  wins: number
+  losses: number
+  score: number
+  seed?: number
+  inBonus?: string
+  timeoutsRemaining: number
+  periods: Period[]
+}
+
+// away team details
+export interface AwayTeam {
   teamId: number
   teamName: string
   teamCity: string
@@ -54,31 +78,13 @@ export interface Period {
   score: number
 }
 
-export interface AwayTeam {
-  teamId: number
-  teamName: string
-  teamCity: string
-  teamTricode: string
-  wins: number
-  losses: number
-  score: number
-  seed?: number
-  inBonus?: string
-  timeoutsRemaining: number
-  periods: Period2[]
-}
-
-export interface Period2 {
-  period: number
-  periodType: string
-  score: number
-}
-
+// game leaders
 export interface GameLeaders {
   homeLeaders: HomeLeaders
   awayLeaders: AwayLeaders
 }
 
+// home team leaders
 export interface HomeLeaders {
   personId: number
   name: string
@@ -90,6 +96,7 @@ export interface HomeLeaders {
   assists: number
 }
 
+// away team leaders
 export interface AwayLeaders {
   personId: number
   name: string
@@ -101,6 +108,7 @@ export interface AwayLeaders {
   assists: number
 }
 
+// for betting odds
 export interface PbOdds {
   team?: string
   odds: number
