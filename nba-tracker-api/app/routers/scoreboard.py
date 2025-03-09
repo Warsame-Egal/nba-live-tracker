@@ -54,21 +54,22 @@ async def get_matchup_games(team1_id: int, team2_id: int):
     API route to fetch and return all past matchups between two teams.
     """
     try:
-        return await getMatchupGames(team1_id, team2_id)  # Added 'await' for async consistency
+        return await getMatchupGames(team1_id, team2_id)
     except HTTPException as e:
         raise e
 
 
-@router.get("/scoreboard/team/{team_id}/info", response_model=ScheduleResponse, tags=["schedule"],
-            summary="Get Team's Full Season Schedule", description="Retrieve all time games from a team season schedule for a team.")
+@router.get("/scoreboard/team/{team_id}/info", response_model=ScheduleResponse, tags=["scoreboard"],
+            summary="Get Team's Full Season Schedule", description="Retrieve all games played by a team across seasons.")
 async def get_team_info(team_id: int):
     """
-    Fetches all games played by a specific team in the current or past season.
+    API route to fetch and return all games played by a specific team across seasons.
     """
     try:
-        return getTeamInfo(team_id)
+        return await getTeamInfo(team_id) 
     except HTTPException as e:
         raise e
+
     
 @router.get("/scoreboard/team/{team_id}", response_model=TeamDetails, tags=["teams"],
             summary="Get Live Team ", description="Fetch a team's record, ranking, and performance for a team that is playing today")
