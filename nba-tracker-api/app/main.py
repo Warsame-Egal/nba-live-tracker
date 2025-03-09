@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers.scoreboard_routes import router as scoreboard_router
+from app.routers.scoreboard import router as scoreboard_router
+from app.routers.schedule import router as schedule_routes
 from app.routers.health import router as health_router
 
 # Initialize FastAPI app
@@ -27,5 +28,8 @@ def home():
 # Register API route for health check
 app.include_router(health_router, prefix="/api/v1")
 
-# Register API route for live scores
+# Register API route for scoreboard
 app.include_router(scoreboard_router, prefix="/api/v1")
+
+# Register API route for schedule
+app.include_router(schedule_routes, prefix="/api/v1")

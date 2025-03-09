@@ -1,53 +1,33 @@
 from typing import List
 from fastapi import APIRouter, HTTPException
-from app.services.scoreboard_service import (
-    getScoreboard, getSeasonSchedule, getTeamGamesByDate,
-      getTeamSchedule, getMatchupGames, getTeamInfo, getLiveTeam,
-      getTeamRoster, searchPlayerByName, getPlayerDetails
+from app.services.scoreboard import (
+    getScoreboard, getTeamGamesByDate, getMatchupGames,
+    getTeamInfo, getLiveTeam, getTeamRoster,
+    searchPlayerByName, getPlayerDetails
 )
-from app.schemas.scoreboard_schema import (
-    ScoreboardResponse, ScheduleResponse, TeamRoster, TeamDetails, PlayerSummary
-)
+from app.schemas.scoreboard import ScoreboardResponse
+from app.schemas.player import TeamRoster, PlayerSummary
+from app.schemas.team import TeamDetails
+from app.schemas.schedule import ScheduleResponse
 
 router = APIRouter()
 
 @router.get("/scoreboard", response_model=ScoreboardResponse, tags=["scoreboard"],
-             summary="Get Live NBA Scores", description="Fetch and return live NBA scores from the NBA API.")
+            summary="Get Live NBA Scores",
+            description="Fetch and return live NBA scores from the NBA API.")
 async def scoreboard():
     """
-    API route to fetch and return live NBA scores.
-    Calls the service function that fetches data from the NBA API.
+    This endpoint fetches live game data, including team scores, game status, 
+    period, and other relevant details.
+
     """
     try:
-        # Call the service function and return the response
-        return getScoreboard()
-    except HTTPException as e:
-        raise e
-    except Exception as e:
-        # Handle any other errors and return an HTTP 500 error response
-        raise HTTPException(status_code=500, detail=str(e))
-    
-    
-@router.get("/scoreboard/schedule/{season}", response_model=ScheduleResponse, tags=["schedule"],
-            summary="Get Full Season Schedule", description="Fetch all NBA games for a given season.")
-async def season_schedule(season: str):
-    """
-    API route to fetch and return all NBA games for a given season.
-    """
-    try:
-        return getSeasonSchedule(season)
+        return await getScoreboard()
     except HTTPException as e:
         raise e
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    
-@router.get("/scoreboard/team/{team_id}/season/{season}", response_model=ScheduleResponse, tags=["schedule"],
-            summary="Get Team's Full Season Schedule", description="Fetch all games for a specific team in a given season.")
-async def team_schedule(team_id: int, season: str):
-    try:
-        return getTeamSchedule(team_id, season)
-    except HTTPException as e:
-        raise e
+
 
 @router.get("/scoreboard/team/{team_id}/date/{game_date}", response_model=ScheduleResponse, tags=["schedule"],
             summary="Get Team Games by Date", description="Retrieve all games played by a team on a given date.")

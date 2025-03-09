@@ -5,162 +5,113 @@ from nba_api.stats.endpoints import leaguestandingsv3
 from nba_api.stats.endpoints import commonteamroster
 from nba_api.stats.endpoints import leaguegamefinder
 from nba_api.stats.endpoints import playerindex
-from app.schemas.scoreboard_schema import (
-    ScoreboardResponse, Scoreboard, ScheduledGame,
-    ScheduleResponse, TeamDetails, TeamRoster,
-    Player, PlayerSummary
+from app.schemas.scoreboard import (
+    Team, LiveGame, PlayerStats, GameLeaders, ScoreboardResponse, Scoreboard
 )
+from app.schemas.player import TeamRoster, Player, PlayerSummary
+from app.schemas.team import TeamDetails
+from app.schemas.schedule import ScheduledGame, ScheduleResponse
 from fastapi import HTTPException
 from pydantic import ValidationError
-
-def getScoreboard() -> ScoreboardResponse:
-    """Fetch and validate live NBA scores."""
-    try:
-        raw_scoreboard = scoreboard.ScoreBoard().get_dict()
-        
-        raw_scoreboard_data = raw_scoreboard.get("scoreboard")
-
-        if not raw_scoreboard_data:
-            raise HTTPException(status_code=404, detail="No live scoreboard data available")
-
-        validated_scoreboard = Scoreboard(**raw_scoreboard_data)
-        return ScoreboardResponse(scoreboard=validated_scoreboard)
-
-    except ValidationError as ve:
-        print(f"Validation Error: {ve.json()}")
-        raise HTTPException(status_code=422, detail="Invalid scoreboard data format")
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching live scores: {e}")
-
-
-def getSeasonSchedule(season: str) -> ScheduleResponse:
-    """Fetch all games for a given NBA season and format them into a structured response."""
-    try:
-        # Fetch data from NBA API
-        raw_schedule_data = {
-            "season_nullable": season,
-            "league_id_nullable": "00"
-        }
-        game_finder = leaguegamefinder.LeagueGameFinder(**raw_schedule_data)
-        df = game_finder.get_data_frames()[0]
-
-        if df.empty:
-            raise HTTPException(status_code=404, detail=f"No games found for season {season}")
-
-        # Handle NaN values by replacing them with None
-        df.replace({np.nan: None}, inplace=True)
-
-        # Convert DataFrame rows into Pydantic models
-        games = []
-        for _, row in df.iterrows():
-            try:
-                game = ScheduledGame(
-                    season_id=int(row["SEASON_ID"]),
-                    team_id=int(row["TEAM_ID"]),
-                    team_abbreviation=row["TEAM_ABBREVIATION"],
-                    team_name=row["TEAM_NAME"],
-                    game_id=row["GAME_ID"],
-                    game_date=row["GAME_DATE"],
-                    matchup=row["MATCHUP"],
-                    win_loss=row["WL"] if row["WL"] is not None else None,  # Handle missing W/L
-                    minutes=int(row["MIN"]) if row["MIN"] is not None else 0,
-                    points=int(row["PTS"]) if row["PTS"] is not None else 0,
-                    field_goals_made=int(row["FGM"]) if row["FGM"] is not None else 0,
-                    field_goals_attempted=int(row["FGA"]) if row["FGA"] is not None else 0,
-                    field_goal_pct=float(row["FG_PCT"]) if row["FG_PCT"] is not None else 0.0,
-                    three_point_made=int(row["FG3M"]) if row["FG3M"] is not None else 0,
-                    three_point_attempted=int(row["FG3A"]) if row["FG3A"] is not None else 0,
-                    three_point_pct=float(row["FG3_PCT"]) if row["FG3_PCT"] is not None else 0.0,
-                    free_throws_made=int(row["FTM"]) if row["FTM"] is not None else 0,
-                    free_throws_attempted=int(row["FTA"]) if row["FTA"] is not None else 0,
-                    free_throw_pct=float(row["FT_PCT"]) if row["FT_PCT"] is not None else 0.0,
-                    offensive_rebounds=int(row["OREB"]) if row["OREB"] is not None else 0,
-                    defensive_rebounds=int(row["DREB"]) if row["DREB"] is not None else 0,
-                    total_rebounds=int(row["REB"]) if row["REB"] is not None else 0,
-                    assists=int(row["AST"]) if row["AST"] is not None else 0,
-                    steals=int(row["STL"]) if row["STL"] is not None else 0,
-                    blocks=int(row["BLK"]) if row["BLK"] is not None else 0,
-                    turnovers=int(row["TOV"]) if row["TOV"] is not None else 0,
-                    personal_fouls=int(row["PF"]) if row["PF"] is not None else 0,
-                    plus_minus=float(row["PLUS_MINUS"]) if row["PLUS_MINUS"] is not None else 0.0
-                )
-                games.append(game)
-            except ValidationError as ve:
-                print(f"Validation error for game {row['GAME_ID']}: {ve}")
-
-        return ScheduleResponse(games=games)
-
-    except ValidationError as ve:
-        print(f"Validation Error: {ve.json()}")
-        raise HTTPException(status_code=422, detail=f"Invalid schedule data format for season {season}")
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching season schedule: {e}")
-
-def getTeamSchedule(team_id: int, season: str) -> ScheduleResponse:
-    """Fetch all games for a specific team in a given NBA season."""
-    try:
-        # Fetch data from NBA API
-        raw_schedule_data = {
-            "season_nullable": season,
-            "team_id_nullable": str(team_id),
-            "league_id_nullable": "00"
-        }
-        game_finder = leaguegamefinder.LeagueGameFinder(**raw_schedule_data)
-        df = game_finder.get_data_frames()[0]
-
-        if df.empty:
-            raise HTTPException(status_code=404, detail=f"No games found for team {team_id} in season {season}")
-
-        # Handle NaN values by replacing them with None
-        df.replace({np.nan: None}, inplace=True)
-
-        # Convert DataFrame rows into Pydantic models
-        games = []
-        for _, row in df.iterrows():
-            try:
-                game = ScheduledGame(
-                    season_id=int(row["SEASON_ID"]),
-                    team_id=int(row["TEAM_ID"]),
-                    team_abbreviation=row["TEAM_ABBREVIATION"],
-                    team_name=row["TEAM_NAME"],
-                    game_id=row["GAME_ID"],
-                    game_date=row["GAME_DATE"],
-                    matchup=row["MATCHUP"],
-                    win_loss=row["WL"] if row["WL"] is not None else None,  # Handle missing W/L
-                    minutes=int(row["MIN"]) if row["MIN"] is not None else 0,
-                    points=int(row["PTS"]) if row["PTS"] is not None else 0,
-                    field_goals_made=int(row["FGM"]) if row["FGM"] is not None else 0,
-                    field_goals_attempted=int(row["FGA"]) if row["FGA"] is not None else 0,
-                    field_goal_pct=float(row["FG_PCT"]) if row["FG_PCT"] is not None else 0.0,
-                    three_point_made=int(row["FG3M"]) if row["FG3M"] is not None else 0,
-                    three_point_attempted=int(row["FG3A"]) if row["FG3A"] is not None else 0,
-                    three_point_pct=float(row["FG3_PCT"]) if row["FG3_PCT"] is not None else 0.0,
-                    free_throws_made=int(row["FTM"]) if row["FTM"] is not None else 0,
-                    free_throws_attempted=int(row["FTA"]) if row["FTA"] is not None else 0,
-                    free_throw_pct=float(row["FT_PCT"]) if row["FT_PCT"] is not None else 0.0,
-                    offensive_rebounds=int(row["OREB"]) if row["OREB"] is not None else 0,
-                    defensive_rebounds=int(row["DREB"]) if row["DREB"] is not None else 0,
-                    total_rebounds=int(row["REB"]) if row["REB"] is not None else 0,
-                    assists=int(row["AST"]) if row["AST"] is not None else 0,
-                    steals=int(row["STL"]) if row["STL"] is not None else 0,
-                    blocks=int(row["BLK"]) if row["BLK"] is not None else 0,
-                    turnovers=int(row["TOV"]) if row["TOV"] is not None else 0,
-                    personal_fouls=int(row["PF"]) if row["PF"] is not None else 0,
-                    plus_minus=float(row["PLUS_MINUS"]) if row["PLUS_MINUS"] is not None else 0.0
-                )
-                games.append(game)
-            except ValidationError as ve:
-                print(f"Validation error for game {row['GAME_ID']}: {ve}")
-
-        return ScheduleResponse(games=games)
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching team schedule: {e}")
-    
 from datetime import datetime
 
+async def getScoreboard() -> ScoreboardResponse:
+    """
+    Fetches today's NBA games from the NBA API and structures the data into a scoreboard response.
+
+    Steps:
+    1. Retrieves current NBA game data.
+    2. Extracts game details including teams, current status, scores, and top-performing players.
+    3. Constructs structured response with live game details.
+
+    Raises:
+        HTTPException: If fetching data from the NBA API fails.
+    """
+    try:
+        board = scoreboard.ScoreBoard().get_dict()
+        raw_scoreboard_data = board.get("scoreboard", {})
+        game_date = raw_scoreboard_data.get("gameDate", "")
+        raw_games = raw_scoreboard_data.get("games", [])
+        games = []
+
+        for game in raw_games:
+            home_team_data = game["homeTeam"]
+            away_team_data = game["awayTeam"]
+
+            home_team = Team(
+                teamId=home_team_data["teamId"],
+                teamName=home_team_data["teamName"],
+                teamCity=home_team_data["teamCity"],
+                teamTricode=home_team_data["teamTricode"],
+                wins=home_team_data.get("wins"),
+                losses=home_team_data.get("losses"),
+                timeoutsRemaining=home_team_data.get("timeoutsRemaining")
+            )
+
+            away_team = Team(
+                teamId=away_team_data["teamId"],
+                teamName=away_team_data["teamName"],
+                teamCity=away_team_data["teamCity"],
+                teamTricode=away_team_data["teamTricode"],
+                wins=away_team_data.get("wins"),
+                losses=away_team_data.get("losses"),
+                timeoutsRemaining=away_team_data.get("timeoutsRemaining")
+            )
+
+            game_leaders_data = game.get("gameLeaders", {})
+            home_leader_data = game_leaders_data.get("homeLeaders")
+            away_leader_data = game_leaders_data.get("awayLeaders")
+
+            home_leader = PlayerStats(
+                personId=home_leader_data["personId"],
+                name=home_leader_data["name"],
+                jerseyNum=home_leader_data["jerseyNum"],
+                position=home_leader_data["position"],
+                teamTricode=home_leader_data["teamTricode"],
+                points=home_leader_data["points"],
+                rebounds=home_leader_data["rebounds"],
+                assists=home_leader_data["assists"]
+            ) if home_leader_data else None
+
+            away_leader = PlayerStats(
+                personId=away_leader_data["personId"],
+                name=away_leader_data["name"],
+                jerseyNum=away_leader_data["jerseyNum"],
+                position=away_leader_data["position"],
+                teamTricode=away_leader_data["teamTricode"],
+                points=away_leader_data["points"],
+                rebounds=away_leader_data["rebounds"],
+                assists=away_leader_data["assists"]
+            ) if away_leader_data else None
+
+            game_leaders = GameLeaders(
+                homeLeaders=home_leader,
+                awayLeaders=away_leader
+            ) if home_leader or away_leader else None
+
+            live_game = LiveGame(
+                gameId=game["gameId"],
+                gameStatus=game["gameStatus"],
+                gameStatusText=game["gameStatusText"].strip(),
+                period=game["period"],
+                gameClock=game.get("gameClock"),
+                gameTimeUTC=game["gameTimeUTC"],
+                homeTeam=home_team,
+                awayTeam=away_team,
+                gameLeaders=game_leaders,
+                pbOdds=None
+            )
+
+            games.append(live_game)
+
+        scoreboard_obj = Scoreboard(gameDate=game_date, games=games)
+        return ScoreboardResponse(scoreboard=scoreboard_obj)
+
+    except Exception as e:
+        print(f"Error fetching live scoreboard: {e}")
+        raise HTTPException(status_code=500, detail=f"Error fetching live scores: {e}")
+    
+    
 def getTeamGamesByDate(team_id: int, game_date: str) -> ScheduleResponse:
     """Retrieve all games played by a specific team on a given date."""
     try:
