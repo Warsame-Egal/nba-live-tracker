@@ -2,7 +2,7 @@ from typing import List
 from fastapi import APIRouter, HTTPException
 from app.services.scoreboard import (
     getScoreboard, getTeamGamesByDate, getMatchupGames,
-    getTeamInfo, getLiveTeam, getTeamRoster,
+    getTeamInfo, getCurrentTeamRecord, getTeamRoster,
     searchPlayerByName, getPlayerDetails
 )
 from app.schemas.scoreboard import ScoreboardResponse
@@ -34,7 +34,7 @@ async def scoreboard():
             tags=["scoreboard"],
             summary="Get Team's Games on a Specific Date", 
             description="Retrieve all games played by a team on a given date.")
-async def team_games_by_date(team_id: int, game_date: str):
+async def teamGamesByDate(team_id: int, game_date: str):
     """
     API route to fetch and return all games played by a team on a given date.
     Args:
@@ -49,7 +49,7 @@ async def team_games_by_date(team_id: int, game_date: str):
     
 @router.get("/scoreboard/matchup/{team1_id}/{team2_id}", response_model=ScheduleResponse, tags=["scoreboard"],
             summary="Get Head-to-Head Matchups", description="Retrieve past games where two teams played against each other.")
-async def get_matchup_games(team1_id: int, team2_id: int):
+async def matchupGames(team1_id: int, team2_id: int):
     """
     API route to fetch and return all past matchups between two teams.
     """
@@ -61,7 +61,7 @@ async def get_matchup_games(team1_id: int, team2_id: int):
 
 @router.get("/scoreboard/team/{team_id}/info", response_model=ScheduleResponse, tags=["scoreboard"],
             summary="Get Team's Full Season Schedule", description="Retrieve all games played by a team across seasons.")
-async def get_team_info(team_id: int):
+async def teamInfo(team_id: int):
     """
     API route to fetch and return all games played by a specific team across seasons.
     """
@@ -71,16 +71,18 @@ async def get_team_info(team_id: int):
         raise e
 
     
-@router.get("/scoreboard/team/{team_id}", response_model=TeamDetails, tags=["teams"],
-            summary="Get Live Team ", description="Fetch a team's record, ranking, and performance for a team that is playing today")
-async def live_team(team_id: int):
+@router.get("/scoreboard/team/{team_id}/record", response_model=TeamDetails, tags=["teams"],
+            summary="Get Current Team Record",
+            description="Fetch the current season's record, ranking, and performance for a team.")
+async def currentTeamRecord(team_id: int):
     """
-    Fetches team details (rank, record, performance).
+    API route to retrieve a team's real-time standings and performance metrics.
     """
     try:
-        return getLiveTeam(team_id)
+        return await getCurrentTeamRecord(team_id)
     except HTTPException as e:
         raise e
+
     
 @router.get("/scoreboard/team/{team_id}/roster/{season}", response_model=TeamRoster, tags=["teams"],
             summary="Get Team Roster", description="Fetch the full roster and coaching staff for a given team and season.")

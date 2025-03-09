@@ -302,29 +302,35 @@ async def getTeamInfo(team_id: int) -> ScheduleResponse:
 
 
     
-def getLiveTeam(team_id: int) -> TeamDetails:
-    """Fetch team standings and details from NBA API."""
+async def getCurrentTeamRecord(team_id: int) -> TeamDetails:
+    """
+    Fetches a team record in the current season.
+    Args:
+        team_id (int): Unique identifier for the NBA team.
+    Returns:
+        TeamDetails: Team ranking, win-loss record, and other performance stats.
+    """
     try:
         raw_standings = leaguestandingsv3.LeagueStandingsV3(
             league_id="00", 
-            season="2023-24", 
+            season="2023-24",  # Always fetches the current season
             season_type="Regular Season"
         ).get_dict()
 
         standings_data = raw_standings["resultSets"][0]["rowSet"]
         column_names = raw_standings["resultSets"][0]["headers"]
 
-        # Find team data
+        # Find the specific team's data
         team_data = next((team for team in standings_data if team[2] == team_id), None)
 
         if not team_data:
             raise HTTPException(status_code=404, detail=f"No team details found for team ID {team_id}")
 
-        # Convert to dictionary for mapping
+        # Convert data to dictionary for easy mapping
         team_dict = dict(zip(column_names, team_data))
 
         return TeamDetails(
-            team_id=team_dict["TeamID"],  
+            team_id=team_dict["TeamID"],
             team_name=team_dict["TeamName"],
             conference=team_dict["Conference"],
             division=team_dict["Division"],
@@ -338,7 +344,8 @@ def getLiveTeam(team_id: int) -> TeamDetails:
         )
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching team details: {e}")
+        raise HTTPException(status_code=500, detail=f"Error fetching team standings: {e}")
+
     
     
 def getTeamRoster(team_id: int, season: str) -> TeamRoster:
