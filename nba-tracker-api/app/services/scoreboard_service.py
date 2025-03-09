@@ -7,7 +7,7 @@ from nba_api.stats.endpoints import leaguegamefinder
 from nba_api.stats.endpoints import playerindex
 from app.schemas.scoreboard_schema import (
     ScoreboardResponse, Scoreboard, ScheduledGame,
-    ScheduleResponse, TeamDetails, TeamRoster, Coach,
+    ScheduleResponse, TeamDetails, TeamRoster,
     Player, PlayerSummary
 )
 from fastapi import HTTPException
@@ -353,7 +353,7 @@ def getTeamInfo(team_id: int) -> ScheduleResponse:
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching team info: {e}")
     
-def getTeamDetails(team_id: int) -> TeamDetails:
+def getLiveTeam(team_id: int) -> TeamDetails:
     """Fetch team standings and details from NBA API."""
     try:
         raw_standings = leaguestandingsv3.LeagueStandingsV3(
@@ -393,12 +393,11 @@ def getTeamDetails(team_id: int) -> TeamDetails:
     
     
 def getTeamRoster(team_id: int, season: str) -> TeamRoster:
-    """Fetch the full roster and extract only the Head Coach from NBA API."""
+    """Fetch the full roster from NBA API."""
     try:
-        # Fetch roster & coaching staff
+        # Fetch roster
         raw_roster = commonteamroster.CommonTeamRoster(team_id=team_id, season=season).get_dict()
         player_data = raw_roster["resultSets"][0]["rowSet"]
-        coach_data = raw_roster["resultSets"][1]["rowSet"]
 
         if not player_data:
             raise HTTPException(status_code=404, detail=f"No roster found for team ID {team_id} in {season}")
@@ -425,29 +424,12 @@ def getTeamRoster(team_id: int, season: str) -> TeamRoster:
                 )
             )
 
-        # Convert coach data to schema, filter only head coach and remove assistants
-        head_coach = next(
-            (
-                Coach(
-                    coach_id=int(dict(zip(raw_roster["resultSets"][1]["headers"], coach))["COACH_ID"]),
-                    name=f"{dict(zip(raw_roster['resultSets'][1]['headers'],
-                    coach))['FIRST_NAME']} {dict(zip(raw_roster['resultSets'][1]['headers'],
-                    coach))['LAST_NAME']}",
-                    role=dict(zip(raw_roster["resultSets"][1]["headers"], coach))["COACH_TYPE"],
-                    is_assistant=False
-                )
-                for coach in coach_data if dict(zip(raw_roster["resultSets"][1]["headers"], coach))["COACH_TYPE"] == "Head Coach"
-            ),
-            None
-        )
-
-        # Return schema with only the Head Coach, remove assistant coaches
+        # Return schema
         return TeamRoster(
             team_id=team_id,
             team_name=player_data[0][1],
             season=season,
             players=players,
-            coaches=[head_coach]
         )
 
     except Exception as e:

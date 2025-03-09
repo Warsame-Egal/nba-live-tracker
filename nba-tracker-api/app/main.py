@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers.scoreboard import router as scoreboard_router
+from app.routers.scoreboard_routes import router as scoreboard_router
 from app.routers.health import router as health_router
 
 # Initialize FastAPI app

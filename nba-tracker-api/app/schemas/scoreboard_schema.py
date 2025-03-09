@@ -176,20 +176,12 @@ class Player(BaseModel):
     experience: Optional[str] = None
     school: Optional[str] = None
 
-class Coach(BaseModel):
-    """Schema for a coach in the team staff."""
-    coach_id: int
-    name: str
-    role: str
-    is_assistant: bool
-
 class TeamRoster(BaseModel):
     """Schema combining team roster and coaching staff."""
     team_id: int
     team_name: str
     season: str
     players: List[Player]
-    coaches: List[Coach]
 
 class PlayerSummary(BaseModel):
     """Schema for a player's basic profile from PlayerIndex API."""
