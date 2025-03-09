@@ -184,68 +184,63 @@ async def getTeamGamesByDate(team_id: int, game_date: str) -> ScheduleResponse:
 
 
 
-def getMatchupGames(team1_id: int, team2_id: int) -> ScheduleResponse:
-    """Fetch past games where two teams played against each other."""
+async def getMatchupGames(team1_id: int, team2_id: int) -> ScheduleResponse:
+    """
+    Retrieves and structures past games where two teams have faced each other.
+
+    Args:
+        team1_id (int): Unique identifier for the first NBA team.
+        team2_id (int): Unique identifier for the second NBA team.
+
+    Returns:
+        ScheduleResponse: A structured list of past head-to-head games.
+
+    Raises:
+        HTTPException:
+            - 404: If no matchups are found between the two teams.
+            - 500: If an error occurs during data retrieval.
+    """
     try:
-        raw_schedule_data = {
-            "team_id_nullable": str(team1_id),
-            "vs_team_id_nullable": str(team2_id),
-            "league_id_nullable": "00"
-        }
+        # Fetch past matchups between the two teams
+        game_finder = leaguegamefinder.LeagueGameFinder(
+            team_id_nullable=str(team1_id),
+            vs_team_id_nullable=str(team2_id),
+            league_id_nullable="00"
+        )
+        df_list = game_finder.get_data_frames()
 
-        game_finder = leaguegamefinder.LeagueGameFinder(**raw_schedule_data)
-        df = game_finder.get_data_frames()[0]
-
-        # Fix NaN values
-        df.replace({np.nan: None}, inplace=True)
-
-        if df.empty:
+        if not df_list or df_list[0].empty:
             raise HTTPException(status_code=404, detail=f"No matchups found between {team1_id} and {team2_id}")
 
-        games = []
-        for _, row in df.iterrows():
-            try:
-                game = ScheduledGame(
-                    season_id=int(row["SEASON_ID"]),
-                    team_id=int(row["TEAM_ID"]),
-                    team_abbreviation=row["TEAM_ABBREVIATION"],
-                    team_name=row["TEAM_NAME"],
-                    game_id=row["GAME_ID"],
-                    game_date=row["GAME_DATE"],
-                    matchup=row["MATCHUP"],
-                    win_loss=row["WL"],
-                    minutes=int(row["MIN"]) if row["MIN"] is not None else 0,
-                    points=int(row["PTS"]) if row["PTS"] is not None else 0,
-                    field_goals_made=int(row["FGM"]) if row["FGM"] is not None else 0,
-                    field_goals_attempted=int(row["FGA"]) if row["FGA"] is not None else 0,
-                    field_goal_pct=float(row["FG_PCT"]) if row["FG_PCT"] is not None else 0.0,
-                    three_point_made=int(row["FG3M"]) if row["FG3M"] is not None else 0,
-                    three_point_attempted=int(row["FG3A"]) if row["FG3A"] is not None else 0,
-                    three_point_pct=float(row["FG3_PCT"]) if row["FG3_PCT"] is not None else 0.0,
-                    free_throws_made=int(row["FTM"]) if row["FTM"] is not None else 0,
-                    free_throws_attempted=int(row["FTA"]) if row["FTA"] is not None else 0,
-                    free_throw_pct=float(row["FT_PCT"]) if row["FT_PCT"] is not None else 0.0,
-                    offensive_rebounds=int(row["OREB"]) if row["OREB"] is not None else 0,
-                    defensive_rebounds=int(row["DREB"]) if row["DREB"] is not None else 0,
-                    total_rebounds=int(row["REB"]) if row["REB"] is not None else 0,
-                    assists=int(row["AST"]) if row["AST"] is not None else 0,
-                    steals=int(row["STL"]) if row["STL"] is not None else 0,
-                    blocks=int(row["BLK"]) if row["BLK"] is not None else 0,
-                    turnovers=int(row["TOV"]) if row["TOV"] is not None else 0,
-                    personal_fouls=int(row["PF"]) if row["PF"] is not None else 0,
-                    plus_minus=float(row["PLUS_MINUS"]) if row["PLUS_MINUS"] is not None else 0.0
-                )
-                games.append(game)
+        df = df_list[0]
 
-            except ValidationError as ve:
-                print(f"Validation error for game {row['GAME_ID']}: {ve}")
+        # Replace NaN values with None to prevent validation errors
+        df.replace({np.nan: None}, inplace=True)
+
+        # Process game records into structured objects
+        games = []
+        for game in df.to_dict(orient="records"):
+            scheduled_game = ScheduledGame(
+                season_id=int(str(game["SEASON_ID"])[1:]),  # Removes leading digit
+                team_id=int(game["TEAM_ID"]),
+                team_abbreviation=game["TEAM_ABBREVIATION"],
+                game_id=game["GAME_ID"],
+                game_date=game["GAME_DATE"],
+                matchup=format_matchup(game["MATCHUP"]),  # Converts matchup format
+                win_loss=game.get("WL"),
+                points_scored=int(game["PTS"]) if game.get("PTS") else None,
+                field_goal_pct=float(game["FG_PCT"]) if game.get("FG_PCT") else None,
+                three_point_pct=float(game["FG3_PCT"]) if game.get("FG3_PCT") else None
+            )
+            games.append(scheduled_game)
 
         return ScheduleResponse(games=games)
 
-    except HTTPException as e:
-        raise e
+    except HTTPException as http_exc:
+        raise http_exc
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching matchup games: {e}")
+        raise HTTPException(status_code=500, detail=f"Error fetching matchup games between {team1_id} and {team2_id}: {e}")
+
     
 
 def getTeamInfo(team_id: int) -> ScheduleResponse:

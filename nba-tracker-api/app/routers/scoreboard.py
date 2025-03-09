@@ -47,16 +47,17 @@ async def team_games_by_date(team_id: int, game_date: str):
         raise e
 
     
-@router.get("/scoreboard/matchup/{team1_id}/{team2_id}", response_model=ScheduleResponse, tags=["schedule"],
+@router.get("/scoreboard/matchup/{team1_id}/{team2_id}", response_model=ScheduleResponse, tags=["scoreboard"],
             summary="Get Head-to-Head Matchups", description="Retrieve past games where two teams played against each other.")
 async def get_matchup_games(team1_id: int, team2_id: int):
     """
-    Fetches all games where two teams have faced each other.
+    API route to fetch and return all past matchups between two teams.
     """
     try:
-        return getMatchupGames(team1_id, team2_id)
+        return await getMatchupGames(team1_id, team2_id)  # Added 'await' for async consistency
     except HTTPException as e:
         raise e
+
 
 @router.get("/scoreboard/team/{team_id}/info", response_model=ScheduleResponse, tags=["schedule"],
             summary="Get Team's Full Season Schedule", description="Retrieve all time games from a team season schedule for a team.")
