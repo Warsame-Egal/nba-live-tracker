@@ -19,6 +19,9 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: List Files (Debugging Step)
+        run: ls -R
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -26,7 +29,7 @@ jobs:
 
       - name: Install Backend Dependencies
         run: |
-          cd backend
+          cd nba-tracker-api
           python -m venv venv
           source venv/bin/activate
           pip install --upgrade pip
@@ -34,14 +37,14 @@ jobs:
 
       - name: Lint Backend Code
         run: |
-          cd backend
+          cd nba-tracker-api
           source venv/bin/activate
           pip install flake8
           flake8 .
 
       - name: Run Backend Tests
         run: |
-          cd backend
+          cd nba-tracker-api  # <-- Updated path
           source venv/bin/activate
           pytest || echo "No tests found, skipping..."
 
@@ -53,6 +56,9 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: List Files (Debugging Step)
+        run: ls -R
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -60,15 +66,15 @@ jobs:
 
       - name: Install Frontend Dependencies
         run: |
-          cd frontend
+          cd nba-tracker
           npm install
 
       - name: Lint Frontend Code
         run: |
-          cd frontend
+          cd nba-tracker
           npm run lint
 
       - name: Build Frontend
         run: |
-          cd frontend
+          cd nba-tracker
           npm run build
