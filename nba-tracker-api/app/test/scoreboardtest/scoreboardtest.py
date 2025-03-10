@@ -10,4 +10,3 @@ print(games.get_json())
 
 # Score Board as Dictionary
 print(games.get_dict())
-

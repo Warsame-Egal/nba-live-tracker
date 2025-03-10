@@ -19,6 +19,7 @@ from fastapi import HTTPException
 from datetime import datetime
 from app.utils.formatters import format_matchup
 
+
 async def getScoreboard() -> ScoreboardResponse:
     """
     Fetches today's NBA games from the NBA API and structures the data into a scoreboard response.
@@ -113,9 +114,10 @@ async def getScoreboard() -> ScoreboardResponse:
 
     except Exception as e:
         print(f"Error fetching live scoreboard: {e}")
-        raise HTTPException(status_code=500, detail=f"Error fetching live scores: {e}")
-    
-    
+        raise HTTPException(status_code=500,
+                            detail=f"Error fetching live scores: {e}")
+
+
 async def getTeamGamesByDate(team_id: int, game_date: str) -> ScheduleResponse:
     """
     Retrieves all games played by a specific team on a given date.
@@ -140,7 +142,8 @@ async def getTeamGamesByDate(team_id: int, game_date: str) -> ScheduleResponse:
     """
     try:
         # Convert date from "YYYY-MM-DD" to "MM/DD/YYYY" (required by NBA API)
-        formatted_date = datetime.strptime(game_date, "%Y-%m-%d").strftime("%m/%d/%Y")
+        formatted_date = datetime.strptime(
+            game_date, "%Y-%m-%d").strftime("%m/%d/%Y")
 
         # Fetch games played by the team on the specified date
         game_finder = leaguegamefinder.LeagueGameFinder(
@@ -154,7 +157,9 @@ async def getTeamGamesByDate(team_id: int, game_date: str) -> ScheduleResponse:
 
         # Handle cases where no data is returned
         if not df_list or df_list[0].empty:
-            raise HTTPException(status_code=404, detail=f"No games found for team ID {team_id} on date {game_date}")
+            raise HTTPException(
+                status_code=404,
+                detail=f"No games found for team ID {team_id} on date {game_date}")
 
         df = df_list[0]
 
@@ -165,16 +170,20 @@ async def getTeamGamesByDate(team_id: int, game_date: str) -> ScheduleResponse:
         games = []
         for game in df.to_dict(orient="records"):
             scheduled_game = ScheduledGame(
-                season_id=int(str(game["SEASON_ID"])[1:]),  # Removes the leading digit
+                # Removes the leading digit
+                season_id=int(str(game["SEASON_ID"])[1:]),
                 team_id=int(game["TEAM_ID"]),
                 team_abbreviation=game["TEAM_ABBREVIATION"],
                 game_id=game["GAME_ID"],
                 game_date=game["GAME_DATE"],
-                matchup=format_matchup(game["MATCHUP"]),  # Converts matchup format from 'TEAM @ TEAM' to 'TEAM vs TEAM'
+                # Converts matchup format from 'TEAM @ TEAM' to 'TEAM vs TEAM'
+                matchup=format_matchup(game["MATCHUP"]),
                 win_loss=game.get("WL"),
                 points_scored=int(game["PTS"]) if game.get("PTS") else None,
-                field_goal_pct=float(game["FG_PCT"]) if game.get("FG_PCT") else None,
-                three_point_pct=float(game["FG3_PCT"]) if game.get("FG3_PCT") else None
+                field_goal_pct=float(
+                    game["FG_PCT"]) if game.get("FG_PCT") else None,
+                three_point_pct=float(
+                    game["FG3_PCT"]) if game.get("FG3_PCT") else None
             )
             games.append(scheduled_game)
 
@@ -183,8 +192,9 @@ async def getTeamGamesByDate(team_id: int, game_date: str) -> ScheduleResponse:
     except HTTPException as http_exc:
         raise http_exc
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching games for team ID {team_id} on date {game_date}: {e}")
-
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error fetching games for team ID {team_id} on date {game_date}: {e}")
 
 
 async def getMatchupGames(team1_id: int, team2_id: int) -> ScheduleResponse:
@@ -213,7 +223,9 @@ async def getMatchupGames(team1_id: int, team2_id: int) -> ScheduleResponse:
         df_list = game_finder.get_data_frames()
 
         if not df_list or df_list[0].empty:
-            raise HTTPException(status_code=404, detail=f"No matchups found between {team1_id} and {team2_id}")
+            raise HTTPException(
+                status_code=404,
+                detail=f"No matchups found between {team1_id} and {team2_id}")
 
         df = df_list[0]
 
@@ -224,16 +236,20 @@ async def getMatchupGames(team1_id: int, team2_id: int) -> ScheduleResponse:
         games = []
         for game in df.to_dict(orient="records"):
             scheduled_game = ScheduledGame(
-                season_id=int(str(game["SEASON_ID"])[1:]),  # Removes leading digit
+                # Removes leading digit
+                season_id=int(str(game["SEASON_ID"])[1:]),
                 team_id=int(game["TEAM_ID"]),
                 team_abbreviation=game["TEAM_ABBREVIATION"],
                 game_id=game["GAME_ID"],
                 game_date=game["GAME_DATE"],
-                matchup=format_matchup(game["MATCHUP"]),  # Converts matchup format
+                matchup=format_matchup(
+                    game["MATCHUP"]),  # Converts matchup format
                 win_loss=game.get("WL"),
                 points_scored=int(game["PTS"]) if game.get("PTS") else None,
-                field_goal_pct=float(game["FG_PCT"]) if game.get("FG_PCT") else None,
-                three_point_pct=float(game["FG3_PCT"]) if game.get("FG3_PCT") else None
+                field_goal_pct=float(
+                    game["FG_PCT"]) if game.get("FG_PCT") else None,
+                three_point_pct=float(
+                    game["FG3_PCT"]) if game.get("FG3_PCT") else None
             )
             games.append(scheduled_game)
 
@@ -242,9 +258,10 @@ async def getMatchupGames(team1_id: int, team2_id: int) -> ScheduleResponse:
     except HTTPException as http_exc:
         raise http_exc
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching matchup games between {team1_id} and {team2_id}: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error fetching matchup games between {team1_id} and {team2_id}: {e}")
 
-    
 
 async def getTeamInfo(team_id: int) -> ScheduleResponse:
     """
@@ -270,7 +287,8 @@ async def getTeamInfo(team_id: int) -> ScheduleResponse:
         df_list = game_finder.get_data_frames()
 
         if not df_list or df_list[0].empty:
-            raise HTTPException(status_code=404, detail=f"No data found for team ID {team_id}")
+            raise HTTPException(status_code=404,
+                                detail=f"No data found for team ID {team_id}")
 
         df = df_list[0]
 
@@ -281,18 +299,25 @@ async def getTeamInfo(team_id: int) -> ScheduleResponse:
         games = []
         for game in df.to_dict(orient="records"):
             scheduled_game = ScheduledGame(
-                season_id=int(str(game["SEASON_ID"])[1:]),  # Removes the leading digit
+                # Removes the leading digit
+                season_id=int(str(game["SEASON_ID"])[1:]),
                 team_id=int(game["TEAM_ID"]),
                 team_abbreviation=game["TEAM_ABBREVIATION"],
                 game_id=game["GAME_ID"],
                 game_date=game["GAME_DATE"],
-                matchup=format_matchup(game["MATCHUP"]),  # Converts matchup format
+                matchup=format_matchup(
+                    game["MATCHUP"]),  # Converts matchup format
                 win_loss=game.get("WL"),
-                points_scored=int(game["PTS"]) if game.get("PTS") is not None else None,
-                field_goal_pct=float(game["FG_PCT"]) if game.get("FG_PCT") is not None else 0.0,
-                three_point_pct=float(game["FG3_PCT"]) if game.get("FG3_PCT") is not None else 0.0,
-                free_throw_pct=float(game["FT_PCT"]) if game.get("FT_PCT") is not None else 0.0,
-                plus_minus=float(game["PLUS_MINUS"]) if game.get("PLUS_MINUS") is not None else 0.0
+                points_scored=int(game["PTS"]) if game.get(
+                    "PTS") is not None else None,
+                field_goal_pct=float(game["FG_PCT"]) if game.get(
+                    "FG_PCT") is not None else 0.0,
+                three_point_pct=float(game["FG3_PCT"]) if game.get(
+                    "FG3_PCT") is not None else 0.0,
+                free_throw_pct=float(game["FT_PCT"]) if game.get(
+                    "FT_PCT") is not None else 0.0,
+                plus_minus=float(game["PLUS_MINUS"]) if game.get(
+                    "PLUS_MINUS") is not None else 0.0
             )
             games.append(scheduled_game)
 
@@ -301,10 +326,11 @@ async def getTeamInfo(team_id: int) -> ScheduleResponse:
     except HTTPException as http_exc:
         raise http_exc
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching team info for team ID {team_id}: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error fetching team info for team ID {team_id}: {e}")
 
 
-    
 async def getCurrentTeamRecord(team_id: int) -> TeamDetails:
     """
     Fetches a team record in the current season.
@@ -315,7 +341,7 @@ async def getCurrentTeamRecord(team_id: int) -> TeamDetails:
     """
     try:
         raw_standings = leaguestandingsv3.LeagueStandingsV3(
-            league_id="00", 
+            league_id="00",
             season="2023-24",  # Always fetches the current season
             season_type="Regular Season"
         ).get_dict()
@@ -324,10 +350,13 @@ async def getCurrentTeamRecord(team_id: int) -> TeamDetails:
         column_names = raw_standings["resultSets"][0]["headers"]
 
         # Find the specific team's data
-        team_data = next((team for team in standings_data if team[2] == team_id), None)
+        team_data = next(
+            (team for team in standings_data if team[2] == team_id), None)
 
         if not team_data:
-            raise HTTPException(status_code=404, detail=f"No team details found for team ID {team_id}")
+            raise HTTPException(
+                status_code=404,
+                detail=f"No team details found for team ID {team_id}")
 
         # Convert data to dictionary for easy mapping
         team_dict = dict(zip(column_names, team_data))
@@ -347,10 +376,10 @@ async def getCurrentTeamRecord(team_id: int) -> TeamDetails:
         )
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching team standings: {e}")
+        raise HTTPException(status_code=500,
+                            detail=f"Error fetching team standings: {e}")
 
-    
-    
+
 def fetchTeamRoster(team_id: int, season: str) -> TeamRoster:
     """
     Fetches the full team roster (players & coaching staff) from the NBA API.
@@ -369,11 +398,14 @@ def fetchTeamRoster(team_id: int, season: str) -> TeamRoster:
     """
     try:
         # Fetch roster data from NBA API
-        raw_roster = commonteamroster.CommonTeamRoster(team_id=team_id, season=season).get_dict()
+        raw_roster = commonteamroster.CommonTeamRoster(
+            team_id=team_id, season=season).get_dict()
         player_data = raw_roster["resultSets"][0]["rowSet"]
 
         if not player_data:
-            raise HTTPException(status_code=404, detail=f"No roster found for team ID {team_id} in {season}")
+            raise HTTPException(
+                status_code=404,
+                detail=f"No roster found for team ID {team_id} in {season}")
 
         # Extract column headers for mapping
         column_names = raw_roster["resultSets"][0]["headers"]
@@ -389,10 +421,14 @@ def fetchTeamRoster(team_id: int, season: str) -> TeamRoster:
                 jersey_number=player_dict["NUM"] or None,
                 position=player_dict["POSITION"] or None,
                 height=player_dict["HEIGHT"] or None,
-                weight=int(player_dict["WEIGHT"]) if player_dict["WEIGHT"] else None,
+                weight=int(
+                    player_dict["WEIGHT"]) if player_dict["WEIGHT"] else None,
                 birth_date=player_dict["BIRTH_DATE"] or None,
                 age=int(player_dict["AGE"]) if player_dict["AGE"] else None,
-                experience="Rookie" if str(player_dict["EXP"]).upper() == "R" else str(player_dict["EXP"]), # Update 'R' to 'Rookie
+                experience="Rookie" if str(
+                    player_dict["EXP"]).upper() == "R" else str(
+                    player_dict["EXP"]),
+                # Update 'R' to 'Rookie
                 school=player_dict["SCHOOL"] or None
             ))
 
@@ -405,7 +441,9 @@ def fetchTeamRoster(team_id: int, season: str) -> TeamRoster:
         )
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching team roster: {e}")
+        raise HTTPException(status_code=500,
+                            detail=f"Error fetching team roster: {e}")
+
 
 async def getPlayerDetails(player_id: int) -> PlayerSummary:
     """
@@ -423,17 +461,21 @@ async def getPlayerDetails(player_id: int) -> PlayerSummary:
     try:
         # Fetch player data from NBA API
         raw_data = playerindex.PlayerIndex().get_dict()
-        column_names = raw_data["resultSets"][0]["headers"]  # Column names from API
+        # Column names from API
+        column_names = raw_data["resultSets"][0]["headers"]
         player_list = raw_data["resultSets"][0]["rowSet"]  # Player data rows
 
         # Convert API response into a list of dictionaries
         players = [dict(zip(column_names, row)) for row in player_list]
 
         # Find the requested player by ID
-        player_data = next((player for player in players if player["PERSON_ID"] == player_id), None)
+        player_data = next(
+            (player for player in players if player["PERSON_ID"] == player_id), None)
 
         if not player_data:
-            raise HTTPException(status_code=404, detail=f"No details found for player ID {player_id}")
+            raise HTTPException(
+                status_code=404,
+                detail=f"No details found for player ID {player_id}")
 
         # Map API response to PlayerSummary schema
         return PlayerSummary(
@@ -459,7 +501,9 @@ async def getPlayerDetails(player_id: int) -> PlayerSummary:
         )
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching player details: {e}")
+        raise HTTPException(status_code=500,
+                            detail=f"Error fetching player details: {e}")
+
 
 async def fetchPlayersByName(name: str) -> List[PlayerSummary]:
     """
@@ -483,14 +527,16 @@ async def fetchPlayersByName(name: str) -> List[PlayerSummary]:
         # Convert search query to lowercase for case-insensitive comparison
         name = name.lower()
 
-        # Filter players by checking if query matches full name, first name, or last name
+        # Filter players by checking if query matches full name, first name, or
+        # last name
         matching_players = [
-            player for player in players
-            if name in f"{player['PLAYER_FIRST_NAME']} {player['PLAYER_LAST_NAME']}".lower()
-        ]
+            player for player in players if name in f"{
+                player['PLAYER_FIRST_NAME']} {
+                player['PLAYER_LAST_NAME']}".lower()]
 
         if not matching_players:
-            raise HTTPException(status_code=404, detail=f"No players found matching '{name}'")
+            raise HTTPException(status_code=404,
+                                detail=f"No players found matching '{name}'")
 
         # Process matching players into structured response
         return [
@@ -519,14 +565,17 @@ async def fetchPlayersByName(name: str) -> List[PlayerSummary]:
         ]
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error searching for players: {e}")
+        raise HTTPException(status_code=500,
+                            detail=f"Error searching for players: {e}")
+
 
 def format_percentage(value: float) -> str:
     """
     Converts a decimal value (e.g., 0.4342) to a percentage string (e.g., '43.4%').
     """
     return f"{value * 100:.1f}%"
-   
+
+
 async def getBoxScore(game_id: str) -> BoxScoreResponse:
     """
     Fetch the full box score for a given NBA game.
@@ -542,7 +591,9 @@ async def getBoxScore(game_id: str) -> BoxScoreResponse:
         game_data = boxscore.BoxScore(game_id).get_dict()
 
         if "game" not in game_data:
-            raise HTTPException(status_code=404, detail=f"No box score available for game ID {game_id}")
+            raise HTTPException(
+                status_code=404,
+                detail=f"No box score available for game ID {game_id}")
 
         # Extract game details
         game_info = game_data["game"]
@@ -557,9 +608,12 @@ async def getBoxScore(game_id: str) -> BoxScoreResponse:
                 team_id=home_team["teamId"],
                 team_name=home_team["teamName"],
                 score=home_team["score"],
-                field_goal_pct=home_team["statistics"].get("fieldGoalsPercentage", 0.0),
-                three_point_pct=home_team["statistics"].get("threePointersPercentage", 0.0),
-                free_throw_pct=home_team["statistics"].get("freeThrowsPercentage", 0.0),
+                field_goal_pct=home_team["statistics"].get(
+                    "fieldGoalsPercentage", 0.0),
+                three_point_pct=home_team["statistics"].get(
+                    "threePointersPercentage", 0.0),
+                free_throw_pct=home_team["statistics"].get(
+                    "freeThrowsPercentage", 0.0),
                 rebounds_total=home_team["statistics"].get("reboundsTotal", 0),
                 assists=home_team["statistics"].get("assists", 0),
                 steals=home_team["statistics"].get("steals", 0),
@@ -569,8 +623,10 @@ async def getBoxScore(game_id: str) -> BoxScoreResponse:
                     PlayerBoxScoreStats(
                         player_id=player["personId"],
                         name=player["name"],
-                        position=player.get("position", "N/A"),  # Default to "N/A"
-                        minutes=player["statistics"].get("minutesCalculated", "N/A"),
+                        position=player.get(
+                            "position", "N/A"),  # Default to "N/A"
+                        minutes=player["statistics"].get(
+                            "minutesCalculated", "N/A"),
                         points=player["statistics"].get("points", 0),
                         rebounds=player["statistics"].get("reboundsTotal", 0),
                         assists=player["statistics"].get("assists", 0),
@@ -578,16 +634,20 @@ async def getBoxScore(game_id: str) -> BoxScoreResponse:
                         blocks=player["statistics"].get("blocks", 0),
                         turnovers=player["statistics"].get("turnovers", 0),
                     )
-                    for player in home_team.get("players", [])  # Handle missing "players"
+                    # Handle missing "players"
+                    for player in home_team.get("players", [])
                 ]
             ),
             away_team=TeamBoxScoreStats(
                 team_id=away_team["teamId"],
                 team_name=away_team["teamName"],
                 score=away_team["score"],
-                field_goal_pct=away_team["statistics"].get("fieldGoalsPercentage", 0.0),
-                three_point_pct=away_team["statistics"].get("threePointersPercentage", 0.0),
-                free_throw_pct=away_team["statistics"].get("freeThrowsPercentage", 0.0),
+                field_goal_pct=away_team["statistics"].get(
+                    "fieldGoalsPercentage", 0.0),
+                three_point_pct=away_team["statistics"].get(
+                    "threePointersPercentage", 0.0),
+                free_throw_pct=away_team["statistics"].get(
+                    "freeThrowsPercentage", 0.0),
                 rebounds_total=away_team["statistics"].get("reboundsTotal", 0),
                 assists=away_team["statistics"].get("assists", 0),
                 steals=away_team["statistics"].get("steals", 0),
@@ -598,7 +658,8 @@ async def getBoxScore(game_id: str) -> BoxScoreResponse:
                         player_id=player["personId"],
                         name=player["name"],
                         position=player.get("position", "N/A"),
-                        minutes=player["statistics"].get("minutesCalculated", "N/A"),
+                        minutes=player["statistics"].get(
+                            "minutesCalculated", "N/A"),
                         points=player["statistics"].get("points", 0),
                         rebounds=player["statistics"].get("reboundsTotal", 0),
                         assists=player["statistics"].get("assists", 0),
@@ -606,14 +667,18 @@ async def getBoxScore(game_id: str) -> BoxScoreResponse:
                         blocks=player["statistics"].get("blocks", 0),
                         turnovers=player["statistics"].get("turnovers", 0),
                     )
-                    for player in away_team.get("players", []) 
+                    for player in away_team.get("players", [])
                 ]
             )
         )
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error retrieving box score: {str(e)}")
-    
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error retrieving box score: {
+                str(e)}")
+
+
 async def getTeamStats(game_id: str, team_id: int) -> TeamGameStatsResponse:
     """
     Fetch team statistics for a given NBA game.
@@ -630,7 +695,9 @@ async def getTeamStats(game_id: str, team_id: int) -> TeamGameStatsResponse:
         game_data = boxscore.BoxScore(game_id).get_dict()
 
         if "game" not in game_data:
-            raise HTTPException(status_code=404, detail=f"No box score available for game ID {game_id}")
+            raise HTTPException(
+                status_code=404,
+                detail=f"No box score available for game ID {game_id}")
 
         # Extract game details
         game_info = game_data["game"]
@@ -643,7 +710,9 @@ async def getTeamStats(game_id: str, team_id: int) -> TeamGameStatsResponse:
         elif away_team["teamId"] == team_id:
             selected_team = away_team
         else:
-            raise HTTPException(status_code=404, detail=f"Team ID {team_id} not found in game {game_id}")
+            raise HTTPException(
+                status_code=404,
+                detail=f"Team ID {team_id} not found in game {game_id}")
 
         # Construct response
         return TeamGameStatsResponse(
@@ -677,8 +746,12 @@ async def getTeamStats(game_id: str, team_id: int) -> TeamGameStatsResponse:
         )
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error retrieving team stats: {str(e)}")
-    
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error retrieving team stats: {
+                str(e)}")
+
+
 async def getGameLeaders(game_id: str) -> GameLeadersResponse:
     """
     Fetch top-performing players (leaders) for a given NBA game.
@@ -694,7 +767,9 @@ async def getGameLeaders(game_id: str) -> GameLeadersResponse:
         game_data = boxscore.BoxScore(game_id).get_dict()
 
         if "game" not in game_data:
-            raise HTTPException(status_code=404, detail=f"No box score available for game ID {game_id}")
+            raise HTTPException(
+                status_code=404,
+                detail=f"No box score available for game ID {game_id}")
 
         # Extract game details
         game_info = game_data["game"]
@@ -705,9 +780,21 @@ async def getGameLeaders(game_id: str) -> GameLeadersResponse:
         all_players = home_team["players"] + away_team["players"]
 
         # Find the leaders in points, assists, and rebounds
-        points_leader = max(all_players, key=lambda p: p["statistics"].get("points", 0))
-        assists_leader = max(all_players, key=lambda p: p["statistics"].get("assists", 0))
-        rebounds_leader = max(all_players, key=lambda p: p["statistics"].get("reboundsTotal", 0))
+        points_leader = max(
+            all_players,
+            key=lambda p: p["statistics"].get(
+                "points",
+                0))
+        assists_leader = max(
+            all_players,
+            key=lambda p: p["statistics"].get(
+                "assists",
+                0))
+        rebounds_leader = max(
+            all_players,
+            key=lambda p: p["statistics"].get(
+                "reboundsTotal",
+                0))
 
         # Construct response
         return GameLeadersResponse(
@@ -751,7 +838,11 @@ async def getGameLeaders(game_id: str) -> GameLeadersResponse:
         )
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error retrieving game leaders: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error retrieving game leaders: {
+                str(e)}")
+
 
 async def getPlayByPlay(game_id: str) -> PlayByPlayResponse:
     """
@@ -768,7 +859,9 @@ async def getPlayByPlay(game_id: str) -> PlayByPlayResponse:
         play_by_play_data = playbyplay.PlayByPlay(game_id).get_dict()
 
         if "game" not in play_by_play_data or "actions" not in play_by_play_data["game"]:
-            raise HTTPException(status_code=404, detail=f"No play-by-play data available for game ID {game_id}")
+            raise HTTPException(
+                status_code=404,
+                detail=f"No play-by-play data available for game ID {game_id}")
 
         # Extract game details
         actions = play_by_play_data["game"]["actions"]
@@ -795,4 +888,5 @@ async def getPlayByPlay(game_id: str) -> PlayByPlayResponse:
         return PlayByPlayResponse(game_id=game_id, plays=plays)
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error retrieving play-by-play: {str(e)}")
+        raise HTTPException(status_code=500,
+                            detail=f"Error retrieving play-by-play: {str(e)}")

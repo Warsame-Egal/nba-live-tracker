@@ -5,10 +5,11 @@ from app.routers.schedule import router as schedule_routes
 from app.routers.health import router as health_router
 
 # Initialize FastAPI app
-app = FastAPI(title="NBA tracker API",
-              description="An API providing NBA live scoreboard, schedule, and game stats.",
-              version="1.0.0",
-              )
+app = FastAPI(
+    title="NBA tracker API",
+    description="An API providing NBA live scoreboard, schedule, and game stats.",
+    version="1.0.0",
+)
 
 # Enable Cross-Origin Resource Sharing frontend access
 app.add_middleware(
@@ -20,10 +21,13 @@ app.add_middleware(
 )
 
 # Root endpoint to check if API is running
+
+
 @app.get("/")
 def home():
     """Root endpoint for API health check."""
     return {"message": "NBA Live Tracker API is running"}
+
 
 # Register API route for health check
 app.include_router(health_router, prefix="/api/v1")
