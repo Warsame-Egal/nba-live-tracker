@@ -49,6 +49,15 @@ class PlayerBoxScoreStats(BaseModel):
     blocks: int = Field(..., ge=0, description="Total blocks.")
     turnovers: int = Field(..., ge=0, description="Total turnovers.")
 
+# GameLeaders Model
+# Represents the top-performing players in points, assists, and rebounds for both teams.
+class GameLeadersResponse(BaseModel):
+    """Response schema for retrieving top-performing players in a game."""
+    game_id: str = Field(..., pattern=r"^\d{10}$", description="Unique identifier for the game (10-digit ID).")
+    points_leader: PlayerBoxScoreStats = Field(..., description="Player with the most points in the game.")
+    assists_leader: PlayerBoxScoreStats = Field(..., description="Player with the most assists in the game.")
+    rebounds_leader: PlayerBoxScoreStats = Field(..., description="Player with the most rebounds in the game.")
+    
 # TeamGameStats Model
 # Represents team-specific statistics for a single game.
 class TeamGameStatsResponse(BaseModel):

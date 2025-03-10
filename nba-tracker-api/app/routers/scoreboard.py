@@ -4,10 +4,11 @@ from app.services.scoreboard import (
     getScoreboard, getTeamGamesByDate, getMatchupGames,
     getTeamInfo, getCurrentTeamRecord, fetchTeamRoster,
     getPlayerDetails, fetchPlayersByName, getBoxScore,
-    getTeamStats
+    getTeamStats, getGameLeaders
 )
-from app.schemas.scoreboard import ( ScoreboardResponse, BoxScoreResponse,
-    TeamGameStatsResponse
+from app.schemas.scoreboard import (
+    ScoreboardResponse, BoxScoreResponse, TeamGameStatsResponse,
+    GameLeadersResponse
 )
 from app.schemas.player import TeamRoster, PlayerSummary
 from app.schemas.team import TeamDetails
@@ -176,3 +177,22 @@ async def get_game_team_stats(game_id: str, team_id: int):
     except HTTPException as e:
         raise e
 
+@router.get("/scoreboard/game/{game_id}/leaders", 
+            response_model=GameLeadersResponse, 
+            tags=["boxscore"],
+            summary="Get Game Leaders",
+            description="Retrieve the top-performing players in points, assists, and rebounds for a given NBA game.")
+async def get_game_leaders(game_id: str):
+    """
+    API route to fetch the top players in points, assists, and rebounds for a given NBA game.
+
+    Args:
+        game_id (str): Unique game identifier.
+
+    Returns:
+        GameLeadersResponse: The top-performing players in the game.
+    """
+    try:
+        return await getGameLeaders(game_id)
+    except HTTPException as e:
+        raise e

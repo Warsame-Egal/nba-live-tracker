@@ -8,7 +8,7 @@ from nba_api.stats.endpoints import playerindex
 from app.schemas.scoreboard import (
     Team, LiveGame, PlayerStats, GameLeaders, ScoreboardResponse,
     Scoreboard, BoxScoreResponse, PlayerBoxScoreStats,
-    TeamBoxScoreStats, TeamGameStatsResponse
+    TeamBoxScoreStats, TeamGameStatsResponse, GameLeadersResponse
 )
 from app.schemas.player import TeamRoster, Player, PlayerSummary
 from app.schemas.team import TeamDetails
@@ -678,3 +678,78 @@ async def getTeamStats(game_id: str, team_id: int) -> TeamGameStatsResponse:
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error retrieving team stats: {str(e)}")
+    
+async def getGameLeaders(game_id: str) -> GameLeadersResponse:
+    """
+    Fetch top-performing players (leaders) for a given NBA game.
+
+    Args:
+        game_id (str): Unique NBA game identifier.
+
+    Returns:
+        GameLeadersResponse: A structured response containing the top players in points, assists, and rebounds.
+    """
+    try:
+        # Fetch box score data
+        game_data = boxscore.BoxScore(game_id).get_dict()
+
+        if "game" not in game_data:
+            raise HTTPException(status_code=404, detail=f"No box score available for game ID {game_id}")
+
+        # Extract game details
+        game_info = game_data["game"]
+        home_team = game_info["homeTeam"]
+        away_team = game_info["awayTeam"]
+
+        # Combine both teams' players into one list
+        all_players = home_team["players"] + away_team["players"]
+
+        # Find the leaders in points, assists, and rebounds
+        points_leader = max(all_players, key=lambda p: p["statistics"].get("points", 0))
+        assists_leader = max(all_players, key=lambda p: p["statistics"].get("assists", 0))
+        rebounds_leader = max(all_players, key=lambda p: p["statistics"].get("reboundsTotal", 0))
+
+        # Construct response
+        return GameLeadersResponse(
+            game_id=game_info["gameId"],
+            points_leader=PlayerBoxScoreStats(
+                player_id=points_leader["personId"],
+                name=points_leader["name"],
+                position=points_leader.get("position", "N/A"),
+                minutes=points_leader["statistics"].get("minutesCalculated", "N/A"),
+                points=points_leader["statistics"].get("points", 0),
+                rebounds=points_leader["statistics"].get("reboundsTotal", 0),
+                assists=points_leader["statistics"].get("assists", 0),
+                steals=points_leader["statistics"].get("steals", 0),
+                blocks=points_leader["statistics"].get("blocks", 0),
+                turnovers=points_leader["statistics"].get("turnovers", 0),
+            ),
+            assists_leader=PlayerBoxScoreStats(
+                player_id=assists_leader["personId"],
+                name=assists_leader["name"],
+                position=assists_leader.get("position", "N/A"),
+                minutes=assists_leader["statistics"].get("minutesCalculated", "N/A"),
+                points=assists_leader["statistics"].get("points", 0),
+                rebounds=assists_leader["statistics"].get("reboundsTotal", 0),
+                assists=assists_leader["statistics"].get("assists", 0),
+                steals=assists_leader["statistics"].get("steals", 0),
+                blocks=assists_leader["statistics"].get("blocks", 0),
+                turnovers=assists_leader["statistics"].get("turnovers", 0),
+            ),
+            rebounds_leader=PlayerBoxScoreStats(
+                player_id=rebounds_leader["personId"],
+                name=rebounds_leader["name"],
+                position=rebounds_leader.get("position", "N/A"),
+                minutes=rebounds_leader["statistics"].get("minutesCalculated", "N/A"),
+                points=rebounds_leader["statistics"].get("points", 0),
+                rebounds=rebounds_leader["statistics"].get("reboundsTotal", 0),
+                assists=rebounds_leader["statistics"].get("assists", 0),
+                steals=rebounds_leader["statistics"].get("steals", 0),
+                blocks=rebounds_leader["statistics"].get("blocks", 0),
+                turnovers=rebounds_leader["statistics"].get("turnovers", 0),
+            )
+        )
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error retrieving game leaders: {str(e)}")
+
