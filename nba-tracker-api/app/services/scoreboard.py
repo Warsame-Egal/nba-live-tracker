@@ -8,7 +8,7 @@ from nba_api.stats.endpoints import playerindex
 from app.schemas.scoreboard import (
     Team, LiveGame, PlayerStats, GameLeaders, ScoreboardResponse,
     Scoreboard, BoxScoreResponse, PlayerBoxScoreStats,
-    TeamBoxScoreStats
+    TeamBoxScoreStats, TeamGameStatsResponse
 )
 from app.schemas.player import TeamRoster, Player, PlayerSummary
 from app.schemas.team import TeamDetails
@@ -613,3 +613,68 @@ async def getBoxScore(game_id: str) -> BoxScoreResponse:
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error retrieving box score: {str(e)}")
+    
+async def getTeamStats(game_id: str, team_id: int) -> TeamGameStatsResponse:
+    """
+    Fetch team statistics for a given NBA game.
+
+    Args:
+        game_id (str): Unique NBA game identifier.
+        team_id (int): Unique team identifier.
+
+    Returns:
+        TeamGameStatsResponse: A structured response containing the team's stats.
+    """
+    try:
+        # Fetch box score data
+        game_data = boxscore.BoxScore(game_id).get_dict()
+
+        if "game" not in game_data:
+            raise HTTPException(status_code=404, detail=f"No box score available for game ID {game_id}")
+
+        # Extract game details
+        game_info = game_data["game"]
+        home_team = game_info["homeTeam"]
+        away_team = game_info["awayTeam"]
+
+        # Determine if the requested team is home or away
+        if home_team["teamId"] == team_id:
+            selected_team = home_team
+        elif away_team["teamId"] == team_id:
+            selected_team = away_team
+        else:
+            raise HTTPException(status_code=404, detail=f"Team ID {team_id} not found in game {game_id}")
+
+        # Construct response
+        return TeamGameStatsResponse(
+            game_id=game_info["gameId"],
+            team_id=selected_team["teamId"],
+            team_name=selected_team["teamName"],
+            score=selected_team["score"],
+            field_goal_pct=selected_team["statistics"].get("fieldGoalsPercentage", 0.0),
+            three_point_pct=selected_team["statistics"].get("threePointersPercentage", 0.0),
+            free_throw_pct=selected_team["statistics"].get("freeThrowsPercentage", 0.0),
+            rebounds_total=selected_team["statistics"].get("reboundsTotal", 0),
+            assists=selected_team["statistics"].get("assists", 0),
+            steals=selected_team["statistics"].get("steals", 0),
+            blocks=selected_team["statistics"].get("blocks", 0),
+            turnovers=selected_team["statistics"].get("turnovers", 0),
+            players=[
+                PlayerBoxScoreStats(
+                    player_id=player["personId"],
+                    name=player["name"],
+                    position=player.get("position", "N/A"),
+                    minutes=player["statistics"].get("minutesCalculated", "N/A"),
+                    points=player["statistics"].get("points", 0),
+                    rebounds=player["statistics"].get("reboundsTotal", 0),
+                    assists=player["statistics"].get("assists", 0),
+                    steals=player["statistics"].get("steals", 0),
+                    blocks=player["statistics"].get("blocks", 0),
+                    turnovers=player["statistics"].get("turnovers", 0),
+                )
+                for player in selected_team.get("players", [])
+            ]
+        )
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error retrieving team stats: {str(e)}")

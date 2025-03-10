@@ -49,6 +49,24 @@ class PlayerBoxScoreStats(BaseModel):
     blocks: int = Field(..., ge=0, description="Total blocks.")
     turnovers: int = Field(..., ge=0, description="Total turnovers.")
 
+# TeamGameStats Model
+# Represents team-specific statistics for a single game.
+class TeamGameStatsResponse(BaseModel):
+    """Response schema for retrieving a team's statistics in a game."""
+    game_id: str = Field(..., pattern=r"^\d{10}$", description="Unique identifier for the game (10-digit ID).")
+    team_id: int = Field(..., description="Unique identifier for the team.")
+    team_name: str = Field(..., description="Name of the team.")
+    score: int = Field(..., description="Total points scored by the team.")
+    field_goal_pct: float = Field(..., description="Field goal percentage.")
+    three_point_pct: float = Field(..., description="Three-point percentage.")
+    free_throw_pct: float = Field(..., description="Free throw percentage.")
+    rebounds_total: int = Field(..., description="Total rebounds.")
+    assists: int = Field(..., description="Total assists.")
+    steals: int = Field(..., description="Total steals.")
+    blocks: int = Field(..., description="Total blocks.")
+    turnovers: int = Field(..., description="Total turnovers.")
+    players: List[PlayerBoxScoreStats] = Field(..., description="List of player stats.")
+
 # TeamBoxScoreStats Model
 # Represents team-level box score statistics, including player stats.
 class TeamBoxScoreStats(BaseModel):

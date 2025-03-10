@@ -3,9 +3,12 @@ from fastapi import APIRouter, HTTPException, Query
 from app.services.scoreboard import (
     getScoreboard, getTeamGamesByDate, getMatchupGames,
     getTeamInfo, getCurrentTeamRecord, fetchTeamRoster,
-    getPlayerDetails, fetchPlayersByName, getBoxScore
+    getPlayerDetails, fetchPlayersByName, getBoxScore,
+    getTeamStats
 )
-from app.schemas.scoreboard import ScoreboardResponse, BoxScoreResponse
+from app.schemas.scoreboard import ( ScoreboardResponse, BoxScoreResponse,
+    TeamGameStatsResponse
+)
 from app.schemas.player import TeamRoster, PlayerSummary
 from app.schemas.team import TeamDetails
 from app.schemas.schedule import ScheduleResponse
@@ -151,3 +154,25 @@ async def get_game_boxscore(game_id: str):
         return await getBoxScore(game_id)
     except HTTPException as e:
         raise e
+
+@router.get("/scoreboard/game/{game_id}/team/{team_id}/stats", 
+            response_model=TeamGameStatsResponse, 
+            tags=["boxscore"],
+            summary="Get Team Statistics for a Game",
+            description="Retrieve detailed statistics for a specific team in a given NBA game.")
+async def get_game_team_stats(game_id: str, team_id: int):
+    """
+    API route to fetch the statistics of a specific team in a given NBA game.
+
+    Args:
+        game_id (str): Unique game identifier.
+        team_id (int): Unique team identifier.
+
+    Returns:
+        TeamGameStatsResponse: The team's box score stats.
+    """
+    try:
+        return await getTeamStats(game_id, team_id)
+    except HTTPException as e:
+        raise e
+
