@@ -3,9 +3,13 @@ from fastapi import APIRouter, HTTPException, Query
 from app.services.scoreboard import (
     getScoreboard, getTeamGamesByDate, getMatchupGames,
     getTeamInfo, getCurrentTeamRecord, fetchTeamRoster,
-    getPlayerDetails, fetchPlayersByName
+    getPlayerDetails, fetchPlayersByName, getBoxScore,
+    getTeamStats, getGameLeaders, getPlayByPlay
 )
-from app.schemas.scoreboard import ScoreboardResponse
+from app.schemas.scoreboard import (
+    ScoreboardResponse, BoxScoreResponse, TeamGameStatsResponse,
+    GameLeadersResponse, PlayByPlayResponse
+)
 from app.schemas.player import TeamRoster, PlayerSummary
 from app.schemas.team import TeamDetails
 from app.schemas.schedule import ScheduleResponse
@@ -131,5 +135,84 @@ async def searchPlayers(name: str):
     """
     try:
         return await fetchPlayersByName(name)
+    except HTTPException as e:
+        raise e
+    
+@router.get("/scoreboard/game/{game_id}/boxscore", response_model=BoxScoreResponse, tags=["boxscore"],
+            summary="Get Box Score for a Game",
+            description="Retrieve detailed game stats including team and player performance.")
+async def get_game_boxscore(game_id: str):
+    """
+    API route to fetch the full box score for a given NBA game.
+    
+    Args:
+        game_id (str): Unique game identifier.
+
+    Returns:
+        BoxScoreResponse: Full box score containing team and player stats.
+    """
+    try:
+        return await getBoxScore(game_id)
+    except HTTPException as e:
+        raise e
+
+@router.get("/scoreboard/game/{game_id}/team/{team_id}/stats", 
+            response_model=TeamGameStatsResponse, 
+            tags=["boxscore"],
+            summary="Get Team Statistics for a Game",
+            description="Retrieve detailed statistics for a specific team in a given NBA game.")
+async def get_game_team_stats(game_id: str, team_id: int):
+    """
+    API route to fetch the statistics of a specific team in a given NBA game.
+
+    Args:
+        game_id (str): Unique game identifier.
+        team_id (int): Unique team identifier.
+
+    Returns:
+        TeamGameStatsResponse: The team's box score stats.
+    """
+    try:
+        return await getTeamStats(game_id, team_id)
+    except HTTPException as e:
+        raise e
+
+@router.get("/scoreboard/game/{game_id}/leaders", 
+            response_model=GameLeadersResponse, 
+            tags=["boxscore"],
+            summary="Get Game Leaders",
+            description="Retrieve the top-performing players in points, assists, and rebounds for a given NBA game.")
+async def get_game_leaders(game_id: str):
+    """
+    API route to fetch the top players in points, assists, and rebounds for a given NBA game.
+
+    Args:
+        game_id (str): Unique game identifier.
+
+    Returns:
+        GameLeadersResponse: The top-performing players in the game.
+    """
+    try:
+        return await getGameLeaders(game_id)
+    except HTTPException as e:
+        raise e
+
+@router.get("/scoreboard/game/{game_id}/play-by-play", 
+            response_model=PlayByPlayResponse, 
+            tags=["play-by-play"],
+            summary="Get Play-by-Play Breakdown",
+            description="Retrieve real-time play-by-play breakdown, including scoring events, assists, and turnovers.")
+async def get_game_play_by_play(game_id: str):
+    """
+    API route to fetch real-time play-by-play breakdown for a given NBA game.
+
+    Args:
+        game_id (str): Unique game identifier.
+
+    Returns:
+        PlayByPlayResponse: List of play-by-play events.
+    """
+    try:
+        return await getPlayByPlay(game_id)
     except HTTPException as e:
         raise e
