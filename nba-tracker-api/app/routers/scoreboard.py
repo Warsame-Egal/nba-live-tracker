@@ -4,11 +4,11 @@ from app.services.scoreboard import (
     getScoreboard, getTeamGamesByDate, getMatchupGames,
     getTeamInfo, getCurrentTeamRecord, fetchTeamRoster,
     getPlayerDetails, fetchPlayersByName, getBoxScore,
-    getTeamStats, getGameLeaders
+    getTeamStats, getGameLeaders, getPlayByPlay
 )
 from app.schemas.scoreboard import (
     ScoreboardResponse, BoxScoreResponse, TeamGameStatsResponse,
-    GameLeadersResponse
+    GameLeadersResponse, PlayByPlayResponse
 )
 from app.schemas.player import TeamRoster, PlayerSummary
 from app.schemas.team import TeamDetails
@@ -194,5 +194,25 @@ async def get_game_leaders(game_id: str):
     """
     try:
         return await getGameLeaders(game_id)
+    except HTTPException as e:
+        raise e
+
+@router.get("/scoreboard/game/{game_id}/play-by-play", 
+            response_model=PlayByPlayResponse, 
+            tags=["play-by-play"],
+            summary="Get Play-by-Play Breakdown",
+            description="Retrieve real-time play-by-play breakdown, including scoring events, assists, and turnovers.")
+async def get_game_play_by_play(game_id: str):
+    """
+    API route to fetch real-time play-by-play breakdown for a given NBA game.
+
+    Args:
+        game_id (str): Unique game identifier.
+
+    Returns:
+        PlayByPlayResponse: List of play-by-play events.
+    """
+    try:
+        return await getPlayByPlay(game_id)
     except HTTPException as e:
         raise e

@@ -2,6 +2,27 @@ from pydantic import BaseModel, Field, field_validator
 from typing import List, Optional
 import re
 
+# Represents a single play-by-play event in the game.
+class PlayByPlayEvent(BaseModel):
+    """Schema for a single play-by-play event in the game."""
+    action_number: int = Field(..., description="Unique identifier for the action.")
+    clock: str = Field(..., description="Time remaining in the period (ISO 8601 format).")
+    period: int = Field(..., description="Current period of the game.")
+    team_id: Optional[int] = Field(None, description="Team ID associated with the play.")
+    team_tricode: Optional[str] = Field(None, description="Three-letter team abbreviation.")
+    action_type: str = Field(..., description="Type of action (e.g., 'shot', 'turnover').")
+    description: str = Field(..., description="Detailed description of the play.")
+    player_id: Optional[int] = Field(None, description="Player ID involved in the action.")
+    player_name: Optional[str] = Field(None, description="Full name of the player involved in the action.")
+    score_home: Optional[str] = Field(None, description="Current home team score after action.")
+    score_away: Optional[str] = Field(None, description="Current away team score after action.")
+
+# Represents the full play-by-play breakdown of the game.
+class PlayByPlayResponse(BaseModel):
+    """Schema for retrieving real-time play-by-play breakdown of a game."""
+    game_id: str = Field(..., pattern=r"^\d{10}$", description="Unique identifier for the game (10-digit ID).")
+    plays: List[PlayByPlayEvent] = Field(..., description="List of play-by-play events.")
+
 class Team(BaseModel):
     """Represents an NBA team participating in a game."""
     teamId: int = Field(..., description="Unique identifier for the team.")
@@ -34,7 +55,6 @@ class PbOdds(BaseModel):
     odds: Optional[float] = Field(0.0, description="Betting odds value.")
     suspended: Optional[int] = Field(0, description="Indicates if betting is suspended (1 = Yes, 0 = No).")
 
-# PlayerBoxScoreStats Model
 # Represents individual player statistics in a game.
 class PlayerBoxScoreStats(BaseModel):
     """Detailed statistics for a player in a game."""
@@ -49,7 +69,6 @@ class PlayerBoxScoreStats(BaseModel):
     blocks: int = Field(..., ge=0, description="Total blocks.")
     turnovers: int = Field(..., ge=0, description="Total turnovers.")
 
-# GameLeaders Model
 # Represents the top-performing players in points, assists, and rebounds for both teams.
 class GameLeadersResponse(BaseModel):
     """Response schema for retrieving top-performing players in a game."""
@@ -57,8 +76,7 @@ class GameLeadersResponse(BaseModel):
     points_leader: PlayerBoxScoreStats = Field(..., description="Player with the most points in the game.")
     assists_leader: PlayerBoxScoreStats = Field(..., description="Player with the most assists in the game.")
     rebounds_leader: PlayerBoxScoreStats = Field(..., description="Player with the most rebounds in the game.")
-    
-# TeamGameStats Model
+
 # Represents team-specific statistics for a single game.
 class TeamGameStatsResponse(BaseModel):
     """Response schema for retrieving a team's statistics in a game."""
@@ -76,7 +94,6 @@ class TeamGameStatsResponse(BaseModel):
     turnovers: int = Field(..., description="Total turnovers.")
     players: List[PlayerBoxScoreStats] = Field(..., description="List of player stats.")
 
-# TeamBoxScoreStats Model
 # Represents team-level box score statistics, including player stats.
 class TeamBoxScoreStats(BaseModel):
     """Team-level box score stats."""
@@ -93,7 +110,6 @@ class TeamBoxScoreStats(BaseModel):
     turnovers: int = Field(..., description="Total turnovers.")
     players: List[PlayerBoxScoreStats] = Field(..., description="List of player stats.")
 
-# BoxScoreResponse Model
 # Represents the full box score of a game, including team stats.
 class BoxScoreResponse(BaseModel):
     """Response schema for retrieving the box score of a game."""

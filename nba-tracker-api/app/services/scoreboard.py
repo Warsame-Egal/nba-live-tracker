@@ -1,6 +1,7 @@
 from typing import List
 import numpy as np
 from nba_api.live.nba.endpoints import scoreboard
+from nba_api.live.nba.endpoints import boxscore, playbyplay
 from nba_api.stats.endpoints import leaguestandingsv3
 from nba_api.stats.endpoints import commonteamroster
 from nba_api.stats.endpoints import leaguegamefinder
@@ -8,7 +9,8 @@ from nba_api.stats.endpoints import playerindex
 from app.schemas.scoreboard import (
     Team, LiveGame, PlayerStats, GameLeaders, ScoreboardResponse,
     Scoreboard, BoxScoreResponse, PlayerBoxScoreStats,
-    TeamBoxScoreStats, TeamGameStatsResponse, GameLeadersResponse
+    TeamBoxScoreStats, TeamGameStatsResponse, GameLeadersResponse,
+    PlayByPlayEvent, PlayByPlayResponse
 )
 from app.schemas.player import TeamRoster, Player, PlayerSummary
 from app.schemas.team import TeamDetails
@@ -16,8 +18,6 @@ from app.schemas.schedule import ScheduledGame, ScheduleResponse
 from fastapi import HTTPException
 from datetime import datetime
 from app.utils.formatters import format_matchup
-from nba_api.live.nba.endpoints import boxscore
-
 
 async def getScoreboard() -> ScoreboardResponse:
     """
@@ -753,3 +753,46 @@ async def getGameLeaders(game_id: str) -> GameLeadersResponse:
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error retrieving game leaders: {str(e)}")
 
+async def getPlayByPlay(game_id: str) -> PlayByPlayResponse:
+    """
+    Fetch real-time play-by-play breakdown for a given NBA game.
+
+    Args:
+        game_id (str): Unique NBA game identifier.
+
+    Returns:
+        PlayByPlayResponse: A structured response containing a list of plays.
+    """
+    try:
+        # Fetch play-by-play data
+        play_by_play_data = playbyplay.PlayByPlay(game_id).get_dict()
+
+        if "game" not in play_by_play_data or "actions" not in play_by_play_data["game"]:
+            raise HTTPException(status_code=404, detail=f"No play-by-play data available for game ID {game_id}")
+
+        # Extract game details
+        actions = play_by_play_data["game"]["actions"]
+
+        # Process play-by-play events
+        plays = [
+            PlayByPlayEvent(
+                action_number=action["actionNumber"],
+                clock=action["clock"],
+                period=action["period"],
+                team_id=action.get("teamId"),
+                team_tricode=action.get("teamTricode"),
+                action_type=action["actionType"],
+                description=action["description"],
+                player_id=action.get("personId"),
+                player_name=action.get("playerName"),
+                score_home=action.get("scoreHome"),
+                score_away=action.get("scoreAway"),
+            )
+            for action in actions
+        ]
+
+        # Construct response
+        return PlayByPlayResponse(game_id=game_id, plays=plays)
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error retrieving play-by-play: {str(e)}")
