@@ -3,9 +3,9 @@ from fastapi import APIRouter, HTTPException, Query
 from app.services.scoreboard import (
     getScoreboard, getTeamGamesByDate, getMatchupGames,
     getTeamInfo, getCurrentTeamRecord, fetchTeamRoster,
-    getPlayerDetails, fetchPlayersByName
+    getPlayerDetails, fetchPlayersByName, getBoxScore
 )
-from app.schemas.scoreboard import ScoreboardResponse
+from app.schemas.scoreboard import ScoreboardResponse, BoxScoreResponse
 from app.schemas.player import TeamRoster, PlayerSummary
 from app.schemas.team import TeamDetails
 from app.schemas.schedule import ScheduleResponse
@@ -131,5 +131,23 @@ async def searchPlayers(name: str):
     """
     try:
         return await fetchPlayersByName(name)
+    except HTTPException as e:
+        raise e
+    
+@router.get("/scoreboard/game/{game_id}/boxscore", response_model=BoxScoreResponse, tags=["boxscore"],
+            summary="Get Box Score for a Game",
+            description="Retrieve detailed game stats including team and player performance.")
+async def get_game_boxscore(game_id: str):
+    """
+    API route to fetch the full box score for a given NBA game.
+    
+    Args:
+        game_id (str): Unique game identifier.
+
+    Returns:
+        BoxScoreResponse: Full box score containing team and player stats.
+    """
+    try:
+        return await getBoxScore(game_id)
     except HTTPException as e:
         raise e

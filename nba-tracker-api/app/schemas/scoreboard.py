@@ -23,12 +23,10 @@ class PlayerStats(BaseModel):
     rebounds: int = Field(..., ge=0, description="Total rebounds secured by the player.")
     assists: int = Field(..., ge=0, description="Total assists made by the player.")
 
-
 class GameLeaders(BaseModel):
     """Represents the top-performing players in a game."""
     homeLeaders: Optional[PlayerStats] = Field(None, description="Top-performing player from the home team.")
     awayLeaders: Optional[PlayerStats] = Field(None, description="Top-performing player from the away team.")
-
 
 class PbOdds(BaseModel):
     """Represents pre-game betting odds."""
@@ -36,6 +34,46 @@ class PbOdds(BaseModel):
     odds: Optional[float] = Field(0.0, description="Betting odds value.")
     suspended: Optional[int] = Field(0, description="Indicates if betting is suspended (1 = Yes, 0 = No).")
 
+# PlayerBoxScoreStats Model
+# Represents individual player statistics in a game.
+class PlayerBoxScoreStats(BaseModel):
+    """Detailed statistics for a player in a game."""
+    player_id: int = Field(..., description="Unique identifier for the player.")
+    name: str = Field(..., description="Full name of the player.")
+    position: str = Field("N/A", description="Position played. Defaults to 'N/A' if not available.")
+    minutes: Optional[str] = Field(None, description="Total minutes played.")
+    points: int = Field(..., ge=0, description="Total points scored.")
+    rebounds: int = Field(..., ge=0, description="Total rebounds.")
+    assists: int = Field(..., ge=0, description="Total assists.")
+    steals: int = Field(..., ge=0, description="Total steals.")
+    blocks: int = Field(..., ge=0, description="Total blocks.")
+    turnovers: int = Field(..., ge=0, description="Total turnovers.")
+
+# TeamBoxScoreStats Model
+# Represents team-level box score statistics, including player stats.
+class TeamBoxScoreStats(BaseModel):
+    """Team-level box score stats."""
+    team_id: int = Field(..., description="Unique identifier for the team.")
+    team_name: str = Field(..., description="Team name.")
+    score: int = Field(..., description="Total points scored by the team.")
+    field_goal_pct: float = Field(..., description="Field goal percentage.") # convert from decimal to % in the frontend
+    three_point_pct: float = Field(..., description="Three-point percentage.") # convert from decimal to % in the frontend
+    free_throw_pct: float = Field(..., description="Free throw percentage.") # convert from decimal to % in the frontend
+    rebounds_total: int = Field(..., description="Total rebounds.")
+    assists: int = Field(..., description="Total assists.")
+    steals: int = Field(..., description="Total steals.")
+    blocks: int = Field(..., description="Total blocks.")
+    turnovers: int = Field(..., description="Total turnovers.")
+    players: List[PlayerBoxScoreStats] = Field(..., description="List of player stats.")
+
+# BoxScoreResponse Model
+# Represents the full box score of a game, including team stats.
+class BoxScoreResponse(BaseModel):
+    """Response schema for retrieving the box score of a game."""
+    game_id: str = Field(..., pattern=r"^\d{10}$", description="Unique identifier for the game (10-digit ID).")
+    status: str = Field(..., description="Game status, which can include 'Final', 'Scheduled', or 'Q3 2:50'.")
+    home_team: TeamBoxScoreStats = Field(..., description="Home team statistics.")
+    away_team: TeamBoxScoreStats = Field(..., description="Away team statistics.")
 
 class LiveGame(BaseModel):
     """Represents an NBA game with details on status, teams, and score."""
@@ -49,6 +87,7 @@ class LiveGame(BaseModel):
     awayTeam: Team = Field(..., description="Information about the away team.")
     gameLeaders: Optional[GameLeaders] = Field(None, description="Top-performing players from each team.")
     pbOdds: Optional[PbOdds] = Field(None, description="Pre-game betting odds.")
+    boxScore: Optional[BoxScoreResponse] = Field(None, description="Detailed box score if available.")
 
     @field_validator("gameStatusText", mode="before")
     @classmethod
@@ -67,12 +106,10 @@ class LiveGame(BaseModel):
             return f"{int(minutes)}:{seconds.zfill(2)}"
         return value
 
-
 class Scoreboard(BaseModel):
     """Represents the scoreboard for a specific game date."""
     gameDate: str = Field(..., description="Date of the games in YYYY-MM-DD format.")
     games: List[LiveGame] = Field(..., description="List of games played on the specified date.")
-
 
 class ScoreboardResponse(BaseModel):
     """Response schema for retrieving live NBA scores."""

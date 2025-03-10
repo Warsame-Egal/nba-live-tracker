@@ -6,7 +6,9 @@ from nba_api.stats.endpoints import commonteamroster
 from nba_api.stats.endpoints import leaguegamefinder
 from nba_api.stats.endpoints import playerindex
 from app.schemas.scoreboard import (
-    Team, LiveGame, PlayerStats, GameLeaders, ScoreboardResponse, Scoreboard
+    Team, LiveGame, PlayerStats, GameLeaders, ScoreboardResponse,
+    Scoreboard, BoxScoreResponse, PlayerBoxScoreStats,
+    TeamBoxScoreStats
 )
 from app.schemas.player import TeamRoster, Player, PlayerSummary
 from app.schemas.team import TeamDetails
@@ -14,6 +16,8 @@ from app.schemas.schedule import ScheduledGame, ScheduleResponse
 from fastapi import HTTPException
 from datetime import datetime
 from app.utils.formatters import format_matchup
+from nba_api.live.nba.endpoints import boxscore
+
 
 async def getScoreboard() -> ScoreboardResponse:
     """
@@ -516,3 +520,96 @@ async def fetchPlayersByName(name: str) -> List[PlayerSummary]:
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error searching for players: {e}")
+
+def format_percentage(value: float) -> str:
+    """
+    Converts a decimal value (e.g., 0.4342) to a percentage string (e.g., '43.4%').
+    """
+    return f"{value * 100:.1f}%"
+   
+async def getBoxScore(game_id: str) -> BoxScoreResponse:
+    """
+    Fetch the full box score for a given NBA game.
+
+    Args:
+        game_id (str): Unique NBA game identifier.
+
+    Returns:
+        BoxScoreResponse: A structured response containing team and player stats.
+    """
+    try:
+        # Fetch box score data
+        game_data = boxscore.BoxScore(game_id).get_dict()
+
+        if "game" not in game_data:
+            raise HTTPException(status_code=404, detail=f"No box score available for game ID {game_id}")
+
+        # Extract game details
+        game_info = game_data["game"]
+        home_team = game_info["homeTeam"]
+        away_team = game_info["awayTeam"]
+
+        # Construct response
+        return BoxScoreResponse(
+            game_id=game_info["gameId"],
+            status=game_info["gameStatusText"],  # Accept values like "Q3 2:50"
+            home_team=TeamBoxScoreStats(
+                team_id=home_team["teamId"],
+                team_name=home_team["teamName"],
+                score=home_team["score"],
+                field_goal_pct=home_team["statistics"].get("fieldGoalsPercentage", 0.0),
+                three_point_pct=home_team["statistics"].get("threePointersPercentage", 0.0),
+                free_throw_pct=home_team["statistics"].get("freeThrowsPercentage", 0.0),
+                rebounds_total=home_team["statistics"].get("reboundsTotal", 0),
+                assists=home_team["statistics"].get("assists", 0),
+                steals=home_team["statistics"].get("steals", 0),
+                blocks=home_team["statistics"].get("blocks", 0),
+                turnovers=home_team["statistics"].get("turnovers", 0),
+                players=[
+                    PlayerBoxScoreStats(
+                        player_id=player["personId"],
+                        name=player["name"],
+                        position=player.get("position", "N/A"),  # Default to "N/A"
+                        minutes=player["statistics"].get("minutesCalculated", "N/A"),
+                        points=player["statistics"].get("points", 0),
+                        rebounds=player["statistics"].get("reboundsTotal", 0),
+                        assists=player["statistics"].get("assists", 0),
+                        steals=player["statistics"].get("steals", 0),
+                        blocks=player["statistics"].get("blocks", 0),
+                        turnovers=player["statistics"].get("turnovers", 0),
+                    )
+                    for player in home_team.get("players", [])  # Handle missing "players"
+                ]
+            ),
+            away_team=TeamBoxScoreStats(
+                team_id=away_team["teamId"],
+                team_name=away_team["teamName"],
+                score=away_team["score"],
+                field_goal_pct=away_team["statistics"].get("fieldGoalsPercentage", 0.0),
+                three_point_pct=away_team["statistics"].get("threePointersPercentage", 0.0),
+                free_throw_pct=away_team["statistics"].get("freeThrowsPercentage", 0.0),
+                rebounds_total=away_team["statistics"].get("reboundsTotal", 0),
+                assists=away_team["statistics"].get("assists", 0),
+                steals=away_team["statistics"].get("steals", 0),
+                blocks=away_team["statistics"].get("blocks", 0),
+                turnovers=away_team["statistics"].get("turnovers", 0),
+                players=[
+                    PlayerBoxScoreStats(
+                        player_id=player["personId"],
+                        name=player["name"],
+                        position=player.get("position", "N/A"),
+                        minutes=player["statistics"].get("minutesCalculated", "N/A"),
+                        points=player["statistics"].get("points", 0),
+                        rebounds=player["statistics"].get("reboundsTotal", 0),
+                        assists=player["statistics"].get("assists", 0),
+                        steals=player["statistics"].get("steals", 0),
+                        blocks=player["statistics"].get("blocks", 0),
+                        turnovers=player["statistics"].get("turnovers", 0),
+                    )
+                    for player in away_team.get("players", []) 
+                ]
+            )
+        )
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error retrieving box score: {str(e)}")
