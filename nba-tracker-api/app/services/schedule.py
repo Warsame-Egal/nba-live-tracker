@@ -7,7 +7,8 @@ from app.utils.formatters import format_matchup
 
 async def getSeasonSchedule(season: str) -> ScheduleResponse:
     """
-    Retrieves and structures the schedule of all NBA games for the specified season.
+    Retrieves and structures the schedule of all NBA games
+      for the specified season.
 
     Args:
         season (str): NBA season identifier (e.g., '2023-24').
@@ -45,8 +46,10 @@ async def getSeasonSchedule(season: str) -> ScheduleResponse:
                 matchup=format_matchup(game["MATCHUP"]),
                 win_loss=game.get("WL"),
                 points_scored=int(game["PTS"]) if game.get("PTS") else None,
-                field_goal_pct=float(game["FG_PCT"]) if game.get("FG_PCT") else None,
-                three_point_pct=float(game["FG3_PCT"]) if game.get("FG3_PCT") else None,
+                field_goal_pct=float(
+                    game["FG_PCT"]) if game.get("FG_PCT") else None,
+                three_point_pct=float(
+                    game["FG3_PCT"]) if game.get("FG3_PCT") else None,
             )
             games.append(scheduled_game)
 
@@ -101,8 +104,10 @@ async def getTeamSchedule(team_id: int, season: str) -> ScheduleResponse:
                 matchup=format_matchup(game["MATCHUP"]),
                 win_loss=game.get("WL"),
                 points_scored=int(game["PTS"]) if game.get("PTS") else None,
-                field_goal_pct=float(game["FG_PCT"]) if game.get("FG_PCT") else None,
-                three_point_pct=float(game["FG3_PCT"]) if game.get("FG3_PCT") else None,
+                field_goal_pct=float(
+                    game["FG_PCT"]) if game.get("FG_PCT") else None,
+                three_point_pct=float(
+                    game["FG3_PCT"]) if game.get("FG3_PCT") else None,
             )
             games.append(scheduled_game)
 

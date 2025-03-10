@@ -10,7 +10,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Scoreboard />} />
           <Route path="/team/:team_id" element={<TeamPage />} />
-          <Route path="/team/:team_id/roster" element={<RosterPage />} />
+          <Route path="/team/:team_id/" element={<RosterPage />} />
         </Routes>
       </div>
     </Router>

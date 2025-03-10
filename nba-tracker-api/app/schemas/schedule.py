@@ -11,7 +11,8 @@ class ScheduledGame(BaseModel):
         ..., description="Three-letter abbreviation of the team."
     )
     game_id: str = Field(..., description="Unique identifier for the game.")
-    game_date: str = Field(..., description="Scheduled date of the game (YYYY-MM-DD).")
+    game_date: str = Field(...,
+                           description="Scheduled date of the game (YYYY-MM-DD).")
     matchup: Optional[str] = Field(
         None, description="Matchup format (e.g., 'DAL @ BOS')."
     )

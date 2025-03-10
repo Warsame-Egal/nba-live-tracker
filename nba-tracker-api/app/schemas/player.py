@@ -36,17 +36,21 @@ class PlayerSummary(BaseModel):
     team_abbreviation: Optional[str] = Field(
         None, description="Team abbreviation (LAL, BOS)."
     )
-    jersey_number: Optional[str] = Field(None, description="Player's jersey number.")
-    position: Optional[str] = Field(None, description="Player's position (G, F, C).")
+    jersey_number: Optional[str] = Field(
+        None, description="Player's jersey number.")
+    position: Optional[str] = Field(
+        None, description="Player's position (G, F, C).")
     height: Optional[str] = Field(
-        None, description="Player's height in feet-inches format (6-8)."
+        None, description="Player's height in" " feet-inches format (6-8)."
     )
-    weight: Optional[int] = Field(None, description="Player's weight in pounds.")
+    weight: Optional[int] = Field(
+        None, description="Player's weight in pounds.")
     college: Optional[str] = Field(
         None, description="College or international team attended."
     )
     country: Optional[str] = Field(None, description="Country of origin.")
-    draft_year: Optional[int] = Field(None, description="Year the player was drafted.")
+    draft_year: Optional[int] = Field(
+        None, description="Year the player was drafted.")
     draft_round: Optional[int] = Field(
         None, description="Draft round the player was selected in."
     )

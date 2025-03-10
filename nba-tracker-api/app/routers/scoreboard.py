@@ -69,13 +69,13 @@ async def teamGamesByDate(team_id: int, game_date: str):
         raise e
 
 
-@router.get(
-    "/scoreboard/matchup/{team1_id}/{team2_id}",
-    response_model=ScheduleResponse,
-    tags=["scoreboard"],
-    summary="Get Head-to-Head Matchups",
-    description="Retrieve past games where two teams played against each other.",
-)
+@router.get("/scoreboard/matchup/{team1_id}/{team2_id}",
+            response_model=ScheduleResponse,
+            tags=["scoreboard"],
+            summary="Get Head-to-Head Matchups",
+            description="Retrieve past games where two teams played"
+            " against each other.",
+            )
 async def matchupGames(team1_id: int, team2_id: int):
     """
     API route to fetch and return all past matchups between two teams.
@@ -95,7 +95,8 @@ async def matchupGames(team1_id: int, team2_id: int):
 )
 async def teamInfo(team_id: int):
     """
-    API route to fetch and return all games played by a specific team across seasons.
+    API route to fetch and return all games played by a specific
+      team across seasons.
     """
     try:
         return await getTeamInfo(team_id)
@@ -108,11 +109,13 @@ async def teamInfo(team_id: int):
     response_model=TeamDetails,
     tags=["teams"],
     summary="Get Current Team Record",
-    description="Fetch the current season's record, ranking, and performance for a team.",
+    description="Fetch the current season's record, ranking,"
+    " and performance for a team.",
 )
 async def currentTeamRecord(team_id: int):
     """
-    API route to retrieve a team's real-time standings and performance metrics.
+    API route to retrieve a team's real-time standings
+      and performance metrics.
     """
     try:
         return await getCurrentTeamRecord(team_id)
@@ -125,11 +128,13 @@ async def currentTeamRecord(team_id: int):
     response_model=TeamRoster,
     tags=["teams"],
     summary="Get Team Roster",
-    description="Fetch the full roster and coaching staff for a given team and season.",
+    description="Fetch the full roster and coaching staff"
+    " for a given team and season.",
 )
 async def getTeamRoster(team_id: int, season: str):
     """
-    API endpoint to retrieve the full roster of a given NBA team for a specific season.
+    API endpoint to retrieve the full roster of a given
+      NBA team for a specific season.
     Args:
         team_id (int): The unique identifier for the NBA team.
         season (str): The NBA season identifier (e.g., "2023-24").
@@ -165,7 +170,9 @@ async def fetchPlayerDetails(player_id: int):
         raise e
 
 
-@router.get("/players/search", response_model=List[PlayerSummary], tags=["players"])
+@router.get("/players/search",
+            response_model=List[PlayerSummary],
+            tags=["players"])
 async def searchPlayers(name: str):
     """
     API route to search for players by name.
@@ -187,7 +194,8 @@ async def searchPlayers(name: str):
     response_model=BoxScoreResponse,
     tags=["boxscore"],
     summary="Get Box Score for a Game",
-    description="Retrieve detailed game stats including team and player performance.",
+    description="Retrieve detailed game stats including team"
+    " and player performance.",
 )
 async def get_game_boxscore(game_id: str):
     """
@@ -210,7 +218,8 @@ async def get_game_boxscore(game_id: str):
     response_model=TeamGameStatsResponse,
     tags=["boxscore"],
     summary="Get Team Statistics for a Game",
-    description="Retrieve detailed statistics for a specific team in a given NBA game.",
+    description="Retrieve detailed statistics for a specific"
+    " team in a given NBA game.",
 )
 async def get_game_team_stats(game_id: str, team_id: int):
     """
@@ -234,11 +243,13 @@ async def get_game_team_stats(game_id: str, team_id: int):
     response_model=GameLeadersResponse,
     tags=["boxscore"],
     summary="Get Game Leaders",
-    description="Retrieve the top-performing players in points, assists, and rebounds for a given NBA game.",
+    description="Retrieve the top-performing players in points,"
+    " assists, and rebounds for a given NBA game.",
 )
 async def get_game_leaders(game_id: str):
     """
-    API route to fetch the top players in points, assists, and rebounds for a given NBA game.
+    API route to fetch the top players in points, assists,
+      and rebounds for a given NBA game.
 
     Args:
         game_id (str): Unique game identifier.
@@ -257,7 +268,8 @@ async def get_game_leaders(game_id: str):
     response_model=PlayByPlayResponse,
     tags=["play-by-play"],
     summary="Get Play-by-Play Breakdown",
-    description="Retrieve real-time play-by-play breakdown, including scoring events, assists, and turnovers.",
+    description="Retrieve real-time play-by-play breakdown,"
+    " including scoring events, assists, and turnovers.",
 )
 async def get_game_play_by_play(game_id: str):
     """
