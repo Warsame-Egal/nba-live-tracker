@@ -594,9 +594,11 @@ async def fetchPlayersByName(name: str) -> List[PlayerSummary]:
         # Filter players by checking if query matches full name, first name, or
         # last name
         matching_players = [
-            player for player in players if name in f"{
-                player['PLAYER_FIRST_NAME']} {
-                player['PLAYER_LAST_NAME']}".lower()]
+        player for player in players
+            if name.lower() in (
+                f"{player['PLAYER_FIRST_NAME']} {player['PLAYER_LAST_NAME']}".lower()
+            )
+        ]
 
         if not matching_players:
             raise HTTPException(

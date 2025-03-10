@@ -7,7 +7,8 @@ from app.routers.health import router as health_router
 # Initialize FastAPI app
 app = FastAPI(
     title="NBA tracker API",
-    description="An API providing NBA live scoreboard, schedule, and game stats.",
+    description="An API providing NBA live scoreboard,"
+    " schedule, and game stats.",
     version="1.0.0",
 )
 

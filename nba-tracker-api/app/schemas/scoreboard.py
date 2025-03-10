@@ -62,7 +62,8 @@ class Team(BaseModel):
     teamName: str = Field(..., description="Full name of the team.")
     teamCity: str = Field(..., description="City where the team is based.")
     teamTricode: str = Field(...,
-                             description="Three-letter abbreviation of the team.")
+                             description="Three-letter abbreviation"
+                             " of the team.")
     wins: Optional[int] = Field(
         None, description="Total wins for the team in the season."
     )
@@ -127,7 +128,8 @@ class PlayerBoxScoreStats(BaseModel):
                            description="Unique identifier for the player.")
     name: str = Field(..., description="Full name of the player.")
     position: str = Field(
-        "N/A", description="Position played. Defaults to 'N/A' if not available.")
+        "N/A", description="Position played. Defaults to 'N/A'"
+        " if not available.")
     minutes: Optional[str] = Field(None, description="Total minutes played.")
     points: int = Field(..., ge=0, description="Total points scored.")
     rebounds: int = Field(..., ge=0, description="Total rebounds.")
@@ -183,7 +185,8 @@ class TeamGameStatsResponse(BaseModel):
     blocks: int = Field(..., description="Total blocks.")
     turnovers: int = Field(..., description="Total turnovers.")
     players: List[PlayerBoxScoreStats] = Field(...,
-                                               description="List of player stats.")
+                                               description="List of player"
+                                               " stats.")
 
 
 # Represents team-level box score statistics, including player stats.
@@ -207,7 +210,8 @@ class TeamBoxScoreStats(BaseModel):
     blocks: int = Field(..., description="Total blocks.")
     turnovers: int = Field(..., description="Total turnovers.")
     players: List[PlayerBoxScoreStats] = Field(...,
-                                               description="List of player stats.")
+                                               description="List of"
+                                               " player stats.")
 
 
 # Represents the full box score of a game, including team stats.
@@ -242,10 +246,12 @@ class LiveGame(BaseModel):
         " 1 = Scheduled, 2 = In Progress, 3 = Final)",
     )
     gameStatusText: str = Field(
-        ..., description="Text description of the game status ('Final', '4th Qtr').")
+        ..., description="Text description of the game status"
+        " ('Final', '4th Qtr').")
     period: int = Field(
         ...,
-        description="Current period of the game (1-4 for quarters, 5+ for overtime).",
+        description="Current period of the game (1-4 for quarters,"
+        " 5+ for overtime).",
     )
     gameClock: Optional[str] = Field(
         None,
@@ -287,7 +293,8 @@ class Scoreboard(BaseModel):
     """Represents the scoreboard for a specific game date."""
 
     gameDate: str = Field(...,
-                          description="Date of the games in YYYY-MM-DD format.")
+                          description="Date of the games in"
+                          " YYYY-MM-DD format.")
     games: List[LiveGame] = Field(
         ..., description="List of games played on the specified date."
     )
