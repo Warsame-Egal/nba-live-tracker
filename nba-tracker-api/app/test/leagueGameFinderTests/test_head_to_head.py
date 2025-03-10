@@ -5,7 +5,7 @@ from nba_api.stats.endpoints import leaguegamefinder
 game_finder = leaguegamefinder.LeagueGameFinder(
     team_id_nullable=str(1610612741),
     vs_team_id_nullable=str(1610612753),
-    league_id_nullable="00"
+    league_id_nullable="00",
 )
 
 # Convert response to DataFrame

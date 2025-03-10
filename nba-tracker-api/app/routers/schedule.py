@@ -5,11 +5,13 @@ from app.schemas.schedule import ScheduleResponse
 router = APIRouter()
 
 
-@router.get("/schedule/season/{season}",
-            response_model=ScheduleResponse,
-            tags=["schedule"],
-            summary="Get Full Season Schedule",
-            description="Fetch all NBA games for a given season.")
+@router.get(
+    "/schedule/season/{season}",
+    response_model=ScheduleResponse,
+    tags=["schedule"],
+    summary="Get Full Season Schedule",
+    description="Fetch all NBA games for a given season.",
+)
 async def season_schedule(season: str):
     """
     API route to fetch and return all NBA games for a given season.
@@ -28,11 +30,13 @@ async def season_schedule(season: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/schedule/team/{team_id}/season/{season}",
-            response_model=ScheduleResponse,
-            tags=["schedule"],
-            summary="Get Team's Full Season Schedule",
-            description="Fetch all games for a specific team in a given season.")
+@router.get(
+    "/schedule/team/{team_id}/season/{season}",
+    response_model=ScheduleResponse,
+    tags=["schedule"],
+    summary="Get Team's Full Season Schedule",
+    description="Fetch all games for a specific team in a given season.",
+)
 async def team_schedule(team_id: int, season: str):
     """
     API route to retrieve the complete game schedule for a specific NBA team.
