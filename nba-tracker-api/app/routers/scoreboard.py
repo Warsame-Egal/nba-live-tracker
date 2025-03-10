@@ -1,5 +1,5 @@
 from typing import List
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException
 from app.services.scoreboard import (
     getScoreboard,
     getTeamGamesByDate,
