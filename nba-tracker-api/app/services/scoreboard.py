@@ -750,8 +750,7 @@ async def getBoxScore(game_id: str) -> BoxScoreResponse:
     except Exception as e:
         raise HTTPException(
             status_code=500,
-            detail=f"Error retrieving box score: {
-                str(e)}",
+            detail=f"Error retrieving box score: {str(e)}",
         )
 
 
