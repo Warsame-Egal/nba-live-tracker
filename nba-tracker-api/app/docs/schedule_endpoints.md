@@ -2,7 +2,7 @@
 
 ## Overview
 
-The NBA Schedule API provides endpoints to retrieve game schedules for an entire season or for a specific team.
+The **NBA Scoreboard API** provides real-time and historical data about NBA games, teams, and players.
 
 ## Endpoints
 
