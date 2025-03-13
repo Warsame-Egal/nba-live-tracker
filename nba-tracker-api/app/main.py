@@ -1,14 +1,39 @@
+import asyncio
 from fastapi import FastAPI
+from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
+from app.services.websockets_manager import scoreboard_websocket_manager
 from app.routers.scoreboard import router as scoreboard_router
-from app.routers.schedule import router as schedule_routes
+from app.routers.schedule import router as schedule_router
 from app.routers.health import router as health_router
 
-# Initialize FastAPI app
-app = FastAPI(title="NBA tracker API",
-              description="An API providing NBA live scoreboard, schedule, and game stats.",
-              version="1.0.0",
-              )
+
+# Manages WebSocket broadcasting lifecycle
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Starts WebSocket broadcasting on app startup and shuts it down on exit."""
+    
+    print("Starting WebSocket broadcasting...")
+    task = asyncio.create_task(scoreboard_websocket_manager.broadcast_updates())  # Start background task
+    
+    try:
+        yield  # Keep broadcasting active while the app runs
+    finally:
+        print("Shutting down WebSocket broadcasting...")
+        task.cancel()
+        try:
+            await task  # Ensure clean shutdown
+        except asyncio.CancelledError:
+            pass
+
+
+# Initialize FastAPI app with lifespan
+app = FastAPI(
+    title="NBA Tracker API",
+    description="An API providing NBA live scoreboard, schedule, and game stats.",
+    version="1.0.0",
+    lifespan=lifespan,  # Starts WebSocket broadcasting on app startup
+)
 
 # Enable Cross-Origin Resource Sharing frontend access
 app.add_middleware(
@@ -32,4 +57,4 @@ app.include_router(health_router, prefix="/api/v1")
 app.include_router(scoreboard_router, prefix="/api/v1")
 
 # Register API route for schedule
-app.include_router(schedule_routes, prefix="/api/v1")
+app.include_router(schedule_router, prefix="/api/v1")

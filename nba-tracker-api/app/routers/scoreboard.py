@@ -1,10 +1,10 @@
 from typing import List
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 from app.services.scoreboard import (
-    getScoreboard, getTeamGamesByDate, getMatchupGames,
+    getTeamGamesByDate, getMatchupGames,
     getTeamInfo, getCurrentTeamRecord, fetchTeamRoster,
     getPlayerDetails, fetchPlayersByName, getBoxScore,
-    getTeamStats, getGameLeaders, getPlayByPlay
+    getTeamStats, getGameLeaders, getPlayByPlay, getScoreboard
 )
 from app.schemas.scoreboard import (
     ScoreboardResponse, BoxScoreResponse, TeamGameStatsResponse,
@@ -13,9 +13,43 @@ from app.schemas.scoreboard import (
 from app.schemas.player import TeamRoster, PlayerSummary
 from app.schemas.team import TeamDetails
 from app.schemas.schedule import ScheduleResponse
+from app.services.websockets_manager import scoreboard_websocket_manager
+
+
 
 router = APIRouter()
 
+# WebSocket Endpoint for Real-Time Score Updates
+@router.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    """
+    WebSocket connection handler for live NBA scoreboard updates.
+    
+    This function:
+    - Accepts WebSocket connections from clients.
+    - Sends the latest scoreboard data when a client connects.
+    - Listens for incoming messages from the client (currently just logs received data).
+    - Handles disconnections gracefully.
+    """
+
+    # Accept and register the new WebSocket connection
+    await scoreboard_websocket_manager.connect(websocket)
+
+    try:
+        # Send the latest scoreboard data to the newly connected client
+        await scoreboard_websocket_manager.send_initial_scoreboard(websocket)
+
+        # Keep the WebSocket connection open and listen for incoming messages
+        while True:
+            data = await websocket.receive_text()  # Receive message from client
+            print(f"Received: {data}")  # Log incoming messages (if needed for debugging)
+
+    except WebSocketDisconnect:
+        # Handle client disconnection
+        print(f"Client disconnected: {websocket}")
+        await scoreboard_websocket_manager.disconnect(websocket)
+
+# API Endpoint for Live Scoreboard Data (REST)
 @router.get("/scoreboard", response_model=ScoreboardResponse, tags=["scoreboard"],
             summary="Get Live NBA Scores",
             description="Fetch and return live NBA scores from the NBA API.")
