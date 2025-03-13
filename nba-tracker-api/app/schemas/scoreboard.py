@@ -31,6 +31,7 @@ class Team(BaseModel):
     teamTricode: str = Field(..., description="Three-letter abbreviation of the team.")
     wins: Optional[int] = Field(None, description="Total wins for the team in the season.")
     losses: Optional[int] = Field(None, description="Total losses for the team in the season.")
+    score: Optional[int] = Field(None, description="Total team score.")
     timeoutsRemaining: Optional[int] = Field(None, description="Number of timeouts left for the team.")
 
 class PlayerStats(BaseModel):

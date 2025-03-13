@@ -1,31 +1,38 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ScoreboardResponse, Game } from "../types/scoreboard";
+import WebSocketService from "../services/webSocketService"; // WebSocket connection
 import GameCard from "../components/GameCard";
 import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 
+const SCOREBOARD_WEBSOCKET_URL = "ws://127.0.0.1:8000/api/v1/ws";
+
 const Scoreboard = () => {
-  // State to hold the list of games
+    // State to hold the list of games
   const [games, setGames] = useState<Game[]>([]);
-  // State to manage loading status
+    // State to manage loading status
   const [loading, setLoading] = useState(true);
 
-  // Fetch scoreboard data when the component mounts
   useEffect(() => {
-    async function fetchScoreboard() {
-      try {
-        const response = await fetch("http://127.0.0.1:8000/api/v1/scoreboard");
-        const data: ScoreboardResponse = await response.json();
-        setGames(data.scoreboard.games);
-      } catch (error) {
-        console.error("Error fetching scoreboard:", error);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchScoreboard();
+    // Connect to WebSocket when component mounts
+    WebSocketService.connect(SCOREBOARD_WEBSOCKET_URL);
+
+    // Handle incoming scoreboard updates
+    const handleScoreboardUpdate = (data: ScoreboardResponse) => {
+      setGames(data.scoreboard.games);
+      setLoading(false);
+    };
+
+    // Subscribe to WebSocket updates
+    WebSocketService.subscribe(handleScoreboardUpdate);
+
+    return () => {
+      // Unsubscribe and disconnect when the component unmounts
+      WebSocketService.unsubscribe(handleScoreboardUpdate);
+      WebSocketService.disconnect();
+    };
   }, []);
 
   // Slider settings for the game cards

@@ -19,97 +19,120 @@ from fastapi import HTTPException
 from datetime import datetime
 from app.utils.formatters import format_matchup
 
-async def getScoreboard() -> ScoreboardResponse:
+async def fetch_nba_scoreboard():
     """
-    Fetches today's NBA games from the NBA API and structures the data into a scoreboard response.
-
-    Steps:
-    1. Retrieves current NBA game data.
-    2. Extracts game details including teams, current status, scores, and top-performing players.
-    3. Constructs structured response with live game details.
-
-    Raises:
-        HTTPException: If fetching data from the NBA API fails.
+    Fetches raw NBA scoreboard data from the NBA API.
+    
+    Returns:
+        dict: Raw scoreboard data containing game details.
     """
     try:
         board = scoreboard.ScoreBoard().get_dict()
-        raw_scoreboard_data = board.get("scoreboard", {})
-        game_date = raw_scoreboard_data.get("gameDate", "")
+        return board.get("scoreboard", {})  # Extract only the scoreboard section
+    except Exception as e:
+        print(f"Error fetching NBA scoreboard: {e}")
+        return {}  # Return an empty dict to avoid crashes
+
+
+def extract_team_data(team_data):
+    """
+    Extracts relevant team details from the API response.
+    
+    Args:
+        team_data (dict): Raw team data from the API.
+    
+    Returns:
+        Team: Processed team information.
+    """
+    return Team(
+        teamId=team_data["teamId"],
+        teamName=team_data["teamName"],
+        teamCity=team_data["teamCity"],
+        teamTricode=team_data["teamTricode"],
+        wins=team_data.get("wins", 0),
+        losses=team_data.get("losses", 0),
+        score=team_data.get("score", 0),
+        timeoutsRemaining=team_data.get("timeoutsRemaining", 0),
+    )
+
+
+def extract_game_leaders(game_leaders_data):
+    """
+    Extracts the top players' statistics for both home and away teams.
+    
+    Args:
+        game_leaders_data (dict): Raw game leaders data from the API.
+    
+    Returns:
+        GameLeaders: Structured player stats for home and away teams.
+    """
+    if not game_leaders_data:
+        return None
+
+    def extract_player(leader_data):
+        """Helper function to safely extract player stats."""
+        if not leader_data:
+            return None
+        return PlayerStats(
+            personId=leader_data.get("personId"),
+            name=leader_data.get("name", "Unknown"),
+            jerseyNum=leader_data.get("jerseyNum", "N/A"),
+            position=leader_data.get("position", "N/A"),
+            teamTricode=leader_data.get("teamTricode", ""),
+            points=leader_data.get("points", 0),
+            rebounds=leader_data.get("rebounds", 0),
+            assists=leader_data.get("assists", 0),
+        )
+
+    home_leader = extract_player(game_leaders_data.get("homeLeaders"))
+    away_leader = extract_player(game_leaders_data.get("awayLeaders"))
+
+    return GameLeaders(homeLeaders=home_leader, awayLeaders=away_leader)
+
+
+async def getScoreboard() -> ScoreboardResponse:
+    """
+    Fetches the latest NBA scoreboard, processes it, and returns structured data.
+    
+    Returns:
+        ScoreboardResponse: Structured scoreboard data with team and game details.
+    
+    Raises:
+        HTTPException: If there is an error fetching or processing the data.
+    """
+    try:
+        raw_scoreboard_data = await fetch_nba_scoreboard()
+        if not raw_scoreboard_data:
+            raise ValueError("Received empty scoreboard data.")
+
+        game_date = raw_scoreboard_data.get("gameDate", "Unknown Date")
         raw_games = raw_scoreboard_data.get("games", [])
+
         games = []
-
         for game in raw_games:
-            home_team_data = game["homeTeam"]
-            away_team_data = game["awayTeam"]
+            try:
+                home_team = extract_team_data(game["homeTeam"])
+                away_team = extract_team_data(game["awayTeam"])
+                game_leaders = extract_game_leaders(game.get("gameLeaders", {}))
 
-            home_team = Team(
-                teamId=home_team_data["teamId"],
-                teamName=home_team_data["teamName"],
-                teamCity=home_team_data["teamCity"],
-                teamTricode=home_team_data["teamTricode"],
-                wins=home_team_data.get("wins"),
-                losses=home_team_data.get("losses"),
-                timeoutsRemaining=home_team_data.get("timeoutsRemaining")
-            )
+                live_game = LiveGame(
+                    gameId=game["gameId"],
+                    gameStatus=game["gameStatus"],
+                    gameStatusText=game["gameStatusText"].strip(),
+                    period=game["period"],
+                    gameClock=game.get("gameClock", ""),
+                    gameTimeUTC=game["gameTimeUTC"],
+                    homeTeam=home_team,
+                    awayTeam=away_team,
+                    gameLeaders=game_leaders,
+                    pbOdds=None  # Set this to None as a placeholder for future updates
+                )
 
-            away_team = Team(
-                teamId=away_team_data["teamId"],
-                teamName=away_team_data["teamName"],
-                teamCity=away_team_data["teamCity"],
-                teamTricode=away_team_data["teamTricode"],
-                wins=away_team_data.get("wins"),
-                losses=away_team_data.get("losses"),
-                timeoutsRemaining=away_team_data.get("timeoutsRemaining")
-            )
+                games.append(live_game)
+            except KeyError as e:
+                print(f"Missing key in game data: {e}, skipping game.")
 
-            game_leaders_data = game.get("gameLeaders", {})
-            home_leader_data = game_leaders_data.get("homeLeaders")
-            away_leader_data = game_leaders_data.get("awayLeaders")
-
-            home_leader = PlayerStats(
-                personId=home_leader_data["personId"],
-                name=home_leader_data["name"],
-                jerseyNum=home_leader_data["jerseyNum"],
-                position=home_leader_data["position"],
-                teamTricode=home_leader_data["teamTricode"],
-                points=home_leader_data["points"],
-                rebounds=home_leader_data["rebounds"],
-                assists=home_leader_data["assists"]
-            ) if home_leader_data else None
-
-            away_leader = PlayerStats(
-                personId=away_leader_data["personId"],
-                name=away_leader_data["name"],
-                jerseyNum=away_leader_data["jerseyNum"],
-                position=away_leader_data["position"],
-                teamTricode=away_leader_data["teamTricode"],
-                points=away_leader_data["points"],
-                rebounds=away_leader_data["rebounds"],
-                assists=away_leader_data["assists"]
-            ) if away_leader_data else None
-
-            game_leaders = GameLeaders(
-                homeLeaders=home_leader,
-                awayLeaders=away_leader
-            ) if home_leader or away_leader else None
-
-            live_game = LiveGame(
-                gameId=game["gameId"],
-                gameStatus=game["gameStatus"],
-                gameStatusText=game["gameStatusText"].strip(),
-                period=game["period"],
-                gameClock=game.get("gameClock"),
-                gameTimeUTC=game["gameTimeUTC"],
-                homeTeam=home_team,
-                awayTeam=away_team,
-                gameLeaders=game_leaders,
-                pbOdds=None
-            )
-
-            games.append(live_game)
-
-        scoreboard_obj = Scoreboard(gameDate=game_date, games=games)
-        return ScoreboardResponse(scoreboard=scoreboard_obj)
+        return ScoreboardResponse(scoreboard=Scoreboard(gameDate=game_date, games=games))
 
     except Exception as e:
         print(f"Error fetching live scoreboard: {e}")
