@@ -13,7 +13,7 @@ from app.schemas.scoreboard import (
 from app.schemas.player import TeamRoster, PlayerSummary
 from app.schemas.team import TeamDetails
 from app.schemas.schedule import ScheduleResponse
-from app.services.websockets_manager import scoreboard_websocket_manager
+from app.services.websockets_manager import scoreboard_websocket_manager, playbyplay_websocket_manager
 
 
 
@@ -250,3 +250,22 @@ async def get_game_play_by_play(game_id: str):
         return await getPlayByPlay(game_id)
     except HTTPException as e:
         raise e
+    
+@router.websocket("/ws/{game_id}/play-by-play")
+async def playbyplay_websocket_endpoint(websocket: WebSocket, game_id: str):
+    """
+    WebSocket connection handler for live NBA Play-by-Play updates.
+
+    - Accepts WebSocket connections from clients.
+    - Sends real-time play-by-play data to connected clients.
+    - Handles disconnections gracefully.
+    """
+    await playbyplay_websocket_manager.connect(websocket, game_id)
+
+    try:
+        # Continuously send real-time Play-by-Play updates
+        while True:
+            data = await websocket.receive_text()
+            print(f"Received from client: {data}") 
+    except WebSocketDisconnect:
+        await playbyplay_websocket_manager.disconnect(websocket, game_id)
