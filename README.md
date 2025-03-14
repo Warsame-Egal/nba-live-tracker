@@ -17,7 +17,7 @@ processing it, and exposing structured, developer-friendly API endpoints.
 - Team schedule, records, and rosters
 - Player search and detailed stats
 
-(nba-tracker\public\Scoreboard.png)
+![ ](nba-tracker\public\Scoreboard.png)
 
 ## Create & Activate Virtual Environment
 
