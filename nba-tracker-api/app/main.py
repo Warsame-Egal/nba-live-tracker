@@ -6,6 +6,7 @@ from app.services.websockets_manager import scoreboard_websocket_manager, playby
 from app.routers.scoreboard import router as scoreboard_router
 from app.routers.schedule import router as schedule_router
 from app.routers.health import router as health_router
+from app.routers.standings import router as standings_router
 
 
 # Manages WebSocket broadcasting lifecycle
@@ -68,3 +69,6 @@ app.include_router(scoreboard_router, prefix="/api/v1")
 
 # Register API route for schedule
 app.include_router(schedule_router, prefix="/api/v1")
+
+# Register API route for standings
+app.include_router(standings_router, prefix="/api/v1")
