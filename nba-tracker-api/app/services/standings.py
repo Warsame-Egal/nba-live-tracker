@@ -1,8 +1,9 @@
 from typing import Optional
 import numpy as np
-from nba_api.stats.endpoints import leaguestandings
+from nba_api.stats.endpoints import leaguestandingsv3
 from fastapi import HTTPException
 from app.schemas.standings import StandingsResponse, StandingRecord
+
 
 def clean_clinch_indicator(value: Optional[str]) -> Optional[str]:
     """
@@ -22,6 +23,9 @@ def clean_clinch_indicator(value: Optional[str]) -> Optional[str]:
             return "c"  # Clinched Playoffs
         elif value == "- x":
             return "x"  # Eliminated
+        elif value == "-":
+            return "-"  # No clinch indicator
+        
 
     return None  # If invalid, return None
 
@@ -30,7 +34,7 @@ async def getSeasonStandings(season: str) -> StandingsResponse:
     Retrieves and structures the NBA standings for the specified season.
 
     Args:
-        season (str): NBA season identifier (e.g., '2023-24').
+        season (str): NBA season identifier (e.g., '2019-20').
 
     Returns:
         StandingsResponse: List of standings for all teams in the season.
@@ -39,8 +43,13 @@ async def getSeasonStandings(season: str) -> StandingsResponse:
         HTTPException: If no data is found or an error occurs.
     """
     try:
-        # Fetch league standings for the specified season
-        standings = leaguestandings.LeagueStandings(season_nullable=season)
+        # Fetch league standings for the specified season using V3
+        standings = leaguestandingsv3.LeagueStandingsV3(
+            league_id="00",
+            season=season,
+            season_type="Regular Season"  # You can change to "Playoffs" if needed
+        )
+
         df = standings.get_data_frames()[0]
 
         if df.empty:
@@ -62,18 +71,12 @@ async def getSeasonStandings(season: str) -> StandingsResponse:
                 clinch_indicator=clean_clinch_indicator(team.get("ClinchIndicator")),  # Fix applied
                 division=team["Division"],
                 division_record=team["DivisionRecord"],
-                oct=team.get("Oct"),
-                nov=team.get("Nov"),
-                dec=team.get("Dec"),
-                jan=team.get("Jan"),
-                feb=team.get("Feb"),
-                mar=team.get("Mar"),
-                apr=team.get("Apr"),
-                may=team.get("May"),
-                jun=team.get("Jun"),
-                jul=team.get("Jul"),
-                aug=team.get("Aug"),
-                sep=team.get("Sep"),
+                wins=int(team["WINS"]),
+                losses=int(team["LOSSES"]),
+                win_pct=float(team["WinPCT"]),
+                home_record=team["HOME"],
+                road_record=team["ROAD"],
+                last_10=team["L10"],
                 pre_as=team.get("PreAS"),
                 post_as=team.get("PostAS"),
             )
@@ -90,7 +93,7 @@ async def getTeamStandings(team_id: int, season: str) -> StandingRecord:
 
     Args:
         team_id (int): NBA Team ID.
-        season (str): NBA season (e.g., '2023-24').
+        season (str): NBA season (e.g., '2019-20').
 
     Returns:
         StandingRecord: Standings for the specified team.
@@ -99,8 +102,13 @@ async def getTeamStandings(team_id: int, season: str) -> StandingRecord:
         HTTPException: If no data is found or an error occurs.
     """
     try:
-        # Fetch standings for the entire league
-        standings = leaguestandings.LeagueStandings(season_nullable=season)
+        # Fetch standings for the entire league using LeagueStandingsV3
+        standings = leaguestandingsv3.LeagueStandingsV3(
+            league_id="00",
+            season=season,
+            season_type="Regular Season"
+        )
+
         df = standings.get_data_frames()[0]
 
         if df.empty:
@@ -128,18 +136,12 @@ async def getTeamStandings(team_id: int, season: str) -> StandingRecord:
             clinch_indicator=clean_clinch_indicator(team.get("ClinchIndicator")),  # Fix applied
             division=team["Division"],
             division_record=team["DivisionRecord"],
-            oct=team.get("Oct"),
-            nov=team.get("Nov"),
-            dec=team.get("Dec"),
-            jan=team.get("Jan"),
-            feb=team.get("Feb"),
-            mar=team.get("Mar"),
-            apr=team.get("Apr"),
-            may=team.get("May"),
-            jun=team.get("Jun"),
-            jul=team.get("Jul"),
-            aug=team.get("Aug"),
-            sep=team.get("Sep"),
+            wins=int(team["WINS"]),
+            losses=int(team["LOSSES"]),
+            win_pct=float(team["WinPCT"]),
+            home_record=team["HOME"],
+            road_record=team["ROAD"],
+            last_10=team["L10"],
             pre_as=team.get("PreAS"),
             post_as=team.get("PostAS"),
         )
