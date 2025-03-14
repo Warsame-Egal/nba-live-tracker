@@ -1,24 +1,30 @@
 import { useState, useEffect } from "react";
-import { ScoreboardResponse, Game } from "../types/scoreboard";
+import { format } from "date-fns";
+import { ScoreboardResponse, ScoreboardData, Game } from "../types/scoreboard";
 import WebSocketService from "../services/websocketService";
 import GameCard from "../components/GameCard";
 import SearchBar from "../components/SearchBar";
 import PlayByPlay from "../components/PlayByPlay";
 import ScoringLeaders from "../components/ScoringLeaders";
-import Navbar from "../components/Navbar"
+import Navbar from "../components/Navbar";
+import WeeklyCalendar from "../components/WeeklyCalendar";
+import CalendarComponent from "../components/MonthlyCalender";
 
 const SCOREBOARD_WEBSOCKET_URL = "ws://127.0.0.1:8000/api/v1/ws";
 
 const Scoreboard = () => {
+  const [scoreboard, setScoreboard] = useState<ScoreboardData | null>(null);
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState(""); 
+  const [searchQuery, setSearchQuery] = useState("");
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
+  const [selectedDate, setSelectedDate] = useState(new Date()); // Default to today
 
   useEffect(() => {
     WebSocketService.connect(SCOREBOARD_WEBSOCKET_URL);
 
     const handleScoreboardUpdate = (data: ScoreboardResponse) => {
+      setScoreboard(data.scoreboard);
       setGames(data.scoreboard.games);
       setLoading(false);
     };
@@ -31,28 +37,38 @@ const Scoreboard = () => {
     };
   }, []);
 
-  // Filter games based on search input
-  const filteredGames = searchQuery
-    ? games.filter(
-        (game) =>
-          game.awayTeam.teamName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          game.homeTeam.teamName.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : games;
+  const filteredGames = games.filter((game) => {
+    if (!scoreboard) return false;
+      const scoreboardDate = format(new Date(scoreboard?.gameDate || ""), "yyyy-MM-dd");
+      const selectedDateMatch = format(selectedDate, "yyyy-MM-dd") === scoreboardDate;
+  
+
+    const searchMatch =
+      game.awayTeam.teamName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      game.homeTeam.teamName.toLowerCase().includes(searchQuery.toLowerCase());
+
+    return selectedDateMatch && searchMatch;
+  });
 
   return (
     <div className="min-h-screen bg-black text-white">
-      {/* Navbar Component */}
       <Navbar />
 
-      {/* Scoreboard Search Bar */}
+      {/* Weekly Calendar Above Search Bar */}
       <div className="max-w-7xl mx-auto px-4 mt-4">
-        <SearchBar setSearchQuery={setSearchQuery} />
+        <WeeklyCalendar selectedDate={selectedDate} setSelectedDate={setSelectedDate} />
       </div>
 
-      {/* Main Layout */}
+      {/* Search Bar & Calendar Button */}
+      <div className="max-w-7xl mx-auto px-4 mt-4 flex justify-between items-center">
+        <SearchBar setSearchQuery={setSearchQuery} />
+
+        {/* Use Calendar Component */}
+        <CalendarComponent selectedDate={selectedDate} setSelectedDate={setSelectedDate} />
+      </div>
+
+      {/* Main Content Layout */}
       <div className="max-w-7xl mx-auto px-4 mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Scoreboard */}
         <div className="md:col-span-2">
           {loading ? (
             <p className="text-center text-gray-400 text-lg">Loading games...</p>
@@ -69,7 +85,6 @@ const Scoreboard = () => {
           )}
         </div>
 
-        {/* Right Sidebar: Scoring Leaders & Play-by-Play */}
         <div className="space-y-6 flex flex-col h-full max-h-[80vh]">
           <ScoringLeaders selectedGame={selectedGame} />
           <PlayByPlay gameId={selectedGame?.gameId || null} />

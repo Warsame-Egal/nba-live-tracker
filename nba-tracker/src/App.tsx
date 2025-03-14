@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import Scoreboard from "./pages/Scoreboard";
+import ScoreboardData from "./pages/Scoreboard";
 import TeamPage from "./pages/TeamPage";
 import RosterPage from "./pages/RosterPage";
 import Players from "./pages/Players";
@@ -10,11 +10,11 @@ export default function App() {
     <Router>
       <div className="min-h-screen bg-gray-900 text-white">
         <Routes>
-          <Route path="/" element={<Scoreboard />} />
+          <Route path="/" element={<ScoreboardData />} />
           <Route path="/team/:team_id" element={<TeamPage />} />
           <Route path="/team/:team_id/roster" element={<RosterPage />} />
 
-          {/*New Player Routes */}
+          {/* Player Routes */}
           <Route path="/players" element={<Players />} />
           <Route path="/players/:playerId" element={<PlayerProfile />} />
         </Routes>
