@@ -1,11 +1,17 @@
 import { Game } from "../types/scoreboard";
 
-const ScoringLeaders = ({ selectedGame }: { selectedGame: Game | null }) => {
-  if (!selectedGame) return (
-    <div className="bg-neutral-900 p-6 rounded-lg shadow-lg border border-neutral-800">
-      <p className="text-gray-400 text-center">Select a game to see leaders</p>
-    </div>
-  );
+interface ScoringLeadersProps {
+  selectedGame: Game | null;
+}
+
+const ScoringLeaders = ({ selectedGame }: ScoringLeadersProps) => {
+  if (!selectedGame) {
+    return (
+      <div className="bg-neutral-900 p-6 rounded-lg shadow-lg border border-neutral-800">
+        <p className="text-gray-400 text-center">Select a game to see leaders</p>
+      </div>
+    );
+  }
 
   const { gameLeaders } = selectedGame;
 
@@ -28,7 +34,9 @@ const ScoringLeaders = ({ selectedGame }: { selectedGame: Game | null }) => {
             />
             <div>
               <p className="text-white font-semibold">{gameLeaders.homeLeaders.name}</p>
-              <p className="text-gray-400 text-sm">{gameLeaders.homeLeaders.points} PTS • {gameLeaders.homeLeaders.rebounds} REB • {gameLeaders.homeLeaders.assists} AST</p>
+              <p className="text-gray-400 text-sm">
+                {gameLeaders.homeLeaders.points} PTS • {gameLeaders.homeLeaders.rebounds} REB • {gameLeaders.homeLeaders.assists} AST
+              </p>
             </div>
           </div>
         ) : (
@@ -51,7 +59,9 @@ const ScoringLeaders = ({ selectedGame }: { selectedGame: Game | null }) => {
             />
             <div>
               <p className="text-white font-semibold">{gameLeaders.awayLeaders.name}</p>
-              <p className="text-gray-400 text-sm">{gameLeaders.awayLeaders.points} PTS • {gameLeaders.awayLeaders.rebounds} REB • {gameLeaders.awayLeaders.assists} AST</p>
+              <p className="text-gray-400 text-sm">
+                {gameLeaders.awayLeaders.points} PTS • {gameLeaders.awayLeaders.rebounds} REB • {gameLeaders.awayLeaders.assists} AST
+              </p>
             </div>
           </div>
         ) : (

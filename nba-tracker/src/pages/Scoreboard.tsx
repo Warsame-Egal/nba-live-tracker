@@ -1,18 +1,18 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
 import { ScoreboardResponse, Game } from "../types/scoreboard";
 import WebSocketService from "../services/websocketService";
 import GameCard from "../components/GameCard";
 import SearchBar from "../components/SearchBar";
 import PlayByPlay from "../components/PlayByPlay";
 import ScoringLeaders from "../components/ScoringLeaders";
+import Navbar from "../components/Navbar"
 
 const SCOREBOARD_WEBSOCKET_URL = "ws://127.0.0.1:8000/api/v1/ws";
 
 const Scoreboard = () => {
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(""); 
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
 
   useEffect(() => {
@@ -31,35 +31,28 @@ const Scoreboard = () => {
     };
   }, []);
 
-  const filteredGames = games.filter(
-    (game) =>
-      game.awayTeam.teamName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      game.homeTeam.teamName.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Filter games based on search input
+  const filteredGames = searchQuery
+    ? games.filter(
+        (game) =>
+          game.awayTeam.teamName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          game.homeTeam.teamName.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : games;
 
   return (
     <div className="min-h-screen bg-black text-white">
-      {/* Navbar */}
-      <div className="bg-black py-4 shadow-lg">
-        <nav className="max-w-7xl mx-auto px-4 flex justify-between items-center">
-          <h1 className="text-xl font-bold text-white">NBA Scoreboard</h1>
-          <div className="flex gap-6">
-            <Link to="/" className="hover:text-white">Home</Link>
-            <Link to="/teams" className="hover:text-white">Teams</Link>
-            <Link to="/leaders" className="hover:text-white">Leaders</Link>
-          </div>
-        </nav>
-      </div>
+      {/* Navbar Component */}
+      <Navbar />
 
-      {/* Search Bar */}
+      {/* Scoreboard Search Bar */}
       <div className="max-w-7xl mx-auto px-4 mt-4">
         <SearchBar setSearchQuery={setSearchQuery} />
       </div>
 
       {/* Main Layout */}
       <div className="max-w-7xl mx-auto px-4 mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-        
-        {/* Scoreboard (2 Columns) */}
+        {/* Scoreboard */}
         <div className="md:col-span-2">
           {loading ? (
             <p className="text-center text-gray-400 text-lg">Loading games...</p>
@@ -67,11 +60,7 @@ const Scoreboard = () => {
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredGames.length > 0 ? (
                 filteredGames.map((game) => (
-                  <GameCard
-                    key={game.gameId}
-                    game={game}
-                    setSelectedGame={setSelectedGame}
-                  />
+                  <GameCard key={game.gameId} game={game} setSelectedGame={setSelectedGame} />
                 ))
               ) : (
                 <p className="text-center col-span-3 text-gray-400">No games found.</p>
@@ -81,7 +70,7 @@ const Scoreboard = () => {
         </div>
 
         {/* Right Sidebar: Scoring Leaders & Play-by-Play */}
-        <div className="space-y-6">
+        <div className="space-y-6 flex flex-col h-full max-h-[80vh]">
           <ScoringLeaders selectedGame={selectedGame} />
           <PlayByPlay gameId={selectedGame?.gameId || null} />
         </div>
