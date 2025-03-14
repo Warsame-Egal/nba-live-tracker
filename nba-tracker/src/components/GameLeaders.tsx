@@ -1,12 +1,11 @@
 import { Game } from "../types/scoreboard";
 
-// Define the props for the GameLeaders component
+// GameLeaders component props
 interface Props {
   game: Game;
 }
 
 const GameLeaders: React.FC<Props> = ({ game }) => {
-  // Ensure gameLeaders exists before accessing properties
   const awayLeader = game.gameLeaders?.awayLeaders;
   const homeLeader = game.gameLeaders?.homeLeaders;
 

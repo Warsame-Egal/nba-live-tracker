@@ -2,22 +2,22 @@
 
 /* Background */
 body {
-  @apply bg-gray-950 text-gray-100 font-sans leading-relaxed tracking-wide;
+  @apply font-sans;
 }
 
 /* Game Cards */
 .game-card {
-  @apply bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-700 transition transform hover:scale-[1.03] hover:shadow-xl;
+  @apply bg-gray-800 p-6 rounded-lg shadow-lg;
 }
 
 /* Team Logos */
 .team-logo {
-  @apply w-20 h-20 mx-auto rounded-lg border border-gray-700 shadow-md;
+  @apply w-20 h-20 mx-auto;
 }
 
 /* Game Status */
 .status-live {
-  @apply bg-red-600 text-white px-2 py-1 rounded-md shadow-md;
+  @apply bg-red-600 text-white px-2 py-1 rounded-md;
 }
 .status-final {
   @apply bg-gray-700 text-white px-2 py-1 rounded-md;
@@ -26,6 +26,7 @@ body {
   @apply bg-blue-600 text-white px-2 py-1 rounded-md;
 }
 
+/* Responsive Grid */
 @screen sm {
   .game-grid {
     @apply grid-cols-2;

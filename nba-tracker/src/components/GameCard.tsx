@@ -1,59 +1,47 @@
-import { Link } from "react-router-dom";
 import { Game } from "../types/scoreboard";
-import GameLeaders from "../components/GameLeaders";
 
-interface Props {
+interface GameCardProps {
   game: Game;
+  setSelectedGame: (game: Game) => void;
 }
 
-const GameCard: React.FC<Props> = ({ game }) => {
+const GameCard = ({ game, setSelectedGame }: GameCardProps) => {
   return (
-    <div className="bg-gray-800 text-white p-4 rounded-lg shadow-lg">
-      {/* Game Status & Quarter */}
-      <div className="flex justify-between text-sm text-gray-300">
-        <span className={`px-2 py-1 rounded ${game.gameStatusText === "LIVE" ? "bg-red-600 text-white" : "bg-gray-700"}`}>
-          {game.gameStatusText}
-        </span>
-        <span>{game.period > 0 ? `Q${game.period}` : "Upcoming"}</span>
-      </div>
+    <div
+      className="p-4 bg-neutral-900 rounded-lg shadow-lg border border-neutral-800 cursor-pointer 
+      hover:bg-neutral-800 transition-all flex flex-col items-center gap-4"
+      onClick={() => setSelectedGame(game)}
+    >
+      {/* Teams & Score */}
+      <div className="flex justify-between w-full">
+        {/* Home Team */}
+        <TeamInfo logo={game.homeTeam.teamTricode} name={game.homeTeam.teamTricode} />
 
-      {/* Team Matchup */}
-      <div className="flex justify-center items-center gap-6 my-4">
+        {/* Score & Status */}
         <div className="text-center">
-          <Link to={`/team/${game.awayTeam.teamId}`} className="block text-lg font-bold hover:underline">
-            <img 
-              src={`/logos/${game.awayTeam.teamTricode}.svg`} 
-              alt={game.awayTeam.teamName} 
-              className="w-12 h-12 mx-auto"
-            />
-            {game.awayTeam.teamName}
-          </Link>
-          <p className="text-2xl font-bold">
-            {game.awayTeam.score ?? "-"}
+          <p className="text-xl font-bold">{game.awayTeam.score} - {game.homeTeam.score}</p>
+          <p className={`text-xs px-2 py-1 rounded ${game.gameStatusText === "LIVE" ? "bg-red-600 text-white" : "bg-gray-600"}`}>
+            {game.gameStatusText} {game.period > 0 ? `Q${game.period}` : ""}
           </p>
         </div>
 
-        <span className="text-gray-400 text-3xl font-bold">VS</span>
-
-        <div className="text-center">
-          <Link to={`/team/${game.homeTeam.teamId}`} className="block text-lg font-bold hover:underline">
-            <img 
-              src={`/logos/${game.homeTeam.teamTricode}.svg`} 
-              alt={game.homeTeam.teamName} 
-              className="w-12 h-12 mx-auto"
-            />
-            {game.homeTeam.teamName}
-          </Link>
-          <p className="text-2xl font-bold">
-            {game.homeTeam.score ?? "-"}
-          </p>
-        </div>
+        {/* Away Team */}
+        <TeamInfo logo={game.awayTeam.teamTricode} name={game.awayTeam.teamTricode} />
       </div>
-
-      {/* Game Leaders */}
-      <GameLeaders game={game} />
     </div>
   );
 };
+
+/* Reusable TeamInfo Component */
+const TeamInfo = ({ logo, name }: { logo: string; name: string }) => (
+  <div className="text-center">
+    <img
+      src={`/logos/${logo}.svg`}
+      className="w-10 h-10 mx-auto cursor-pointer hover:scale-110 transition"
+      alt={name}
+    />
+    <p className="text-sm text-gray-300">{name}</p>
+  </div>
+);
 
 export default GameCard;

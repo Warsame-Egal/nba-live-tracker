@@ -1,116 +1,94 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { ScoreboardResponse, Game } from "../types/scoreboard";
-import WebSocketService from "../services/webSocketService"; // WebSocket connection
+import { useState, useEffect } from "react";
+import { format } from "date-fns";
+import { ScoreboardResponse, ScoreboardData, Game } from "../types/scoreboard";
+import WebSocketService from "../services/websocketService";
 import GameCard from "../components/GameCard";
-import Slider from "react-slick";
-import "slick-carousel/slick/slick.css";
-import "slick-carousel/slick/slick-theme.css";
+import SearchBar from "../components/SearchBar";
+import PlayByPlay from "../components/PlayByPlay";
+import ScoringLeaders from "../components/ScoringLeaders";
+import Navbar from "../components/Navbar";
+import WeeklyCalendar from "../components/WeeklyCalendar";
+import CalendarComponent from "../components/MonthlyCalender";
 
 const SCOREBOARD_WEBSOCKET_URL = "ws://127.0.0.1:8000/api/v1/ws";
 
 const Scoreboard = () => {
-    // State to hold the list of games
+  const [scoreboard, setScoreboard] = useState<ScoreboardData | null>(null);
   const [games, setGames] = useState<Game[]>([]);
-    // State to manage loading status
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedGame, setSelectedGame] = useState<Game | null>(null);
+  const [selectedDate, setSelectedDate] = useState(new Date()); // Default to today
 
   useEffect(() => {
-    // Connect to WebSocket when component mounts
     WebSocketService.connect(SCOREBOARD_WEBSOCKET_URL);
 
-    // Handle incoming scoreboard updates
     const handleScoreboardUpdate = (data: ScoreboardResponse) => {
+      setScoreboard(data.scoreboard);
       setGames(data.scoreboard.games);
       setLoading(false);
     };
 
-    // Subscribe to WebSocket updates
     WebSocketService.subscribe(handleScoreboardUpdate);
 
     return () => {
-      // Unsubscribe and disconnect when the component unmounts
       WebSocketService.unsubscribe(handleScoreboardUpdate);
       WebSocketService.disconnect();
     };
   }, []);
 
-  // Slider settings for the game cards
-  const sliderSettings = {
-    infinite: false,
-    speed: 500,
-    slidesToShow: 5,
-    slidesToScroll: 1,
-    responsive: [
-      { breakpoint: 1024, settings: { slidesToShow: 3 } },
-      { breakpoint: 768, settings: { slidesToShow: 2 } },
-      { breakpoint: 480, settings: { slidesToShow: 1 } },
-    ],
-  };
+  const filteredGames = games.filter((game) => {
+    if (!scoreboard) return false;
+      const scoreboardDate = format(new Date(scoreboard?.gameDate || ""), "yyyy-MM-dd");
+      const selectedDateMatch = format(selectedDate, "yyyy-MM-dd") === scoreboardDate;
+  
+
+    const searchMatch =
+      game.awayTeam.teamName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      game.homeTeam.teamName.toLowerCase().includes(searchQuery.toLowerCase());
+
+    return selectedDateMatch && searchMatch;
+  });
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      {/* Scoreboard header */}
-      <div className="bg-gray-800 py-4 shadow-lg">
-        <div className="max-w-7xl mx-auto px-4">
-          <Slider {...sliderSettings} className="overflow-hidden">
-            {games.map((game) => (
-              <div key={game.gameId} className="p-2">
-                <div className="flex items-center justify-between bg-gray-700 px-4 py-2 rounded-lg shadow-lg">
-                  
-                  {/* Away Team */}
-                  <div className="text-center">
-                    <Link to={`/team/${game.awayTeam.teamId}`}>
-                      <img
-                        src={`/logos/${game.awayTeam.teamTricode}.svg`}
-                        className="w-10 h-10 mx-auto cursor-pointer hover:scale-110 transition"
-                        alt={game.awayTeam.teamName}
-                      />
-                    </Link>
-                    <p className="text-sm text-gray-300">{game.awayTeam.teamTricode}</p>
-                  </div>
+    <div className="min-h-screen bg-black text-white">
+      <Navbar />
 
-                  {/* Score & Status */}
-                  <div className="mx-4 text-center">
-                    <p className="text-xl font-bold">
-                      {game.awayTeam.score} - {game.homeTeam.score}
-                    </p>
-                    <p className={`text-xs px-2 py-1 rounded ${game.gameStatusText === "LIVE" ? "bg-red-600 text-white" : "bg-gray-600"}`}>
-                      {game.gameStatusText} {game.period > 0 ? `Q${game.period}` : ""}
-                    </p>
-                  </div>
-
-                  {/* Home Team */}
-                  <div className="text-center">
-                    <Link to={`/team/${game.homeTeam.teamId}`}>
-                      <img
-                        src={`/logos/${game.homeTeam.teamTricode}.svg`}
-                        className="w-10 h-10 mx-auto cursor-pointer hover:scale-110 transition"
-                        alt={game.homeTeam.teamName}
-                      />
-                    </Link>
-                    <p className="text-sm text-gray-300">{game.homeTeam.teamTricode}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </Slider>
-        </div>
+      {/* Weekly Calendar Above Search Bar */}
+      <div className="max-w-7xl mx-auto px-4 mt-4">
+        <WeeklyCalendar selectedDate={selectedDate} setSelectedDate={setSelectedDate} />
       </div>
 
-      {/* Main Scoreboard */}
-      <div className="max-w-7xl mx-auto px-4 mt-6">
-        {loading ? (
-          <p className="text-center text-gray-400 text-lg">Loading games...</p>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {games.length > 0 ? (
-              games.map((game) => <GameCard key={game.gameId} game={game} />)
-            ) : (
-              <p className="text-center col-span-3 text-gray-400">No live games currently.</p>
-            )}
-          </div>
-        )}
+      {/* Search Bar & Calendar Button */}
+      <div className="max-w-7xl mx-auto px-4 mt-4 flex justify-between items-center">
+        <SearchBar setSearchQuery={setSearchQuery} />
+
+        {/* Use Calendar Component */}
+        <CalendarComponent selectedDate={selectedDate} setSelectedDate={setSelectedDate} />
+      </div>
+
+      {/* Main Content Layout */}
+      <div className="max-w-7xl mx-auto px-4 mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="md:col-span-2">
+          {loading ? (
+            <p className="text-center text-gray-400 text-lg">Loading games...</p>
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredGames.length > 0 ? (
+                filteredGames.map((game) => (
+                  <GameCard key={game.gameId} game={game} setSelectedGame={setSelectedGame} />
+                ))
+              ) : (
+                <p className="text-center col-span-3 text-gray-400">No games found.</p>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-6 flex flex-col h-full max-h-[80vh]">
+          <ScoringLeaders selectedGame={selectedGame} />
+          <PlayByPlay gameId={selectedGame?.gameId || null} />
+        </div>
       </div>
     </div>
   );

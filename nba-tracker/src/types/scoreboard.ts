@@ -1,9 +1,9 @@
 export interface ScoreboardResponse {
-  scoreboard: Scoreboard
+  scoreboard: ScoreboardData
 }
 
 // Main scoreboard structure
-export interface Scoreboard {
+export interface ScoreboardData {
   gameDate: string
   leagueId: string
   leagueName: string

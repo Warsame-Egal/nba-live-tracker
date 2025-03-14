@@ -2,7 +2,7 @@ import asyncio
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
-from app.services.websockets_manager import scoreboard_websocket_manager
+from app.services.websockets_manager import scoreboard_websocket_manager, playbyplay_websocket_manager
 from app.routers.scoreboard import router as scoreboard_router
 from app.routers.schedule import router as schedule_router
 from app.routers.health import router as health_router
@@ -14,15 +14,25 @@ async def lifespan(app: FastAPI):
     """Starts WebSocket broadcasting on app startup and shuts it down on exit."""
     
     print("Starting WebSocket broadcasting...")
-    task = asyncio.create_task(scoreboard_websocket_manager.broadcast_updates())  # Start background task
-    
+
+    # Start background tasks for both Scoreboard and Play-by-Play
+    scoreboard_task = asyncio.create_task(scoreboard_websocket_manager.broadcast_updates())
+    playbyplay_task = asyncio.create_task(playbyplay_websocket_manager.broadcast_playbyplay_updates())
+
     try:
         yield  # Keep broadcasting active while the app runs
     finally:
         print("Shutting down WebSocket broadcasting...")
-        task.cancel()
+
+        # Cancel and cleanly shut down WebSocket tasks
+        scoreboard_task.cancel()
+        playbyplay_task.cancel()
         try:
-            await task  # Ensure clean shutdown
+            await scoreboard_task
+        except asyncio.CancelledError:
+            pass
+        try:
+            await playbyplay_task
         except asyncio.CancelledError:
             pass
 

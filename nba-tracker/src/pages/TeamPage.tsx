@@ -41,7 +41,7 @@ const TeamPage = () => {
         // Show loading message while fetching data
         <p className="loading">Loading team data...</p>
       ) : error ? (
-        // Show error message if there was an error fetching data
+        
         <p className="text-center text-red-400">{error}</p>
       ) : (
         <div className="container">
