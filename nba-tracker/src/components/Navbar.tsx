@@ -7,8 +7,10 @@ const Navbar = () => {
         <h1 className="text-xl font-bold text-white">NBA Scoreboard</h1>
         <div className="flex gap-6">
           <Link to="/" className="hover:text-white">Home</Link>
+          <Link to="/players" className="hover:text-white">Stats</Link>
+          <Link to="/players" className="hover:text-white">Standings</Link>
+          <Link to="/players" className="hover:text-white">Teams</Link>
           <Link to="/players" className="hover:text-white">Players</Link>
-          <Link to="/leaders" className="hover:text-white">Leaders</Link>
         </div>
       </nav>
     </div>
