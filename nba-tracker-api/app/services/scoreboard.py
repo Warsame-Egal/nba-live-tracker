@@ -4,7 +4,6 @@ from nba_api.live.nba.endpoints import scoreboard
 from nba_api.live.nba.endpoints import boxscore, playbyplay
 from nba_api.stats.endpoints import leaguestandingsv3
 from nba_api.stats.endpoints import commonteamroster
-from nba_api.stats.endpoints import leaguegamefinder
 from nba_api.stats.endpoints import playerindex
 from app.schemas.scoreboard import (
     Team, LiveGame, PlayerStats, GameLeaders, ScoreboardResponse,
@@ -14,10 +13,7 @@ from app.schemas.scoreboard import (
 )
 from app.schemas.player import TeamRoster, Player, PlayerSummary
 from app.schemas.team import TeamDetails
-from app.schemas.schedule import ScheduledGame, ScheduleResponse
 from fastapi import HTTPException
-from datetime import datetime
-from app.utils.formatters import format_matchup
 
 async def fetch_nba_scoreboard():
     """
@@ -137,197 +133,7 @@ async def getScoreboard() -> ScoreboardResponse:
     except Exception as e:
         print(f"Error fetching live scoreboard: {e}")
         raise HTTPException(status_code=500, detail=f"Error fetching live scores: {e}")
-    
-    
-async def getTeamGamesByDate(team_id: int, game_date: str) -> ScheduleResponse:
-    """
-    Retrieves all games played by a specific team on a given date.
-
-    Steps:
-    1. Converts the input date format from "YYYY-MM-DD" to "MM/DD/YYYY" for the NBA API.
-    2. Queries the NBA API to fetch games played by the given team on the specified date.
-    3. Processes the retrieved data into structured game objects.
-    4. Returns the structured game data.
-
-    Args:
-        team_id (int): Unique NBA team identifier.
-        game_date (str): Game date in "YYYY-MM-DD" format.
-
-    Returns:
-        ScheduleResponse: A structured list of games played by the team.
-
-    Raises:
-        HTTPException:
-            - 404: If no games are found for the given team on the specified date.
-            - 500: If an error occurs during data retrieval.
-    """
-    try:
-        # Convert date from "YYYY-MM-DD" to "MM/DD/YYYY" (required by NBA API)
-        formatted_date = datetime.strptime(game_date, "%Y-%m-%d").strftime("%m/%d/%Y")
-
-        # Fetch games played by the team on the specified date
-        game_finder = leaguegamefinder.LeagueGameFinder(
-            date_from_nullable=formatted_date,
-            date_to_nullable=formatted_date,
-            team_id_nullable=str(team_id),
-            league_id_nullable="00"
-        )
-
-        df_list = game_finder.get_data_frames()
-
-        # Handle cases where no data is returned
-        if not df_list or df_list[0].empty:
-            raise HTTPException(status_code=404, detail=f"No games found for team ID {team_id} on date {game_date}")
-
-        df = df_list[0]
-
-        # Replace NaN values with None to prevent validation errors
-        df.replace({np.nan: None}, inplace=True)
-
-        # Process game records into structured objects
-        games = []
-        for game in df.to_dict(orient="records"):
-            scheduled_game = ScheduledGame(
-                season_id=int(str(game["SEASON_ID"])[1:]),  # Removes the leading digit
-                team_id=int(game["TEAM_ID"]),
-                team_abbreviation=game["TEAM_ABBREVIATION"],
-                game_id=game["GAME_ID"],
-                game_date=game["GAME_DATE"],
-                matchup=format_matchup(game["MATCHUP"]),  # Converts matchup format from 'TEAM @ TEAM' to 'TEAM vs TEAM'
-                win_loss=game.get("WL"),
-                points_scored=int(game["PTS"]) if game.get("PTS") else None,
-                field_goal_pct=float(game["FG_PCT"]) if game.get("FG_PCT") else None,
-                three_point_pct=float(game["FG3_PCT"]) if game.get("FG3_PCT") else None
-            )
-            games.append(scheduled_game)
-
-        return ScheduleResponse(games=games)
-
-    except HTTPException as http_exc:
-        raise http_exc
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching games for team ID {team_id} on date {game_date}: {e}")
-
-
-
-async def getMatchupGames(team1_id: int, team2_id: int) -> ScheduleResponse:
-    """
-    Retrieves and structures past games where two teams have faced each other.
-
-    Args:
-        team1_id (int): Unique identifier for the first NBA team.
-        team2_id (int): Unique identifier for the second NBA team.
-
-    Returns:
-        ScheduleResponse: A structured list of past head-to-head games.
-
-    Raises:
-        HTTPException:
-            - 404: If no matchups are found between the two teams.
-            - 500: If an error occurs during data retrieval.
-    """
-    try:
-        # Fetch past matchups between the two teams
-        game_finder = leaguegamefinder.LeagueGameFinder(
-            team_id_nullable=str(team1_id),
-            vs_team_id_nullable=str(team2_id),
-            league_id_nullable="00"
-        )
-        df_list = game_finder.get_data_frames()
-
-        if not df_list or df_list[0].empty:
-            raise HTTPException(status_code=404, detail=f"No matchups found between {team1_id} and {team2_id}")
-
-        df = df_list[0]
-
-        # Replace NaN values with None to prevent validation errors
-        df.replace({np.nan: None}, inplace=True)
-
-        # Process game records into structured objects
-        games = []
-        for game in df.to_dict(orient="records"):
-            scheduled_game = ScheduledGame(
-                season_id=int(str(game["SEASON_ID"])[1:]),  # Removes leading digit
-                team_id=int(game["TEAM_ID"]),
-                team_abbreviation=game["TEAM_ABBREVIATION"],
-                game_id=game["GAME_ID"],
-                game_date=game["GAME_DATE"],
-                matchup=format_matchup(game["MATCHUP"]),  # Converts matchup format
-                win_loss=game.get("WL"),
-                points_scored=int(game["PTS"]) if game.get("PTS") else None,
-                field_goal_pct=float(game["FG_PCT"]) if game.get("FG_PCT") else None,
-                three_point_pct=float(game["FG3_PCT"]) if game.get("FG3_PCT") else None
-            )
-            games.append(scheduled_game)
-
-        return ScheduleResponse(games=games)
-
-    except HTTPException as http_exc:
-        raise http_exc
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching matchup games between {team1_id} and {team2_id}: {e}")
-
-    
-
-async def getTeamInfo(team_id: int) -> ScheduleResponse:
-    """
-    Retrieves and structures all games played by a specific NBA team across seasons.
-
-    Args:
-        team_id (int): Unique identifier for the NBA team.
-
-    Returns:
-        ScheduleResponse: A structured list of all games played by the team.
-
-    Raises:
-        HTTPException:
-            - 404: If no data is found for the given team.
-            - 500: If an error occurs during data retrieval.
-    """
-    try:
-        # Fetch team-related game data
-        game_finder = leaguegamefinder.LeagueGameFinder(
-            team_id_nullable=str(team_id),
-            league_id_nullable="00"
-        )
-        df_list = game_finder.get_data_frames()
-
-        if not df_list or df_list[0].empty:
-            raise HTTPException(status_code=404, detail=f"No data found for team ID {team_id}")
-
-        df = df_list[0]
-
-        # Replace NaN values with None to prevent validation errors
-        df.replace({np.nan: None}, inplace=True)
-
-        # Process game records into structured objects
-        games = []
-        for game in df.to_dict(orient="records"):
-            scheduled_game = ScheduledGame(
-                season_id=int(str(game["SEASON_ID"])[1:]),  # Removes the leading digit
-                team_id=int(game["TEAM_ID"]),
-                team_abbreviation=game["TEAM_ABBREVIATION"],
-                game_id=game["GAME_ID"],
-                game_date=game["GAME_DATE"],
-                matchup=format_matchup(game["MATCHUP"]),  # Converts matchup format
-                win_loss=game.get("WL"),
-                points_scored=int(game["PTS"]) if game.get("PTS") is not None else None,
-                field_goal_pct=float(game["FG_PCT"]) if game.get("FG_PCT") is not None else 0.0,
-                three_point_pct=float(game["FG3_PCT"]) if game.get("FG3_PCT") is not None else 0.0,
-                free_throw_pct=float(game["FT_PCT"]) if game.get("FT_PCT") is not None else 0.0,
-                plus_minus=float(game["PLUS_MINUS"]) if game.get("PLUS_MINUS") is not None else 0.0
-            )
-            games.append(scheduled_game)
-
-        return ScheduleResponse(games=games)
-
-    except HTTPException as http_exc:
-        raise http_exc
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching team info for team ID {team_id}: {e}")
-
-
-    
+        
 async def getCurrentTeamRecord(team_id: int) -> TeamDetails:
     """
     Fetches a team record in the current season.

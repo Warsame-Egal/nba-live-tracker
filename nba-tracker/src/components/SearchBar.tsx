@@ -20,7 +20,7 @@ const SearchBar = ({ setSearchQuery }: SearchBarProps) => {
         type="text"
         value={query}
         onChange={(e) => handleSearch(e.target.value)}
-        placeholder="Search teams, players..."
+        placeholder="Search teams..."
         className="w-full px-4 py-3 pl-10 pr-12 text-white bg-neutral-900 border border-neutral-700 rounded-md focus:ring-2 focus:ring-blue-500 transition-all"
       />
 

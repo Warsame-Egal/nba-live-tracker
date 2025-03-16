@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import { FaCalendarAlt } from "react-icons/fa";
-import { isFuture, isPast, isToday } from "date-fns";
+import { format, isFuture } from "date-fns";
 
 interface CalendarComponentProps {
   selectedDate: Date;
@@ -12,40 +12,30 @@ interface CalendarComponentProps {
 const CalendarComponent = ({ selectedDate, setSelectedDate }: CalendarComponentProps) => {
   const [showCalendar, setShowCalendar] = useState(false);
 
-  useEffect(() => {
-    if (!selectedDate || isFuture(selectedDate)) {
-      // Ensure the selected date defaults to today if it's invalid or in the future
-      setSelectedDate(new Date());
-    }
-  }, [selectedDate, setSelectedDate]);
-
   const handleDateChange = (date: Date) => {
-    if (isPast(date) && !isToday(date)) {
-      // If the selected date is in the past, reset to today
-      setSelectedDate(new Date());
-    } else {
-      // Otherwise, set the selected date
+    if (!isFuture(date)) {
       setSelectedDate(date);
     }
-    setShowCalendar(false); // Close the calendar
+    setShowCalendar(false);
   };
 
   return (
     <div className="relative">
       <button
         onClick={() => setShowCalendar(!showCalendar)}
-        className="bg-transparent text-white hover:text-gray-400 flex items-center gap-2"
+        className="flex items-center gap-2 p-2 rounded-lg hover:bg-neutral-800"
       >
-        <FaCalendarAlt /> Select Date
+        <FaCalendarAlt className="text-xl" />
+        {format(selectedDate, "MMMM dd, yyyy")}
       </button>
 
       {showCalendar && (
-        <div className="absolute top-12 right-0 bg-neutral-900 p-4 rounded-lg shadow-lg z-10">
+        <div className="absolute mt-2 right-0 md:right-auto md:left-0 bg-neutral-900 p-4 rounded-lg shadow-lg z-10">
           <Calendar
             onChange={(date) => handleDateChange(date as Date)}
             value={selectedDate}
             className="rounded-lg"
-            tileDisabled={({ date }) => isFuture(date)} // Disable future dates
+            tileDisabled={({ date }) => isFuture(date)}
           />
         </div>
       )}
