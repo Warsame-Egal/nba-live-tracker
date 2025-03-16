@@ -19,22 +19,40 @@ const WeeklyCalendar = ({ selectedDate, setSelectedDate }: WeeklyCalendarProps) 
   }, [selectedDate, setSelectedDate]);
 
   const handlePrevWeek = () => {
-    const newStart = subDays(currentWeekStart, 7);
-    setCurrentWeekStart(newStart);
+    setCurrentWeekStart(subDays(currentWeekStart, 7));
   };
 
   const handleNextWeek = () => {
-    const newStart = addDays(currentWeekStart, 7);
-    setCurrentWeekStart(newStart);
+    setCurrentWeekStart(addDays(currentWeekStart, 7));
   };
 
   return (
-    <div className="flex items-center justify-between w-full">
-      <button onClick={handlePrevWeek} className="hover:text-gray-400">
-        <FaChevronLeft size={20} />
-      </button>
+    <div className="flex flex-col items-center w-full">
+      {/* Navigation */}
+      <div className="flex items-center gap-4 mb-3">
+        <button
+          onClick={handlePrevWeek}
+          className="p-2 rounded-full bg-neutral-800 hover:bg-blue-500 transition-all duration-300"
+          aria-label="Previous Week"
+        >
+          <FaChevronLeft className="text-white" size={18} />
+        </button>
 
-      <div className="flex justify-center gap-2">
+        <h2 className="text-lg font-bold text-white">
+          {format(currentWeekStart, "MMMM yyyy")}
+        </h2>
+
+        <button
+          onClick={handleNextWeek}
+          className="p-2 rounded-full bg-neutral-800 hover:bg-blue-500 transition-all duration-300"
+          aria-label="Next Week"
+        >
+          <FaChevronRight className="text-white" size={18} />
+        </button>
+      </div>
+
+      {/* Weekly Days Grid */}
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(40px,1fr))] gap-3 w-full max-w-lg bg-gradient-to-r from-neutral-800 to-neutral-900 p-4 rounded-xl shadow-md">
         {Array.from({ length: 7 }).map((_, i) => {
           const day = addDays(currentWeekStart, i);
           const formattedDay = format(day, "yyyy-MM-dd");
@@ -45,26 +63,16 @@ const WeeklyCalendar = ({ selectedDate, setSelectedDate }: WeeklyCalendarProps) 
             <button
               key={formattedDay}
               onClick={() => setSelectedDate(formattedDay)}
-              className={`text-center px-3 py-1 rounded-lg ${
-                isSelected
-                  ? "border-b-2 border-blue-500 font-bold"
-                  : "hover:text-gray-400"
-              } ${isToday ? "text-blue-500" : ""}`}
+              className={`flex flex-col items-center justify-center p-2 w-full rounded-lg transition-all duration-300
+                ${isSelected ? "bg-blue-500 text-white font-bold scale-105" : "hover:bg-gray-700"}
+                ${isToday ? "border-b-4 border-blue-400 text-blue-400" : ""}`}
+              aria-label={`Select ${format(day, "EEEE, MMMM d")}`}
             >
-              <div>{format(day, "EEE")}</div>
-              <div>{format(day, "d")}</div>
+              <span className="text-sm">{format(day, "EEE")}</span>
+              <span className="text-lg font-semibold">{format(day, "d")}</span>
             </button>
           );
         })}
-      </div>
-
-      <div className="hover:text-gray-400 flex gap-2">
-        <button onClick={handlePrevWeek}>
-          <FaChevronLeft size={20} />
-        </button>
-        <button onClick={handleNextWeek}>
-          <FaChevronRight size={20} />
-        </button>
       </div>
     </div>
   );

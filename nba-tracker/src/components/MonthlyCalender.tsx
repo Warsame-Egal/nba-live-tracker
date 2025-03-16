@@ -4,12 +4,12 @@ import "react-calendar/dist/Calendar.css";
 import { FaCalendarAlt } from "react-icons/fa";
 import { format, isFuture } from "date-fns";
 
-interface CalendarComponentProps {
+interface MonthlyComponentProps {
   selectedDate: Date;
   setSelectedDate: (date: Date) => void;
 }
 
-const CalendarComponent = ({ selectedDate, setSelectedDate }: CalendarComponentProps) => {
+const CalendarComponent = ({ selectedDate, setSelectedDate }: MonthlyComponentProps) => {
   const [showCalendar, setShowCalendar] = useState(false);
 
   const handleDateChange = (date: Date) => {
@@ -21,20 +21,23 @@ const CalendarComponent = ({ selectedDate, setSelectedDate }: CalendarComponentP
 
   return (
     <div className="relative">
+      {/* Button to Open Calendar */}
       <button
         onClick={() => setShowCalendar(!showCalendar)}
-        className="flex items-center gap-2 p-2 rounded-lg hover:bg-neutral-800"
+        className="flex items-center gap-3 px-4 py-2 rounded-lg text-white hover:bg-blue-600 transition-all duration-300"
       >
         <FaCalendarAlt className="text-xl" />
-        {format(selectedDate, "MMMM dd, yyyy")}
+        <span className="text-sm font-semibold">{format(selectedDate, "MMMM dd, yyyy")}</span>
       </button>
 
+      {/* Calendar Popover */}
       {showCalendar && (
-        <div className="absolute mt-2 right-0 md:right-auto md:left-0 bg-neutral-900 p-4 rounded-lg shadow-lg z-10">
+        <div className="absolute mt-3 right-0 md:right-auto md:left-0 bg-neutral-900 p-4 rounded-xl shadow-2xl 
+        backdrop-blur-md bg-opacity-90 border border-neutral-700 z-20 min-w-[250px] max-w-sm">
           <Calendar
             onChange={(date) => handleDateChange(date as Date)}
             value={selectedDate}
-            className="rounded-lg"
+            className="rounded-lg shadow-md"
             tileDisabled={({ date }) => isFuture(date)}
           />
         </div>
