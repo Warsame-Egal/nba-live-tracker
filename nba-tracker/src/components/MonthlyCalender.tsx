@@ -1,51 +1,44 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import { FaCalendarAlt } from "react-icons/fa";
-import { isFuture, isPast, isToday } from "date-fns";
+import { format, isSameDay } from "date-fns";
 
-interface CalendarComponentProps {
+interface MonthlyComponentProps {
   selectedDate: Date;
   setSelectedDate: (date: Date) => void;
 }
 
-const CalendarComponent = ({ selectedDate, setSelectedDate }: CalendarComponentProps) => {
+const CalendarComponent = ({ selectedDate, setSelectedDate }: MonthlyComponentProps) => {
   const [showCalendar, setShowCalendar] = useState(false);
 
-  useEffect(() => {
-    if (!selectedDate || isFuture(selectedDate)) {
-      // Ensure the selected date defaults to today if it's invalid or in the future
-      setSelectedDate(new Date());
-    }
-  }, [selectedDate, setSelectedDate]);
-
   const handleDateChange = (date: Date) => {
-    if (isPast(date) && !isToday(date)) {
-      // If the selected date is in the past, reset to today
-      setSelectedDate(new Date());
-    } else {
-      // Otherwise, set the selected date
-      setSelectedDate(date);
-    }
-    setShowCalendar(false); // Close the calendar
+    setSelectedDate(date);
+    setShowCalendar(false);
   };
 
   return (
     <div className="relative">
+      {/* Button to Open Calendar */}
       <button
         onClick={() => setShowCalendar(!showCalendar)}
-        className="bg-transparent text-white hover:text-gray-400 flex items-center gap-2"
+        className="flex items-center gap-3 px-4 py-2 rounded-lg text-white hover:bg-blue-600 transition-all duration-300"
       >
-        <FaCalendarAlt /> Select Date
+        <FaCalendarAlt className="text-xl" />
+        <span className="text-sm font-semibold">{format(selectedDate, "MMMM dd, yyyy")}</span>
       </button>
 
+      {/* Calendar Popover */}
       {showCalendar && (
-        <div className="absolute top-12 right-0 bg-neutral-900 p-4 rounded-lg shadow-lg z-10">
+        <div className="absolute mt-3 right-0 md:right-auto md:left-0 bg-neutral-900 p-4 rounded-xl shadow-2xl 
+        backdrop-blur-md bg-opacity-90 border border-neutral-700 z-20 min-w-[250px] max-w-sm">
           <Calendar
             onChange={(date) => handleDateChange(date as Date)}
             value={selectedDate}
-            className="rounded-lg"
-            tileDisabled={({ date }) => isFuture(date)} // Disable future dates
+            className="rounded-lg shadow-md"
+            tileClassName={({ date }) =>
+              isSameDay(date, selectedDate) ? "bg-blue-500 text-white font-bold rounded-full" : ""
+            }
           />
         </div>
       )}

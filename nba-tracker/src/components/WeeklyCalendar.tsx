@@ -1,21 +1,20 @@
 import { useState, useEffect } from "react";
-import { format, addDays, subDays, startOfWeek } from "date-fns";
+import { format, addDays, subDays, startOfWeek, isSameDay } from "date-fns";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 
 interface WeeklyCalendarProps {
-  selectedDate: Date;
-  setSelectedDate: (date: Date) => void;
+  selectedDate: string;
+  setSelectedDate: (date: string) => void;
 }
 
 const WeeklyCalendar = ({ selectedDate, setSelectedDate }: WeeklyCalendarProps) => {
   const [currentWeekStart, setCurrentWeekStart] = useState<Date>(
-    startOfWeek(new Date(), { weekStartsOn: 0 }) // Start of the week is Sunday
+    startOfWeek(new Date(), { weekStartsOn: 0 })
   );
 
-  // Set today's date as the default if no date is selected
   useEffect(() => {
     if (!selectedDate) {
-      setSelectedDate(new Date()); // Default to today's date if no date is selected
+      setSelectedDate(format(new Date(), "yyyy-MM-dd"));
     }
   }, [selectedDate, setSelectedDate]);
 
@@ -28,46 +27,53 @@ const WeeklyCalendar = ({ selectedDate, setSelectedDate }: WeeklyCalendarProps) 
   };
 
   return (
-    <div className="flex items-center justify-between w-full">
-      {/* Previous Week Button */}
-      <button
-        onClick={handlePrevWeek}
-        className="hover:text-gray-400"
-      >
-        <FaChevronLeft size={20} />
-      </button>
+    <div className="flex flex-col items-center w-full">
+      {/* Navigation */}
+      <div className="flex items-center gap-4 mb-3">
+        <button
+          onClick={handlePrevWeek}
+          className="p-2 rounded-full bg-neutral-800 hover:bg-blue-500 transition-all duration-300"
+          aria-label="Previous Week"
+        >
+          <FaChevronLeft className="text-white" size={18} />
+        </button>
 
-      {/* Weekly Calendar Display */}
-      <div className="flex justify-between w-full px-4">
+        <h2 className="text-lg font-bold text-white">
+          {format(currentWeekStart, "MMMM yyyy")}
+        </h2>
+
+        <button
+          onClick={handleNextWeek}
+          className="p-2 rounded-full bg-neutral-800 hover:bg-blue-500 transition-all duration-300"
+          aria-label="Next Week"
+        >
+          <FaChevronRight className="text-white" size={18} />
+        </button>
+      </div>
+
+      {/* Weekly Days Grid */}
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(40px,1fr))] gap-3 w-full max-w-lg bg-gradient-to-r from-neutral-800 to-neutral-900 p-4 rounded-xl shadow-md">
         {Array.from({ length: 7 }).map((_, i) => {
-          const day = addDays(currentWeekStart, i); // Get each day of the week
-          const isToday = format(day, "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd"); // Check if it's today
-          const isSelected = format(day, "yyyy-MM-dd") === format(selectedDate, "yyyy-MM-dd"); // Check if it's selected
+          const day = addDays(currentWeekStart, i);
+          const formattedDay = format(day, "yyyy-MM-dd");
+          const isSelected = formattedDay === selectedDate;
+          const isToday = isSameDay(day, new Date());
 
           return (
             <button
-              key={i}
-              className={`text-center px-3 py-1 rounded-lg ${
-                isSelected
-                  ? "border-b-2 border-blue-500 font-bold"
-                  : "hover:text-gray-300"
-              } ${isToday && !selectedDate ? "bg-blue-500 text-white" : ""}`}
-              onClick={() => setSelectedDate(day)} // Set selected date when clicked
+              key={formattedDay}
+              onClick={() => setSelectedDate(formattedDay)}
+              className={`flex flex-col items-center justify-center p-2 w-full rounded-lg transition-all duration-300
+                ${isSelected ? "bg-blue-500 text-white font-bold scale-105" : "hover:bg-gray-700"}
+                ${isToday ? "border-b-4 border-blue-400 text-blue-400" : ""}`}
+              aria-label={`Select ${format(day, "EEEE, MMMM d")}`}
             >
-              <p className="text-xs">{format(day, "EEE")}</p>
-              <p className="text-sm">{format(day, "d")}</p>
+              <span className="text-sm">{format(day, "EEE")}</span>
+              <span className="text-lg font-semibold">{format(day, "d")}</span>
             </button>
           );
         })}
       </div>
-
-      {/* Next Week Button */}
-      <button
-        onClick={handleNextWeek}
-        className="hover:text-gray-400"
-      >
-        <FaChevronRight size={20} />
-      </button>
     </div>
   );
 };

@@ -1,6 +1,5 @@
 import { Game } from "../types/scoreboard";
 
-// GameLeaders component props
 interface Props {
   game: Game;
 }
@@ -10,13 +9,15 @@ const GameLeaders: React.FC<Props> = ({ game }) => {
   const homeLeader = game.gameLeaders?.homeLeaders;
 
   return (
-    <div className="flex justify-between bg-gray-800 rounded-md p-3 text-sm shadow-lg">
+    <div className="bg-gradient-to-br from-gray-800 to-neutral-900 rounded-xl p-5 shadow-2xl border border-gray-700 
+      flex justify-between w-full md:w-96 text-sm">
+      
       {/* Away Team Leader */}
       <div className="text-center w-1/2 border-r border-gray-700">
         {awayLeader ? (
           <>
             <p className="text-gray-300 font-semibold">{awayLeader.name}</p>
-            <p className="text-white font-bold">
+            <p className="text-white font-bold text-lg">
               {awayLeader.points} PTS | {awayLeader.rebounds} REB | {awayLeader.assists} AST
             </p>
           </>
@@ -30,7 +31,7 @@ const GameLeaders: React.FC<Props> = ({ game }) => {
         {homeLeader ? (
           <>
             <p className="text-gray-300 font-semibold">{homeLeader.name}</p>
-            <p className="text-white font-bold">
+            <p className="text-white font-bold text-lg">
               {homeLeader.points} PTS | {homeLeader.rebounds} REB | {homeLeader.assists} AST
             </p>
           </>

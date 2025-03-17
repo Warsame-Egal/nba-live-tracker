@@ -133,7 +133,7 @@ async def getTeamStandings(team_id: int, season: str) -> StandingRecord:
             conference=team["Conference"],
             conference_record=team["ConferenceRecord"],
             playoff_rank=int(team["PlayoffRank"]),
-            clinch_indicator=clean_clinch_indicator(team.get("ClinchIndicator")),  # Fix applied
+            clinch_indicator=clean_clinch_indicator(team.get("ClinchIndicator")),
             division=team["Division"],
             division_record=team["DivisionRecord"],
             wins=int(team["WINS"]),

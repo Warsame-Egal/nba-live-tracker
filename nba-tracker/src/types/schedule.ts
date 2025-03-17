@@ -1,17 +1,39 @@
-export interface ScheduledGame {
-    season_id: number;
-    team_id: number;
-    team_abbreviation: string;
-    game_id: string;
-    game_date: string;
-    matchup?: string;
-    win_loss?: string;
-    points_scored?: number;
-    field_goal_pct?: number;
-    three_point_pct?: number;
-  }
-  
-  export interface ScheduleResponse {
-    games: ScheduledGame[];
-  }
-  
+export interface TeamSummary {
+  team_id: number;
+  team_abbreviation: string;
+  points?: number;
+}
+
+export interface TopScorer {
+  player_id: number;
+  player_name: string;
+  team_id: number;
+  points: number;
+  rebounds: number;
+  assists: number;
+}
+
+export interface GameSummary {
+  game_id: string;
+  game_date: string;
+  matchup: string;
+  game_status: string;
+  arena?: string;
+  home_team: TeamSummary;
+  away_team: TeamSummary;
+  top_scorer?: TopScorer;
+}
+
+export interface GamesResponse {
+  games: GameSummary[];
+}
+
+export interface MonthlyCalendarProps {
+  selectedDate: string; // "YYYY-MM-DD"
+  setSelectedDate: (date: string) => void;
+}
+
+export interface WeeklyCalendarProps {
+  selectedDate: string; // "YYYY-MM-DD"
+  setSelectedDate: (date: string) => void;
+}

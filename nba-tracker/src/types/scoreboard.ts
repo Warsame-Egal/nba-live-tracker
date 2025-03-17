@@ -5,8 +5,6 @@ export interface ScoreboardResponse {
 // Main scoreboard structure
 export interface ScoreboardData {
   gameDate: string
-  leagueId: string
-  leagueName: string
   games: Game[]
 }
 
