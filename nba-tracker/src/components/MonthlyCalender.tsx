@@ -2,7 +2,7 @@ import { useState } from "react";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import { FaCalendarAlt } from "react-icons/fa";
-import { format, isFuture } from "date-fns";
+import { format, isSameDay } from "date-fns";
 
 interface MonthlyComponentProps {
   selectedDate: Date;
@@ -13,9 +13,7 @@ const CalendarComponent = ({ selectedDate, setSelectedDate }: MonthlyComponentPr
   const [showCalendar, setShowCalendar] = useState(false);
 
   const handleDateChange = (date: Date) => {
-    if (!isFuture(date)) {
-      setSelectedDate(date);
-    }
+    setSelectedDate(date);
     setShowCalendar(false);
   };
 
@@ -38,7 +36,9 @@ const CalendarComponent = ({ selectedDate, setSelectedDate }: MonthlyComponentPr
             onChange={(date) => handleDateChange(date as Date)}
             value={selectedDate}
             className="rounded-lg shadow-md"
-            tileDisabled={({ date }) => isFuture(date)}
+            tileClassName={({ date }) =>
+              isSameDay(date, selectedDate) ? "bg-blue-500 text-white font-bold rounded-full" : ""
+            }
           />
         </div>
       )}
