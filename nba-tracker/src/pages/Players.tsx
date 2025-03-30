@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import SearchBar from "../components/SearchBar";
-import { PlayerSummary } from "../types/player";
+import { PlayerSummary } from "../types/Player";
 
 const Players = () => {
   const [players, setPlayers] = useState<PlayerSummary[]>([]);

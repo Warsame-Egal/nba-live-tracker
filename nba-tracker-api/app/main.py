@@ -7,6 +7,8 @@ from app.routers.scoreboard import router as scoreboard_router
 from app.routers.schedule import router as schedule_router
 from app.routers.health import router as health_router
 from app.routers.standings import router as standings_router
+from app.routers.players import router as player_router
+from app.routers.games import router as game_router
 
 
 # Manages WebSocket broadcasting lifecycle
@@ -72,3 +74,9 @@ app.include_router(schedule_router, prefix="/api/v1")
 
 # Register API route for standings
 app.include_router(standings_router, prefix="/api/v1")
+
+app.include_router(player_router, prefix="/api/v1")
+
+app.include_router(game_router, prefix="/api/v1")
+
+

@@ -236,60 +236,6 @@ def fetchTeamRoster(team_id: int, season: str) -> TeamRoster:
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching team roster: {e}")
 
-async def getPlayerDetails(player_id: int) -> PlayerSummary:
-    """
-    Fetches detailed player information using the NBA PlayerIndex API.
-
-    Args:
-        player_id (int): Unique identifier for the player.
-
-    Returns:
-        PlayerSummary: Player details including stats, team, and career history.
-
-    Raises:
-        HTTPException: If no data is found or an error occurs during processing.
-    """
-    try:
-        # Fetch player data from NBA API
-        raw_data = playerindex.PlayerIndex().get_dict()
-        column_names = raw_data["resultSets"][0]["headers"]  # Column names from API
-        player_list = raw_data["resultSets"][0]["rowSet"]  # Player data rows
-
-        # Convert API response into a list of dictionaries
-        players = [dict(zip(column_names, row)) for row in player_list]
-
-        # Find the requested player by ID
-        player_data = next((player for player in players if player["PERSON_ID"] == player_id), None)
-
-        if not player_data:
-            raise HTTPException(status_code=404, detail=f"No details found for player ID {player_id}")
-
-        # Map API response to PlayerSummary schema
-        return PlayerSummary(
-            player_id=player_data["PERSON_ID"],
-            full_name=f"{player_data['PLAYER_FIRST_NAME']} {player_data['PLAYER_LAST_NAME']}",
-            team_id=player_data.get("TEAM_ID"),
-            team_name=player_data.get("TEAM_NAME"),
-            team_abbreviation=player_data.get("TEAM_ABBREVIATION"),
-            jersey_number=player_data.get("JERSEY_NUMBER"),
-            position=player_data.get("POSITION"),
-            height=player_data.get("HEIGHT"),
-            weight=int(player_data["WEIGHT"]) if player_data.get("WEIGHT") else None,
-            college=player_data.get("COLLEGE"),
-            country=player_data.get("COUNTRY"),
-            draft_year=int(player_data["DRAFT_YEAR"]) if player_data.get("DRAFT_YEAR") else None,
-            draft_round=int(player_data["DRAFT_ROUND"]) if player_data.get("DRAFT_ROUND") else None,
-            draft_number=int(player_data["DRAFT_NUMBER"]) if player_data.get("DRAFT_NUMBER") else None,
-            from_year=int(player_data["FROM_YEAR"]) if player_data.get("FROM_YEAR") else None,
-            to_year=int(player_data["TO_YEAR"]) if player_data.get("TO_YEAR") else None,
-            points_per_game=float(player_data["PTS"]) if player_data.get("PTS") else None,
-            rebounds_per_game=float(player_data["REB"]) if player_data.get("REB") else None,
-            assists_per_game=float(player_data["AST"]) if player_data.get("AST") else None
-        )
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching player details: {e}")
-
 async def fetchPlayersByName(name: str) -> List[PlayerSummary]:
     """
     Retrieves players matching the search query.

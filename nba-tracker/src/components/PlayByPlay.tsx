@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import PlayByPlayWebSocketService from "../services/PlayByPlayWebSocketService";
-import { PlayByPlayResponse, PlayByPlayEvent } from "../types/playbyplay";
+import { PlayByPlayResponse, PlayByPlayEvent } from "../types/Playbyplay";
 
 const PlayByPlay = ({ gameId }: { gameId: string | null }) => {
   const [plays, setPlays] = useState<PlayByPlayEvent[]>([]);

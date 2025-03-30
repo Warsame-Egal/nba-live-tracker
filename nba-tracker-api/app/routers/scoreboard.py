@@ -1,9 +1,10 @@
 from typing import List
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 from app.services.scoreboard import (
-    getCurrentTeamRecord, fetchTeamRoster,
-    getPlayerDetails, fetchPlayersByName, getBoxScore,
-    getTeamStats, getGameLeaders, getPlayByPlay, getScoreboard
+    getCurrentTeamRecord, fetchTeamRoster, getCurrentTeamRecord,
+    fetchPlayersByName, getBoxScore,
+    getTeamStats, getGameLeaders,
+    getPlayByPlay, getScoreboard
 )
 from app.schemas.scoreboard import (
     ScoreboardResponse, BoxScoreResponse, TeamGameStatsResponse,
@@ -94,23 +95,6 @@ async def getTeamRoster(team_id: int, season: str):
     except HTTPException as e:
         raise e
 
-@router.get("/players/{player_id}/details", response_model=PlayerSummary, tags=["players"],
-            summary="Get Player Details",
-            description="Retrieve detailed information about a specific player.")
-async def fetchPlayerDetails(player_id: int):
-    """
-    API route to fetch detailed information about a specific player.
-
-    Args:
-        player_id (int): Unique identifier for the player.
-
-    Returns:
-        PlayerSummary: Structured response with player details.
-    """
-    try:
-        return await getPlayerDetails(player_id)
-    except HTTPException as e:
-        raise e
     
 @router.get("/players/search", response_model=List[PlayerSummary], tags=["players"])
 async def searchPlayers(name: str):

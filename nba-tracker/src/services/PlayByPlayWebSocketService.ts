@@ -1,4 +1,4 @@
-import { PlayByPlayResponse } from "../types/playbyplay";
+import { PlayByPlayResponse } from "../types/Playbyplay";
 
 class PlayByPlayWebSocketService {
   private socket: WebSocket | null = null;
