@@ -46,9 +46,6 @@ class PlayerSummary(BaseModel):
     WEIGHT: Optional[int] = None
     COLLEGE: Optional[str] = None
     COUNTRY: Optional[str] = None
-    DRAFT_YEAR: Optional[int] = None
-    DRAFT_ROUND: Optional[int] = None
-    DRAFT_NUMBER: Optional[int] = None
     ROSTER_STATUS: Optional[str] = None
     PTS: Optional[float] = None
     REB: Optional[float] = None

@@ -1,10 +1,11 @@
+import re
 from nba_api.stats.endpoints import BoxScoreSummaryV2, BoxScoreTraditionalV2
 from app.schemas.game import (
     GameDetailsResponse, GameSummary,
     PlayerGameEntry, PlayerGameStats
 )
 from fastapi import HTTPException
-from typing import List
+from typing import List, Optional
 from app.services.players import getPlayer  #Import player details function
 from typing import List
 
@@ -89,6 +90,27 @@ async def getGamePlayers(game_id: str) -> List[PlayerGameEntry]:
         raise HTTPException(status_code=500, detail=f"Error fetching game players: {e}")
 
 
+def clean_and_convert_minutes(minutes_str: Optional[str]) -> Optional[str]:
+    """
+    Cleans and converts the minutes string to a more usable format.
+
+    Args:
+        minutes_str: The minutes string from the data (e.g., "30.000000:00", "20.000000:07").
+
+    Returns:
+        The cleaned minutes string (e.g., "30:00", "20:07") or None if input is invalid.
+    """
+    if not minutes_str:
+        return None  # Handle None or empty strings gracefully
+
+    match = re.match(r"(\d+)\.\d+:(00|\d{2})", minutes_str)  # Improved regex
+    if match:
+        return f"{match.group(1)}:{match.group(2)}"
+    else:
+        # Handle unexpected formats gracefully (log, raise exception, or return None)
+        print(f"Warning: Unexpected minutes format: {minutes_str}")
+        return None  # Or raise ValueError(f"Invalid minutes format: {minutes_str}")
+    
 async def getGameStats(game_id: str) -> List[PlayerGameStats]:
     try:
         stats_data = BoxScoreTraditionalV2(game_id=game_id).get_dict()
@@ -99,26 +121,24 @@ async def getGameStats(game_id: str) -> List[PlayerGameStats]:
         player_stats_data = stats_data["resultSets"][0]["rowSet"]
         player_stats_headers = stats_data["resultSets"][0]["headers"]
 
-        stats = []
-        for row in player_stats_data:
-            player_id = row[player_stats_headers.index("PLAYER_ID")]
-            
-            # Fetch full player profile from `/players/{player_id}`
-            player_profile = await getPlayer(player_id)
-
-            stats.append(PlayerGameStats(
-                player_id=player_id,
-                player_name=player_profile.full_name,
+        stats = [
+            PlayerGameStats(
+                player_id=row[player_stats_headers.index("PLAYER_ID")],
+                player_name=row[player_stats_headers.index("PLAYER_NAME")],  # Corrected line
                 team_id=row[player_stats_headers.index("TEAM_ID")],
                 team_abbreviation=row[player_stats_headers.index("TEAM_ABBREVIATION")],
                 points=row[player_stats_headers.index("PTS")],
                 rebounds=row[player_stats_headers.index("REB")],
                 assists=row[player_stats_headers.index("AST")],
-                minutes=row[player_stats_headers.index("MIN")],
+                minutes=clean_and_convert_minutes(row[player_stats_headers.index("MIN")]),
                 steals=row[player_stats_headers.index("STL")],
                 blocks=row[player_stats_headers.index("BLK")],
                 turnovers=row[player_stats_headers.index("TO")]
-            ))
+            ) for row in player_stats_data
+        ]
+
+        if not stats:
+            raise HTTPException(status_code=404, detail="No players stats found for this game")
 
         return stats
 

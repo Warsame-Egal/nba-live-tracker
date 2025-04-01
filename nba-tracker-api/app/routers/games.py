@@ -2,10 +2,10 @@ from fastapi import APIRouter, HTTPException
 from app.services.games import getGameDetails, getGamePlayers, getGameStats
 from app.schemas.game import GameDetailsResponse, PlayerGameEntry, PlayerGameStats
 
-router = APIRouter(prefix="/games", tags=["games"])
+router = APIRouter()
 
-@router.get("/{game_id}", response_model=GameDetailsResponse,
-            summary="Get Game Details",
+@router.get("/games/{game_id}", response_model=GameDetailsResponse,
+            summary="Get Game Details", tags=["games"],
             description="Retrieve detailed information about a specific game.")
 async def fetchGameDetails(game_id: str):
     try:
@@ -13,8 +13,8 @@ async def fetchGameDetails(game_id: str):
     except HTTPException as e:
         raise e
 
-@router.get("/{game_id}/players", response_model=list[PlayerGameEntry],
-            summary="Get Players in a Game",
+@router.get("/games/{game_id}/players", response_model=list[PlayerGameEntry],
+            summary="Get Players in a Game", tags=["games"],
             description="Retrieve a list of players who participated in the game.")
 async def fetchGamePlayers(game_id: str):
     try:
@@ -22,8 +22,8 @@ async def fetchGamePlayers(game_id: str):
     except HTTPException as e:
         raise e
 
-@router.get("/{game_id}/stats", response_model=list[PlayerGameStats],
-            summary="Get Player Stats for a Game",
+@router.get("/games/{game_id}/stats", response_model=list[PlayerGameStats],
+            summary="Get Player Stats for a Game", tags=["games"],
             description="Retrieve detailed player statistics for a specific game.")
 async def fetchGameStats(game_id: str):
     try:

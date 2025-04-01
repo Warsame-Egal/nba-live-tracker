@@ -1,14 +1,13 @@
-from fastapi import APIRouter, HTTPException, Query
-from typing import List, Optional
+from fastapi import APIRouter, HTTPException
+from typing import List
 from app.schemas.player import PlayerSummary
 from app.services.players import getPlayer, search_players
 
-#router = APIRouter(prefix="/players", tags=["players"])
 router = APIRouter()
 
 
 @router.get("/player/{player_id}", response_model=PlayerSummary,
-            summary="Get Player Details",
+            summary="Get Player Details", tags=["players"],
             description="Retrieve detailed information about a specific player, including stats and recent performances.")
 async def fetchPlayer(player_id: str):
     try:
@@ -16,19 +15,8 @@ async def fetchPlayer(player_id: str):
     except HTTPException as e:
         raise e
 
-
-# @router.get("/players", response_model=List[PlayerSummary],
-#             summary="Get All Players",
-#             description="Retrieve a list of all players.")
-# async def fetchAllPlayers():
-#     try:
-#         return await search_players()  # Assuming search_players with no args returns all
-#     except HTTPException as e:
-#         raise e
-
-
 @router.get("/players/search/{search_term}", response_model=List[PlayerSummary],
-            summary="Search Players",
+            summary="Search Players", tags=["players"],
             description="Search for players by name.")
 async def searchPlayers(search_term: str):
     try:

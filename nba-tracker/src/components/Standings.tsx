@@ -3,7 +3,6 @@ import { useParams } from "react-router-dom";
 import { StandingRecord, StandingsResponse } from "../types/standings";
 import Navbar from "../components/Navbar";
 
-
 // Team name to abbreviation & logo mapping
 const teamMappings: { [key: string]: { abbreviation: string; logo: string } } = {
   "Atlanta Hawks": { abbreviation: "ATL", logo: "/logos/ATL.svg" },

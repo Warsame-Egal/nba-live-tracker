@@ -1,37 +1,93 @@
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { FaSearch, FaTimes } from "react-icons/fa";
+import { useSearchParams } from "react-router-dom";
+import { PlayerSummary } from "../types/player";
+import debounce from "lodash/debounce";
 
 interface SearchBarProps {
-  setSearchQuery: (query: string) => void;
+  onResults: (results: PlayerSummary[]) => void;
+  setLoading: (loading: boolean) => void;
+  setError: (error: string | null) => void;
+  placeholder?: string;
 }
 
-const SearchBar = ({ setSearchQuery }: SearchBarProps) => {
+const SearchBar: React.FC<SearchBarProps> = ({
+  onResults,
+  setLoading,
+  setError,
+  placeholder = "Search players...",
+}) => {
   const [query, setQuery] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const searchQuery = searchParams.get("search") || "";
+
+  useEffect(() => {
+    const abortController = new AbortController();
+
+    const debouncedFetch = debounce(async (search: string) => {
+      if (!search) {
+        onResults([]);
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+
+      try {
+        const response = await fetch(
+          `http://localhost:8000/api/v1/players/search/${search}`,
+          { signal: abortController.signal }
+        );
+        if (!response.ok) {
+          throw new Error("Failed to fetch data.");
+        }
+        const data: PlayerSummary[] = await response.json();
+        onResults(data);
+      } catch (err) {
+        if (err instanceof Error) {
+          if (err.name === "AbortError") {
+            console.log("Fetch aborted");
+            return;
+          }
+          setError(err.message);
+        } else {
+          setError("An unexpected error occurred.");
+        }
+        onResults([]);
+      } finally {
+        setLoading(false);
+      }
+    }, 300);
+
+    debouncedFetch(searchQuery);
+
+    return () => {
+      abortController.abort();
+      debouncedFetch.cancel();
+    };
+  }, [searchQuery, onResults, setLoading, setError]);
 
   const handleSearch = (value: string) => {
     setQuery(value);
-    setSearchQuery(value);
+    setSearchParams({ search: value });
   };
 
   return (
     <div className="relative w-full max-w-md mx-auto">
-      {/* Search Input */}
       <input
         type="text"
         value={query}
         onChange={(e) => handleSearch(e.target.value)}
-        placeholder="Search teams..."
-        className="w-full px-4 py-3 pl-10 pr-12 text-white bg-neutral-900 border border-neutral-700 rounded-md focus:ring-2 focus:ring-blue-500 transition-all"
+        placeholder={placeholder}
+        className="w-full px-4 py-3 pl-10 pr-12 bg-nba-card border border-nba-border rounded-md focus:ring-2 focus:ring-nba-accent text-white transition-all shadow-md"
       />
-
-      {/* Search Icon Left */}
-      <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-
-      {/* Clear Button Right */}
+      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+        <FaSearch className="text-gray-400" />
+      </div>
       {query && (
         <button
           onClick={() => handleSearch("")}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300 transition"
+          className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-300 transition"
         >
           <FaTimes />
         </button>

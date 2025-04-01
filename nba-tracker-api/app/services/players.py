@@ -1,6 +1,4 @@
-import datetime
-import math
-from typing import Any, Dict, List, Optional
+from typing import List
 import pandas as pd
 from fastapi import HTTPException
 from nba_api.stats.endpoints import playerindex, PlayerGameLog
@@ -65,9 +63,6 @@ async def getPlayer(player_id: str) -> PlayerSummary:
             WEIGHT=player_data.get('WEIGHT'),
             COLLEGE=player_data.get('COLLEGE'),
             COUNTRY=player_data.get('COUNTRY'),
-            DRAFT_YEAR=player_data.get('DRAFT_YEAR'),
-            DRAFT_ROUND=player_data.get('DRAFT_ROUND'),
-            DRAFT_NUMBER=player_data.get('DRAFT_NUMBER'),
             ROSTER_STATUS=roster_status,
             PTS=player_data.get('PTS'),
             REB=player_data.get('REB'),
@@ -95,7 +90,7 @@ async def search_players(search_term: str) -> List[PlayerSummary]:
         player_index_data = playerindex.PlayerIndex(historical_nullable=HistoricalNullable.all_time)
         player_index_df = player_index_data.get_data_frames()[0]
 
-        # Create a lower-cased full name column (once)
+        # Create a lower-cased full name column once
         player_index_df['FULL_NAME'] = (
             player_index_df['PLAYER_FIRST_NAME'].fillna('') + ' ' +
             player_index_df['PLAYER_LAST_NAME'].fillna('')
@@ -138,9 +133,6 @@ async def search_players(search_term: str) -> List[PlayerSummary]:
                 WEIGHT=row.get('WEIGHT'),
                 COLLEGE=row.get('COLLEGE'),
                 COUNTRY=row.get('COUNTRY'),
-                DRAFT_YEAR=safe_int(row.get('DRAFT_YEAR')),
-                DRAFT_ROUND=safe_int(row.get('DRAFT_ROUND')),
-                DRAFT_NUMBER=safe_int(row.get('DRAFT_NUMBER')),
                 ROSTER_STATUS=str(row.get('ROSTER_STATUS')) if not pd.isna(row.get('ROSTER_STATUS')) else None,
                 PTS=row.get('PTS'),
                 REB=row.get('REB'),
