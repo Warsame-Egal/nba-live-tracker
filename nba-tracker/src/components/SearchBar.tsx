@@ -45,10 +45,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
         onResults(data);
       } catch (err) {
         if (err instanceof Error) {
-          if (err.name === "AbortError") {
-            console.log("Fetch aborted");
-            return;
-          }
+          if (err.name === "AbortError") return;
           setError(err.message);
         } else {
           setError("An unexpected error occurred.");
@@ -79,7 +76,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
         value={query}
         onChange={(e) => handleSearch(e.target.value)}
         placeholder={placeholder}
-        className="w-full px-4 py-3 pl-10 pr-12 bg-nba-card border border-nba-border rounded-md focus:ring-2 focus:ring-nba-accent text-white transition-all shadow-md"
+        className="w-full px-4 py-2 pl-10 pr-12 bg-neutral-900 border border-neutral-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
       />
       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
         <FaSearch className="text-gray-400" />
@@ -87,7 +84,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
       {query && (
         <button
           onClick={() => handleSearch("")}
-          className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-300 transition"
+          className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-200 transition"
         >
           <FaTimes />
         </button>

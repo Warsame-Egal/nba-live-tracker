@@ -36,7 +36,7 @@ const RosterPage = () => {
   }, [team_id]);
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
+    <div className="min-h-screen bg-black -900 text-white">
       {/* Nav Bar */}
       <nav className="flex gap-8 p-4 bg-black text-gray-400 border-b border-gray-700">
         <Link to="/" className="hover:text-white">Home</Link>
@@ -58,7 +58,7 @@ const RosterPage = () => {
           {/* Roster Table */}
           <div className="overflow-x-auto">
             <table className="w-full border border-gray-700 text-left">
-              <thead className="bg-gray-800 text-gray-400 uppercase text-sm">
+              <thead className="bg-black -800 text-gray-400 uppercase text-sm">
                 <tr>
                   <th className="p-3">Player</th>
                   <th className="p-3">POS</th>
@@ -71,7 +71,7 @@ const RosterPage = () => {
               </thead>
               <tbody className="divide-y divide-gray-700">
                 {teamRoster?.players.map((player: Player) => (
-                  <tr key={player.player_id} className="hover:bg-gray-800">
+                  <tr key={player.player_id} className="hover:bg-black -800">
                     <td className="p-3 flex items-center gap-3">
                       <img
                         src={`https://cdn.nba.com/headshots/nba/latest/1040x760/${player.player_id}.png`}

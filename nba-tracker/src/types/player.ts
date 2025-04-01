@@ -18,26 +18,6 @@ export interface TeamRoster {
   players: Player[];
 }
 
-export interface Player {
-  player_id: number;
-  name: string;
-  jersey_number?: string;
-  position?: string;
-  height?: string;
-  weight?: number;
-  birth_date?: string;
-  age?: number;
-  experience?: string;
-  school?: string;
-}
-
-export interface TeamRoster {
-  team_id: number;
-  team_name: string;
-  season: string;
-  players: Player[];
-}
-
 export interface PlayerSummary {
   PERSON_ID: number;
   PLAYER_LAST_NAME: string;

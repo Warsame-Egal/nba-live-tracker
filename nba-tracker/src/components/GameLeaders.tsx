@@ -9,7 +9,7 @@ const GameLeaders: React.FC<Props> = ({ game }) => {
   const homeLeader = game.gameLeaders?.homeLeaders;
 
   return (
-    <div className="bg-gradient-to-br from-gray-800 to-neutral-900 rounded-xl p-5 shadow-2xl border border-gray-700 
+    <div className="bg-black -to-br from-gray-800 to-neutral-900 rounded-xl p-5 shadow-2xl border border-gray-700 
       flex justify-between w-full md:w-96 text-sm">
       
       {/* Away Team Leader */}

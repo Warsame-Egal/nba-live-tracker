@@ -47,14 +47,14 @@ const GameCard: React.FC<GameCardProps> = ({ game, setSelectedGame }) => {
   // Decide status background color
   const statusColor = React.useMemo(() => {
     if (status.includes("LIVE")) return "bg-red-600 text-white";
-    if (status.includes("FINAL")) return "bg-gray-800 text-white";
+    if (status.includes("FINAL")) return "bg-black -800 text-white";
     return "bg-neutral-900 text-gray-300";
   }, [status]);
 
   return (
     <div
       onClick={() => setSelectedGame(game)}
-      className="relative bg-gray-800 rounded-md md:rounded-lg shadow-md hover:bg-gray-700 transition duration-200 cursor-pointer p-3 md:p-4 mb-2 md:mb-3 w-full max-w-full"
+      className="relative bg-black -800 rounded-md md:rounded-lg shadow-md hover:black -gray-700 transition duration-200 cursor-pointer p-3 md:p-4 mb-2 md:mb-3 w-full max-w-full"
       style={{ height: "120px" }}
     >
       {/* Layout is 3 sections: Away team - Status - Home team */}

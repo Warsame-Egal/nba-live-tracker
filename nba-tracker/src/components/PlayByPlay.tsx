@@ -1,118 +1,58 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import PlayByPlayWebSocketService from "../services/PlayByPlayWebSocketService";
 import { PlayByPlayResponse, PlayByPlayEvent } from "../types/playbyplay";
-import { FaClock, FaExclamationTriangle, FaInfoCircle } from "react-icons/fa";
+import { FaClock } from "react-icons/fa";
 
-const PlayByPlay = ({ gameId }: { gameId: string | null }) => {
-  const [plays, setPlays] = useState<PlayByPlayEvent[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const playsContainerRef = useRef<HTMLDivElement>(null);
-  const isInitialLoad = useRef(true); // Track initial load
+const PlayByPlay = ({ gameId }: { gameId: string }) => {
+  const [lastPlay, setLastPlay] = useState<PlayByPlayEvent | null>(null);
 
   useEffect(() => {
-    if (!gameId) {
-      setPlays([]);
-      return;
-    }
+    if (!gameId) return;
 
-    setPlays([]);
-
-    PlayByPlayWebSocketService.connect(gameId);
-
-    const handlePlayByPlayUpdate = (data: PlayByPlayResponse) => {
-      if (!data?.plays) {
-        setError("Invalid play-by-play data received.");
-        return;
-      }
-      setPlays(data.plays);
-      setError(null);
-
-      // Scroll to bottom on initial load
-      if (isInitialLoad.current && playsContainerRef.current) {
-        playsContainerRef.current.scrollTop =
-          playsContainerRef.current.scrollHeight;
-        isInitialLoad.current = false; // Set to false after initial scroll
+    const handleUpdate = (data: PlayByPlayResponse) => {
+      if (data?.plays?.length > 0) {
+        setLastPlay(data.plays[data.plays.length - 1]);
       }
     };
 
-    PlayByPlayWebSocketService.subscribe(handlePlayByPlayUpdate);
+    PlayByPlayWebSocketService.connect(gameId);
+    PlayByPlayWebSocketService.subscribe(handleUpdate);
 
     return () => {
-      PlayByPlayWebSocketService.unsubscribe(handlePlayByPlayUpdate);
+      PlayByPlayWebSocketService.unsubscribe(handleUpdate);
       PlayByPlayWebSocketService.disconnect();
     };
   }, [gameId]);
 
-  useEffect(() => {
-    // Scroll to bottom on new updates
-    if (!isInitialLoad.current && playsContainerRef.current && plays.length > 0) {
-      playsContainerRef.current.scrollTop =
-        playsContainerRef.current.scrollHeight;
-    }
-  }, [plays]);
+  if (!lastPlay) return null;
 
-  return (
-    <div
-      className="bg-gradient-to-br from-nba-card-light to-nba-card-dark p-6 rounded-2xl shadow-lg border border-nba-border overflow-y-auto max-h-[60vh] min-h-[350px] w-full"
-      ref={playsContainerRef}
-    >
-      <h2 className="text-xl font-bold text-white mb-4 tracking-tight flex items-center justify-center">
-        <FaInfoCircle className="mr-2 text-nba-accent" /> Live Play-by-Play
-      </h2>
-
-      {error ? (
-        <div className="text-red-400 flex items-center justify-center">
-          <FaExclamationTriangle className="mr-2 text-red-500" /> {error}
-        </div>
-      ) : !gameId ? (
-        <div className="text-gray-400 text-center flex items-center justify-center h-full">
-          Select a game to see live updates
-        </div>
-      ) : plays.length > 0 ? (
-        <ul className="space-y-4 overflow-y-auto">
-          {plays.map((play, index) => <Play key={index} play={play} />)}
-        </ul>
-      ) : (
-        <div className="text-gray-500 text-center flex items-center justify-center h-full">
-          No live updates.
-        </div>
-      )}
-    </div>
-  );
-};
-
-const Play = ({ play }: { play: PlayByPlayEvent }) => {
   const formatTime = (clock: string): string => {
-    // If clock matches format PTXmYs (e.g., PT12M34S)
     const match = clock.match(/PT(\d+)M(\d+)S/);
-    if (match) {
-      return `${match[1]}m ${match[2]}s`;
-    }
+    if (match) return `${match[1]}m ${match[2]}s`;
 
-    // If it's just minutes (PTXm)
-    const minutesMatch = clock.match(/PT(\d+)M/);
-    if (minutesMatch) {
-      return `${minutesMatch[1]}m 0s`; // Adding 0 seconds if no seconds provided
-    }
+    const minutesOnly = clock.match(/PT(\d+)M/);
+    if (minutesOnly) return `${minutesOnly[1]}m 0s`;
 
-    return clock; // Return original if not in expected format
+    return clock;
   };
 
   return (
-    <li className="text-gray-300 text-sm border-b border-nba-border pb-2 pt-2 last:border-b-0">
-      <div className="flex items-center mb-1">
-        <FaClock className="mr-1 text-gray-500" />
-        <span className="text-xs text-gray-500">
-          {formatTime(play.clock)} | Q{play.period}
-        </span>
+    <div className="mt-2 px-3 py-2 rounded-md bg-black text-xs text-gray-300">
+      <div className="flex justify-between mb-1 flex-wrap">
+        <div className="flex items-center gap-2 mb-1">
+          <FaClock className="text-gray-500" />
+          <span className="text-gray-400">
+            {formatTime(lastPlay.clock)} | Q{lastPlay.period}
+          </span>
+        </div>
       </div>
-      <span className="font-medium">
-        {play.playerName && (
-          <span className="text-nba-accent font-semibold">{play.playerName}</span>
+      <div className="leading-snug">
+        {lastPlay.playerName && (
+          <span className="text-white font-semibold">{lastPlay.playerName}</span>
         )}{" "}
-        {play.description}
-      </span>
-    </li>
+        {lastPlay.description}
+      </div>
+    </div>
   );
 };
 

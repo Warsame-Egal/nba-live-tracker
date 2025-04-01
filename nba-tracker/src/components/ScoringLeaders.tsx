@@ -1,56 +1,43 @@
 import { Game } from "../types/scoreboard";
-import { FaUserCircle } from "react-icons/fa";
 import { Link } from "react-router-dom";
 
 interface ScoringLeadersProps {
-  selectedGame: Game | null;
+  selectedGame: Game;
 }
 
 const ScoringLeaders = ({ selectedGame }: ScoringLeadersProps) => {
-  if (!selectedGame) {
-    return (
-      <div className="bg-gradient-to-br from-nba-card-light to-nba-card-dark p-6 rounded-2xl shadow-lg border border-nba-border">
-        <p className="text-gray-400 text-center">Select a game to see leaders</p>
-      </div>
-    );
-  }
-
   const { gameLeaders } = selectedGame;
 
   return (
-    <div className="bg-gradient-to-br from-nba-card-light to-nba-card-dark p-6 rounded-2xl shadow-lg border border-nba-border">
-      <h2 className="text-xl font-bold text-white mb-4 tracking-tight flex items-center justify-center">
-        Top Performers
-      </h2>
-
-      {/* Home Team Leaders */}
-      <div className="mb-6">
-        <h3 className="text-lg font-semibold mb-2 text-blue-400">
+    <div className="text-sm text-gray-300 space-y-3">
+      {/* Home Team */}
+      <div>
+        <h3 className="text-xs font-semibold text-blue-400 mb-1">
           {selectedGame.homeTeam.teamName}
         </h3>
         {gameLeaders?.homeLeaders ? (
-          <LeaderCard leader={gameLeaders.homeLeaders} />
+          <LeaderRow leader={gameLeaders.homeLeaders} />
         ) : (
-          <p className="text-gray-400">No leaders available</p>
+          <p className="text-gray-500 text-xs">No leader</p>
         )}
       </div>
 
-      {/* Away Team Leaders */}
+      {/* Away Team */}
       <div>
-        <h3 className="text-lg font-semibold mb-2 text-pink-400">
+        <h3 className="text-xs font-semibold text-pink-400 mb-1">
           {selectedGame.awayTeam.teamName}
         </h3>
         {gameLeaders?.awayLeaders ? (
-          <LeaderCard leader={gameLeaders.awayLeaders} />
+          <LeaderRow leader={gameLeaders.awayLeaders} />
         ) : (
-          <p className="text-gray-400">No leaders available</p>
+          <p className="text-gray-500 text-xs">No leader</p>
         )}
       </div>
     </div>
   );
 };
 
-interface LeaderCardProps {
+interface LeaderRowProps {
   leader: {
     personId: number;
     name: string;
@@ -60,36 +47,29 @@ interface LeaderCardProps {
   };
 }
 
-const LeaderCard = ({ leader }: LeaderCardProps) => {
+const LeaderRow = ({ leader }: LeaderRowProps) => {
   const avatarUrl = `https://cdn.nba.com/headshots/nba/latest/1040x760/${leader.personId}.png`;
 
   return (
-    <div className="flex items-center p-4 rounded-lg"> {/* Removed bg-gray-800 and shadow-inner */}
-      <Link to={`/players/${leader.personId}`} className="mr-4">
+    <div className="flex items-center gap-3">
+      <Link to={`/players/${leader.personId}`}>
         <img
           src={avatarUrl}
           alt={leader.name}
-          className="w-12 h-12 rounded-full object-cover"
+          className="w-8 h-8 rounded-full object-cover"
           onError={(e) => {
             e.currentTarget.onerror = null;
             e.currentTarget.src = "";
           }}
         />
-        {!avatarUrl && (
-          <div className="w-12 h-12 rounded-full bg-gray-700 flex items-center justify-center">
-            <FaUserCircle className="text-white text-2xl" />
-          </div>
-        )}
       </Link>
-      <div className="flex-1">
-        <Link to={`/players/${leader.personId}`} className="block mb-1 font-semibold text-white hover:text-blue-300">
+      <div className="flex flex-col text-xs">
+        <Link to={`/players/${leader.personId}`} className="text-white font-semibold hover:underline">
           {leader.name}
         </Link>
-        <p className="text-sm text-gray-400">
-          <span className="text-nba-accent">{leader.points} PTS</span> •
-          <span className="text-nba-accent"> {leader.rebounds} REB</span> •
-          <span className="text-nba-accent"> {leader.assists} AST</span>
-        </p>
+        <span className="text-gray-400">
+          {leader.points} PTS • {leader.rebounds} REB • {leader.assists} AST
+        </span>
       </div>
     </div>
   );

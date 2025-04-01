@@ -36,7 +36,7 @@ const TeamPage = () => {
   }, [team_id]);
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
+    <div className="min-h-screen bg-black -900 text-white">
       {loading ? (
         // Show loading message while fetching data
         <p className="loading">Loading team data...</p>

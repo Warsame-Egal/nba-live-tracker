@@ -3,7 +3,6 @@ import { useParams } from "react-router-dom";
 import { StandingRecord, StandingsResponse } from "../types/standings";
 import Navbar from "../components/Navbar";
 
-// Team name to abbreviation & logo mapping
 const teamMappings: { [key: string]: { abbreviation: string; logo: string } } = {
   "Atlanta Hawks": { abbreviation: "ATL", logo: "/logos/ATL.svg" },
   "Boston Celtics": { abbreviation: "BOS", logo: "/logos/BOS.svg" },
@@ -76,13 +75,13 @@ const Standings = () => {
           <p className="text-gray-400 text-center">No standings data available.</p>
         ) : (
           <div className="overflow-x-auto rounded-lg shadow-lg">
-            <table className="w-full bg-neutral-900 text-white rounded-lg overflow-hidden">
-              <thead className="bg-neutral-800 text-gray-300 uppercase text-sm">
+            <table className="w-full text-white bg-black border border-neutral-700 rounded-lg overflow-hidden">
+              <thead className="bg-neutral-900 border-b border-neutral-700 text-white uppercase text-sm">
                 <tr>
-                  <th className="py-4 px-6 text-left">Rank</th>
-                  <th className="py-4 px-6 text-left">Team</th>
-                  <th className="py-4 px-6 text-center">Conference Record</th>
-                  <th className="py-4 px-6 text-center">Division Record</th>
+                  <th className="py-4 px-6 text-left border-r border-neutral-700">Rank</th>
+                  <th className="py-4 px-6 text-left border-r border-neutral-700">Team</th>
+                  <th className="py-4 px-6 text-center border-r border-neutral-700">Conference Record</th>
+                  <th className="py-4 px-6 text-center border-r border-neutral-700">Division Record</th>
                   <th className="py-4 px-6 text-center">Status</th>
                 </tr>
               </thead>
@@ -97,32 +96,36 @@ const Standings = () => {
                   return (
                     <tr
                       key={`${team.team_name}-${team.season_id}`}
-                      className={`border-b border-neutral-700 hover:bg-neutral-800 transition ${
+                      className={`transition ${
                         index % 2 === 0 ? "bg-neutral-900" : "bg-neutral-950"
-                      }`}
+                      } hover:bg-neutral-800 border-b border-neutral-700`}
                     >
-                      <td className="py-4 px-6 text-lg font-semibold">{team.conference[0]}-{team.playoff_rank}</td>
-
-                      {/* Team Name, Logo & Abbreviation */}
-                      <td className="py-4 px-6 font-semibold flex items-center gap-3">
-                        <img src={teamInfo.logo} alt={teamInfo.abbreviation} className="w-10 h-10" />
-                        {teamFullName} <span className="text-gray-400">({teamInfo.abbreviation})</span>
+                      <td className="py-4 px-6 text-sm font-semibold border-r border-neutral-700">
+                        {team.conference[0]}-{team.playoff_rank}
                       </td>
-
-                      <td className="py-4 px-6 text-center text-lg font-semibold">{team.conference_record}</td>
-                      <td className="py-4 px-6 text-center text-lg font-semibold">{team.division_record}</td>
+                      <td className="py-4 px-6 flex items-center gap-3 border-r border-neutral-700">
+                        <img src={teamInfo.logo} alt={teamInfo.abbreviation} className="w-8 h-8" />
+                        {teamFullName}
+                        <span className="text-neutral-400">({teamInfo.abbreviation})</span>
+                      </td>
+                      <td className="py-4 px-6 text-center border-r border-neutral-700">
+                        {team.conference_record}
+                      </td>
+                      <td className="py-4 px-6 text-center border-r border-neutral-700">
+                        {team.division_record}
+                      </td>
                       <td className="py-4 px-6 text-center">
                         {team.clinch_indicator === "c" && (
-                          <span className="bg-green-600 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                          <span className="bg-green-600 text-white px-3 py-1 rounded-full text-xs font-semibold">
                             Clinched
                           </span>
                         )}
                         {team.clinch_indicator === "x" && (
-                          <span className="bg-red-600 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                          <span className="bg-red-600 text-white px-3 py-1 rounded-full text-xs font-semibold">
                             Eliminated
                           </span>
                         )}
-                        {team.clinch_indicator === "-" && <span className="text-gray-400">-</span>}
+                        {team.clinch_indicator === "-" && <span className="text-neutral-500">—</span>}
                       </td>
                     </tr>
                   );
