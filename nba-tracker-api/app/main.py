@@ -1,21 +1,24 @@
 import asyncio
-from fastapi import FastAPI
 from contextlib import asynccontextmanager
+
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.services.websockets_manager import scoreboard_websocket_manager, playbyplay_websocket_manager
-from app.routers.scoreboard import router as scoreboard_router
-from app.routers.schedule import router as schedule_router
-from app.routers.health import router as health_router
-from app.routers.standings import router as standings_router
-from app.routers.players import router as player_router
+
 from app.routers.games import router as game_router
+from app.routers.health import router as health_router
+from app.routers.players import router as player_router
+from app.routers.schedule import router as schedule_router
+from app.routers.scoreboard import router as scoreboard_router
+from app.routers.standings import router as standings_router
 from app.routers.teams import router as team_router
+from app.services.websockets_manager import playbyplay_websocket_manager, scoreboard_websocket_manager
+
 
 # Manages WebSocket broadcasting lifecycle
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Starts WebSocket broadcasting on app startup and shuts it down on exit."""
-    
+
     print("Starting WebSocket broadcasting...")
 
     # Start background tasks for both Scoreboard and Play-by-Play
@@ -57,11 +60,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 # Root endpoint to check if API is running
 @app.get("/")
 def home():
     """Root endpoint for API health check."""
     return {"message": "NBA Live Tracker API is running"}
+
 
 # Register API route for health check
 app.include_router(health_router, prefix="/api/v1")
@@ -79,6 +84,3 @@ app.include_router(player_router, prefix="/api/v1")
 
 app.include_router(game_router, prefix="/api/v1")
 app.include_router(team_router, prefix="/api/v1")
-
-
-

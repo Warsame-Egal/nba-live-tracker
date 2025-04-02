@@ -1,5 +1,7 @@
-from pydantic import BaseModel, Field
 from typing import List, Optional
+
+from pydantic import BaseModel, Field
+
 
 class PlayerGameStats(BaseModel):
     player_id: int = Field(..., description="Unique NBA player ID.")
@@ -13,7 +15,8 @@ class PlayerGameStats(BaseModel):
     steals: Optional[int] = Field(0, description="Total steals.")
     blocks: Optional[int] = Field(0, description="Total blocks.")
     turnovers: Optional[int] = Field(0, description="Total turnovers.")
-    
+
+
 class GameSummary(BaseModel):
     game_date_est: str = Field(..., description="Game date in EST format.")
     game_id: str = Field(..., description="Unique ID for the NBA game.")
@@ -21,6 +24,7 @@ class GameSummary(BaseModel):
     home_team_id: int = Field(..., description="Team ID for the home team.")
     visitor_team_id: int = Field(..., description="Team ID for the visiting team.")
     season: str = Field(..., description="NBA season (e.g., 2023-24).")
+
 
 class PlayerGameEntry(BaseModel):
     player_id: int = Field(..., description="Unique NBA player ID.")
@@ -30,6 +34,7 @@ class PlayerGameEntry(BaseModel):
     team_id: int = Field(..., description="Team ID of the player.")
     jersey_num: Optional[str] = Field(None, description="Player's jersey number.")
     position: Optional[str] = Field(None, description="Player's position (G, F, C).")
+
 
 class GameDetailsResponse(BaseModel):
     game_summary: GameSummary

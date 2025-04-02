@@ -1,29 +1,37 @@
 from typing import List
+
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
-from app.services.scoreboard import (
-    getCurrentTeamRecord, fetchTeamRoster, getCurrentTeamRecord,
-    fetchPlayersByName, getBoxScore,
-    getTeamStats, getGameLeaders,
-    getPlayByPlay, getScoreboard
-)
+
+from app.schemas.player import PlayerSummary, TeamRoster
 from app.schemas.scoreboard import (
-    ScoreboardResponse, BoxScoreResponse, TeamGameStatsResponse,
-    GameLeadersResponse, PlayByPlayResponse
+    BoxScoreResponse,
+    GameLeadersResponse,
+    PlayByPlayResponse,
+    ScoreboardResponse,
+    TeamGameStatsResponse,
 )
-from app.schemas.player import TeamRoster, PlayerSummary
 from app.schemas.team import TeamDetails
-from app.services.websockets_manager import scoreboard_websocket_manager, playbyplay_websocket_manager
-
-
+from app.services.scoreboard import (
+    fetchPlayersByName,
+    fetchTeamRoster,
+    getBoxScore,
+    getCurrentTeamRecord,
+    getGameLeaders,
+    getPlayByPlay,
+    getScoreboard,
+    getTeamStats,
+)
+from app.services.websockets_manager import playbyplay_websocket_manager, scoreboard_websocket_manager
 
 router = APIRouter()
+
 
 # WebSocket Endpoint for Real-Time Score Updates
 @router.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     """
     WebSocket connection handler for live NBA scoreboard updates.
-    
+
     This function:
     - Accepts WebSocket connections from clients.
     - Sends the latest scoreboard data when a client connects.
@@ -48,13 +56,18 @@ async def websocket_endpoint(websocket: WebSocket):
         print(f"Client disconnected: {websocket}")
         await scoreboard_websocket_manager.disconnect(websocket)
 
+
 # API Endpoint for Live Scoreboard Data (REST)
-@router.get("/scoreboard", response_model=ScoreboardResponse, tags=["scoreboard"],
-            summary="Get Live NBA Scores",
-            description="Fetch and return live NBA scores from the NBA API.")
+@router.get(
+    "/scoreboard",
+    response_model=ScoreboardResponse,
+    tags=["scoreboard"],
+    summary="Get Live NBA Scores",
+    description="Fetch and return live NBA scores from the NBA API.",
+)
 async def scoreboard():
     """
-    This endpoint fetches live game data, including team scores, game status, 
+    This endpoint fetches live game data, including team scores, game status,
     period, and other relevant details.
 
     """
@@ -65,10 +78,14 @@ async def scoreboard():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-    
-@router.get("/scoreboard/team/{team_id}/record", response_model=TeamDetails, tags=["teams"],
-            summary="Get Current Team Record",
-            description="Fetch the current season's record, ranking, and performance for a team.")
+
+@router.get(
+    "/scoreboard/team/{team_id}/record",
+    response_model=TeamDetails,
+    tags=["teams"],
+    summary="Get Current Team Record",
+    description="Fetch the current season's record, ranking, and performance for a team.",
+)
 async def currentTeamRecord(team_id: int):
     """
     API route to retrieve a team's real-time standings and performance metrics.
@@ -78,9 +95,14 @@ async def currentTeamRecord(team_id: int):
     except HTTPException as e:
         raise e
 
-    
-@router.get("/scoreboard/team/{team_id}/roster/{season}", response_model=TeamRoster, tags=["teams"], 
-            summary="Get Team Roster", description="Fetch the full roster and coaching staff for a given team and season.")
+
+@router.get(
+    "/scoreboard/team/{team_id}/roster/{season}",
+    response_model=TeamRoster,
+    tags=["teams"],
+    summary="Get Team Roster",
+    description="Fetch the full roster and coaching staff for a given team and season.",
+)
 async def getTeamRoster(team_id: int, season: str):
     """
     API endpoint to retrieve the full roster of a given NBA team for a specific season.
@@ -95,7 +117,7 @@ async def getTeamRoster(team_id: int, season: str):
     except HTTPException as e:
         raise e
 
-    
+
 @router.get("/players/search", response_model=List[PlayerSummary], tags=["players"])
 async def searchPlayers(name: str):
     """
@@ -111,14 +133,19 @@ async def searchPlayers(name: str):
         return await fetchPlayersByName(name)
     except HTTPException as e:
         raise e
-    
-@router.get("/scoreboard/game/{game_id}/boxscore", response_model=BoxScoreResponse, tags=["boxscore"],
-            summary="Get Box Score for a Game",
-            description="Retrieve detailed game stats including team and player performance.")
+
+
+@router.get(
+    "/scoreboard/game/{game_id}/boxscore",
+    response_model=BoxScoreResponse,
+    tags=["boxscore"],
+    summary="Get Box Score for a Game",
+    description="Retrieve detailed game stats including team and player performance.",
+)
 async def get_game_boxscore(game_id: str):
     """
     API route to fetch the full box score for a given NBA game.
-    
+
     Args:
         game_id (str): Unique game identifier.
 
@@ -130,11 +157,14 @@ async def get_game_boxscore(game_id: str):
     except HTTPException as e:
         raise e
 
-@router.get("/scoreboard/game/{game_id}/team/{team_id}/stats", 
-            response_model=TeamGameStatsResponse, 
-            tags=["boxscore"],
-            summary="Get Team Statistics for a Game",
-            description="Retrieve detailed statistics for a specific team in a given NBA game.")
+
+@router.get(
+    "/scoreboard/game/{game_id}/team/{team_id}/stats",
+    response_model=TeamGameStatsResponse,
+    tags=["boxscore"],
+    summary="Get Team Statistics for a Game",
+    description="Retrieve detailed statistics for a specific team in a given NBA game.",
+)
 async def get_game_team_stats(game_id: str, team_id: int):
     """
     API route to fetch the statistics of a specific team in a given NBA game.
@@ -151,11 +181,14 @@ async def get_game_team_stats(game_id: str, team_id: int):
     except HTTPException as e:
         raise e
 
-@router.get("/scoreboard/game/{game_id}/leaders", 
-            response_model=GameLeadersResponse, 
-            tags=["boxscore"],
-            summary="Get Game Leaders",
-            description="Retrieve the top-performing players in points, assists, and rebounds for a given NBA game.")
+
+@router.get(
+    "/scoreboard/game/{game_id}/leaders",
+    response_model=GameLeadersResponse,
+    tags=["boxscore"],
+    summary="Get Game Leaders",
+    description="Retrieve the top-performing players in points, assists, and rebounds for a given NBA game.",
+)
 async def get_game_leaders(game_id: str):
     """
     API route to fetch the top players in points, assists, and rebounds for a given NBA game.
@@ -171,11 +204,14 @@ async def get_game_leaders(game_id: str):
     except HTTPException as e:
         raise e
 
-@router.get("/scoreboard/game/{game_id}/play-by-play", 
-            response_model=PlayByPlayResponse, 
-            tags=["play-by-play"],
-            summary="Get Play-by-Play Breakdown",
-            description="Retrieve real-time play-by-play breakdown, including scoring events, assists, and turnovers.")
+
+@router.get(
+    "/scoreboard/game/{game_id}/play-by-play",
+    response_model=PlayByPlayResponse,
+    tags=["play-by-play"],
+    summary="Get Play-by-Play Breakdown",
+    description="Retrieve real-time play-by-play breakdown, including scoring events, assists, and turnovers.",
+)
 async def get_game_play_by_play(game_id: str):
     """
     API route to fetch real-time play-by-play breakdown for a given NBA game.
@@ -190,7 +226,8 @@ async def get_game_play_by_play(game_id: str):
         return await getPlayByPlay(game_id)
     except HTTPException as e:
         raise e
-    
+
+
 @router.websocket("/ws/{game_id}/play-by-play")
 async def playbyplay_websocket_endpoint(websocket: WebSocket, game_id: str):
     """
@@ -206,6 +243,6 @@ async def playbyplay_websocket_endpoint(websocket: WebSocket, game_id: str):
         # Continuously send real-time Play-by-Play updates
         while True:
             data = await websocket.receive_text()
-            print(f"Received from client: {data}") 
+            print(f"Received from client: {data}")
     except WebSocketDisconnect:
         await playbyplay_websocket_manager.disconnect(websocket, game_id)

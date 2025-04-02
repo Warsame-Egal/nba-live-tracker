@@ -1,9 +1,12 @@
+from typing import List
+
+import pandas as pd
+from fastapi import HTTPException
 from nba_api.stats.endpoints import TeamDetails
 from nba_api.stats.static import teams
-import pandas as pd
+
 from app.schemas.team import TeamDetailsResponse, TeamSummary
-from fastapi import HTTPException
-from typing import List
+
 
 async def get_team(team_id: int) -> TeamDetailsResponse:
     """
@@ -47,6 +50,7 @@ async def get_team(team_id: int) -> TeamDetailsResponse:
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}") from e
 
+
 async def search_teams(search_term: str) -> List[TeamSummary]:
     """
     Optimized NBA team search by city, name, or abbreviation (partial match).
@@ -56,16 +60,18 @@ async def search_teams(search_term: str) -> List[TeamSummary]:
         team_list_data = pd.DataFrame(nba_teams)
 
         # Create a lower-cased full name column once
-        team_list_data['full_name_lower'] = team_list_data['city'].str.lower() + ' ' + team_list_data['nickname'].str.lower()
+        team_list_data["full_name_lower"] = (
+            team_list_data["city"].str.lower() + " " + team_list_data["nickname"].str.lower()
+        )
 
         search_term_lower = search_term.lower()
 
         # Filter with vectorized string matching
         mask = (
-            team_list_data['city'].str.lower().str.contains(search_term_lower) |
-            team_list_data['nickname'].str.lower().str.contains(search_term_lower) |
-            team_list_data['full_name_lower'].str.lower().str.contains(search_term_lower) |
-            team_list_data['abbreviation'].str.lower().str.contains(search_term_lower)
+            team_list_data["city"].str.lower().str.contains(search_term_lower)
+            | team_list_data["nickname"].str.lower().str.contains(search_term_lower)
+            | team_list_data["full_name_lower"].str.lower().str.contains(search_term_lower)
+            | team_list_data["abbreviation"].str.lower().str.contains(search_term_lower)
         )
 
         filtered_teams = team_list_data[mask]
@@ -77,13 +83,13 @@ async def search_teams(search_term: str) -> List[TeamSummary]:
         team_summaries = []
         for _, row in filtered_teams.iterrows():
             team_summary = TeamSummary(
-                team_id=row['id'],
-                abbreviation=row['abbreviation'],
-                city=row['city'],
-                full_name=row['full_name'],
-                nickname=row['nickname'],
-                state=row.get('state'),
-                year_founded=row.get('year_founded')
+                team_id=row["id"],
+                abbreviation=row["abbreviation"],
+                city=row["city"],
+                full_name=row["full_name"],
+                nickname=row["nickname"],
+                state=row.get("state"),
+                year_founded=row.get("year_founded"),
             )
 
             team_summaries.append(team_summary)

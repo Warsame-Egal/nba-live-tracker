@@ -10,7 +10,6 @@ interface TeamDetails {
   abbreviation: string;
   year_founded: number;
   arena: string;
-  arena_capacity: number;
   owner: string;
   general_manager: string;
   head_coach: string;
@@ -76,10 +75,6 @@ const TeamPage = () => {
               </p>
               <p>
                 <span className="text-gray-400 uppercase">Arena:</span> {team.arena ?? '—'}
-              </p>
-              <p>
-                <span className="text-gray-400 uppercase">Capacity:</span>{' '}
-                {team.arena_capacity ?? '—'}
               </p>
               <p>
                 <span className="text-gray-400 uppercase">Owner:</span> {team.owner ?? '—'}

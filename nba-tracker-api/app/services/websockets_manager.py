@@ -1,10 +1,13 @@
 import asyncio
+import copy
 import json
 import time
-import copy
-from typing import List, Dict, Set
+from typing import Dict, List, Set
+
 from fastapi import WebSocket
-from app.services.scoreboard import getScoreboard, getPlayByPlay
+
+from app.services.scoreboard import getPlayByPlay, getScoreboard
+
 
 class ScoreboardWebSocketManager:
     """Manages WebSocket connections for real-time NBA scoreboard updates."""
@@ -62,7 +65,10 @@ class ScoreboardWebSocketManager:
                     or new_home_score != old_home_score
                     or new_away_score != old_away_score
                 ):
-                    if game_id not in self.last_update_timestamp or (current_time - self.last_update_timestamp[game_id]) >= 5.0:
+                    if (
+                        game_id not in self.last_update_timestamp
+                        or (current_time - self.last_update_timestamp[game_id]) >= 5.0
+                    ):
                         self.last_update_timestamp[game_id] = current_time
                         return True
 
@@ -86,7 +92,7 @@ class ScoreboardWebSocketManager:
 
                 if not self.has_game_data_changed(self.current_games, previous_games):
                     await asyncio.sleep(2)
-                    continue  
+                    continue
 
                 print(f"Broadcasting {len(self.current_games)} updated games")
 
@@ -107,6 +113,7 @@ class ScoreboardWebSocketManager:
                 print(f"Broadcast Loop Error: {e}")
                 await asyncio.sleep(5)
 
+
 class PlayByPlayWebSocketManager:
     """Manages WebSocket connections for real-time NBA Play-by-Play updates."""
 
@@ -123,7 +130,7 @@ class PlayByPlayWebSocketManager:
 
         if game_id not in self.active_connections:
             self.active_connections[game_id] = set()
-        
+
         self.active_connections[game_id].add(websocket)
         await self.send_initial_playbyplay(websocket, game_id)
 
@@ -198,6 +205,7 @@ class PlayByPlayWebSocketManager:
             except Exception as e:
                 print(f"Broadcast Loop Error: {e}")
                 await asyncio.sleep(5)
+
 
 # Singleton playbypLay instance
 playbyplay_websocket_manager = PlayByPlayWebSocketManager()

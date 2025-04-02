@@ -1,20 +1,18 @@
 import re
-from nba_api.stats.endpoints import BoxScoreSummaryV2, BoxScoreTraditionalV2
-from app.schemas.game import (
-    GameDetailsResponse, GameSummary,
-    PlayerGameEntry, PlayerGameStats
-)
-from fastapi import HTTPException
 from typing import List, Optional
-from app.services.players import getPlayer  #Import player details function
-from typing import List
+
+from fastapi import HTTPException
+from nba_api.stats.endpoints import BoxScoreSummaryV2, BoxScoreTraditionalV2
+
+from app.schemas.game import GameDetailsResponse, GameSummary, PlayerGameEntry, PlayerGameStats
+
 
 async def getGameDetails(game_id: str) -> GameDetailsResponse:
     try:
         raw_data = BoxScoreSummaryV2(game_id=game_id).get_dict()
         stats_data = BoxScoreTraditionalV2(game_id=game_id).get_dict()
 
-        if not raw_data["resultSets"]:  
+        if not raw_data["resultSets"]:
             raise HTTPException(status_code=404, detail="No data found for this game")
 
         # Extract Game Summary
@@ -35,8 +33,13 @@ async def getGameDetails(game_id: str) -> GameDetailsResponse:
                 last_name=row[player_stats_headers.index("PLAYER_NAME")].split(" ")[-1],
                 team_abbreviation=row[player_stats_headers.index("TEAM_ABBREVIATION")],
                 team_id=row[player_stats_headers.index("TEAM_ID")],
-                position=row[player_stats_headers.index("START_POSITION")] if "START_POSITION" in player_stats_headers else None
-            ) for row in player_stats_data
+                position=(
+                    row[player_stats_headers.index("START_POSITION")]
+                    if "START_POSITION" in player_stats_headers
+                    else None
+                ),
+            )
+            for row in player_stats_data
         ]
 
         return GameDetailsResponse(
@@ -46,7 +49,7 @@ async def getGameDetails(game_id: str) -> GameDetailsResponse:
                 game_status_text=game_summary.get("GAME_STATUS_TEXT", "N/A"),
                 home_team_id=game_summary.get("HOME_TEAM_ID", 0),
                 visitor_team_id=game_summary.get("VISITOR_TEAM_ID", 0),
-                season=game_summary.get("SEASON", "N/A")
+                season=game_summary.get("SEASON", "N/A"),
             ),
             players=players,
         )
@@ -55,10 +58,9 @@ async def getGameDetails(game_id: str) -> GameDetailsResponse:
         raise HTTPException(status_code=500, detail=f"Error fetching game details: {e}")
 
 
-
 async def getGamePlayers(game_id: str) -> List[PlayerGameEntry]:
     try:
-        stats_data = BoxScoreTraditionalV2(game_id=game_id).get_dict()  #Fetch player stats
+        stats_data = BoxScoreTraditionalV2(game_id=game_id).get_dict()  # Fetch player stats
 
         if "resultSets" not in stats_data:
             raise HTTPException(status_code=404, detail="No game data found")
@@ -77,8 +79,9 @@ async def getGamePlayers(game_id: str) -> List[PlayerGameEntry]:
                 last_name=row[player_stats_headers.index("PLAYER_NAME")].split(" ")[-1],  # Extract last name
                 team_abbreviation=row[player_stats_headers.index("TEAM_ABBREVIATION")],
                 team_id=row[player_stats_headers.index("TEAM_ID")],
-                position=row[player_stats_headers.index("START_POSITION")] if has_start_position else None
-            ) for row in player_stats_data
+                position=(row[player_stats_headers.index("START_POSITION")] if has_start_position else None),
+            )
+            for row in player_stats_data
         ]
 
         if not players:
@@ -110,7 +113,8 @@ def clean_and_convert_minutes(minutes_str: Optional[str]) -> Optional[str]:
         # Handle unexpected formats gracefully (log, raise exception, or return None)
         print(f"Warning: Unexpected minutes format: {minutes_str}")
         return None  # Or raise ValueError(f"Invalid minutes format: {minutes_str}")
-    
+
+
 async def getGameStats(game_id: str) -> List[PlayerGameStats]:
     try:
         stats_data = BoxScoreTraditionalV2(game_id=game_id).get_dict()
@@ -133,8 +137,9 @@ async def getGameStats(game_id: str) -> List[PlayerGameStats]:
                 minutes=clean_and_convert_minutes(row[player_stats_headers.index("MIN")]),
                 steals=row[player_stats_headers.index("STL")],
                 blocks=row[player_stats_headers.index("BLK")],
-                turnovers=row[player_stats_headers.index("TO")]
-            ) for row in player_stats_data
+                turnovers=row[player_stats_headers.index("TO")],
+            )
+            for row in player_stats_data
         ]
 
         if not stats:

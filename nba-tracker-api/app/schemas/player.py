@@ -1,24 +1,28 @@
-from pydantic import BaseModel, Field
-from typing import List, Optional, Union
+from typing import List, Optional
+
+from pydantic import BaseModel
+
 
 class Player(BaseModel):
     player_id: int
     name: str
     jersey_number: Optional[str] = None
     position: Optional[str] = None
-    height: Optional[str] = None 
+    height: Optional[str] = None
     weight: Optional[int] = None
     birth_date: Optional[str] = None
     age: Optional[int] = None
     experience: Optional[str] = None
     school: Optional[str] = None
 
+
 class TeamRoster(BaseModel):
     team_id: int
     team_name: str
     season: str
     players: List[Player]
-    
+
+
 class PlayerGamePerformance(BaseModel):
     game_id: str
     date: str
@@ -28,6 +32,7 @@ class PlayerGamePerformance(BaseModel):
     assists: int
     steals: int
     blocks: int
+
 
 class PlayerSummary(BaseModel):
     PERSON_ID: int
