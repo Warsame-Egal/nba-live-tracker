@@ -1,4 +1,4 @@
-// a player
+// Player
 export interface Player {
   player_id: number;
   name: string;
@@ -12,12 +12,19 @@ export interface Player {
   school: string;
 }
 
-// team details
 export interface TeamDetails {
   team_id: number;
   team_name: string;
-  conference: string;
-  division: string;
+  team_city: string;
+  abbreviation?: string;
+  year_founded?: number;
+  arena?: string;
+  arena_capacity?: number;
+  owner?: string;
+  general_manager?: string;
+  head_coach?: string;
+  conference?: string;
+  division?: string;
   wins: number;
   losses: number;
   win_pct: number;
@@ -27,7 +34,7 @@ export interface TeamDetails {
   current_streak: string;
 }
 
-// a coach
+// Coach
 export interface Coach {
   coach_id: number;
   name: string;
@@ -35,11 +42,45 @@ export interface Coach {
   is_assistant: boolean;
 }
 
-// the team roster
+// Roster
 export interface TeamRoster {
   team_id: number;
   team_name: string;
   season: string;
   players: Player[];
   coaches: Coach;
+}
+
+// Clinch Status Enum
+export type ClinchStatus = '-' | 'c' | 'x';
+
+// Standing Record
+export interface StandingRecord {
+  season_id: string;
+  team_id: number;
+  team_city: string;
+  team_name: string;
+  conference: string;
+  conference_record: string;
+  playoff_rank: number;
+  clinch_indicator?: ClinchStatus;
+  division: string;
+  division_record: string;
+  oct?: string;
+  nov?: string;
+  dec?: string;
+  jan?: string;
+  feb?: string;
+  mar?: string;
+  apr?: string;
+  may?: string;
+  jun?: string;
+  jul?: string;
+  aug?: string;
+  sep?: string;
+}
+
+// API Response
+export interface StandingsResponse {
+  standings: StandingRecord[];
 }

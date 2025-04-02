@@ -1,4 +1,4 @@
-import { ScoreboardResponse } from "../types/scoreboard";
+import { ScoreboardResponse } from '../types/scoreboard';
 
 class WebSocketService {
   private socket: WebSocket | null = null;
@@ -12,27 +12,27 @@ class WebSocketService {
     this.socket = new WebSocket(url);
 
     this.socket.onopen = () => {
-      console.log("WebSocket connected");
+      console.log('WebSocket connected');
     };
 
-    this.socket.onmessage = (event) => {
+    this.socket.onmessage = event => {
       try {
         const data: ScoreboardResponse = JSON.parse(event.data);
-        this.listeners.forEach((callback) => callback(data));
+        this.listeners.forEach(callback => callback(data));
       } catch (error) {
-        console.error("Error parsing WebSocket message:", error);
+        console.error('Error parsing WebSocket message:', error);
       }
     };
 
-    this.socket.onerror = (event) => {
-      console.error("WebSocket error:", event);
+    this.socket.onerror = event => {
+      console.error('WebSocket error:', event);
     };
 
     this.socket.onclose = () => {
-      console.log("WebSocket disconnected");
+      console.log('WebSocket disconnected');
 
       if (this.shouldReconnect) {
-        console.log("Reconnecting in 5 seconds...");
+        console.log('Reconnecting in 5 seconds...');
         setTimeout(() => this.connect(url), 5000);
       }
     };

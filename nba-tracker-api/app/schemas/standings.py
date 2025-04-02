@@ -1,15 +1,20 @@
-from pydantic import BaseModel, Field
-from typing import List, Optional
 from enum import Enum
+from typing import List, Optional
+
+from pydantic import BaseModel, Field
+
 
 class ClinchStatus(str, Enum):
     """Enum representing the playoff clinch indicator."""
-    DASH = "-"   # No clinch indicator
+
+    DASH = "-"  # No clinch indicator
     CLINCHED = "c"  # Clinched Playoff Spot
     ELIMINATED = "x"  # Eliminated from Playoffs
 
+
 class StandingRecord(BaseModel):
     """Represents the standings of an NBA team for a given season."""
+
     season_id: str = Field(..., description="NBA season ID (e.g., '22024').", example="22024")
     team_id: int = Field(..., description="Unique identifier for the team.", example=1610612739)
     team_city: str = Field(..., description="City of the team.", example="Cleveland")
@@ -34,7 +39,9 @@ class StandingRecord(BaseModel):
     jul: Optional[str] = Field(None, description="July record.")
     aug: Optional[str] = Field(None, description="August record.")
     sep: Optional[str] = Field(None, description="September record.")
-    
+
+
 class StandingsResponse(BaseModel):
     """Response schema for retrieving NBA standings for a season."""
+
     standings: List[StandingRecord] = Field(..., description="List of team standings for the requested season.")

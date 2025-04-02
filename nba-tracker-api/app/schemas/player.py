@@ -1,44 +1,61 @@
-from pydantic import BaseModel, Field
 from typing import List, Optional
 
+from pydantic import BaseModel
+
+
 class Player(BaseModel):
-    """Schema for a player in the team roster."""
     player_id: int
     name: str
     jersey_number: Optional[str] = None
     position: Optional[str] = None
-    height: Optional[str] = None 
+    height: Optional[str] = None
     weight: Optional[int] = None
     birth_date: Optional[str] = None
     age: Optional[int] = None
     experience: Optional[str] = None
     school: Optional[str] = None
 
+
 class TeamRoster(BaseModel):
-    """Schema combining team roster and coaching staff."""
     team_id: int
     team_name: str
     season: str
     players: List[Player]
 
+
+class PlayerGamePerformance(BaseModel):
+    game_id: str
+    date: str
+    opponent_team_abbreviation: str
+    points: int
+    rebounds: int
+    assists: int
+    steals: int
+    blocks: int
+
+
 class PlayerSummary(BaseModel):
-    """Schema for a player's basic profile from PlayerIndex API."""
-    player_id: int = Field(..., description="Unique ID for the player.")
-    full_name: str = Field(..., description="Full name of the player.")
-    team_id: Optional[int] = Field(None, description="Current team ID.")
-    team_name: Optional[str] = Field(None, description="Current team name.")
-    team_abbreviation: Optional[str] = Field(None, description="Team abbreviation (LAL, BOS).")
-    jersey_number: Optional[str] = Field(None, description="Player's jersey number.")
-    position: Optional[str] = Field(None, description="Player's position (G, F, C).")
-    height: Optional[str] = Field(None, description="Player's height in feet-inches format (6-8).")
-    weight: Optional[int] = Field(None, description="Player's weight in pounds.")
-    college: Optional[str] = Field(None, description="College or international team attended.")
-    country: Optional[str] = Field(None, description="Country of origin.")
-    draft_year: Optional[int] = Field(None, description="Year the player was drafted.")
-    draft_round: Optional[int] = Field(None, description="Draft round the player was selected in.")
-    draft_number: Optional[int] = Field(None, description="Overall pick number in the draft.")
-    from_year: Optional[int] = Field(None, description="First year the player played in the NBA.")
-    to_year: Optional[int] = Field(None, description="Most recent year the player played in the NBA.")
-    points_per_game: Optional[float] = Field(None, description="Average points per game.")
-    rebounds_per_game: Optional[float] = Field(None, description="Average rebounds per game.")
-    assists_per_game: Optional[float] = Field(None, description="Average assists per game.")
+    PERSON_ID: int
+    PLAYER_LAST_NAME: str
+    PLAYER_FIRST_NAME: str
+    PLAYER_SLUG: Optional[str] = None
+    TEAM_ID: Optional[int] = None
+    TEAM_SLUG: Optional[str] = None
+    IS_DEFUNCT: Optional[int] = None
+    TEAM_CITY: Optional[str] = None
+    TEAM_NAME: Optional[str] = None
+    TEAM_ABBREVIATION: Optional[str] = None
+    JERSEY_NUMBER: Optional[str] = None
+    POSITION: Optional[str] = None
+    HEIGHT: Optional[str] = None
+    WEIGHT: Optional[int] = None
+    COLLEGE: Optional[str] = None
+    COUNTRY: Optional[str] = None
+    ROSTER_STATUS: Optional[str] = None
+    PTS: Optional[float] = None
+    REB: Optional[float] = None
+    AST: Optional[float] = None
+    STATS_TIMEFRAME: Optional[str] = None
+    FROM_YEAR: Optional[int] = None
+    TO_YEAR: Optional[int] = None
+    recent_games: List[PlayerGamePerformance] = []

@@ -28,11 +28,6 @@ export interface GamesResponse {
   games: GameSummary[];
 }
 
-export interface MonthlyCalendarProps {
-  selectedDate: string; // "YYYY-MM-DD"
-  setSelectedDate: (date: string) => void;
-}
-
 export interface WeeklyCalendarProps {
   selectedDate: string; // "YYYY-MM-DD"
   setSelectedDate: (date: string) => void;

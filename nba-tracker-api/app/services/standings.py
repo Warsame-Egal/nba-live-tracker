@@ -1,8 +1,10 @@
 from typing import Optional
+
 import numpy as np
-from nba_api.stats.endpoints import leaguestandingsv3
 from fastapi import HTTPException
-from app.schemas.standings import StandingsResponse, StandingRecord
+from nba_api.stats.endpoints import leaguestandingsv3
+
+from app.schemas.standings import StandingRecord, StandingsResponse
 
 
 def clean_clinch_indicator(value: Optional[str]) -> Optional[str]:
@@ -17,7 +19,7 @@ def clean_clinch_indicator(value: Optional[str]) -> Optional[str]:
     """
     if value:
         value = value.strip()  # Remove spaces around the value
-        
+
         # Explicitly check for "- c" or "- x"
         if value == "- c":
             return "c"  # Clinched Playoffs
@@ -25,9 +27,9 @@ def clean_clinch_indicator(value: Optional[str]) -> Optional[str]:
             return "x"  # Eliminated
         elif value == "-":
             return "-"  # No clinch indicator
-        
 
     return None  # If invalid, return None
+
 
 async def getSeasonStandings(season: str) -> StandingsResponse:
     """
@@ -47,7 +49,7 @@ async def getSeasonStandings(season: str) -> StandingsResponse:
         standings = leaguestandingsv3.LeagueStandingsV3(
             league_id="00",
             season=season,
-            season_type="Regular Season"  # You can change to "Playoffs" if needed
+            season_type="Regular Season",  # You can change to "Playoffs" if needed
         )
 
         df = standings.get_data_frames()[0]
@@ -87,6 +89,7 @@ async def getSeasonStandings(season: str) -> StandingsResponse:
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching season standings: {e}")
 
+
 async def getTeamStandings(team_id: int, season: str) -> StandingRecord:
     """
     Fetches and structures the standings for a specific NBA team.
@@ -103,11 +106,7 @@ async def getTeamStandings(team_id: int, season: str) -> StandingRecord:
     """
     try:
         # Fetch standings for the entire league using LeagueStandingsV3
-        standings = leaguestandingsv3.LeagueStandingsV3(
-            league_id="00",
-            season=season,
-            season_type="Regular Season"
-        )
+        standings = leaguestandingsv3.LeagueStandingsV3(league_id="00", season=season, season_type="Regular Season")
 
         df = standings.get_data_frames()[0]
 
@@ -121,7 +120,10 @@ async def getTeamStandings(team_id: int, season: str) -> StandingRecord:
         team_data = df[df["TeamID"] == team_id].to_dict(orient="records")
 
         if not team_data:
-            raise HTTPException(status_code=404, detail=f"No standings found for team {team_id} in season {season}")
+            raise HTTPException(
+                status_code=404,
+                detail=f"No standings found for team {team_id} in season {season}",
+            )
 
         team = team_data[0]  # Extract first (and only) result
 

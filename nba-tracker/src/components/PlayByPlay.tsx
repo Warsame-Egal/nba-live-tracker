@@ -1,65 +1,61 @@
-import { useEffect, useState } from "react";
-import PlayByPlayWebSocketService from "../services/PlayByPlayWebSocketService";
-import { PlayByPlayResponse, PlayByPlayEvent } from "../types/playbyplay";
+import { useEffect, useState } from 'react';
+import PlayByPlayWebSocketService from '../services/PlayByPlayWebSocketService';
+import { PlayByPlayResponse, PlayByPlayEvent } from '../types/playbyplay';
+import { FaClock } from 'react-icons/fa';
 
-const PlayByPlay = ({ gameId }: { gameId: string | null }) => {
-  const [plays, setPlays] = useState<PlayByPlayEvent[]>([]);
-  const [error, setError] = useState<string | null>(null);
+const PlayByPlay = ({ gameId }: { gameId: string }) => {
+  const [lastPlay, setLastPlay] = useState<PlayByPlayEvent | null>(null);
 
   useEffect(() => {
-    if (!gameId) {
-      setPlays([]); // Clear plays when no game is selected
-      return;
-    }
+    if (!gameId) return;
 
-    setPlays([]); // Reset plays when a new game is selected
+    const service = new PlayByPlayWebSocketService();
 
-    PlayByPlayWebSocketService.connect(gameId);
-
-    const handlePlayByPlayUpdate = (data: PlayByPlayResponse) => {
-      if (!data?.plays) {
-        setError("Invalid play-by-play data received.");
-        return;
+    const handleUpdate = (data: PlayByPlayResponse) => {
+      if (data?.plays?.length > 0) {
+        setLastPlay(data.plays[data.plays.length - 1]);
       }
-      setPlays(data.plays); // Replace the plays list
-      setError(null);
     };
 
-    PlayByPlayWebSocketService.subscribe(handlePlayByPlayUpdate);
+    service.connect(gameId);
+    service.subscribe(handleUpdate);
 
     return () => {
-      PlayByPlayWebSocketService.unsubscribe(handlePlayByPlayUpdate);
-      PlayByPlayWebSocketService.disconnect();
+      service.unsubscribe(handleUpdate);
+      service.disconnect();
     };
-  }, [gameId]); // Effect runs when `gameId` changes
+  }, [gameId]);
+
+  if (!lastPlay) return null;
+
+  const formatTime = (clock: string): string => {
+    const match = clock.match(/PT(\d+)M(\d+)S/);
+    if (match !== null) return `${match[1]}m ${match[2]}s`;
+
+    const minutesOnly = clock.match(/PT(\d+)M/);
+    if (minutesOnly && minutesOnly[1]) return `${minutesOnly[1]}m 0s`;
+
+    return clock;
+  };
 
   return (
-    <div className="bg-neutral-900 p-6 rounded-xl shadow-2xl border border-gray-700 
-      overflow-y-auto max-h-[60vh] min-h-[350px] flex flex-col space-y-3 w-full md:w-96">
-      <h2 className="text-xl font-semibold text-white mb-3 text-center">Live Play-by-Play</h2>
-
-      {error && <p className="text-red-400">{error}</p>}
-      {!gameId ? (
-        <p className="text-gray-400 text-center">Select a game to see live updates</p>
-      ) : plays.length > 0 ? (
-        <ul className="space-y-3 overflow-y-auto">
-          {[...plays].reverse().map((play, index) => <Play key={index} play={play} />)}
-        </ul>
-      ) : (
-        <p className="text-gray-500 text-center">No live updates.</p>
-      )}
+    <div className="mt-2 px-3 py-2 rounded-md bg-black text-xs text-gray-300">
+      <div className="flex justify-between mb-1 flex-wrap">
+        <div className="flex items-center gap-2 mb-1">
+          <FaClock className="text-gray-500" />
+          <span className="text-gray-400">
+            {formatTime(lastPlay.clock)} | Q{lastPlay.period}
+          </span>
+        </div>
+      </div>
+      <div className="leading-snug">
+        {lastPlay.playerName && (
+          <span className="text-white font-semibold">{lastPlay.playerName}</span>
+        )}{' '}
+        {lastPlay.description}
+      </div>
     </div>
   );
 };
-
-/* Reusable Play by play Component */
-const Play = ({ play }: { play: PlayByPlayEvent }) => (
-  <li className="text-gray-300 text-sm border-b border-gray-700 py-2 flex flex-col">
-    <span className="text-xs text-gray-500">{play.clock} | Q{play.period}</span>
-    <span className="font-medium">
-      {play.playerName && <span className="text-indigo-400">{play.playerName}</span>} {play.description}
-    </span>
-  </li>
-);
 
 export default PlayByPlay;

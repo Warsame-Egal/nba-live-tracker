@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
-import { TeamRoster, Player } from "../types/team";
+import { useEffect, useState } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import { TeamRoster, Player } from '../types/team';
 
 const RosterPage = () => {
   // Get the team_id from the URL parameters
@@ -17,16 +17,16 @@ const RosterPage = () => {
     async function fetchTeamRoster() {
       try {
         const response = await fetch(
-          `http://localhost:8000/api/v1/scoreboard/team/${team_id}/roster/2024-25`
+          `http://localhost:8000/api/v1/scoreboard/team/${team_id}/roster/2024-25`,
         );
 
-        if (!response.ok) throw new Error("Failed to fetch roster");
+        if (!response.ok) throw new Error('Failed to fetch roster');
 
         const data = await response.json();
         setTeamRoster(data);
       } catch (error) {
-        console.error("Error fetching team roster:", error);
-        setError("Failed to load team roster.");
+        console.error('Error fetching team roster:', error);
+        setError('Failed to load team roster.');
       } finally {
         setLoading(false);
       }
@@ -36,12 +36,18 @@ const RosterPage = () => {
   }, [team_id]);
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
+    <div className="min-h-screen bg-black -900 text-white">
       {/* Nav Bar */}
       <nav className="flex gap-8 p-4 bg-black text-gray-400 border-b border-gray-700">
-        <Link to="/" className="hover:text-white">Home</Link>
-        <Link to={`/team/${team_id}/roster`} className="text-white border-b-2 border-red-500">Roster</Link>
-        <Link to={`/team/${team_id}/schedule`} className="hover:text-white">Schedule</Link>
+        <Link to="/" className="hover:text-white">
+          Home
+        </Link>
+        <Link to={`/team/${team_id}/roster`} className="text-white border-b-2 border-red-500">
+          Roster
+        </Link>
+        <Link to={`/team/${team_id}/schedule`} className="hover:text-white">
+          Schedule
+        </Link>
       </nav>
 
       {loading ? (
@@ -58,7 +64,7 @@ const RosterPage = () => {
           {/* Roster Table */}
           <div className="overflow-x-auto">
             <table className="w-full border border-gray-700 text-left">
-              <thead className="bg-gray-800 text-gray-400 uppercase text-sm">
+              <thead className="bg-black -800 text-gray-400 uppercase text-sm">
                 <tr>
                   <th className="p-3">Player</th>
                   <th className="p-3">POS</th>
@@ -71,22 +77,25 @@ const RosterPage = () => {
               </thead>
               <tbody className="divide-y divide-gray-700">
                 {teamRoster?.players.map((player: Player) => (
-                  <tr key={player.player_id} className="hover:bg-gray-800">
+                  <tr key={player.player_id} className="hover:bg-black -800">
                     <td className="p-3 flex items-center gap-3">
                       <img
                         src={`https://cdn.nba.com/headshots/nba/latest/1040x760/${player.player_id}.png`}
                         alt={player.name}
                         className="w-10 h-10 rounded-full"
-                        onError={(e) => (e.currentTarget.src = "https://cdn.nba.com/headshots/nba/latest/1040x760/fallback.png")}
+                        onError={e =>
+                          (e.currentTarget.src =
+                            'https://cdn.nba.com/headshots/nba/latest/1040x760/fallback.png')
+                        }
                       />
                       {player.name}
                     </td>
-                    <td className="p-3">{player.position || "--"}</td>
-                    <td className="p-3">{player.age || "--"}</td>
-                    <td className="p-3">{player.height || "--"}</td>
-                    <td className="p-3">{player.weight ? `${player.weight} lbs` : "--"}</td>
-                    <td className="p-3">{player.experience || "--"}</td>
-                    <td className="p-3">{player.school || "--"}</td>
+                    <td className="p-3">{player.position || '--'}</td>
+                    <td className="p-3">{player.age || '--'}</td>
+                    <td className="p-3">{player.height || '--'}</td>
+                    <td className="p-3">{player.weight ? `${player.weight} lbs` : '--'}</td>
+                    <td className="p-3">{player.experience || '--'}</td>
+                    <td className="p-3">{player.school || '--'}</td>
                   </tr>
                 ))}
               </tbody>

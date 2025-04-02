@@ -1,4 +1,4 @@
-import { Game } from "../types/scoreboard";
+import { Game } from '../types/scoreboard';
 
 interface Props {
   game: Game;
@@ -9,9 +9,10 @@ const GameLeaders: React.FC<Props> = ({ game }) => {
   const homeLeader = game.gameLeaders?.homeLeaders;
 
   return (
-    <div className="bg-gradient-to-br from-gray-800 to-neutral-900 rounded-xl p-5 shadow-2xl border border-gray-700 
-      flex justify-between w-full md:w-96 text-sm">
-      
+    <div
+      className="bg-black -to-br from-gray-800 to-neutral-900 rounded-xl p-5 shadow-2xl border border-gray-700 
+      flex justify-between w-full md:w-96 text-sm"
+    >
       {/* Away Team Leader */}
       <div className="text-center w-1/2 border-r border-gray-700">
         {awayLeader ? (

@@ -1,10 +1,12 @@
+from fastapi import HTTPException
 from nba_api.stats.endpoints import scoreboardv2
 from nba_api.stats.static import teams
-from fastapi import HTTPException
+
 from app.schemas.schedule import GamesResponse, GameSummary, TeamSummary, TopScorer
 
 # Constant Map team IDs to abbreviations for quick lookup
 NBA_TEAMS = {team["id"]: team["abbreviation"] for team in teams.get_teams()}
+
 
 async def getGamesForDate(date: str) -> GamesResponse:
     """Retrieve NBA games for a given date."""
@@ -42,31 +44,64 @@ async def getGamesForDate(date: str) -> GamesResponse:
             home_team_id = game_dict.get("HOME_TEAM_ID")
             away_team_id = game_dict.get("VISITOR_TEAM_ID")
 
-            home_score = next((dict(zip(line_score_headers, s)).get("PTS", 0) for s in line_score_list if dict(zip(line_score_headers, s)).get("GAME_ID") == game_id and dict(zip(line_score_headers, s)).get("TEAM_ID") == home_team_id), 0)
-            away_score = next((dict(zip(line_score_headers, s)).get("PTS", 0) for s in line_score_list if dict(zip(line_score_headers, s)).get("GAME_ID") == game_id and dict(zip(line_score_headers, s)).get("TEAM_ID") == away_team_id), 0)
+            home_score = next(
+                (
+                    dict(zip(line_score_headers, s)).get("PTS", 0)
+                    for s in line_score_list
+                    if dict(zip(line_score_headers, s)).get("GAME_ID") == game_id
+                    and dict(zip(line_score_headers, s)).get("TEAM_ID") == home_team_id
+                ),
+                0,
+            )
+            away_score = next(
+                (
+                    dict(zip(line_score_headers, s)).get("PTS", 0)
+                    for s in line_score_list
+                    if dict(zip(line_score_headers, s)).get("GAME_ID") == game_id
+                    and dict(zip(line_score_headers, s)).get("TEAM_ID") == away_team_id
+                ),
+                0,
+            )
 
-            home_team = TeamSummary(team_id=home_team_id, team_abbreviation=NBA_TEAMS.get(home_team_id, "N/A"), points=home_score)
-            away_team = TeamSummary(team_id=away_team_id, team_abbreviation=NBA_TEAMS.get(away_team_id, "N/A"), points=away_score)
+            home_team = TeamSummary(
+                team_id=home_team_id,
+                team_abbreviation=NBA_TEAMS.get(home_team_id, "N/A"),
+                points=home_score,
+            )
+            away_team = TeamSummary(
+                team_id=away_team_id,
+                team_abbreviation=NBA_TEAMS.get(away_team_id, "N/A"),
+                points=away_score,
+            )
 
-            top_scorer = next((TopScorer(
-                player_id=d.get("PTS_PLAYER_ID", 0),
-                player_name=d.get("PTS_PLAYER_NAME", "Unknown"),
-                team_id=d.get("TEAM_ID", 0),
-                points=d.get("PTS", 0),
-                rebounds=d.get("REB", 0),
-                assists=d.get("AST", 0)
-            ) for d in (dict(zip(team_leaders_headers, l)) for l in team_leaders_list) if d.get("GAME_ID") == game_id), None)
+            top_scorer = next(
+                (
+                    TopScorer(
+                        player_id=d.get("PTS_PLAYER_ID", 0),
+                        player_name=d.get("PTS_PLAYER_NAME", "Unknown"),
+                        team_id=d.get("TEAM_ID", 0),
+                        points=d.get("PTS", 0),
+                        rebounds=d.get("REB", 0),
+                        assists=d.get("AST", 0),
+                    )
+                    for d in (dict(zip(team_leaders_headers, l)) for l in team_leaders_list)
+                    if d.get("GAME_ID") == game_id
+                ),
+                None,
+            )
 
-            games.append(GameSummary(
-                game_id=game_id,
-                game_date=date,
-                matchup=f"{home_team.team_abbreviation} vs {away_team.team_abbreviation}",
-                game_status=game_dict.get("GAME_STATUS_TEXT", "Unknown"),
-                arena=game_dict.get("ARENA_NAME"),
-                home_team=home_team,
-                away_team=away_team,
-                top_scorer=top_scorer
-            ))
+            games.append(
+                GameSummary(
+                    game_id=game_id,
+                    game_date=date,
+                    matchup=f"{home_team.team_abbreviation} vs {away_team.team_abbreviation}",
+                    game_status=game_dict.get("GAME_STATUS_TEXT", "Unknown"),
+                    arena=game_dict.get("ARENA_NAME"),
+                    home_team=home_team,
+                    away_team=away_team,
+                    top_scorer=top_scorer,
+                )
+            )
 
         return GamesResponse(games=games)
 
