@@ -1,18 +1,18 @@
-import { useState, useEffect, useRef, useCallback } from "react";
-import { ScoreboardResponse, Game } from "../types/scoreboard";
-import { GamesResponse, GameSummary } from "../types/schedule";
-import WebSocketService from "../services/websocketService";
-import GameCard from "../components/GameCard";
-import ScoringLeaders from "../components/ScoringLeaders";
-import PlayByPlay from "../components/PlayByPlay";
-import Navbar from "../components/Navbar";
-import WeeklyCalendar from "../components/WeeklyCalendar";
-import { useSearchParams, Link } from "react-router-dom";
-import { PlayerSummary } from "../types/player";
-import debounce from "lodash/debounce";
-import { FaSearch, FaTimes, FaSpinner } from "react-icons/fa";
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { ScoreboardResponse, Game } from '../types/scoreboard';
+import { GamesResponse, GameSummary } from '../types/schedule';
+import WebSocketService from '../services/websocketService';
+import GameCard from '../components/GameCard';
+import ScoringLeaders from '../components/ScoringLeaders';
+import PlayByPlay from '../components/PlayByPlay';
+import Navbar from '../components/Navbar';
+import WeeklyCalendar from '../components/WeeklyCalendar';
+import { useSearchParams, Link } from 'react-router-dom';
+import { PlayerSummary } from '../types/player';
+import debounce from 'lodash/debounce';
+import { FaSearch, FaTimes, FaSpinner } from 'react-icons/fa';
 
-const SCOREBOARD_WEBSOCKET_URL = "ws://127.0.0.1:8000/api/v1/ws";
+const SCOREBOARD_WEBSOCKET_URL = 'ws://127.0.0.1:8000/api/v1/ws';
 
 const getLocalISODate = (): string => {
   const tzoffset = new Date().getTimezoneOffset() * 60000;
@@ -26,8 +26,8 @@ const Scoreboard = () => {
   const [selectedGame, setSelectedGame] = useState<Game | GameSummary | null>(null);
   const [selectedDate, setSelectedDate] = useState(getLocalISODate());
   const [searchParams] = useSearchParams();
-  const searchQuery = searchParams.get("search") || "";
-  const [playerSearchQuery, setPlayerSearchQuery] = useState("");
+  const searchQuery = searchParams.get('search') || '';
+  const [playerSearchQuery, setPlayerSearchQuery] = useState('');
   const [showSearchResults, setShowSearchResults] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -51,7 +51,7 @@ const Scoreboard = () => {
 
   useEffect(() => {
     if (!selectedGame && games.length > 0) {
-      const liveGame = games.find((g) => "gameId" in g);
+      const liveGame = games.find(g => 'gameId' in g);
       if (liveGame) setSelectedGame(liveGame);
     }
   }, [games, selectedGame]);
@@ -69,13 +69,13 @@ const Scoreboard = () => {
       try {
         const response = await fetch(
           `http://localhost:8000/api/v1/players/search/${playerSearchQuery}`,
-          { signal: abortController.signal }
+          { signal: abortController.signal },
         );
-        if (!response.ok) throw new Error("Failed to fetch players.");
+        if (!response.ok) throw new Error('Failed to fetch players.');
         const data: PlayerSummary[] = await response.json();
         setPlayers(data);
       } catch (err) {
-        if (err instanceof Error && err.name !== "AbortError") console.error(err);
+        if (err instanceof Error && err.name !== 'AbortError') console.error(err);
         setPlayers([]);
       } finally {
         setLoading(false);
@@ -107,10 +107,10 @@ const Scoreboard = () => {
     }
   }, [selectedDate]);
 
-  const filteredGames = games.filter((game) => {
+  const filteredGames = games.filter(game => {
     if (!searchQuery) return true;
-    const homeName = "homeTeam" in game ? game.homeTeam.teamName : game.home_team.team_abbreviation;
-    const awayName = "awayTeam" in game ? game.awayTeam.teamName : game.away_team.team_abbreviation;
+    const homeName = 'homeTeam' in game ? game.homeTeam.teamName : game.home_team.team_abbreviation;
+    const awayName = 'awayTeam' in game ? game.awayTeam.teamName : game.away_team.team_abbreviation;
     return (
       homeName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       awayName.toLowerCase().includes(searchQuery.toLowerCase())
@@ -123,8 +123,8 @@ const Scoreboard = () => {
         setShowSearchResults(false);
       }
     };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   return (
@@ -140,7 +140,7 @@ const Scoreboard = () => {
               <input
                 type="text"
                 value={playerSearchQuery}
-                onChange={(e) => setPlayerSearchQuery(e.target.value)}
+                onChange={e => setPlayerSearchQuery(e.target.value)}
                 placeholder="Search players..."
                 className="w-full px-4 py-2 pl-10 pr-12 bg-neutral-900 border border-neutral-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
@@ -149,7 +149,7 @@ const Scoreboard = () => {
               ) : playerSearchQuery ? (
                 <button
                   onClick={() => {
-                    setPlayerSearchQuery("");
+                    setPlayerSearchQuery('');
                     searchInputRef.current?.focus();
                   }}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
@@ -161,11 +161,18 @@ const Scoreboard = () => {
               )}
               {showSearchResults && players.length > 0 && (
                 <ul className="absolute left-0 right-0 mt-2 bg-neutral-900 border border-neutral-700 rounded-md shadow-lg max-h-60 overflow-y-auto z-10">
-                  {players.map((player) => (
+                  {players.map(player => (
                     <li key={player.PERSON_ID} className="p-2 cursor-pointer">
-                      <Link to={`/players/${player.PERSON_ID}`} onClick={() => setShowSearchResults(false)}>
-                        <span className="font-semibold">{player.PLAYER_FIRST_NAME} {player.PLAYER_LAST_NAME}</span>
-                        <span className="text-sm text-gray-400 ml-2">{player.TEAM_ABBREVIATION}</span>
+                      <Link
+                        to={`/players/${player.PERSON_ID}`}
+                        onClick={() => setShowSearchResults(false)}
+                      >
+                        <span className="font-semibold">
+                          {player.PLAYER_FIRST_NAME} {player.PLAYER_LAST_NAME}
+                        </span>
+                        <span className="text-sm text-gray-400 ml-2">
+                          {player.TEAM_ABBREVIATION}
+                        </span>
                       </Link>
                     </li>
                   ))}
@@ -183,13 +190,13 @@ const Scoreboard = () => {
               <p className="ml-2 text-lg text-gray-400">Loading games...</p>
             </div>
           ) : filteredGames.length > 0 ? (
-            filteredGames.map((game) => (
+            filteredGames.map(game => (
               <div
-                key={"gameId" in game ? game.gameId : game.game_id}
+                key={'gameId' in game ? game.gameId : game.game_id}
                 className="border border-neutral-700 bg-black rounded-md p-4 space-y-3 shadow-lg transition-transform transform hover:scale-[1.005]"
               >
                 <GameCard game={game} setSelectedGame={setSelectedGame} />
-                {"gameLeaders" in game && (
+                {'gameLeaders' in game && (
                   <>
                     <ScoringLeaders selectedGame={game as Game} />
                     <PlayByPlay gameId={(game as Game).gameId} />
@@ -198,7 +205,9 @@ const Scoreboard = () => {
               </div>
             ))
           ) : (
-            <p className="col-span-full text-center text-gray-400 text-lg italic">No games found.</p>
+            <p className="col-span-full text-center text-gray-400 text-lg italic">
+              No games found.
+            </p>
           )}
         </div>
       </div>

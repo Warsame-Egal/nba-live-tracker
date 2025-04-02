@@ -1,5 +1,5 @@
-import { Game } from "../types/scoreboard";
-import { Link } from "react-router-dom";
+import { Game } from '../types/scoreboard';
+import { Link } from 'react-router-dom';
 
 interface ScoringLeadersProps {
   selectedGame: Game;
@@ -57,14 +57,17 @@ const LeaderRow = ({ leader }: LeaderRowProps) => {
           src={avatarUrl}
           alt={leader.name}
           className="w-8 h-8 rounded-full object-cover"
-          onError={(e) => {
+          onError={e => {
             e.currentTarget.onerror = null;
-            e.currentTarget.src = "";
+            e.currentTarget.src = '';
           }}
         />
       </Link>
       <div className="flex flex-col text-xs">
-        <Link to={`/players/${leader.personId}`} className="text-white font-semibold hover:underline">
+        <Link
+          to={`/players/${leader.personId}`}
+          className="text-white font-semibold hover:underline"
+        >
           {leader.name}
         </Link>
         <span className="text-gray-400">

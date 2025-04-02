@@ -1,5 +1,5 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import ScoreboardData from "./pages/Scoreboard";
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import ScoreboardData from './pages/Scoreboard';
 
 const AppRoutes = () => {
   return (
@@ -7,7 +7,7 @@ const AppRoutes = () => {
       <Routes>
         {/* Route for the scoreboard page */}
         <Route path="/" element={<ScoreboardData />} />
-        </Routes>
+      </Routes>
     </Router>
   );
 };

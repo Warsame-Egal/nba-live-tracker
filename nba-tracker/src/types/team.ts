@@ -34,7 +34,6 @@ export interface TeamDetails {
   current_streak: string;
 }
 
-
 // Coach
 export interface Coach {
   coach_id: number;
@@ -53,7 +52,7 @@ export interface TeamRoster {
 }
 
 // Clinch Status Enum
-export type ClinchStatus = "-" | "c" | "x";
+export type ClinchStatus = '-' | 'c' | 'x';
 
 // Standing Record
 export interface StandingRecord {

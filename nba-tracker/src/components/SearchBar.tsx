@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from "react";
-import { FaSearch, FaTimes } from "react-icons/fa";
-import { useSearchParams } from "react-router-dom";
-import { PlayerSummary } from "../types/player";
-import debounce from "lodash/debounce";
+import React, { useState, useEffect } from 'react';
+import { FaSearch, FaTimes } from 'react-icons/fa';
+import { useSearchParams } from 'react-router-dom';
+import { PlayerSummary } from '../types/player';
+import debounce from 'lodash/debounce';
 
 interface SearchBarProps {
   onResults: (results: PlayerSummary[]) => void;
@@ -15,11 +15,11 @@ const SearchBar: React.FC<SearchBarProps> = ({
   onResults,
   setLoading,
   setError,
-  placeholder = "Search players...",
+  placeholder = 'Search players...',
 }) => {
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState('');
   const [searchParams, setSearchParams] = useSearchParams();
-  const searchQuery = searchParams.get("search") || "";
+  const searchQuery = searchParams.get('search') || '';
 
   useEffect(() => {
     const abortController = new AbortController();
@@ -34,21 +34,20 @@ const SearchBar: React.FC<SearchBarProps> = ({
       setError(null);
 
       try {
-        const response = await fetch(
-          `http://localhost:8000/api/v1/players/search/${search}`,
-          { signal: abortController.signal }
-        );
+        const response = await fetch(`http://localhost:8000/api/v1/players/search/${search}`, {
+          signal: abortController.signal,
+        });
         if (!response.ok) {
-          throw new Error("Failed to fetch data.");
+          throw new Error('Failed to fetch data.');
         }
         const data: PlayerSummary[] = await response.json();
         onResults(data);
       } catch (err) {
         if (err instanceof Error) {
-          if (err.name === "AbortError") return;
+          if (err.name === 'AbortError') return;
           setError(err.message);
         } else {
-          setError("An unexpected error occurred.");
+          setError('An unexpected error occurred.');
         }
         onResults([]);
       } finally {
@@ -74,7 +73,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
       <input
         type="text"
         value={query}
-        onChange={(e) => handleSearch(e.target.value)}
+        onChange={e => handleSearch(e.target.value)}
         placeholder={placeholder}
         className="w-full px-4 py-2 pl-10 pr-12 bg-neutral-900 border border-neutral-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
       />
@@ -83,7 +82,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
       </div>
       {query && (
         <button
-          onClick={() => handleSearch("")}
+          onClick={() => handleSearch('')}
           className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-200 transition"
         >
           <FaTimes />

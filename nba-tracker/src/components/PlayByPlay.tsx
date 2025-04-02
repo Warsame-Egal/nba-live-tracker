@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
-import PlayByPlayWebSocketService from "../services/PlayByPlayWebSocketService";
-import { PlayByPlayResponse, PlayByPlayEvent } from "../types/playbyplay";
-import { FaClock } from "react-icons/fa";
+import { useEffect, useState } from 'react';
+import PlayByPlayWebSocketService from '../services/PlayByPlayWebSocketService';
+import { PlayByPlayResponse, PlayByPlayEvent } from '../types/playbyplay';
+import { FaClock } from 'react-icons/fa';
 
 const PlayByPlay = ({ gameId }: { gameId: string }) => {
   const [lastPlay, setLastPlay] = useState<PlayByPlayEvent | null>(null);
@@ -51,7 +51,7 @@ const PlayByPlay = ({ gameId }: { gameId: string }) => {
       <div className="leading-snug">
         {lastPlay.playerName && (
           <span className="text-white font-semibold">{lastPlay.playerName}</span>
-        )}{" "}
+        )}{' '}
         {lastPlay.description}
       </div>
     </div>

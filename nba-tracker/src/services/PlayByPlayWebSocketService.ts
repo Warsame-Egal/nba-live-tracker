@@ -1,4 +1,4 @@
-import { PlayByPlayResponse } from "../types/playbyplay";
+import { PlayByPlayResponse } from '../types/playbyplay';
 
 class PlayByPlayWebSocketService {
   private socket: WebSocket | null = null;
@@ -13,27 +13,27 @@ class PlayByPlayWebSocketService {
     this.socket = new WebSocket(url);
 
     this.socket.onopen = () => {
-      console.log("Play-by-Play WebSocket connected");
+      console.log('Play-by-Play WebSocket connected');
     };
 
-    this.socket.onmessage = (event) => {
+    this.socket.onmessage = event => {
       try {
         const data: PlayByPlayResponse = JSON.parse(event.data);
-        this.listeners.forEach((callback) => callback(data));
+        this.listeners.forEach(callback => callback(data));
       } catch (error) {
-        console.error("Error parsing Play-by-Play WebSocket message:", error);
+        console.error('Error parsing Play-by-Play WebSocket message:', error);
       }
     };
 
-    this.socket.onerror = (event) => {
-      console.error("Play-by-Play WebSocket error:", event);
+    this.socket.onerror = event => {
+      console.error('Play-by-Play WebSocket error:', event);
     };
 
     this.socket.onclose = () => {
-      console.log("Play-by-Play WebSocket disconnected");
+      console.log('Play-by-Play WebSocket disconnected');
 
       if (this.shouldReconnect) {
-        console.log("Reconnecting Play-by-Play in 5 seconds...");
+        console.log('Reconnecting Play-by-Play in 5 seconds...');
         setTimeout(() => this.connect(gameId), 5000);
       }
     };
