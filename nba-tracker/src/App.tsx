@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import ScoreboardData from "./pages/Scoreboard";
+import Scoreboard from "./pages/Scoreboard";
 import TeamPage from "./pages/TeamPage";
 import RosterPage from "./pages/RosterPage";
 import PlayerProfile from "./pages/PlayerProfile";
@@ -10,7 +10,7 @@ export default function App() {
         <Router>
             <div className="">
                 <Routes>
-                    <Route path="/" element={<ScoreboardData />} />
+                    <Route path="/" element={<Scoreboard />} />
                     <Route path="/team/:team_id" element={<TeamPage />} />
                     <Route path="/team/:team_id/roster" element={<RosterPage />} />
                     <Route path="/standings" element={<Standings />} />

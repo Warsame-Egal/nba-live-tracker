@@ -56,4 +56,4 @@ class PlayByPlayWebSocketService {
   }
 }
 
-export default new PlayByPlayWebSocketService();
+export default PlayByPlayWebSocketService;

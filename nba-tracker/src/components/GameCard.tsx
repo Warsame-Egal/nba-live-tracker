@@ -2,17 +2,16 @@ import React from "react";
 import { Game } from "../types/scoreboard";
 import { GameSummary } from "../types/schedule";
 import { format, parseISO } from "date-fns";
+import { useNavigate } from "react-router-dom";
 
 interface GameCardProps {
   game: Game | GameSummary;
-  setSelectedGame: (game: Game | GameSummary) => void;
+  setSelectedGame?: (game: Game | GameSummary) => void;
 }
 
-const GameCard: React.FC<GameCardProps> = ({ game, setSelectedGame }) => {
-  // Determine if the game object is from live WebSocket (Game) or scheduled API (GameSummary)
+const GameCard: React.FC<GameCardProps> = ({ game }) => {
   const isLiveGame = "homeTeam" in game;
 
-  // Grab team abbreviations
   const homeTeam = isLiveGame
     ? game.homeTeam?.teamTricode
     : game.home_team?.team_abbreviation;
@@ -21,15 +20,15 @@ const GameCard: React.FC<GameCardProps> = ({ game, setSelectedGame }) => {
     ? game.awayTeam?.teamTricode
     : game.away_team?.team_abbreviation;
 
-  // Extract scores
   const homeScore = isLiveGame ? game.homeTeam?.score ?? 0 : game.home_team?.points ?? 0;
   const awayScore = isLiveGame ? game.awayTeam?.score ?? 0 : game.away_team?.points ?? 0;
 
-  // Status string (e.g., FINAL, LIVE, or start time)
+  const homeId = isLiveGame ? game.homeTeam?.teamId : game.home_team?.team_id;
+  const awayId = isLiveGame ? game.awayTeam?.teamId : game.away_team?.team_id;
+
   const status = isLiveGame ? game.gameStatusText : game.game_status || "";
   const displayStatus = status || "Scheduled";
 
-  // Format the game time to readable format
   const gameTime = isLiveGame
     ? game.gameEt
       ? format(parseISO(game.gameEt), "h:mm a")
@@ -40,50 +39,43 @@ const GameCard: React.FC<GameCardProps> = ({ game, setSelectedGame }) => {
     ? format(parseISO(game.game_date), "h:mm a")
     : "TBD";
 
-  // Determine if the game hasn't started yet
   const isNotStarted =
     status.startsWith("Start:") || status.startsWith("0Q") || status === "";
 
-  // Decide status background color
   const statusColor = React.useMemo(() => {
     if (status.includes("LIVE")) return "bg-red-600 text-white";
-    if (status.includes("FINAL")) return "bg-black -800 text-white";
+    if (status.includes("FINAL")) return "bg-black text-white";
     return "bg-neutral-900 text-gray-300";
   }, [status]);
 
   return (
     <div
-      onClick={() => setSelectedGame(game)}
-      className="relative bg-black -800 rounded-md md:rounded-lg shadow-md hover:black -gray-700 transition duration-200 cursor-pointer p-3 md:p-4 mb-2 md:mb-3 w-full max-w-full"
+      className="relative bg-black rounded-md md:rounded-lg shadow-md transition duration-200 p-3 md:p-4 mb-2 md:mb-3 w-full max-w-full"
       style={{ height: "120px" }}
     >
-      {/* Layout is 3 sections: Away team - Status - Home team */}
       <div className="flex justify-between items-center h-full">
-        {/* Away team info */}
         <TeamInfo
           teamName={isLiveGame ? game.awayTeam?.teamName : awayTeam}
           tricode={awayTeam}
           score={awayScore}
           isWinner={awayScore > homeScore}
           isHomeTeam={false}
+          teamId={awayId}
         />
 
-        {/* Status (LIVE / FINAL / Scheduled Time) in the center */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <p
-            className={`px-2 py-1 rounded-md text-sm md:text-base font-semibold ${statusColor}`}
-          >
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <p className={`px-2 py-1 rounded-md text-sm md:text-base font-semibold ${statusColor}`}>
             {isNotStarted ? gameTime : displayStatus}
           </p>
         </div>
 
-        {/* Home team info */}
         <TeamInfo
           teamName={isLiveGame ? game.homeTeam?.teamName : homeTeam}
           tricode={homeTeam}
           score={homeScore}
           isWinner={homeScore > awayScore}
           isHomeTeam={true}
+          teamId={homeId}
         />
       </div>
     </div>
@@ -96,17 +88,24 @@ interface TeamInfoProps {
   score?: number;
   isHomeTeam: boolean;
   isWinner?: boolean;
+  teamId?: number | null;
 }
 
-// Reusable component for displaying a team's info (logo + name + score)
 const TeamInfo: React.FC<TeamInfoProps> = ({
   teamName,
   tricode,
   score = 0,
   isHomeTeam,
   isWinner,
+  teamId,
 }) => {
   const logoSrc = teamLogos[tricode || "NBA"] || teamLogos["NBA"];
+  const navigate = useNavigate();
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (teamId) navigate(`/team/${teamId}`);
+  };
 
   return (
     <div
@@ -114,30 +113,32 @@ const TeamInfo: React.FC<TeamInfoProps> = ({
         isHomeTeam ? "flex-row-reverse" : ""
       }`}
     >
-      {logoSrc && (
-        <img
-          src={logoSrc}
-          alt={`${teamName || tricode} logo`}
-          className="w-10 h-10 md:w-12 md:h-12 object-contain"
-        />
-      )}
-      <div className={isHomeTeam ? "text-right" : "text-left"}>
-        <p className="text-base md:text-lg font-semibold text-gray-100 whitespace-nowrap">
-          {tricode || teamName || "N/A"}
-        </p>
-        <p
-          className={`text-lg md:text-xl font-bold ${
-            isWinner ? "text-blue-400" : "text-white"
-          }`}
-        >
-          {score}
-        </p>
+      <div onClick={handleClick} className="flex items-center gap-2 cursor-pointer">
+        {logoSrc && (
+          <img
+            src={logoSrc}
+            alt={`${teamName || tricode} logo`}
+            className="w-10 h-10 md:w-12 md:h-12 object-contain"
+          />
+        )}
+        <div className={isHomeTeam ? "text-right" : "text-left"}>
+          <p className="text-base md:text-lg font-semibold text-blue-300 whitespace-nowrap">
+            {tricode || teamName || "N/A"}
+          </p>
+        </div>
       </div>
+
+      <p
+        className={`text-lg md:text-xl font-bold ${
+          isWinner ? "text-blue-400" : "text-white"
+        }`}
+      >
+        {score}
+      </p>
     </div>
   );
 };
 
-// Static list of team logos by abbreviation
 const teamLogos: Record<string, string> = {
   ATL: "/logos/ATL.svg",
   BOS: "/logos/BOS.svg",
@@ -169,7 +170,7 @@ const teamLogos: Record<string, string> = {
   TOR: "/logos/TOR.svg",
   UTA: "/logos/UTA.svg",
   WAS: "/logos/WAS.svg",
-  NBA: "/logos/NBA.svg", // fallback logo
+  NBA: "/logos/NBA.svg",
 };
 
 export default GameCard;

@@ -9,18 +9,20 @@ const PlayByPlay = ({ gameId }: { gameId: string }) => {
   useEffect(() => {
     if (!gameId) return;
 
+    const service = new PlayByPlayWebSocketService();
+
     const handleUpdate = (data: PlayByPlayResponse) => {
       if (data?.plays?.length > 0) {
         setLastPlay(data.plays[data.plays.length - 1]);
       }
     };
 
-    PlayByPlayWebSocketService.connect(gameId);
-    PlayByPlayWebSocketService.subscribe(handleUpdate);
+    service.connect(gameId);
+    service.subscribe(handleUpdate);
 
     return () => {
-      PlayByPlayWebSocketService.unsubscribe(handleUpdate);
-      PlayByPlayWebSocketService.disconnect();
+      service.unsubscribe(handleUpdate);
+      service.disconnect();
     };
   }, [gameId]);
 
@@ -28,10 +30,10 @@ const PlayByPlay = ({ gameId }: { gameId: string }) => {
 
   const formatTime = (clock: string): string => {
     const match = clock.match(/PT(\d+)M(\d+)S/);
-    if (match) return `${match[1]}m ${match[2]}s`;
+    if (match !== null) return `${match[1]}m ${match[2]}s`;
 
     const minutesOnly = clock.match(/PT(\d+)M/);
-    if (minutesOnly) return `${minutesOnly[1]}m 0s`;
+    if (minutesOnly && minutesOnly[1]) return `${minutesOnly[1]}m 0s`;
 
     return clock;
   };

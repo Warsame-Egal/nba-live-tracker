@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { StandingRecord, StandingsResponse } from "../types/standings";
 import Navbar from "../components/Navbar";
 
@@ -38,6 +38,7 @@ const teamMappings: { [key: string]: { abbreviation: string; logo: string } } = 
 
 const Standings = () => {
   const { season } = useParams<{ season?: string }>();
+  const navigate = useNavigate();
   const currentYear = new Date().getFullYear();
   const seasonParam = season || `${currentYear - 1}-${currentYear.toString().slice(2)}`;
   const [standings, setStandings] = useState<StandingRecord[]>([]);
@@ -103,9 +104,12 @@ const Standings = () => {
                       <td className="py-4 px-6 text-sm font-semibold border-r border-neutral-700">
                         {team.conference[0]}-{team.playoff_rank}
                       </td>
-                      <td className="py-4 px-6 flex items-center gap-3 border-r border-neutral-700">
+                      <td
+                        onClick={() => navigate(`/team/${team.team_id}`)}
+                        className="py-4 px-6 flex items-center gap-3 border-r border-neutral-700 cursor-pointer hover:underline"
+                      >
                         <img src={teamInfo.logo} alt={teamInfo.abbreviation} className="w-8 h-8" />
-                        {teamFullName}
+                        <span>{teamFullName}</span>
                         <span className="text-neutral-400">({teamInfo.abbreviation})</span>
                       </td>
                       <td className="py-4 px-6 text-center border-r border-neutral-700">
