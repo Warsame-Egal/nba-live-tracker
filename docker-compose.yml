@@ -1,0 +1,22 @@
+services:
+  backend:
+    build: ./nba-tracker-api
+    container_name: nba-backend
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+    environment:
+      - REDIS_HOST=redis
+
+  frontend:
+    build: ./nba-tracker
+    container_name: nba-frontend
+    ports:
+      - "3000:3000"
+
+  redis:
+    image: redis
+    container_name: nba-redis
+    ports:
+      - "6379:6379"
