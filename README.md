@@ -1,21 +1,19 @@
 # NBA Scoreboard API
 
-The **NBA Scoreboard API** is a FastAPI backend designed to provide real-time and historical NBA game data for frontend applications. It acts as a middleware layer, fetching raw data from the [`nba_api`](https://github.com/swar/nba_api) package, processing it, and exposing structured API endpoints.
+The **NBA Scoreboard API** is a FastAPI backend designed to provide real-time and historical NBA game data. It acts as a middleware layer, fetching raw data from the [`nba_api`](https://github.com/swar/nba_api) package, processing it, and exposing structured API endpoints.
 
 ## What This API Does
 
 - **Fetches and Processes Data:** Retrieves data from the NBA's live API (`nba_api`).
-- **Enhances and Standardizes Responses:** Formats data for seamless frontend integration.
-- **Exposes Custom RESTful API Endpoints:** Provides endpoints tailored for frontend use.
+- **Exposes Custom RESTful API Endpoints:** Provides endpoints for frontend use.
 
 ## Features
 
 - Live scoreboard with real-time game updates
-- Box score breakdown with player and team statistics
-- Game leaders (top performers in points, assists, and rebounds)
+- Game leaders
 - Play-by-play breakdown of game events
 - Team schedule, records, and rosters
-- Player search and detailed statistics
+- Player search and statistics
 
 <img src="nba-tracker/public/Scoreboard.png" width="300">
 <img src="nba-tracker/public/Player.png" width="300">
@@ -84,10 +82,9 @@ Ensure you have Docker installed and running.
 
 ### Backend (FastAPI)
 
-- Python 3.x
+- Python
 - FastAPI
 - `nba_api`
-- Pydantic
 
 ### Frontend (React)
 
