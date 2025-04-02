@@ -1,6 +1,6 @@
 # NBA Scoreboard API
 
-The **NBA Scoreboard API** is a FastAPI backend designed to provide real-time and historical NBA game data for frontend applications. It acts as a middleware layer, fetching raw data from the [`nba_api`](https://github.com/swar/nba_api) package, processing it, and exposing structured, developer-friendly API endpoints.
+The **NBA Scoreboard API** is a FastAPI backend designed to provide real-time and historical NBA game data for frontend applications. It acts as a middleware layer, fetching raw data from the [`nba_api`](https://github.com/swar/nba_api) package, processing it, and exposing structured API endpoints.
 
 ## What This API Does
 
