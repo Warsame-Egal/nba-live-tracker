@@ -1,94 +1,100 @@
 # NBA Scoreboard API
 
-The **NBA Scoreboard API** is a FastAPI backend designed to provide real-time and historical NBA game data. It acts as a middleware layer, fetching raw data from the [`nba_api`](https://github.com/swar/nba_api) package, processing it, and exposing structured API endpoints.
+The NBA Scoreboard API by Warsame Egal is a FastAPI backend that provides real-time and historical NBA game data. It wraps the [`nba_api`](https://github.com/swar/nba_api) to expose clean RESTful endpoints for a polished frontend experience.
 
-## What This API Does
+### What It Does
 
-- **Fetches and Processes Data:** Retrieves data from the NBA's live API (`nba_api`).
-- **Exposes Custom RESTful API Endpoints:** Provides endpoints for frontend use.
+- Fetches live and historical NBA data using `nba_api`
+- Exposes RESTful API endpoints for use in frontend apps
+- Processes and cleans raw NBA data before exposing it
 
-## Features
+### Features
 
-- Live scoreboard with real-time game updates
-- Game leaders
-- Play-by-play breakdown of game events
-- Team schedule, records, and rosters
-- Player search and statistics
+- Live scoreboard with real-time WebSocket updates
+- Game leaders and top scorers
+- Play-by-play breakdowns
+- Full team schedule and rosters
+- Player profiles and stats
 
 <img src="nba-tracker/public/Scoreboard.png" width="300">
 <img src="nba-tracker/public/Player.png" width="300">
+<img src="nba-tracker/public/Standings.png" width="300">
 <img src="nba-tracker/public/Team.png" width="300">
+---
 
-## Getting Started
+### Getting Started
 
-### Run with Docker
+### Option 1: Run with Docker
 
-Ensure you have Docker installed and running.
+Ensure [Docker](https://www.docker.com/) is installed and running.
 
-1.  **Clone the Repository:**
+### Clone the Repository:
 
-    ```bash
-    git clone [https://github.com/your-username/nba-live-tracker.git](https://github.com/your-username/nba-live-tracker.git)
-    cd nba-live-tracker
-    ```
+```bash
+git clone https://github.com/Warsame-Egal/nba-live-tracker.git
+cd nba-live-tracker
+```
 
-2.  **Build the Docker Containers:**
+### Build the Docker Containers:
 
-    ```bash
-    docker-compose build
-    ```
+```bash
+docker-compose build
+```
 
-3.  **Start the Application:**
+### Start the App:
 
-    ```bash
-    docker-compose up
-    ```
+```bash
+docker-compose up
+```
 
-### Manual Setup (Without Docker)
+### Access the app:
 
-1.  **Navigate to the API Directory:**
+Frontend: http://localhost:3000  
+Backend: http://localhost:8000
 
-    ```bash
-    cd nba-live-tracker/nba-tracker-api
-    ```
+### Option 2: Manual Backend Setup (Without Docker)
 
-2.  **Create and Activate a Virtual Environment:**
+### Navigate to Backend Folder:
 
-    ```bash
-    python -m venv venv
-    venv\Scripts\activate  # On Windows
-    source venv/bin/activate # On macOS and Linux
-    ```
+```bash
+cd nba-live-tracker/nba-tracker-api
+```
 
-3.  **Install Dependencies:**
+### Create and Activate Virtual Environment:
 
-    ```bash
-    pip install -r requirements.txt
-    ```
+```bash python -m venv venv
+venv\Scripts\activate
+```
 
-4.  **Run the API:**
+### Install Python Dependencies:
 
-    ```bash
-    uvicorn main:app --reload
-    ```
+```bash
+pip install -r requirements.txt
+```
 
-5.  **Access the API Documentation:**
+### Run the Backend:
 
-    - **Swagger UI:** [http://localhost:8000/docs](http://localhost:8000/docs)
-    - **Redoc:** [http://localhost:8000/redoc](http://localhost:8000/redoc)
-    - **Main API Page:** [http://localhost:8000](http://localhost:8000)
+```bash
+uvicorn app.main:app --reload
+```
+
+### Access API:
+
+Swagger Docs → http://localhost:8000/docs  
+ReDoc → http://localhost:8000/redoc
 
 ## Technologies Used
 
-### Backend (FastAPI)
+### Backend
 
-- Python
-- FastAPI
-- `nba_api`
+Python  
+FastAPI + Uvicorn  
+nba_api (NBA data wrapper)  
+WebSocket  
+Docker & Docker Compose
 
-### Frontend (React)
+### Frontend
 
-- React.js
-- TypeScript
-- Tailwind CSS
-- Vite
+React + TypeScript  
+Tailwind CSS  
+Vite
