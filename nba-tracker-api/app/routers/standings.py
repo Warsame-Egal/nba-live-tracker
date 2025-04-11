@@ -1,6 +1,4 @@
-
 from fastapi import APIRouter, HTTPException
-
 from app.schemas.standings import StandingRecord, StandingsResponse
 from app.services.standings import getSeasonStandings, getTeamStandings
 
