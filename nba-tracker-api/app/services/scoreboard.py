@@ -551,7 +551,6 @@ async def getGameLeaders(game_id: str) -> GameLeadersResponse:
         )
 
 
-
 async def getPlayByPlay(game_id: str) -> PlayByPlayResponse:
     """
     Fetch real-time play-by-play breakdown for a given NBA game.
