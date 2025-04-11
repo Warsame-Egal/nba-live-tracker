@@ -12,48 +12,51 @@ on:
 
 jobs:
   backend:
-    name: Backend - FastAPI Tests
+    name: Backend - FastAPI Format, Lint, Test
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: List Files (Debugging Step)
-        run: ls -R
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
+          python-version: "3.11"
 
-      - name: Install Backend Dependencies
+      - name: Install backend dependencies
         run: |
           cd nba-tracker-api
           python -m venv venv
           source venv/bin/activate
           pip install --upgrade pip
           pip install -r requirements.txt
+          pip install black flake8 pytest
 
-      - name: Lint Backend Code
+      - name: Format backend with Black
         run: |
           cd nba-tracker-api
           source venv/bin/activate
-          pip install flake8
+          black . --check
+
+      - name: Lint backend with Flake8
+        run: |
+          cd nba-tracker-api
+          source venv/bin/activate
           flake8 .
 
-      - name: Run Backend Tests
+      - name: Run backend tests
         run: |
-          cd nba-tracker-api  # <-- Updated path
+          cd nba-tracker-api
           source venv/bin/activate
           pytest || echo "No tests found, skipping..."
 
   frontend:
-    name: Frontend - React Build & Lint
+    name: Frontend - React Lint & Build
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up Node.js
@@ -61,23 +64,22 @@ jobs:
         with:
           node-version: "18"
 
-      - name: Clean Node Modules and Cache
-        run: |
-          cd nba-tracker
-          rm -rf node_modules package-lock.json
-          npm cache clean --force
-
-      - name: Install Frontend Dependencies
+      - name: Install frontend dependencies
         run: |
           cd nba-tracker
           npm install
 
-      - name: Lint Frontend Code
+      - name: Lint frontend with ESLint
         run: |
           cd nba-tracker
           npm run lint
 
-      - name: Build Frontend
+      - name: Format frontend with Prettier
+        run: |
+          cd nba-tracker
+          npm run format
+
+      - name: Build frontend with Vite
         run: |
           cd nba-tracker
           npm run build
