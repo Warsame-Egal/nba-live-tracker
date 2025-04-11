@@ -58,90 +58,81 @@ const Standings = () => {
         setLoading(false);
       }
     };
-
     fetchStandings();
   }, [seasonParam]);
 
   if (loading) return <p className="text-gray-400 text-center mt-8">Loading standings...</p>;
   if (error) return <p className="text-red-500 text-center mt-8">{error}</p>;
 
+  // Split standings by conference and sort by playoff_rank
+  const east = standings.filter((t) => t.conference === 'East').sort((a, b) => a.playoff_rank - b.playoff_rank);
+  const west = standings.filter((t) => t.conference === 'West').sort((a, b) => a.playoff_rank - b.playoff_rank);
+
+  // Render table for a given conference
+  const renderTable = (teams: StandingRecord[], title: string) => (
+    <div className="mx-auto px-2 mb-8">
+      <h3 className="text-xl text-white font-bold mb-3 text-center">{title}</h3>
+      <div className="rounded-lg shadow-lg border border-neutral-700">
+        <table className="w-full table-fixed text-white bg-neutral-950">
+          <thead className="bg-neutral-900 border-b border-neutral-700 text-white text-xs uppercase">
+            <tr>
+              <th className="w-6 py-2 text-center">#</th>
+              <th className="w-36 py-2 text-left pl-2">Team</th>
+              <th className="w-14 py-2 text-center">W-L</th>
+              <th className="w-14 py-2 text-center">Win%</th>
+              <th className="w-12 py-2 text-center">GB</th>
+              <th className="w-14 py-2 text-center">Streak</th>
+              <th className="w-14 py-2 text-center">L10</th>
+            </tr>
+          </thead>
+          <tbody>
+            {teams.map((team) => {
+              const teamFullName = `${team.team_city} ${team.team_name}`;
+              const teamInfo = teamMappings[teamFullName] || {
+                abbreviation: 'N/A',
+                logo: '/logos/default.svg',
+              };
+
+              return (
+                <tr
+                  key={`${team.team_name}-${team.season_id}`}
+                  className="hover:bg-neutral-800 border-b border-neutral-700"
+                >
+                  <td className="text-center py-2 text-sm font-semibold">{team.playoff_rank}</td>
+                  <td
+                    onClick={() => navigate(`/team/${team.team_id}`)}
+                    className="py-2 pl-2 flex items-center gap-2 cursor-pointer hover:underline truncate"
+                  >
+                    <img src={teamInfo.logo} alt={teamInfo.abbreviation} className="w-5 h-5" />
+                    <span className="truncate text-sm">{teamFullName}</span>
+                  </td>
+                  <td className="text-center text-sm">{team.wins}-{team.losses}</td>
+                  <td className="text-center text-sm">{team.win_pct.toFixed(3)}</td>
+                  <td className="text-center text-sm">{team.games_back}</td>
+                  <td className="text-center text-sm">{team.current_streak_str}</td>
+                  <td className="text-center text-sm">{team.l10_record}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-black text-white">
       <Navbar />
-      <div className="max-w-6xl mx-auto py-8 px-4">
+      <div className="max-w-7xl mx-auto py-8 px-4">
         <h2 className="text-white text-3xl font-bold mb-6 text-center uppercase tracking-wide">
           NBA Standings ({seasonParam})
         </h2>
         {standings.length === 0 ? (
           <p className="text-gray-400 text-center">No standings data available.</p>
         ) : (
-          <div className="overflow-x-auto rounded-lg shadow-lg">
-            <table className="w-full text-white bg-black border border-neutral-700 rounded-lg overflow-hidden">
-              <thead className="bg-neutral-900 border-b border-neutral-700 text-white uppercase text-sm">
-                <tr>
-                  <th className="py-4 px-6 text-left border-r border-neutral-700">Rank</th>
-                  <th className="py-4 px-6 text-left border-r border-neutral-700">Team</th>
-                  <th className="py-4 px-6 text-center border-r border-neutral-700">
-                    Conference Record
-                  </th>
-                  <th className="py-4 px-6 text-center border-r border-neutral-700">
-                    Division Record
-                  </th>
-                  <th className="py-4 px-6 text-center">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {standings.map((team, index) => {
-                  const teamFullName = `${team.team_city} ${team.team_name}`;
-                  const teamInfo = teamMappings[teamFullName] || {
-                    abbreviation: 'N/A',
-                    logo: '/logos/default.svg',
-                  };
-
-                  return (
-                    <tr
-                      key={`${team.team_name}-${team.season_id}`}
-                      className={`transition ${
-                        index % 2 === 0 ? 'bg-neutral-900' : 'bg-neutral-950'
-                      } hover:bg-neutral-800 border-b border-neutral-700`}
-                    >
-                      <td className="py-4 px-6 text-sm font-semibold border-r border-neutral-700">
-                        {team.conference[0]}-{team.playoff_rank}
-                      </td>
-                      <td
-                        onClick={() => navigate(`/team/${team.team_id}`)}
-                        className="py-4 px-6 flex items-center gap-3 border-r border-neutral-700 cursor-pointer hover:underline"
-                      >
-                        <img src={teamInfo.logo} alt={teamInfo.abbreviation} className="w-8 h-8" />
-                        <span>{teamFullName}</span>
-                        <span className="text-neutral-400">({teamInfo.abbreviation})</span>
-                      </td>
-                      <td className="py-4 px-6 text-center border-r border-neutral-700">
-                        {team.conference_record}
-                      </td>
-                      <td className="py-4 px-6 text-center border-r border-neutral-700">
-                        {team.division_record}
-                      </td>
-                      <td className="py-4 px-6 text-center">
-                        {team.clinch_indicator === 'c' && (
-                          <span className="bg-green-600 text-white px-3 py-1 rounded-full text-xs font-semibold">
-                            Clinched
-                          </span>
-                        )}
-                        {team.clinch_indicator === 'x' && (
-                          <span className="bg-red-600 text-white px-3 py-1 rounded-full text-xs font-semibold">
-                            Eliminated
-                          </span>
-                        )}
-                        {team.clinch_indicator === '-' && (
-                          <span className="text-neutral-500">—</span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+          <div className="grid md:grid-cols-2 gap-6 justify-center items-start max-w-5xl mx-auto">
+            {renderTable(east, 'Eastern Conference')}
+            {renderTable(west, 'Western Conference')}
           </div>
         )}
       </div>

@@ -1,47 +1,40 @@
 from enum import Enum
 from typing import List, Optional
-
 from pydantic import BaseModel, Field
-
-
-class ClinchStatus(str, Enum):
-    """Enum representing the playoff clinch indicator."""
-
-    DASH = "-"  # No clinch indicator
-    CLINCHED = "c"  # Clinched Playoff Spot
-    ELIMINATED = "x"  # Eliminated from Playoffs
 
 
 class StandingRecord(BaseModel):
     """Represents the standings of an NBA team for a given season."""
 
-    season_id: str = Field(..., description="NBA season ID (e.g., '22024').", example="22024")
-    team_id: int = Field(..., description="Unique identifier for the team.", example=1610612739)
-    team_city: str = Field(..., description="City of the team.", example="Cleveland")
-    team_name: str = Field(..., description="Official team name.", example="Cavaliers")
-    conference: str = Field(..., description="Team's conference (East/West).", example="East")
-    conference_record: str = Field(..., description="Record within the conference (W-L).", example="38-7")
-    playoff_rank: int = Field(..., description="Team's rank in the playoff standings.", example=1)
-    clinch_indicator: Optional[ClinchStatus] = Field(None, description="Playoff clinch status.", example="c")
-    division: str = Field(..., description="Division within the conference.", example="Central")
-    division_record: str = Field(..., description="Record within the division (W-L).", example="11-1")
+    season_id: str = Field(..., description="NBA season ID (e.g., '22024').")
+    team_id: int = Field(..., description="Unique identifier for the team.")
+    team_city: str = Field(..., description="City of the team (e.g., 'Boston').")
+    team_name: str = Field(..., description="Official name of the team (e.g., 'Celtics').")
+    conference: str = Field(..., description="Team's conference ('East' or 'West').")
+    division: str = Field(..., description="Division within the conference (e.g., 'Atlantic').")
 
-    # Monthly Records (Optional)
-    oct: Optional[str] = Field(None, description="October record.", example="5-0")
-    nov: Optional[str] = Field(None, description="November record.", example="12-3")
-    dec: Optional[str] = Field(None, description="December record.", example="12-1")
-    jan: Optional[str] = Field(None, description="January record.")
-    feb: Optional[str] = Field(None, description="February record.")
-    mar: Optional[str] = Field(None, description="March record.")
-    apr: Optional[str] = Field(None, description="April record.")
-    may: Optional[str] = Field(None, description="May record.")
-    jun: Optional[str] = Field(None, description="June record.")
-    jul: Optional[str] = Field(None, description="July record.")
-    aug: Optional[str] = Field(None, description="August record.")
-    sep: Optional[str] = Field(None, description="September record.")
+    # Performance
+    wins: int = Field(..., description="Total number of wins in the season.")
+    losses: int = Field(..., description="Total number of losses in the season.")
+    win_pct: float = Field(..., description="Win percentage (e.g., 0.671).")
+
+    # Rankings
+    playoff_rank: int = Field(..., description="Team's rank in the playoff standings.")
+
+    # Records
+    home_record: str = Field(..., description="Home record in W-L format (e.g., '24-10').")
+    road_record: str = Field(..., description="Road record in W-L format (e.g., '21-13').")
+    conference_record: str = Field(..., description="Record against teams in the same conference.")
+    division_record: str = Field(..., description="Record against teams in the same division.")
+    l10_record: str = Field(..., description="Record in the last 10 games (e.g., '8-2').")
+
+    # Streak & GB
+    current_streak: int = Field(..., description="Number of games in the current win/loss streak.")
+    current_streak_str: str = Field(..., description="Current streak string (e.g., 'W4', 'L2').")
+    games_back: str = Field(..., description="Games behind the first place team (e.g., '1.5', '0.0').")
 
 
 class StandingsResponse(BaseModel):
-    """Response schema for retrieving NBA standings for a season."""
+    """Response schema for NBA standings by season."""
 
-    standings: List[StandingRecord] = Field(..., description="List of team standings for the requested season.")
+    standings: List[StandingRecord] = Field(..., description="List of team standings for the given season.")
