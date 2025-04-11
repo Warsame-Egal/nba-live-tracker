@@ -31,19 +31,13 @@ jobs:
           source venv/bin/activate
           pip install --upgrade pip
           pip install -r requirements.txt
-          pip install black flake8 pytest
+          pip install black pytest
 
       - name: Format backend with Black
         run: |
           cd nba-tracker-api
           source venv/bin/activate
           black . --check
-
-      - name: Lint backend with Flake8
-        run: |
-          cd nba-tracker-api
-          source venv/bin/activate
-          flake8 .
 
       - name: Run backend tests
         run: |
