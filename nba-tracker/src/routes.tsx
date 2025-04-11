@@ -1,15 +1,12 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import Scoreboard from "./pages/Scoreboard";
-import TeamPage from "./pages/TeamPage";
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import ScoreboardData from './pages/Scoreboard';
 
 const AppRoutes = () => {
   return (
     <Router>
       <Routes>
         {/* Route for the scoreboard page */}
-        <Route path="/" element={<Scoreboard />} />
-        {/* Route for the team page */}
-        <Route path="/team/:team_id/" element={<TeamPage />} />
+        <Route path="/" element={<ScoreboardData />} />
       </Routes>
     </Router>
   );

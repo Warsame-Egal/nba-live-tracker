@@ -1,119 +1,109 @@
-import numpy as np
-from nba_api.stats.endpoints import leaguegamefinder
-from app.schemas.schedule import ScheduledGame, ScheduleResponse
 from fastapi import HTTPException
-from app.utils.formatters import format_matchup
+from nba_api.stats.endpoints import scoreboardv2
+from nba_api.stats.static import teams
+
+from app.schemas.schedule import GamesResponse, GameSummary, TeamSummary, TopScorer
+
+# Constant Map team IDs to abbreviations for quick lookup
+NBA_TEAMS = {team["id"]: team["abbreviation"] for team in teams.get_teams()}
 
 
-async def getSeasonSchedule(season: str) -> ScheduleResponse:
-    """
-    Retrieves and structures the schedule of all NBA games
-      for the specified season.
-
-    Args:
-        season (str): NBA season identifier (e.g., '2023-24').
-
-    Returns:
-        ScheduleResponse: List of all games in the season.
-
-    Raises:
-        HTTPException: If no games are found or an error occurs.
-    """
+async def getGamesForDate(date: str) -> GamesResponse:
+    """Retrieve NBA games for a given date."""
     try:
-        # Fetch games for the specified season
-        game_finder = leaguegamefinder.LeagueGameFinder(
-            season_nullable=season, league_id_nullable="00"
-        )
-        df = game_finder.get_data_frames()[0]
+        games_data = scoreboardv2.ScoreboardV2(game_date=date).get_dict()
 
-        if df.empty:
-            raise HTTPException(
-                status_code=404, detail=f"No games found for season {season}"
-            )
+        if "resultSets" not in games_data or not games_data["resultSets"]:
+            raise HTTPException(status_code=404, detail=f"No game data found for {date}")
 
-        # Replace NaNs with None to prevent validation errors
-        df.replace({np.nan: None}, inplace=True)
+        game_header_data = next((r for r in games_data["resultSets"] if r["name"] == "GameHeader"), None)
+        team_leaders_data = next((r for r in games_data["resultSets"] if r["name"] == "TeamLeaders"), None)
+        line_score_data = next((r for r in games_data["resultSets"] if r["name"] == "LineScore"), None)
+
+        if not game_header_data or "rowSet" not in game_header_data:
+            raise HTTPException(status_code=404, detail=f"No game header data found for {date}")
+
+        game_headers = game_header_data["headers"]
+        games_list = game_header_data["rowSet"]
+
+        team_leaders_headers = team_leaders_data["headers"] if team_leaders_data else []
+        team_leaders_list = team_leaders_data["rowSet"] if team_leaders_data else []
+
+        line_score_headers = line_score_data["headers"] if line_score_data else []
+        line_score_list = line_score_data["rowSet"] if line_score_data else []
 
         games = []
-        for game in df.to_dict(orient="records"):
-            scheduled_game = ScheduledGame(
-                # Removes leading digit
-                season_id=int(str(game["SEASON_ID"])[1:]),
-                team_id=int(game["TEAM_ID"]),
-                team_abbreviation=game["TEAM_ABBREVIATION"],
-                game_id=game["GAME_ID"],
-                game_date=game["GAME_DATE"],
-                matchup=format_matchup(game["MATCHUP"]),
-                win_loss=game.get("WL"),
-                points_scored=int(game["PTS"]) if game.get("PTS") else None,
-                field_goal_pct=float(
-                    game["FG_PCT"]) if game.get("FG_PCT") else None,
-                three_point_pct=float(
-                    game["FG3_PCT"]) if game.get("FG3_PCT") else None,
-            )
-            games.append(scheduled_game)
 
-        return ScheduleResponse(games=games)
+        for game in games_list:
+            game_dict = dict(zip(game_headers, game))
+
+            if "GAME_ID" not in game_dict:
+                continue
+
+            game_id = game_dict["GAME_ID"]
+            home_team_id = game_dict.get("HOME_TEAM_ID")
+            away_team_id = game_dict.get("VISITOR_TEAM_ID")
+
+            home_score = next(
+                (
+                    dict(zip(line_score_headers, s)).get("PTS", 0)
+                    for s in line_score_list
+                    if dict(zip(line_score_headers, s)).get("GAME_ID") == game_id
+                    and dict(zip(line_score_headers, s)).get("TEAM_ID") == home_team_id
+                ),
+                0,
+            )
+            away_score = next(
+                (
+                    dict(zip(line_score_headers, s)).get("PTS", 0)
+                    for s in line_score_list
+                    if dict(zip(line_score_headers, s)).get("GAME_ID") == game_id
+                    and dict(zip(line_score_headers, s)).get("TEAM_ID") == away_team_id
+                ),
+                0,
+            )
+
+            home_team = TeamSummary(
+                team_id=home_team_id,
+                team_abbreviation=NBA_TEAMS.get(home_team_id, "N/A"),
+                points=home_score,
+            )
+            away_team = TeamSummary(
+                team_id=away_team_id,
+                team_abbreviation=NBA_TEAMS.get(away_team_id, "N/A"),
+                points=away_score,
+            )
+
+            top_scorer = next(
+                (
+                    TopScorer(
+                        player_id=d.get("PTS_PLAYER_ID", 0),
+                        player_name=d.get("PTS_PLAYER_NAME", "Unknown"),
+                        team_id=d.get("TEAM_ID", 0),
+                        points=d.get("PTS", 0),
+                        rebounds=d.get("REB", 0),
+                        assists=d.get("AST", 0),
+                    )
+                    for d in (dict(zip(team_leaders_headers, l)) for l in team_leaders_list)
+                    if d.get("GAME_ID") == game_id
+                ),
+                None,
+            )
+
+            games.append(
+                GameSummary(
+                    game_id=game_id,
+                    game_date=date,
+                    matchup=f"{home_team.team_abbreviation} vs {away_team.team_abbreviation}",
+                    game_status=game_dict.get("GAME_STATUS_TEXT", "Unknown"),
+                    arena=game_dict.get("ARENA_NAME"),
+                    home_team=home_team,
+                    away_team=away_team,
+                    top_scorer=top_scorer,
+                )
+            )
+
+        return GamesResponse(games=games)
 
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Error fetching season schedule: {e}"
-        )
-
-
-async def getTeamSchedule(team_id: int, season: str) -> ScheduleResponse:
-    """
-    Fetches and structures the schedule for a specific NBA team.
-
-    Args:
-        team_id (int): NBA Team ID.
-        season (str): NBA season (e.g., '2023-24').
-
-    Returns:
-        ScheduleResponse: List of all games for the team.
-
-    Raises:
-        HTTPException: If no games are found or an error occurs.
-    """
-    try:
-        # Fetch games for the specified team and season
-        game_finder = leaguegamefinder.LeagueGameFinder(
-            season_nullable=season,
-            team_id_nullable=str(team_id),
-            league_id_nullable="00",
-        )
-        df = game_finder.get_data_frames()[0]
-
-        if df.empty:
-            raise HTTPException(
-                status_code=404,
-                detail=f"No games found for team {team_id} in season {season}",
-            )
-
-        df.replace({np.nan: None}, inplace=True)
-
-        games = []
-        for game in df.to_dict(orient="records"):
-            scheduled_game = ScheduledGame(
-                # Removes leading digit
-                season_id=int(str(game["SEASON_ID"])[1:]),
-                team_id=int(game["TEAM_ID"]),
-                team_abbreviation=game["TEAM_ABBREVIATION"],
-                game_id=game["GAME_ID"],
-                game_date=game["GAME_DATE"],
-                matchup=format_matchup(game["MATCHUP"]),
-                win_loss=game.get("WL"),
-                points_scored=int(game["PTS"]) if game.get("PTS") else None,
-                field_goal_pct=float(
-                    game["FG_PCT"]) if game.get("FG_PCT") else None,
-                three_point_pct=float(
-                    game["FG3_PCT"]) if game.get("FG3_PCT") else None,
-            )
-            games.append(scheduled_game)
-
-        return ScheduleResponse(games=games)
-
-    except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Error fetching team schedule: {e}"
-        )
+        raise HTTPException(status_code=500, detail=f"Error retrieving games: {str(e)}")

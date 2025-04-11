@@ -1,109 +1,215 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { ScoreboardResponse, Game } from "../types/scoreboard";
-import GameCard from "../components/GameCard";
-import Slider from "react-slick";
-import "slick-carousel/slick/slick.css";
-import "slick-carousel/slick/slick-theme.css";
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { ScoreboardResponse, Game } from '../types/scoreboard';
+import { GamesResponse, GameSummary } from '../types/schedule';
+import WebSocketService from '../services/websocketService';
+import GameCard from '../components/GameCard';
+import ScoringLeaders from '../components/ScoringLeaders';
+import PlayByPlay from '../components/PlayByPlay';
+import Navbar from '../components/Navbar';
+import WeeklyCalendar from '../components/WeeklyCalendar';
+import { useSearchParams, Link } from 'react-router-dom';
+import { PlayerSummary } from '../types/player';
+import debounce from 'lodash/debounce';
+import { FaSearch, FaTimes, FaSpinner } from 'react-icons/fa';
+
+const SCOREBOARD_WEBSOCKET_URL = 'ws://127.0.0.1:8000/api/v1/ws';
+
+const getLocalISODate = (): string => {
+  const tzoffset = new Date().getTimezoneOffset() * 60000;
+  return new Date(Date.now() - tzoffset).toISOString().slice(0, 10);
+};
 
 const Scoreboard = () => {
-  // State to hold the list of games
-  const [games, setGames] = useState<Game[]>([]);
-  // State to manage loading status
-  const [loading, setLoading] = useState(true);
+  const [games, setGames] = useState<(Game | GameSummary)[]>([]);
+  const [players, setPlayers] = useState<PlayerSummary[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [selectedGame, setSelectedGame] = useState<Game | GameSummary | null>(null);
+  const [selectedDate, setSelectedDate] = useState(getLocalISODate());
+  const [searchParams] = useSearchParams();
+  const searchQuery = searchParams.get('search') || '';
+  const [playerSearchQuery, setPlayerSearchQuery] = useState('');
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch scoreboard data when the component mounts
-  useEffect(() => {
-    async function fetchScoreboard() {
-      try {
-        const response = await fetch("http://127.0.0.1:8000/api/v1/scoreboard");
-        const data: ScoreboardResponse = await response.json();
+  const setupWebSocket = useCallback(() => {
+    if (selectedDate === getLocalISODate()) {
+      WebSocketService.connect(SCOREBOARD_WEBSOCKET_URL);
+      const handleScoreboardUpdate = (data: ScoreboardResponse) => {
         setGames(data.scoreboard.games);
-      } catch (error) {
-        console.error("Error fetching scoreboard:", error);
+        setLoading(false);
+      };
+      WebSocketService.subscribe(handleScoreboardUpdate);
+      return () => {
+        WebSocketService.unsubscribe(handleScoreboardUpdate);
+        WebSocketService.disconnect();
+      };
+    }
+    return () => {};
+  }, [selectedDate]);
+
+  useEffect(() => setupWebSocket(), [setupWebSocket]);
+
+  useEffect(() => {
+    if (!selectedGame && games.length > 0) {
+      const liveGame = games.find(g => 'gameId' in g);
+      if (liveGame) setSelectedGame(liveGame);
+    }
+  }, [games, selectedGame]);
+
+  useEffect(() => {
+    const abortController = new AbortController();
+    const debouncedFetch = debounce(async () => {
+      if (!playerSearchQuery) {
+        setPlayers([]);
+        setShowSearchResults(false);
+        return;
+      }
+      setLoading(true);
+      setShowSearchResults(true);
+      try {
+        const response = await fetch(
+          `http://localhost:8000/api/v1/players/search/${playerSearchQuery}`,
+          { signal: abortController.signal },
+        );
+        if (!response.ok) throw new Error('Failed to fetch players.');
+        const data: PlayerSummary[] = await response.json();
+        setPlayers(data);
+      } catch (err) {
+        if (err instanceof Error && err.name !== 'AbortError') console.error(err);
+        setPlayers([]);
       } finally {
         setLoading(false);
       }
+    }, 300);
+    debouncedFetch();
+    return () => {
+      abortController.abort();
+      debouncedFetch.cancel();
+    };
+  }, [playerSearchQuery]);
+
+  useEffect(() => {
+    if (selectedDate !== getLocalISODate()) {
+      const fetchGamesByDate = async (date: string) => {
+        setLoading(true);
+        try {
+          const response = await fetch(`http://localhost:8000/api/v1/schedule/date/${date}`);
+          const data: GamesResponse = await response.json();
+          setGames(data.games);
+          setSelectedGame(null);
+        } catch (err) {
+          console.error(err);
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchGamesByDate(selectedDate);
     }
-    fetchScoreboard();
+  }, [selectedDate]);
+
+  const filteredGames = games.filter(game => {
+    if (!searchQuery) return true;
+    const homeName = 'homeTeam' in game ? game.homeTeam.teamName : game.home_team.team_abbreviation;
+    const awayName = 'awayTeam' in game ? game.awayTeam.teamName : game.away_team.team_abbreviation;
+    return (
+      homeName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      awayName.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  });
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchInputRef.current && !searchInputRef.current.contains(event.target as Node)) {
+        setShowSearchResults(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Slider settings for the game cards
-  const sliderSettings = {
-    infinite: false,
-    speed: 500,
-    slidesToShow: 5,
-    slidesToScroll: 1,
-    responsive: [
-      { breakpoint: 1024, settings: { slidesToShow: 3 } },
-      { breakpoint: 768, settings: { slidesToShow: 2 } },
-      { breakpoint: 480, settings: { slidesToShow: 1 } },
-    ],
-  };
-
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      {/* Scoreboard header */}
-      <div className="bg-gray-800 py-4 shadow-lg">
-        <div className="max-w-7xl mx-auto px-4">
-          <Slider {...sliderSettings} className="overflow-hidden">
-            {games.map((game) => (
-              <div key={game.gameId} className="p-2">
-                <div className="flex items-center justify-between bg-gray-700 px-4 py-2 rounded-lg shadow-lg">
-                  
-                  {/* Away Team */}
-                  <div className="text-center">
-                    <Link to={`/team/${game.awayTeam.teamId}`}>
-                      <img
-                        src={`/logos/${game.awayTeam.teamTricode}.svg`}
-                        className="w-10 h-10 mx-auto cursor-pointer hover:scale-110 transition"
-                        alt={game.awayTeam.teamName}
-                      />
-                    </Link>
-                    <p className="text-sm text-gray-300">{game.awayTeam.teamTricode}</p>
-                  </div>
+    <div className="min-h-screen bg-black text-white">
+      <Navbar />
 
-                  {/* Score & Status */}
-                  <div className="mx-4 text-center">
-                    <p className="text-xl font-bold">
-                      {game.awayTeam.score} - {game.homeTeam.score}
-                    </p>
-                    <p className={`text-xs px-2 py-1 rounded ${game.gameStatusText === "LIVE" ? "bg-red-600 text-white" : "bg-gray-600"}`}>
-                      {game.gameStatusText} {game.period > 0 ? `Q${game.period}` : ""}
-                    </p>
-                  </div>
-
-                  {/* Home Team */}
-                  <div className="text-center">
-                    <Link to={`/team/${game.homeTeam.teamId}`}>
-                      <img
-                        src={`/logos/${game.homeTeam.teamTricode}.svg`}
-                        className="w-10 h-10 mx-auto cursor-pointer hover:scale-110 transition"
-                        alt={game.homeTeam.teamName}
-                      />
-                    </Link>
-                    <p className="text-sm text-gray-300">{game.homeTeam.teamTricode}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </Slider>
-        </div>
-      </div>
-
-      {/* Main Scoreboard */}
-      <div className="max-w-7xl mx-auto px-4 mt-6">
-        {loading ? (
-          <p className="text-center text-gray-400 text-lg">Loading games...</p>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {games.length > 0 ? (
-              games.map((game) => <GameCard key={game.gameId} game={game} />)
-            ) : (
-              <p className="text-center col-span-3 text-gray-400">No live games currently.</p>
-            )}
+      <div className="max-w-7xl mx-auto px-4 py-6 space-y-8">
+        {/* Search + Calendar */}
+        <div className="flex flex-col lg:flex-row justify-between items-center gap-6">
+          <WeeklyCalendar selectedDate={selectedDate} setSelectedDate={setSelectedDate} />
+          <div className="w-full max-w-md" ref={searchInputRef}>
+            <div className="relative">
+              <input
+                type="text"
+                value={playerSearchQuery}
+                onChange={e => setPlayerSearchQuery(e.target.value)}
+                placeholder="Search players..."
+                className="w-full px-4 py-2 pl-10 pr-12 bg-neutral-900 border border-neutral-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              {loading && playerSearchQuery ? (
+                <FaSpinner className="absolute right-3 top-1/2 -translate-y-1/2 text-white animate-spin" />
+              ) : playerSearchQuery ? (
+                <button
+                  onClick={() => {
+                    setPlayerSearchQuery('');
+                    searchInputRef.current?.focus();
+                  }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                >
+                  <FaTimes />
+                </button>
+              ) : (
+                <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              )}
+              {showSearchResults && players.length > 0 && (
+                <ul className="absolute left-0 right-0 mt-2 bg-neutral-900 border border-neutral-700 rounded-md shadow-lg max-h-60 overflow-y-auto z-10">
+                  {players.map(player => (
+                    <li key={player.PERSON_ID} className="p-2 cursor-pointer">
+                      <Link
+                        to={`/players/${player.PERSON_ID}`}
+                        onClick={() => setShowSearchResults(false)}
+                      >
+                        <span className="font-semibold">
+                          {player.PLAYER_FIRST_NAME} {player.PLAYER_LAST_NAME}
+                        </span>
+                        <span className="text-sm text-gray-400 ml-2">
+                          {player.TEAM_ABBREVIATION}
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </div>
-        )}
+        </div>
+
+        {/* Games */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {loading && !playerSearchQuery ? (
+            <div className="col-span-full flex justify-center items-center h-48">
+              <FaSpinner className="text-2xl text-white animate-spin" />
+              <p className="ml-2 text-lg text-gray-400">Loading games...</p>
+            </div>
+          ) : filteredGames.length > 0 ? (
+            filteredGames.map(game => (
+              <div
+                key={'gameId' in game ? game.gameId : game.game_id}
+                className="border border-neutral-700 bg-black rounded-md p-4 space-y-3 shadow-lg transition-transform transform hover:scale-[1.005]"
+              >
+                <GameCard game={game} setSelectedGame={setSelectedGame} />
+                {'gameLeaders' in game && (
+                  <>
+                    <ScoringLeaders selectedGame={game as Game} />
+                    <PlayByPlay gameId={(game as Game).gameId} />
+                  </>
+                )}
+              </div>
+            ))
+          ) : (
+            <p className="col-span-full text-center text-gray-400 text-lg italic">
+              No games found.
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );

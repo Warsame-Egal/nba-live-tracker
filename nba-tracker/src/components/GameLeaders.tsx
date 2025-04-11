@@ -1,28 +1,44 @@
-import { Game } from "../types/scoreboard";
+import { Game } from '../types/scoreboard';
 
-// Define the props for the GameLeaders component
 interface Props {
   game: Game;
 }
 
-// GameLeaders component to display the top performers of the game
 const GameLeaders: React.FC<Props> = ({ game }) => {
+  const awayLeader = game.gameLeaders?.awayLeaders;
+  const homeLeader = game.gameLeaders?.homeLeaders;
+
   return (
-    <div className="flex justify-between bg-gray-800 rounded-md p-3 text-sm shadow-lg">
+    <div
+      className="bg-black -to-br from-gray-800 to-neutral-900 rounded-xl p-5 shadow-2xl border border-gray-700 
+      flex justify-between w-full md:w-96 text-sm"
+    >
       {/* Away Team Leader */}
-      <div className="text-center">
-        <p className="text-gray-300 font-semibold">{game.gameLeaders.awayLeaders.name}</p>
-        <p className="text-white font-bold">
-          {game.gameLeaders.awayLeaders.points} PTS | {game.gameLeaders.awayLeaders.rebounds} REB | {game.gameLeaders.awayLeaders.assists} AST
-        </p>
+      <div className="text-center w-1/2 border-r border-gray-700">
+        {awayLeader ? (
+          <>
+            <p className="text-gray-300 font-semibold">{awayLeader.name}</p>
+            <p className="text-white font-bold text-lg">
+              {awayLeader.points} PTS | {awayLeader.rebounds} REB | {awayLeader.assists} AST
+            </p>
+          </>
+        ) : (
+          <p className="text-gray-400">No leader data</p>
+        )}
       </div>
 
       {/* Home Team Leader */}
-      <div className="text-center">
-        <p className="text-gray-300 font-semibold">{game.gameLeaders.homeLeaders.name}</p>
-        <p className="text-white font-bold">
-          {game.gameLeaders.homeLeaders.points} PTS | {game.gameLeaders.homeLeaders.rebounds} REB | {game.gameLeaders.homeLeaders.assists} AST
-        </p>
+      <div className="text-center w-1/2">
+        {homeLeader ? (
+          <>
+            <p className="text-gray-300 font-semibold">{homeLeader.name}</p>
+            <p className="text-white font-bold text-lg">
+              {homeLeader.points} PTS | {homeLeader.rebounds} REB | {homeLeader.assists} AST
+            </p>
+          </>
+        ) : (
+          <p className="text-gray-400">No leader data</p>
+        )}
       </div>
     </div>
   );
