@@ -88,7 +88,8 @@ async def scoreboard():
 )
 async def currentTeamRecord(team_id: int):
     """
-    API route to retrieve a team's real-time standings and performance metrics.
+    API route to retrieve a team's real-time standings
+      and performance metrics.
     """
     try:
         return await getCurrentTeamRecord(team_id)
@@ -105,7 +106,8 @@ async def currentTeamRecord(team_id: int):
 )
 async def getTeamRoster(team_id: int, season: str):
     """
-    API endpoint to retrieve the full roster of a given NBA team for a specific season.
+    API endpoint to retrieve the full roster of a given
+      NBA team for a specific season.
     Args:
         team_id (int): The unique identifier for the NBA team.
         season (str): The NBA season identifier (e.g., "2023-24").
@@ -191,7 +193,8 @@ async def get_game_team_stats(game_id: str, team_id: int):
 )
 async def get_game_leaders(game_id: str):
     """
-    API route to fetch the top players in points, assists, and rebounds for a given NBA game.
+    API route to fetch the top players in points, assists,
+      and rebounds for a given NBA game.
 
     Args:
         game_id (str): Unique game identifier.

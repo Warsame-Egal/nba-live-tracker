@@ -62,6 +62,8 @@ app.add_middleware(
 
 
 # Root endpoint to check if API is running
+
+
 @app.get("/")
 def home():
     """Root endpoint for API health check."""

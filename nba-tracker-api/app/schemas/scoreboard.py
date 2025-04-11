@@ -5,6 +5,8 @@ from pydantic import BaseModel, Field, field_validator
 
 
 # Represents a single play-by-play event in the game.
+
+
 class PlayByPlayEvent(BaseModel):
     """Schema for a single play-by-play event in the game."""
 
@@ -22,6 +24,8 @@ class PlayByPlayEvent(BaseModel):
 
 
 # Represents the full play-by-play breakdown of the game.
+
+
 class PlayByPlayResponse(BaseModel):
     """Schema for retrieving real-time play-by-play breakdown of a game."""
 
@@ -75,12 +79,14 @@ class PbOdds(BaseModel):
 
 
 # Represents individual player statistics in a game.
+
+
 class PlayerBoxScoreStats(BaseModel):
     """Detailed statistics for a player in a game."""
 
     player_id: int = Field(..., description="Unique identifier for the player.")
     name: str = Field(..., description="Full name of the player.")
-    position: str = Field("N/A", description="Position played. Defaults to 'N/A' if not available.")
+    position: str = Field("N/A", description="Position played. Defaults to 'N/A'" " if not available.")
     minutes: Optional[str] = Field(None, description="Total minutes played.")
     points: int = Field(..., ge=0, description="Total points scored.")
     rebounds: int = Field(..., ge=0, description="Total rebounds.")
@@ -105,6 +111,8 @@ class GameLeadersResponse(BaseModel):
 
 
 # Represents team-specific statistics for a single game.
+
+
 class TeamGameStatsResponse(BaseModel):
     """Response schema for retrieving a team's statistics in a game."""
 
@@ -124,10 +132,12 @@ class TeamGameStatsResponse(BaseModel):
     steals: int = Field(..., description="Total steals.")
     blocks: int = Field(..., description="Total blocks.")
     turnovers: int = Field(..., description="Total turnovers.")
-    players: List[PlayerBoxScoreStats] = Field(..., description="List of player stats.")
+    players: List[PlayerBoxScoreStats] = Field(..., description="List of player" " stats.")
 
 
 # Represents team-level box score statistics, including player stats.
+
+
 class TeamBoxScoreStats(BaseModel):
     """Team-level box score stats."""
 
@@ -148,10 +158,12 @@ class TeamBoxScoreStats(BaseModel):
     steals: int = Field(..., description="Total steals.")
     blocks: int = Field(..., description="Total blocks.")
     turnovers: int = Field(..., description="Total turnovers.")
-    players: List[PlayerBoxScoreStats] = Field(..., description="List of player stats.")
+    players: List[PlayerBoxScoreStats] = Field(..., description="List of" " player stats.")
 
 
 # Represents the full box score of a game, including team stats.
+
+
 class BoxScoreResponse(BaseModel):
     """Response schema for retrieving the box score of a game."""
 

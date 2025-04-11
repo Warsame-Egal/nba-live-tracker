@@ -274,7 +274,8 @@ async def fetchPlayersByName(name: str) -> List[PlayerSummary]:
         # Convert search query to lowercase for case-insensitive comparison
         name = name.lower()
 
-        # Filter players by checking if query matches full name, first name, or last name
+        # Filter players by checking if query matches full name, first name, or
+        # last name
         matching_players = [
             player
             for player in players
@@ -544,7 +545,10 @@ async def getGameLeaders(game_id: str) -> GameLeadersResponse:
         )
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error retrieving game leaders: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error retrieving game leaders: {str(e)}",
+        )
 
 
 async def getPlayByPlay(game_id: str) -> PlayByPlayResponse:

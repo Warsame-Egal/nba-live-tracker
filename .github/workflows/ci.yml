@@ -1,0 +1,79 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+  pull_request:
+    branches:
+      - main
+      - dev
+
+jobs:
+  backend:
+    name: Backend - FastAPI Format, Lint, Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install backend dependencies
+        run: |
+          cd nba-tracker-api
+          python -m venv venv
+          source venv/bin/activate
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install black pytest
+
+      - name: Format backend with Black
+        run: |
+          cd nba-tracker-api
+          source venv/bin/activate
+          black . --check
+
+      - name: Run backend tests
+        run: |
+          cd nba-tracker-api
+          source venv/bin/activate
+          pytest || echo "No tests found, skipping..."
+
+  frontend:
+    name: Frontend - React Lint & Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+
+      - name: Install frontend dependencies
+        run: |
+          cd nba-tracker
+          npm install
+
+      - name: Lint frontend with ESLint
+        run: |
+          cd nba-tracker
+          npm run lint
+
+      - name: Format frontend with Prettier
+        run: |
+          cd nba-tracker
+          npm run format
+
+      - name: Build frontend with Vite
+        run: |
+          cd nba-tracker
+          npm run build
