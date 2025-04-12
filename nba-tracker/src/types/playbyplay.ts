@@ -4,15 +4,15 @@ export interface PlayByPlayResponse {
 }
 
 export interface PlayByPlayEvent {
-  actionNumber: number;
+  action_number: number;
   clock: string;
   period: number;
-  teamId?: number;
-  teamTricode?: string;
-  actionType: string; // Example: 'shot', 'turnover', 'foul'
-  description: string; // Example: 'LeBron James made a 3pt shot'
-  playerId?: number;
-  playerName?: string;
-  scoreHome?: string; // Example: "102"
-  scoreAway?: string; // Example: "99"
+  team_id?: number;
+  team_tricode?: string;
+  action_type: string;
+  description: string;
+  player_id?: number;
+  player_name?: string;
+  score_home?: string;
+  score_away?: string;
 }

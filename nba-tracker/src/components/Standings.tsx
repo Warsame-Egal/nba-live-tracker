@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { StandingRecord, StandingsResponse } from '../types/standings';
 import Navbar from '../components/Navbar';
@@ -44,14 +44,16 @@ const Standings = () => {
   const [standings, setStandings] = useState<StandingRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [conference, setConference] = useState<'East' | 'West'>('East');
 
   useEffect(() => {
     const fetchStandings = async () => {
+      setLoading(true);
       try {
         const res = await fetch(`http://localhost:8000/api/v1/standings/season/${seasonParam}`);
-        if (!res.ok) throw new Error('Network response not ok');
+        if (!res.ok) throw new Error('Failed to fetch standings.');
         const data: StandingsResponse = await res.json();
-        setStandings(data.standings || []);
+        setStandings(data.standings);
       } catch {
         setError('Failed to fetch standings.');
       } finally {
@@ -61,78 +63,99 @@ const Standings = () => {
     fetchStandings();
   }, [seasonParam]);
 
-  if (loading) return <p className="text-gray-400 text-center mt-8">Loading standings...</p>;
-  if (error) return <p className="text-red-500 text-center mt-8">{error}</p>;
-
-  // Split standings by conference and sort by playoff_rank
-  const east = standings.filter((t) => t.conference === 'East').sort((a, b) => a.playoff_rank - b.playoff_rank);
-  const west = standings.filter((t) => t.conference === 'West').sort((a, b) => a.playoff_rank - b.playoff_rank);
-
-  // Render table for a given conference
-  const renderTable = (teams: StandingRecord[], title: string) => (
-    <div className="mx-auto px-2 mb-8">
-      <h3 className="text-xl text-white font-bold mb-3 text-center">{title}</h3>
-      <div className="rounded-lg shadow-lg border border-neutral-700">
-        <table className="w-full table-fixed text-white bg-neutral-950">
-          <thead className="bg-neutral-900 border-b border-neutral-700 text-white text-xs uppercase">
-            <tr>
-              <th className="w-6 py-2 text-center">#</th>
-              <th className="w-36 py-2 text-left pl-2">Team</th>
-              <th className="w-14 py-2 text-center">W-L</th>
-              <th className="w-14 py-2 text-center">Win%</th>
-              <th className="w-12 py-2 text-center">GB</th>
-              <th className="w-14 py-2 text-center">Streak</th>
-              <th className="w-14 py-2 text-center">L10</th>
-            </tr>
-          </thead>
-          <tbody>
-            {teams.map((team) => {
-              const teamFullName = `${team.team_city} ${team.team_name}`;
-              const teamInfo = teamMappings[teamFullName] || {
-                abbreviation: 'N/A',
-                logo: '/logos/default.svg',
-              };
-
-              return (
-                <tr
-                  key={`${team.team_name}-${team.season_id}`}
-                  className="hover:bg-neutral-800 border-b border-neutral-700"
-                >
-                  <td className="text-center py-2 text-sm font-semibold">{team.playoff_rank}</td>
-                  <td
-                    onClick={() => navigate(`/team/${team.team_id}`)}
-                    className="py-2 pl-2 flex items-center gap-2 cursor-pointer hover:underline truncate"
-                  >
-                    <img src={teamInfo.logo} alt={teamInfo.abbreviation} className="w-5 h-5" />
-                    <span className="truncate text-sm">{teamFullName}</span>
-                  </td>
-                  <td className="text-center text-sm">{team.wins}-{team.losses}</td>
-                  <td className="text-center text-sm">{team.win_pct.toFixed(3)}</td>
-                  <td className="text-center text-sm">{team.games_back}</td>
-                  <td className="text-center text-sm">{team.current_streak_str}</td>
-                  <td className="text-center text-sm">{team.l10_record}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
+  const filteredStandings = useMemo(() => {
+    return standings
+      .filter((team) => team.conference === conference)
+      .sort((a, b) => a.playoff_rank - b.playoff_rank);
+  }, [standings, conference]);
 
   return (
     <div className="min-h-screen bg-black text-white">
       <Navbar />
       <div className="max-w-7xl mx-auto py-8 px-4">
-        <h2 className="text-white text-3xl font-bold mb-6 text-center uppercase tracking-wide">
+        <h2 className="text-3xl font-bold text-center uppercase tracking-wide mb-6">
           NBA Standings ({seasonParam})
         </h2>
-        {standings.length === 0 ? (
+
+        <div className="flex justify-center mb-4">
+          {(['East', 'West'] as const).map((conf) => (
+            <button
+              key={conf}
+              onClick={() => setConference(conf)}
+              className={`px-4 py-2 mx-1 rounded ${
+                conference === conf
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-neutral-800 hover:bg-neutral-700'
+              }`}
+            >
+              {conf}ern Conference
+            </button>
+          ))}
+        </div>
+
+        {loading && <p className="text-gray-400 text-center">Loading standings...</p>}
+        {error && <p className="text-red-500 text-center">{error}</p>}
+        {!loading && !error && filteredStandings.length === 0 && (
           <p className="text-gray-400 text-center">No standings data available.</p>
-        ) : (
-          <div className="grid md:grid-cols-2 gap-6 justify-center items-start max-w-5xl mx-auto">
-            {renderTable(east, 'Eastern Conference')}
-            {renderTable(west, 'Western Conference')}
+        )}
+
+        {!loading && !error && filteredStandings.length > 0 && (
+          <div className="overflow-x-auto rounded-lg border border-neutral-700 shadow-lg">
+            <table className="min-w-full bg-neutral-950 text-sm">
+              <thead className="bg-neutral-900 uppercase text-xs border-b border-neutral-700">
+                <tr>
+                  <th className="px-2 py-3 text-center">#</th>
+                  <th className="px-2 py-3 text-left">Team</th>
+                  <th className="px-2 py-3 text-center">W</th>
+                  <th className="px-2 py-3 text-center">L</th>
+                  <th className="px-2 py-3 text-center">PCT</th>
+                  <th className="px-2 py-3 text-center">GB</th>
+                  <th className="px-2 py-3 text-center">Home</th>
+                  <th className="px-2 py-3 text-center">Away</th>
+                  <th className="px-2 py-3 text-center">Div</th>
+                  <th className="px-2 py-3 text-center">Conf</th>
+                  <th className="px-2 py-3 text-center">L10</th>
+                  <th className="px-2 py-3 text-center">Strk</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredStandings.map((team) => {
+                  const teamName = `${team.team_city} ${team.team_name}`;
+                  const logo = teamMappings[teamName]?.logo || '/logos/default.svg';
+                  return (
+                    <tr
+                      key={team.team_id}
+                      className="border-b border-neutral-700 hover:bg-neutral-800"
+                    >
+                      <td className="px-2 py-2 text-center font-semibold">
+                        {team.playoff_rank}
+                      </td>
+                      <td
+                        className="px-2 py-2 flex items-center gap-2 cursor-pointer hover:underline"
+                        onClick={() => navigate(`/team/${team.team_id}`)}
+                      >
+                        <img src={logo} alt={teamName} className="w-5 h-5" />
+                        {teamName}
+                      </td>
+                      <td className="px-2 py-2 text-center">{team.wins}</td>
+                      <td className="px-2 py-2 text-center">{team.losses}</td>
+                      <td className="px-2 py-2 text-center">
+                        {team.win_pct.toFixed(3)}
+                      </td>
+                      <td className="px-2 py-2 text-center">{team.games_back}</td>
+                      <td className="px-2 py-2 text-center">{team.home_record}</td>
+                      <td className="px-2 py-2 text-center">{team.road_record}</td>
+                      <td className="px-2 py-2 text-center">{team.division_record}</td>
+                      <td className="px-2 py-2 text-center">{team.conference_record}</td>
+                      <td className="px-2 py-2 text-center">{team.l10_record}</td>
+                      <td className={`px-2 py-2 text-center ${team.current_streak_str.startsWith('W') ? 'text-green-500' : 'text-red-500'}`}>
+                        {team.current_streak_str}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         )}
       </div>

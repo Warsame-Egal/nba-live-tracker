@@ -21,7 +21,10 @@ from app.services.scoreboard import (
     getScoreboard,
     getTeamStats,
 )
-from app.services.websockets_manager import playbyplay_websocket_manager, scoreboard_websocket_manager
+from app.services.websockets_manager import (
+    playbyplay_websocket_manager,
+    scoreboard_websocket_manager,
+)
 
 router = APIRouter()
 

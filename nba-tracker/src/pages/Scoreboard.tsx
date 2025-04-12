@@ -3,12 +3,12 @@ import { ScoreboardResponse, Game } from '../types/scoreboard';
 import { GamesResponse, GameSummary } from '../types/schedule';
 import WebSocketService from '../services/websocketService';
 import GameCard from '../components/GameCard';
-import ScoringLeaders from '../components/ScoringLeaders';
-import PlayByPlay from '../components/PlayByPlay';
 import Navbar from '../components/Navbar';
 import WeeklyCalendar from '../components/WeeklyCalendar';
+import GameDetailsModal from '../components/GameDetailsModal';
 import { useSearchParams, Link } from 'react-router-dom';
 import { PlayerSummary } from '../types/player';
+import ScoringLeaders from '../components/ScoringLeaders';
 import debounce from 'lodash/debounce';
 import { FaSearch, FaTimes, FaSpinner } from 'react-icons/fa';
 
@@ -19,8 +19,30 @@ const getLocalISODate = (): string => {
   return new Date(Date.now() - tzoffset).toISOString().slice(0, 10);
 };
 
+// Revised helper to determine game status
+const getGameStatus = (game: Game | GameSummary): 'live' | 'upcoming' | 'completed' => {
+  // For live games (from WebSocket), check for a live game shape.
+  if ('homeTeam' in game) {
+    if (game.gameStatusText && game.gameStatusText.toLowerCase().includes('final')) {
+      return 'completed';
+    }
+    return 'live';
+  }
+  // Otherwise, assume GameSummary shape
+  if ('game_status' in game && typeof game.game_status === 'string') {
+    const lowerStatus = game.game_status.toLowerCase();
+    if (lowerStatus.includes('final')) return 'completed';
+    if (lowerStatus.includes('live') || lowerStatus.includes('in progress')) return 'live';
+    return 'upcoming';
+  }
+  return 'upcoming';
+};
+
 const Scoreboard = () => {
   const [games, setGames] = useState<(Game | GameSummary)[]>([]);
+  const [liveGames, setLiveGames] = useState<(Game | GameSummary)[]>([]);
+  const [upcomingGames, setUpcomingGames] = useState<(Game | GameSummary)[]>([]);
+  const [completedGames, setCompletedGames] = useState<(Game | GameSummary)[]>([]);
   const [players, setPlayers] = useState<PlayerSummary[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedGame, setSelectedGame] = useState<Game | GameSummary | null>(null);
@@ -31,6 +53,7 @@ const Scoreboard = () => {
   const [showSearchResults, setShowSearchResults] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
+  // WebSocket setup for live updates on today’s games
   const setupWebSocket = useCallback(() => {
     if (selectedDate === getLocalISODate()) {
       WebSocketService.connect(SCOREBOARD_WEBSOCKET_URL);
@@ -49,13 +72,7 @@ const Scoreboard = () => {
 
   useEffect(() => setupWebSocket(), [setupWebSocket]);
 
-  useEffect(() => {
-    if (!selectedGame && games.length > 0) {
-      const liveGame = games.find(g => 'gameId' in g);
-      if (liveGame) setSelectedGame(liveGame);
-    }
-  }, [games, selectedGame]);
-
+  // Debounced player search
   useEffect(() => {
     const abortController = new AbortController();
     const debouncedFetch = debounce(async () => {
@@ -69,7 +86,7 @@ const Scoreboard = () => {
       try {
         const response = await fetch(
           `http://localhost:8000/api/v1/players/search/${playerSearchQuery}`,
-          { signal: abortController.signal },
+          { signal: abortController.signal }
         );
         if (!response.ok) throw new Error('Failed to fetch players.');
         const data: PlayerSummary[] = await response.json();
@@ -88,6 +105,7 @@ const Scoreboard = () => {
     };
   }, [playerSearchQuery]);
 
+  // Fetch games based on selected date if it’s not today
   useEffect(() => {
     if (selectedDate !== getLocalISODate()) {
       const fetchGamesByDate = async (date: string) => {
@@ -107,16 +125,36 @@ const Scoreboard = () => {
     }
   }, [selectedDate]);
 
-  const filteredGames = games.filter(game => {
-    if (!searchQuery) return true;
-    const homeName = 'homeTeam' in game ? game.homeTeam.teamName : game.home_team.team_abbreviation;
-    const awayName = 'awayTeam' in game ? game.awayTeam.teamName : game.away_team.team_abbreviation;
-    return (
-      homeName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      awayName.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  });
+  // Group games based on selected date and search query
+  useEffect(() => {
+    const filtered = games.filter(game => {
+      if (!searchQuery) return true;
+      const homeName =
+        'homeTeam' in game ? game.homeTeam.teamName : game.home_team.team_abbreviation;
+      const awayName =
+        'awayTeam' in game ? game.awayTeam.teamName : game.away_team.team_abbreviation;
+      return (
+        homeName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        awayName.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    });
+    const today = getLocalISODate();
+    if (selectedDate === today) {
+      setLiveGames(filtered.filter(game => getGameStatus(game) === 'live'));
+      setUpcomingGames(filtered.filter(game => getGameStatus(game) === 'upcoming'));
+      setCompletedGames(filtered.filter(game => getGameStatus(game) === 'completed'));
+    } else if (selectedDate < today) {
+      setLiveGames([]);
+      setUpcomingGames([]);
+      setCompletedGames(filtered);
+    } else if (selectedDate > today) {
+      setLiveGames([]);
+      setUpcomingGames(filtered);
+      setCompletedGames([]);
+    }
+  }, [games, searchQuery, selectedDate]);
 
+  // Close search results when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (searchInputRef.current && !searchInputRef.current.contains(event.target as Node)) {
@@ -127,89 +165,157 @@ const Scoreboard = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Helper render function.
+  // When hideScore is true, we disable the container's onClick so future games do not open details.
+  const renderGameCards = (
+    gameList: (Game | GameSummary)[],
+    hideScore: boolean = false
+  ) => (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      {gameList.map(game => (
+        <div
+          key={'gameId' in game ? game.gameId : game.game_id}
+          className="rounded-xl overflow-hidden transition-transform transform hover:scale-105 cursor-pointer bg-black border border-neutral-700 p-4 rounded-md"
+          onClick={hideScore ? undefined : () => setSelectedGame(game)}
+        >
+          <GameCard game={game} hideScore={hideScore} />
+          {'gameLeaders' in game && (
+                  <>
+                    <ScoringLeaders selectedGame={game as Game} />
+                  </>
+                )}
+
+        </div>
+      ))}
+    </div>
+  );
+
+  const today = getLocalISODate();
+  const isToday = selectedDate === today;
+
   return (
     <div className="min-h-screen bg-black text-white">
       <Navbar />
-
-      <div className="max-w-7xl mx-auto px-4 py-6 space-y-8">
-        {/* Search + Calendar */}
-        <div className="flex flex-col lg:flex-row justify-between items-center gap-6">
-          <WeeklyCalendar selectedDate={selectedDate} setSelectedDate={setSelectedDate} />
-          <div className="w-full max-w-md" ref={searchInputRef}>
-            <div className="relative">
-              <input
-                type="text"
-                value={playerSearchQuery}
-                onChange={e => setPlayerSearchQuery(e.target.value)}
-                placeholder="Search players..."
-                className="w-full px-4 py-2 pl-10 pr-12 bg-neutral-900 border border-neutral-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              {loading && playerSearchQuery ? (
-                <FaSpinner className="absolute right-3 top-1/2 -translate-y-1/2 text-white animate-spin" />
-              ) : playerSearchQuery ? (
-                <button
-                  onClick={() => {
-                    setPlayerSearchQuery('');
-                    searchInputRef.current?.focus();
-                  }}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
-                >
-                  <FaTimes />
-                </button>
-              ) : (
-                <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              )}
-              {showSearchResults && players.length > 0 && (
-                <ul className="absolute left-0 right-0 mt-2 bg-neutral-900 border border-neutral-700 rounded-md shadow-lg max-h-60 overflow-y-auto z-10">
-                  {players.map(player => (
-                    <li key={player.PERSON_ID} className="p-2 cursor-pointer">
-                      <Link
-                        to={`/players/${player.PERSON_ID}`}
-                        onClick={() => setShowSearchResults(false)}
-                      >
-                        <span className="font-semibold">
-                          {player.PLAYER_FIRST_NAME} {player.PLAYER_LAST_NAME}
-                        </span>
-                        <span className="text-sm text-gray-400 ml-2">
-                          {player.TEAM_ABBREVIATION}
-                        </span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
+      <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
+        {/* Top Section: Search Bar and Weekly Calendar */}
+        <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+          {/* Search Bar */}
+          <div className="w-full md:w-1/3 relative">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
+              <FaSearch className="text-gray-400" size={20} />
             </div>
+            <input
+              type="text"
+              value={playerSearchQuery}
+              onChange={e => setPlayerSearchQuery(e.target.value)}
+              placeholder="Search players..."
+              ref={searchInputRef}
+              className="w-full py-3 pl-12 pr-4 rounded-full bg-neutral-900 border border-neutral-700 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+            />
+            {loading && playerSearchQuery && (
+              <FaSpinner className="absolute right-4 top-1/2 -translate-y-1/2 text-white animate-spin" size={20} />
+            )}
+            {playerSearchQuery && (
+              <button
+                onClick={() => {
+                  setPlayerSearchQuery('');
+                  searchInputRef.current?.focus();
+                }}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300"
+              >
+                <FaTimes size={20} />
+              </button>
+            )}
+            {showSearchResults && players.length > 0 && (
+              <ul className="absolute left-0 right-0 mt-2 bg-neutral-900 border border-neutral-700 rounded-lg shadow-md max-h-60 overflow-y-auto z-20">
+                {players.map(player => (
+                  <li key={player.PERSON_ID} className="py-2 px-4 hover:bg-neutral-700 transition">
+                    <Link
+                      to={`/players/${player.PERSON_ID}`}
+                      onClick={() => setShowSearchResults(false)}
+                      className="flex items-center gap-3"
+                    >
+                      <span className="font-bold">
+                        {player.PLAYER_FIRST_NAME} {player.PLAYER_LAST_NAME}
+                      </span>
+                      <span className="text-sm text-gray-400">{player.TEAM_ABBREVIATION}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          {/* Weekly Calendar */}
+          <div className="w-full md:w-auto flex justify-center">
+            <WeeklyCalendar
+              selectedDate={selectedDate}
+              setSelectedDate={setSelectedDate}
+            />
           </div>
         </div>
 
-        {/* Games */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {loading && !playerSearchQuery ? (
-            <div className="col-span-full flex justify-center items-center h-48">
-              <FaSpinner className="text-2xl text-white animate-spin" />
-              <p className="ml-2 text-lg text-gray-400">Loading games...</p>
-            </div>
-          ) : filteredGames.length > 0 ? (
-            filteredGames.map(game => (
-              <div
-                key={'gameId' in game ? game.gameId : game.game_id}
-                className="border border-neutral-700 bg-black rounded-md p-4 space-y-3 shadow-lg transition-transform transform hover:scale-[1.005]"
-              >
-                <GameCard game={game} setSelectedGame={setSelectedGame} />
-                {'gameLeaders' in game && (
-                  <>
-                    <ScoringLeaders selectedGame={game as Game} />
-                    <PlayByPlay gameId={(game as Game).gameId} />
-                  </>
-                )}
-              </div>
-            ))
-          ) : (
-            <p className="col-span-full text-center text-gray-400 text-lg italic">
-              No games found.
+        {/* Games Display Section */}
+        {loading && !playerSearchQuery && games.length === 0 ? (
+          <div className="flex justify-center items-center py-20">
+            <FaSpinner className="text-5xl text-blue-500 animate-spin" />
+          </div>
+        ) : isToday ? (
+          <>
+            {liveGames.length > 0 && (
+              <section className="space-y-4">
+                <h2 className="text-2xl font-extrabold text-gray-200">Live Games</h2>
+                {renderGameCards(liveGames)}
+              </section>
+            )}
+            {upcomingGames.length > 0 && (
+              <section className="space-y-4 mt-10">
+                <h2 className="text-2xl font-extrabold text-gray-200">Upcoming Games</h2>
+                {renderGameCards(upcomingGames)}
+              </section>
+            )}
+            {completedGames.length > 0 && (
+              <section className="space-y-4 mt-10">
+                <h2 className="text-2xl font-extrabold text-gray-200">Completed Games</h2>
+                {renderGameCards(completedGames)}
+              </section>
+            )}
+          </>
+        ) : (
+          <section className="space-y-4">
+            {selectedDate < today ? (
+              <>
+                <h2 className="text-2xl font-extrabold text-gray-200">Completed Games</h2>
+                {renderGameCards(completedGames)}
+              </>
+            ) : (
+              <>
+                <h2 className="text-2xl font-extrabold text-gray-200">Future Games</h2>
+                {renderGameCards(upcomingGames, true)}
+              </>
+            )}
+          </section>
+        )}
+
+        {/* Fallback Message */}
+        {!loading &&
+          liveGames.length === 0 &&
+          upcomingGames.length === 0 &&
+          completedGames.length === 0 &&
+          games.length !== 0 && (
+            <p className="text-center text-xl text-gray-500 italic py-16">
+              No games found for the selected date.
             </p>
           )}
-        </div>
+
+        {/* Game Details Modal */}
+        {selectedGame && (
+          <GameDetailsModal
+            gameId={'gameId' in selectedGame ? selectedGame.gameId : selectedGame.game_id}
+            open={!!selectedGame}
+            onClose={() => setSelectedGame(null)}
+          />
+        )}
       </div>
     </div>
   );

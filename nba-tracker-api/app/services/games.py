@@ -4,7 +4,12 @@ from typing import List, Optional
 from fastapi import HTTPException
 from nba_api.stats.endpoints import BoxScoreSummaryV2, BoxScoreTraditionalV2
 
-from app.schemas.game import GameDetailsResponse, GameSummary, PlayerGameEntry, PlayerGameStats
+from app.schemas.game import (
+    GameDetailsResponse,
+    GameSummary,
+    PlayerGameEntry,
+    PlayerGameStats,
+)
 
 
 async def getGameDetails(game_id: str) -> GameDetailsResponse:
