@@ -7,22 +7,36 @@ import { useNavigate } from 'react-router-dom';
 interface GameCardProps {
   game: Game | GameSummary;
   setSelectedGame?: (game: Game | GameSummary) => void;
+  hideScore?: boolean; // Optional prop to control score rendering
 }
 
-const GameCard: React.FC<GameCardProps> = ({ game }) => {
+const GameCard: React.FC<GameCardProps> = ({ game, hideScore = false }) => {
   const isLiveGame = 'homeTeam' in game;
 
-  const homeTeam = isLiveGame ? game.homeTeam?.teamTricode : game.home_team?.team_abbreviation;
+  const homeTeam = isLiveGame
+    ? game.homeTeam?.teamTricode
+    : game.home_team?.team_abbreviation;
+  const awayTeam = isLiveGame
+    ? game.awayTeam?.teamTricode
+    : game.away_team?.team_abbreviation;
 
-  const awayTeam = isLiveGame ? game.awayTeam?.teamTricode : game.away_team?.team_abbreviation;
+  const homeScore = isLiveGame
+    ? (game.homeTeam?.score ?? 0)
+    : (game.home_team?.points ?? 0);
+  const awayScore = isLiveGame
+    ? (game.awayTeam?.score ?? 0)
+    : (game.away_team?.points ?? 0);
 
-  const homeScore = isLiveGame ? (game.homeTeam?.score ?? 0) : (game.home_team?.points ?? 0);
-  const awayScore = isLiveGame ? (game.awayTeam?.score ?? 0) : (game.away_team?.points ?? 0);
-
-  const homeId = isLiveGame ? game.homeTeam?.teamId : game.home_team?.team_id;
-  const awayId = isLiveGame ? game.awayTeam?.teamId : game.away_team?.team_id;
+  const homeId = isLiveGame
+    ? game.homeTeam?.teamId
+    : game.home_team?.team_id;
+  const awayId = isLiveGame
+    ? game.awayTeam?.teamId
+    : game.away_team?.team_id;
 
   const status = isLiveGame ? game.gameStatusText : game.game_status || '';
+  const period = isLiveGame ? game.period : null;
+  const gameClock = isLiveGame ? game.gameClock : null;
   const displayStatus = status || 'Scheduled';
 
   const gameTime = isLiveGame
@@ -35,44 +49,56 @@ const GameCard: React.FC<GameCardProps> = ({ game }) => {
       ? format(parseISO(game.game_date), 'h:mm a')
       : 'TBD';
 
+  const isLive = status.includes('LIVE');
+  const isFinal = status.includes('FINAL');
   const isNotStarted = status.startsWith('Start:') || status.startsWith('0Q') || status === '';
 
   const statusColor = React.useMemo(() => {
-    if (status.includes('LIVE')) return 'bg-red-600 text-white';
-    if (status.includes('FINAL')) return 'bg-black text-white';
+    if (isLive) return 'bg-red-600 text-white';
+    if (isFinal) return 'bg-black text-white';
     return 'bg-neutral-900 text-gray-300';
-  }, [status]);
+  }, [isLive, isFinal]);
+
+  const centralInfo = React.useMemo(() => {
+    if (isNotStarted) {
+      return gameTime;
+    }
+    if (isLive && period && gameClock) {
+      return `${period}Q ${gameClock}`;
+    }
+    return displayStatus;
+  }, [isNotStarted, isLive, period, gameClock, gameTime, displayStatus]);
 
   return (
     <div
-      className="relative bg-black rounded-md md:rounded-lg shadow-md transition duration-200 p-3 md:p-4 mb-2 md:mb-3 w-full max-w-full"
-      style={{ height: '120px' }}
+      className="bg-black rounded-md md:rounded-lg transition duration-200 p-3 md:p-4 mb-2 md:mb-3 w-full max-w-full flex items-center justify-between"
+      style={{ height: '100px' }}
     >
-      <div className="flex justify-between items-center h-full">
-        <TeamInfo
-          teamName={isLiveGame ? game.awayTeam?.teamName : awayTeam}
-          tricode={awayTeam}
-          score={awayScore}
-          isWinner={awayScore > homeScore}
-          isHomeTeam={false}
-          teamId={awayId}
-        />
+      <TeamInfo
+        teamName={isLiveGame ? game.awayTeam?.teamName : awayTeam}
+        tricode={awayTeam}
+        score={awayScore}
+        isWinner={awayScore > homeScore}
+        isHomeTeam={false}
+        teamId={awayId}
+        hideScore={hideScore} // Passing hideScore prop to TeamInfo
+      />
 
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <p className={`px-2 py-1 rounded-md text-sm md:text-base font-semibold ${statusColor}`}>
-            {isNotStarted ? gameTime : displayStatus}
-          </p>
-        </div>
-
-        <TeamInfo
-          teamName={isLiveGame ? game.homeTeam?.teamName : homeTeam}
-          tricode={homeTeam}
-          score={homeScore}
-          isWinner={homeScore > awayScore}
-          isHomeTeam={true}
-          teamId={homeId}
-        />
+      <div className="flex flex-col items-center justify-center">
+        <p className={`px-2 py-1 rounded-md text-xs md:text-sm font-semibold ${statusColor}`}>
+          {centralInfo}
+        </p>
       </div>
+
+      <TeamInfo
+        teamName={isLiveGame ? game.homeTeam?.teamName : homeTeam}
+        tricode={homeTeam}
+        score={homeScore}
+        isWinner={homeScore > awayScore}
+        isHomeTeam={true}
+        teamId={homeId}
+        hideScore={hideScore} // Passing hideScore prop to TeamInfo
+      />
     </div>
   );
 };
@@ -84,6 +110,7 @@ interface TeamInfoProps {
   isHomeTeam: boolean;
   isWinner?: boolean;
   teamId?: number | null;
+  hideScore?: boolean; // Prop to control score rendering
 }
 
 const TeamInfo: React.FC<TeamInfoProps> = ({
@@ -93,6 +120,7 @@ const TeamInfo: React.FC<TeamInfoProps> = ({
   isHomeTeam,
   isWinner,
   teamId,
+  hideScore = false,
 }) => {
   const logoSrc = teamLogos[tricode || 'NBA'] || teamLogos['NBA'];
   const navigate = useNavigate();
@@ -109,18 +137,18 @@ const TeamInfo: React.FC<TeamInfoProps> = ({
           <img
             src={logoSrc}
             alt={`${teamName || tricode} logo`}
-            className="w-10 h-10 md:w-12 md:h-12 object-contain"
+            className="w-8 h-8 md:w-10 md:h-10 object-contain"
           />
         )}
         <div className={isHomeTeam ? 'text-right' : 'text-left'}>
-          <p className="text-base md:text-lg font-semibold text-blue-300 whitespace-nowrap">
+          <p className="text-sm md:text-base font-semibold text-blue-300 whitespace-nowrap">
             {tricode || teamName || 'N/A'}
           </p>
         </div>
       </div>
 
       <p className={`text-lg md:text-xl font-bold ${isWinner ? 'text-blue-400' : 'text-white'}`}>
-        {score}
+        {hideScore ? '' : score}
       </p>
     </div>
   );

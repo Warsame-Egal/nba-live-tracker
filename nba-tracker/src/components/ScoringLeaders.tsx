@@ -5,6 +5,9 @@ interface ScoringLeadersProps {
   selectedGame: Game;
 }
 
+// Optional encoding fix helper
+const fixEncoding = (str: string) => decodeURIComponent(escape(str));
+
 const ScoringLeaders = ({ selectedGame }: ScoringLeadersProps) => {
   const { gameLeaders } = selectedGame;
 
@@ -57,7 +60,7 @@ const LeaderRow = ({ leader }: LeaderRowProps) => {
           src={avatarUrl}
           alt={leader.name}
           className="w-8 h-8 rounded-full object-cover"
-          onError={e => {
+          onError={(e) => {
             e.currentTarget.onerror = null;
             e.currentTarget.src = '';
           }}
@@ -68,7 +71,7 @@ const LeaderRow = ({ leader }: LeaderRowProps) => {
           to={`/players/${leader.personId}`}
           className="text-white font-semibold hover:underline"
         >
-          {leader.name}
+          {fixEncoding(leader.name)}
         </Link>
         <span className="text-gray-400">
           {leader.points} PTS • {leader.rebounds} REB • {leader.assists} AST

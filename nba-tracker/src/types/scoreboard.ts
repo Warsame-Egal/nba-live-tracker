@@ -112,3 +112,38 @@ export interface PbOdds {
   odds: number;
   suspended: number;
 }
+
+export interface BoxScoreResponse {
+  game_id: string;
+  status: string;
+  home_team: TeamBoxScoreStats;
+  away_team: TeamBoxScoreStats;
+}
+
+export interface TeamBoxScoreStats {
+  team_id: number;
+  team_name: string;
+  score: number;
+  field_goal_pct: number;
+  three_point_pct: number;
+  free_throw_pct: number;
+  rebounds_total: number;
+  assists: number;
+  steals: number;
+  blocks: number;
+  turnovers: number;
+  players: PlayerBoxScoreStats[];
+}
+
+export interface PlayerBoxScoreStats {
+  player_id: number;
+  name: string;
+  position: string;
+  minutes?: string;
+  points: number;
+  rebounds: number;
+  assists: number;
+  steals: number;
+  blocks: number;
+  turnovers: number;
+}
