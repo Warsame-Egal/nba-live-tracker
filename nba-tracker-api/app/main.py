@@ -54,6 +54,11 @@ app = FastAPI(
     lifespan=lifespan,  # Starts WebSocket broadcasting on app startup
 )
 
+origins = [
+    "http://localhost:3000",
+    "https://nba-frontend.onrender.com"
+]
+
 # Enable Cross-Origin Resource Sharing frontend access
 app.add_middleware(
     CORSMiddleware,
