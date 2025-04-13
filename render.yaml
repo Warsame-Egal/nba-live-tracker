@@ -20,7 +20,7 @@ services:
     branch: main
     rootDir: nba-tracker
     buildCommand: "npm install && npm run build"
-    startCommand: "vite preview --host 0.0.0.0 --port $PORT"
+    startCommand: "npx vite preview --host 0.0.0.0 --port $PORT"
     envVars:
       - key: PORT
         value: 3000
