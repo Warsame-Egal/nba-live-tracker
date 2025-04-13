@@ -6,10 +6,6 @@ services:
     container_name: nba-backend
     ports:
       - "8000:8000"
-    depends_on:
-      - redis
-    environment:
-      - REDIS_HOST=redis
     networks:
       - nba-network
 
@@ -18,14 +14,6 @@ services:
     container_name: nba-frontend
     ports:
       - "3000:3000"
-    networks:
-      - nba-network
-
-  redis:
-    image: redis:7-alpine
-    container_name: nba-redis
-    ports:
-      - "6379:6379"
     networks:
       - nba-network
 

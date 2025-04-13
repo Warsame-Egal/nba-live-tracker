@@ -4,7 +4,7 @@ from nba_api.stats.static import teams
 
 from app.schemas.schedule import GamesResponse, GameSummary, TeamSummary, TopScorer
 
-# Constant Map team IDs to abbreviations for quick lookup
+# Map team IDs to abbreviations for quick lookup
 NBA_TEAMS = {team["id"]: team["abbreviation"] for team in teams.get_teams()}
 
 
@@ -43,6 +43,17 @@ async def getGamesForDate(date: str) -> GamesResponse:
             game_id = game_dict["GAME_ID"]
             home_team_id = game_dict.get("HOME_TEAM_ID")
             away_team_id = game_dict.get("VISITOR_TEAM_ID")
+
+            # Skip if either team ID is missing
+            if home_team_id is None or away_team_id is None:
+                continue
+
+            # Ensure both IDs are integers (not None or string)
+            try:
+                home_team_id = int(home_team_id)
+                away_team_id = int(away_team_id)
+            except (TypeError, ValueError):
+                continue
 
             home_score = next(
                 (

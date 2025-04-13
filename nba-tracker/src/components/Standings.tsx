@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { StandingRecord, StandingsResponse } from '../types/standings';
 import Navbar from '../components/Navbar';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
 const teamMappings: { [key: string]: { abbreviation: string; logo: string } } = {
   'Atlanta Hawks': { abbreviation: 'ATL', logo: '/logos/ATL.svg' },
   'Boston Celtics': { abbreviation: 'BOS', logo: '/logos/BOS.svg' },
@@ -50,7 +52,7 @@ const Standings = () => {
     const fetchStandings = async () => {
       setLoading(true);
       try {
-        const res = await fetch(`http://localhost:8000/api/v1/standings/season/${seasonParam}`);
+        const res = await fetch(`${API_BASE_URL}/api/v1/standings/season/${seasonParam}`);
         if (!res.ok) throw new Error('Failed to fetch standings.');
         const data: StandingsResponse = await res.json();
         setStandings(data.standings);

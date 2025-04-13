@@ -5,6 +5,8 @@ import { format } from 'date-fns';
 import { enUS } from 'date-fns/locale';
 import Navbar from '../components/Navbar';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
 const PlayerProfile: React.FC = () => {
   const { playerId } = useParams<{ playerId: string }>();
   const [player, setPlayer] = useState<PlayerSummary | null>(null);
@@ -18,7 +20,7 @@ const PlayerProfile: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch(`http://localhost:8000/api/v1/player/${playerId}`);
+        const response = await fetch(`${API_BASE_URL}/api/v1/player/${playerId}`);
         if (!response.ok) throw new Error('Failed to fetch player');
         const data: PlayerSummary = await response.json();
         setPlayer(data);

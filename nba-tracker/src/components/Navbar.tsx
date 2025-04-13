@@ -11,9 +11,6 @@ const Navbar = () => {
           <Link to="/" className="hover:text-white">
             Home
           </Link>
-          <Link to="/players" className="hover:text-white">
-            Stats
-          </Link>
           <Link to="/standings" className="hover:text-white">
             Standings
           </Link>
