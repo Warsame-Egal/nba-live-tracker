@@ -27,4 +27,4 @@ services:
       - key: VITE_API_BASE_URL
         value: https://nba-backend-kpmp.onrender.com
       - key: VITE_WS_URL
-        value: wss://nba-backend-kpmp.onrender.com/api/v1/ws
+        value: nba-backend-kpmp.onrender.com
