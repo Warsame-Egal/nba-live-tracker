@@ -54,12 +54,12 @@ app = FastAPI(
     lifespan=lifespan,  # Starts WebSocket broadcasting on app startup
 )
 
-origins = ["http://localhost:3000", "https://nba-frontend.onrender.com"]
+origins = ["http://localhost:5173", "https://nba-frontend.onrender.com"]
 
 # Enable Cross-Origin Resource Sharing frontend access
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allows requests from any React Vite
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],  # Allows all HTTP methods
     allow_headers=["*"],
