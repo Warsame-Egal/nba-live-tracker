@@ -9,7 +9,11 @@ class PlayByPlayWebSocketService {
     if (this.socket) return; // Prevent duplicate connections
 
     this.shouldReconnect = true;
-    const url = `ws://127.0.0.1:8000/api/v1/ws/${gameId}/play-by-play`;
+    // Dynamically set ws/wss + host
+    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    const host = import.meta.env.VITE_WS_URL || 'localhost:8000';
+    const url = `${protocol}://${host}/api/v1/ws/${gameId}/play-by-play`;
+    
     this.socket = new WebSocket(url);
 
     this.socket.onopen = () => {

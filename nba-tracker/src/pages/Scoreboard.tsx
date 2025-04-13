@@ -12,7 +12,7 @@ import ScoringLeaders from '../components/ScoringLeaders';
 import debounce from 'lodash/debounce';
 import { FaSearch, FaTimes, FaSpinner } from 'react-icons/fa';
 
-const SCOREBOARD_WEBSOCKET_URL = import.meta.env.VITE_WS_URL;
+const SCOREBOARD_WEBSOCKET_URL = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${import.meta.env.VITE_WS_URL}`;
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 
