@@ -14,18 +14,14 @@ async def getPlayer(player_id: str) -> PlayerSummary:
     """
     try:
         # Get player index to fetch player details
-        player_index_data = playerindex.PlayerIndex(
-            historical_nullable=HistoricalNullable.all_time
-        )
+        player_index_data = playerindex.PlayerIndex(historical_nullable=HistoricalNullable.all_time)
         player_index_df = player_index_data.get_data_frames()[0]
 
         player_id_int = int(player_id)
         player_row = player_index_df[player_index_df["PERSON_ID"] == player_id_int]
 
         if player_row.empty:
-            raise HTTPException(
-                status_code=404, detail="Player not found in player index"
-            )
+            raise HTTPException(status_code=404, detail="Player not found in player index")
 
         player_data = player_row.iloc[0].to_dict()
 
@@ -41,12 +37,8 @@ async def getPlayer(player_id: str) -> PlayerSummary:
         recent_games = [
             PlayerGamePerformance(
                 game_id=row[game_headers.index("Game_ID")],  # Link game ID
-                date=pd.to_datetime(row[game_headers.index("GAME_DATE")]).strftime(
-                    "%Y-%m-%d"
-                ),
-                opponent_team_abbreviation=row[game_headers.index("MATCHUP")][
-                    -3:
-                ],  # Extract opponent team
+                date=pd.to_datetime(row[game_headers.index("GAME_DATE")]).strftime("%Y-%m-%d"),
+                opponent_team_abbreviation=row[game_headers.index("MATCHUP")][-3:],  # Extract opponent team
                 points=row[game_headers.index("PTS")],
                 rebounds=row[game_headers.index("REB")],
                 assists=row[game_headers.index("AST")],
@@ -96,37 +88,27 @@ async def search_players(search_term: str) -> List[PlayerSummary]:
     Optimized NBA player search by first, last, or full name (partial match).
     """
     try:
-        player_index_data = playerindex.PlayerIndex(
-            historical_nullable=HistoricalNullable.all_time
-        )
+        player_index_data = playerindex.PlayerIndex(historical_nullable=HistoricalNullable.all_time)
         player_index_df = player_index_data.get_data_frames()[0]
 
         # Create a lower-cased full name column once
         player_index_df["FULL_NAME"] = (
-            player_index_df["PLAYER_FIRST_NAME"].fillna("")
-            + " "
-            + player_index_df["PLAYER_LAST_NAME"].fillna("")
+            player_index_df["PLAYER_FIRST_NAME"].fillna("") + " " + player_index_df["PLAYER_LAST_NAME"].fillna("")
         ).str.lower()
 
         search_term_lower = search_term.lower()
 
         # Filter with vectorized string matching
         mask = (
-            player_index_df["PLAYER_FIRST_NAME"]
-            .str.lower()
-            .str.contains(search_term_lower)
-            | player_index_df["PLAYER_LAST_NAME"]
-            .str.lower()
-            .str.contains(search_term_lower)
+            player_index_df["PLAYER_FIRST_NAME"].str.lower().str.contains(search_term_lower)
+            | player_index_df["PLAYER_LAST_NAME"].str.lower().str.contains(search_term_lower)
             | player_index_df["FULL_NAME"].str.contains(search_term_lower)
         )
 
         filtered_players = player_index_df[mask]
 
         if filtered_players.empty:
-            raise HTTPException(
-                status_code=404, detail="No players found matching the search term"
-            )
+            raise HTTPException(status_code=404, detail="No players found matching the search term")
 
         # Build response list
         player_summaries = []
@@ -152,11 +134,7 @@ async def search_players(search_term: str) -> List[PlayerSummary]:
                 WEIGHT=row.get("WEIGHT"),
                 COLLEGE=row.get("COLLEGE"),
                 COUNTRY=row.get("COUNTRY"),
-                ROSTER_STATUS=(
-                    str(row.get("ROSTER_STATUS"))
-                    if not pd.isna(row.get("ROSTER_STATUS"))
-                    else None
-                ),
+                ROSTER_STATUS=(str(row.get("ROSTER_STATUS")) if not pd.isna(row.get("ROSTER_STATUS")) else None),
                 PTS=row.get("PTS"),
                 REB=row.get("REB"),
                 AST=row.get("AST"),

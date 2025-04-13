@@ -7,9 +7,7 @@ class TeamSummary(BaseModel):
     """Minimal team data relevant to the scoreboard app."""
 
     team_id: int = Field(..., description="Unique team identifier.")
-    team_abbreviation: str = Field(
-        ..., description="Team abbreviation (e.g., LAL, BOS)."
-    )
+    team_abbreviation: str = Field(..., description="Team abbreviation (e.g., LAL, BOS).")
     points: Optional[int] = Field(None, description="Total points scored by the team.")
 
 
@@ -40,6 +38,4 @@ class GameSummary(BaseModel):
 class GamesResponse(BaseModel):
     """Response model for past and present games selected by date."""
 
-    games: List[GameSummary] = Field(
-        ..., description="List of games on the selected date."
-    )
+    games: List[GameSummary] = Field(..., description="List of games on the selected date.")

@@ -73,9 +73,7 @@ class ScoreboardWebSocketManager:
                         return True
 
             except KeyError as e:
-                print(
-                    f"KeyError in has_game_data_changed(): {e}. Game data: {json.dumps(new_game, indent=2)}"
-                )
+                print(f"KeyError in has_game_data_changed(): {e}. Game data: {json.dumps(new_game, indent=2)}")
 
         return has_changes
 
@@ -120,9 +118,7 @@ class PlayByPlayWebSocketManager:
     """Manages WebSocket connections for real-time NBA Play-by-Play updates."""
 
     def __init__(self):
-        self.active_connections: Dict[str, Set[WebSocket]] = (
-            {}
-        )  # {game_id: set(WebSockets)}
+        self.active_connections: Dict[str, Set[WebSocket]] = {}  # {game_id: set(WebSockets)}
         self.current_playbyplay: Dict[str, List[Dict]] = {}  # {game_id: list of plays}
         self._lock = asyncio.Lock()
         self.last_update_timestamp: Dict[str, float] = {}
@@ -144,9 +140,7 @@ class PlayByPlayWebSocketManager:
             self.active_connections[game_id].discard(websocket)
             print(f"WebSocket disconnected: {websocket} for game {game_id}")
 
-            if not self.active_connections[
-                game_id
-            ]:  # If no more connections, clean up data
+            if not self.active_connections[game_id]:  # If no more connections, clean up data
                 del self.active_connections[game_id]
                 del self.current_playbyplay[game_id]
 
@@ -161,9 +155,7 @@ class PlayByPlayWebSocketManager:
         except Exception as e:
             print(f"Error sending initial Play-by-Play data: {e}")
 
-    def has_playbyplay_changed(
-        self, new_data: List[Dict], old_data: List[Dict]
-    ) -> bool:
+    def has_playbyplay_changed(self, new_data: List[Dict], old_data: List[Dict]) -> bool:
         """Checks if Play-by-Play data has changed significantly."""
         current_time = time.time()
         has_changes = False
@@ -189,19 +181,13 @@ class PlayByPlayWebSocketManager:
                         playbyplay_data = await getPlayByPlay(game_id)
                         standardized_data = playbyplay_data.model_dump()
 
-                        previous_playbyplay = copy.deepcopy(
-                            self.current_playbyplay.get(game_id, [])
-                        )
+                        previous_playbyplay = copy.deepcopy(self.current_playbyplay.get(game_id, []))
                         self.current_playbyplay[game_id] = standardized_data["plays"]
 
-                        if not self.has_playbyplay_changed(
-                            self.current_playbyplay[game_id], previous_playbyplay
-                        ):
+                        if not self.has_playbyplay_changed(self.current_playbyplay[game_id], previous_playbyplay):
                             continue
 
-                        print(
-                            f"Broadcasting {len(self.current_playbyplay[game_id])} new plays for game {game_id}"
-                        )
+                        print(f"Broadcasting {len(self.current_playbyplay[game_id])} new plays for game {game_id}")
 
                         disconnected_clients = []
                         for connection in list(self.active_connections[game_id]):

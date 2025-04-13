@@ -6,9 +6,7 @@ from pydantic import BaseModel, Field
 class TeamDetails(BaseModel):
     team_id: int = Field(..., description="Unique ID for the team")
     team_name: str = Field(..., description="Team's full name")
-    conference: str = Field(
-        ..., description="Conference the team belongs to (East/West)"
-    )
+    conference: str = Field(..., description="Conference the team belongs to (East/West)")
     division: str = Field(..., description="Division within the conference")
     wins: int = Field(..., description="Total wins in the current season")
     losses: int = Field(..., description="Total losses in the current season")
@@ -49,9 +47,7 @@ class TeamDetailsResponse(BaseModel):
     head_coach: Optional[str] = None  # Team head coach
     conference: Optional[str] = None  # Conference (e.g., "East", "West")
     division: Optional[str] = None  # Division (e.g., "Pacific", "Atlantic")
-    team_history: Optional[List[dict]] = (
-        None  # List of dictionaries containing team history
-    )
+    team_history: Optional[List[dict]] = None  # List of dictionaries containing team history
     team_awards_championships: Optional[List[dict]] = None  # List of championships won
     team_awards_conf: Optional[List[dict]] = None  # List of conference titles
     team_awards_div: Optional[List[dict]] = None  # List of division titles
