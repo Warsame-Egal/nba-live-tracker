@@ -52,7 +52,9 @@ async def websocket_endpoint(websocket: WebSocket):
         # Keep the WebSocket connection open and listen for incoming messages
         while True:
             data = await websocket.receive_text()  # Receive message from client
-            print(f"Received: {data}")  # Log incoming messages (if needed for debugging)
+            print(
+                f"Received: {data}"
+            )  # Log incoming messages (if needed for debugging)
 
     except WebSocketDisconnect:
         # Handle client disconnection

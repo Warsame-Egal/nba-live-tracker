@@ -14,14 +14,24 @@ async def getGamesForDate(date: str) -> GamesResponse:
         games_data = scoreboardv2.ScoreboardV2(game_date=date).get_dict()
 
         if "resultSets" not in games_data or not games_data["resultSets"]:
-            raise HTTPException(status_code=404, detail=f"No game data found for {date}")
+            raise HTTPException(
+                status_code=404, detail=f"No game data found for {date}"
+            )
 
-        game_header_data = next((r for r in games_data["resultSets"] if r["name"] == "GameHeader"), None)
-        team_leaders_data = next((r for r in games_data["resultSets"] if r["name"] == "TeamLeaders"), None)
-        line_score_data = next((r for r in games_data["resultSets"] if r["name"] == "LineScore"), None)
+        game_header_data = next(
+            (r for r in games_data["resultSets"] if r["name"] == "GameHeader"), None
+        )
+        team_leaders_data = next(
+            (r for r in games_data["resultSets"] if r["name"] == "TeamLeaders"), None
+        )
+        line_score_data = next(
+            (r for r in games_data["resultSets"] if r["name"] == "LineScore"), None
+        )
 
         if not game_header_data or "rowSet" not in game_header_data:
-            raise HTTPException(status_code=404, detail=f"No game header data found for {date}")
+            raise HTTPException(
+                status_code=404, detail=f"No game header data found for {date}"
+            )
 
         game_headers = game_header_data["headers"]
         games_list = game_header_data["rowSet"]
@@ -95,7 +105,9 @@ async def getGamesForDate(date: str) -> GamesResponse:
                         rebounds=d.get("REB", 0),
                         assists=d.get("AST", 0),
                     )
-                    for d in (dict(zip(team_leaders_headers, l)) for l in team_leaders_list)
+                    for d in (
+                        dict(zip(team_leaders_headers, l)) for l in team_leaders_list
+                    )
                     if d.get("GAME_ID") == game_id
                 ),
                 None,

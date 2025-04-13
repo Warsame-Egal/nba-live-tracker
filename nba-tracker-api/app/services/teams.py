@@ -17,15 +17,23 @@ async def get_team(team_id: int) -> TeamDetailsResponse:
         team_details_data = TeamDetails(team_id=team_id).get_dict()
 
         # Validation: Check if data is present
-        if not team_details_data or "resultSets" not in team_details_data or not team_details_data["resultSets"]:
-            raise HTTPException(status_code=404, detail=f"Team with ID {team_id} not found")
+        if (
+            not team_details_data
+            or "resultSets" not in team_details_data
+            or not team_details_data["resultSets"]
+        ):
+            raise HTTPException(
+                status_code=404, detail=f"Team with ID {team_id} not found"
+            )
 
         team_background_data = team_details_data["resultSets"][0]
         team_background_headers = team_background_data["headers"]
         team_background_rows = team_background_data["rowSet"]
 
         if not team_background_rows:
-            raise HTTPException(status_code=404, detail=f"Team with ID {team_id} not found")
+            raise HTTPException(
+                status_code=404, detail=f"Team with ID {team_id} not found"
+            )
 
         team_background = dict(zip(team_background_headers, team_background_rows[0]))
 
@@ -48,7 +56,9 @@ async def get_team(team_id: int) -> TeamDetailsResponse:
     except HTTPException as http_exception:
         raise http_exception
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}") from e
+        raise HTTPException(
+            status_code=500, detail=f"An error occurred: {str(e)}"
+        ) from e
 
 
 async def search_teams(search_term: str) -> List[TeamSummary]:
@@ -61,7 +71,9 @@ async def search_teams(search_term: str) -> List[TeamSummary]:
 
         # Create a lower-cased full name column once
         team_list_data["full_name_lower"] = (
-            team_list_data["city"].str.lower() + " " + team_list_data["nickname"].str.lower()
+            team_list_data["city"].str.lower()
+            + " "
+            + team_list_data["nickname"].str.lower()
         )
 
         search_term_lower = search_term.lower()
@@ -70,14 +82,18 @@ async def search_teams(search_term: str) -> List[TeamSummary]:
         mask = (
             team_list_data["city"].str.lower().str.contains(search_term_lower)
             | team_list_data["nickname"].str.lower().str.contains(search_term_lower)
-            | team_list_data["full_name_lower"].str.lower().str.contains(search_term_lower)
+            | team_list_data["full_name_lower"]
+            .str.lower()
+            .str.contains(search_term_lower)
             | team_list_data["abbreviation"].str.lower().str.contains(search_term_lower)
         )
 
         filtered_teams = team_list_data[mask]
 
         if filtered_teams.empty:
-            raise HTTPException(status_code=404, detail="No teams found matching the search term")
+            raise HTTPException(
+                status_code=404, detail="No teams found matching the search term"
+            )
 
         # Build response list
         team_summaries = []

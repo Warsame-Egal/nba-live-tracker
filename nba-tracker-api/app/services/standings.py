@@ -25,7 +25,9 @@ async def getSeasonStandings(season: str) -> StandingsResponse:
         df = standings.get_data_frames()[0]
 
         if df.empty:
-            raise HTTPException(status_code=404, detail=f"No standings found for season {season}")
+            raise HTTPException(
+                status_code=404, detail=f"No standings found for season {season}"
+            )
 
         df.replace({np.nan: None}, inplace=True)
 
@@ -58,7 +60,9 @@ async def getSeasonStandings(season: str) -> StandingsResponse:
         return StandingsResponse(standings=standings_list)
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching season standings: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Error fetching season standings: {e}"
+        )
 
 
 async def getTeamStandings(team_id: int, season: str) -> StandingRecord:
@@ -66,12 +70,16 @@ async def getTeamStandings(team_id: int, season: str) -> StandingRecord:
     Fetches and structures the standings for a specific NBA team.
     """
     try:
-        standings = leaguestandingsv3.LeagueStandingsV3(league_id="00", season=season, season_type="Regular Season")
+        standings = leaguestandingsv3.LeagueStandingsV3(
+            league_id="00", season=season, season_type="Regular Season"
+        )
 
         df = standings.get_data_frames()[0]
 
         if df.empty:
-            raise HTTPException(status_code=404, detail=f"No standings found for season {season}")
+            raise HTTPException(
+                status_code=404, detail=f"No standings found for season {season}"
+            )
 
         df.replace({np.nan: None}, inplace=True)
 
@@ -109,4 +117,6 @@ async def getTeamStandings(team_id: int, season: str) -> StandingRecord:
         )
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching team standings: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Error fetching team standings: {e}"
+        )

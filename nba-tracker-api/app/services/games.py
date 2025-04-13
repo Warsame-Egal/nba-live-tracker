@@ -25,7 +25,9 @@ async def getGameDetails(game_id: str) -> GameDetailsResponse:
         if not game_summary_data:
             raise HTTPException(status_code=404, detail="Game summary not available")
 
-        game_summary = dict(zip(raw_data["resultSets"][0]["headers"], game_summary_data[0]))
+        game_summary = dict(
+            zip(raw_data["resultSets"][0]["headers"], game_summary_data[0])
+        )
 
         # Extract Players from `BoxScoreTraditionalV2`
         player_stats_data = stats_data["resultSets"][0]["rowSet"]
@@ -65,7 +67,9 @@ async def getGameDetails(game_id: str) -> GameDetailsResponse:
 
 async def getGamePlayers(game_id: str) -> List[PlayerGameEntry]:
     try:
-        stats_data = BoxScoreTraditionalV2(game_id=game_id).get_dict()  # Fetch player stats
+        stats_data = BoxScoreTraditionalV2(
+            game_id=game_id
+        ).get_dict()  # Fetch player stats
 
         if "resultSets" not in stats_data:
             raise HTTPException(status_code=404, detail="No game data found")
@@ -80,17 +84,27 @@ async def getGamePlayers(game_id: str) -> List[PlayerGameEntry]:
         players = [
             PlayerGameEntry(
                 player_id=row[player_stats_headers.index("PLAYER_ID")],
-                first_name=row[player_stats_headers.index("PLAYER_NAME")].split(" ")[0],  # Extract first name
-                last_name=row[player_stats_headers.index("PLAYER_NAME")].split(" ")[-1],  # Extract last name
+                first_name=row[player_stats_headers.index("PLAYER_NAME")].split(" ")[
+                    0
+                ],  # Extract first name
+                last_name=row[player_stats_headers.index("PLAYER_NAME")].split(" ")[
+                    -1
+                ],  # Extract last name
                 team_abbreviation=row[player_stats_headers.index("TEAM_ABBREVIATION")],
                 team_id=row[player_stats_headers.index("TEAM_ID")],
-                position=(row[player_stats_headers.index("START_POSITION")] if has_start_position else None),
+                position=(
+                    row[player_stats_headers.index("START_POSITION")]
+                    if has_start_position
+                    else None
+                ),
             )
             for row in player_stats_data
         ]
 
         if not players:
-            raise HTTPException(status_code=404, detail="No players found for this game")
+            raise HTTPException(
+                status_code=404, detail="No players found for this game"
+            )
 
         return players
 
@@ -133,13 +147,17 @@ async def getGameStats(game_id: str) -> List[PlayerGameStats]:
         stats = [
             PlayerGameStats(
                 player_id=row[player_stats_headers.index("PLAYER_ID")],
-                player_name=row[player_stats_headers.index("PLAYER_NAME")],  # Corrected line
+                player_name=row[
+                    player_stats_headers.index("PLAYER_NAME")
+                ],  # Corrected line
                 team_id=row[player_stats_headers.index("TEAM_ID")],
                 team_abbreviation=row[player_stats_headers.index("TEAM_ABBREVIATION")],
                 points=row[player_stats_headers.index("PTS")],
                 rebounds=row[player_stats_headers.index("REB")],
                 assists=row[player_stats_headers.index("AST")],
-                minutes=clean_and_convert_minutes(row[player_stats_headers.index("MIN")]),
+                minutes=clean_and_convert_minutes(
+                    row[player_stats_headers.index("MIN")]
+                ),
                 steals=row[player_stats_headers.index("STL")],
                 blocks=row[player_stats_headers.index("BLK")],
                 turnovers=row[player_stats_headers.index("TO")],
@@ -148,7 +166,9 @@ async def getGameStats(game_id: str) -> List[PlayerGameStats]:
         ]
 
         if not stats:
-            raise HTTPException(status_code=404, detail="No players stats found for this game")
+            raise HTTPException(
+                status_code=404, detail="No players stats found for this game"
+            )
 
         return stats
 

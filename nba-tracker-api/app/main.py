@@ -25,8 +25,12 @@ async def lifespan(app: FastAPI):
     print("Starting WebSocket broadcasting...")
 
     # Start background tasks for both Scoreboard and Play-by-Play
-    scoreboard_task = asyncio.create_task(scoreboard_websocket_manager.broadcast_updates())
-    playbyplay_task = asyncio.create_task(playbyplay_websocket_manager.broadcast_playbyplay_updates())
+    scoreboard_task = asyncio.create_task(
+        scoreboard_websocket_manager.broadcast_updates()
+    )
+    playbyplay_task = asyncio.create_task(
+        playbyplay_websocket_manager.broadcast_playbyplay_updates()
+    )
 
     try:
         yield  # Keep broadcasting active while the app runs
@@ -54,10 +58,7 @@ app = FastAPI(
     lifespan=lifespan,  # Starts WebSocket broadcasting on app startup
 )
 
-origins = [
-    "http://localhost:3000",
-    "https://nba-frontend.onrender.com"
-]
+origins = ["http://localhost:3000", "https://nba-frontend.onrender.com"]
 
 # Enable Cross-Origin Resource Sharing frontend access
 app.add_middleware(
