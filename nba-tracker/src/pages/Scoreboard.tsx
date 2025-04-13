@@ -12,23 +12,23 @@ import ScoringLeaders from '../components/ScoringLeaders';
 import debounce from 'lodash/debounce';
 import { FaSearch, FaTimes, FaSpinner } from 'react-icons/fa';
 
-const SCOREBOARD_WEBSOCKET_URL = 'ws://127.0.0.1:8000/api/v1/ws';
+const SCOREBOARD_WEBSOCKET_URL = import.meta.env.VITE_WS_URL;
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
 
 const getLocalISODate = (): string => {
   const tzoffset = new Date().getTimezoneOffset() * 60000;
   return new Date(Date.now() - tzoffset).toISOString().slice(0, 10);
 };
 
-// Revised helper to determine game status
+// Revised helper to determine game status remains unchanged.
 const getGameStatus = (game: Game | GameSummary): 'live' | 'upcoming' | 'completed' => {
-  // For live games (from WebSocket), check for a live game shape.
   if ('homeTeam' in game) {
     if (game.gameStatusText && game.gameStatusText.toLowerCase().includes('final')) {
       return 'completed';
     }
     return 'live';
   }
-  // Otherwise, assume GameSummary shape
   if ('game_status' in game && typeof game.game_status === 'string') {
     const lowerStatus = game.game_status.toLowerCase();
     if (lowerStatus.includes('final')) return 'completed';
@@ -51,9 +51,11 @@ const Scoreboard = () => {
   const searchQuery = searchParams.get('search') || '';
   const [playerSearchQuery, setPlayerSearchQuery] = useState('');
   const [showSearchResults, setShowSearchResults] = useState(false);
-  const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // WebSocket setup for live updates on today’s games
+  // Use a container ref that wraps both the input and the search results
+  const searchContainerRef = useRef<HTMLDivElement>(null);
+
+  // WebSocket setup for live updates on today’s games remains unchanged.
   const setupWebSocket = useCallback(() => {
     if (selectedDate === getLocalISODate()) {
       WebSocketService.connect(SCOREBOARD_WEBSOCKET_URL);
@@ -72,7 +74,7 @@ const Scoreboard = () => {
 
   useEffect(() => setupWebSocket(), [setupWebSocket]);
 
-  // Debounced player search
+  // Debounced player search remains unchanged.
   useEffect(() => {
     const abortController = new AbortController();
     const debouncedFetch = debounce(async () => {
@@ -85,7 +87,7 @@ const Scoreboard = () => {
       setShowSearchResults(true);
       try {
         const response = await fetch(
-          `http://localhost:8000/api/v1/players/search/${playerSearchQuery}`,
+          `${API_BASE_URL}/api/v1/players/search/${playerSearchQuery}`,
           { signal: abortController.signal }
         );
         if (!response.ok) throw new Error('Failed to fetch players.');
@@ -105,13 +107,13 @@ const Scoreboard = () => {
     };
   }, [playerSearchQuery]);
 
-  // Fetch games based on selected date if it’s not today
+  // Fetch games based on selected date if it’s not today remains unchanged.
   useEffect(() => {
     if (selectedDate !== getLocalISODate()) {
       const fetchGamesByDate = async (date: string) => {
         setLoading(true);
         try {
-          const response = await fetch(`http://localhost:8000/api/v1/schedule/date/${date}`);
+          const response = await fetch(`${API_BASE_URL}/api/v1/schedule/date/${date}`);
           const data: GamesResponse = await response.json();
           setGames(data.games);
           setSelectedGame(null);
@@ -125,7 +127,7 @@ const Scoreboard = () => {
     }
   }, [selectedDate]);
 
-  // Group games based on selected date and search query
+  // Group games based on selected date and search query remains unchanged.
   useEffect(() => {
     const filtered = games.filter(game => {
       if (!searchQuery) return true;
@@ -154,10 +156,10 @@ const Scoreboard = () => {
     }
   }, [games, searchQuery, selectedDate]);
 
-  // Close search results when clicking outside
+  // Update the click outside handler to check the container instead of just the input.
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (searchInputRef.current && !searchInputRef.current.contains(event.target as Node)) {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
         setShowSearchResults(false);
       }
     };
@@ -165,8 +167,7 @@ const Scoreboard = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Helper render function.
-  // When hideScore is true, we disable the container's onClick so future games do not open details.
+  // Helper render function for game cards remains unchanged.
   const renderGameCards = (
     gameList: (Game | GameSummary)[],
     hideScore: boolean = false
@@ -180,11 +181,8 @@ const Scoreboard = () => {
         >
           <GameCard game={game} hideScore={hideScore} />
           {'gameLeaders' in game && (
-                  <>
-                    <ScoringLeaders selectedGame={game as Game} />
-                  </>
-                )}
-
+            <ScoringLeaders selectedGame={game as Game} />
+          )}
         </div>
       ))}
     </div>
@@ -199,8 +197,8 @@ const Scoreboard = () => {
       <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
         {/* Top Section: Search Bar and Weekly Calendar */}
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-          {/* Search Bar */}
-          <div className="w-full md:w-1/3 relative">
+          {/* Search Bar with a container that wraps both the input and results */}
+          <div ref={searchContainerRef} className="w-full md:w-1/3 relative">
             <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
               <FaSearch className="text-gray-400" size={20} />
             </div>
@@ -209,7 +207,6 @@ const Scoreboard = () => {
               value={playerSearchQuery}
               onChange={e => setPlayerSearchQuery(e.target.value)}
               placeholder="Search players..."
-              ref={searchInputRef}
               className="w-full py-3 pl-12 pr-4 rounded-full bg-neutral-900 border border-neutral-700 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
             />
             {loading && playerSearchQuery && (
@@ -219,7 +216,6 @@ const Scoreboard = () => {
               <button
                 onClick={() => {
                   setPlayerSearchQuery('');
-                  searchInputRef.current?.focus();
                 }}
                 className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300"
               >
@@ -246,7 +242,7 @@ const Scoreboard = () => {
             )}
           </div>
 
-          {/* Weekly Calendar */}
+          {/* Weekly Calendar remains unchanged */}
           <div className="w-full md:w-auto flex justify-center">
             <WeeklyCalendar
               selectedDate={selectedDate}
@@ -255,7 +251,7 @@ const Scoreboard = () => {
           </div>
         </div>
 
-        {/* Games Display Section */}
+        {/* Games Display Section remains unchanged */}
         {loading && !playerSearchQuery && games.length === 0 ? (
           <div className="flex justify-center items-center py-20">
             <FaSpinner className="text-5xl text-blue-500 animate-spin" />
@@ -297,7 +293,7 @@ const Scoreboard = () => {
           </section>
         )}
 
-        {/* Fallback Message */}
+        {/* Fallback Message remains unchanged */}
         {!loading &&
           liveGames.length === 0 &&
           upcomingGames.length === 0 &&
@@ -308,7 +304,7 @@ const Scoreboard = () => {
             </p>
           )}
 
-        {/* Game Details Modal */}
+        {/* Game Details Modal remains unchanged */}
         {selectedGame && (
           <GameDetailsModal
             gameId={'gameId' in selectedGame ? selectedGame.gameId : selectedGame.game_id}

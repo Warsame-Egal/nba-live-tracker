@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 import { TeamRoster } from '../types/team';
 import Navbar from '../components/Navbar';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
 interface TeamDetails {
   team_id: number;
   team_name: string;
@@ -25,12 +27,12 @@ const TeamPage = () => {
   useEffect(() => {
     const fetchTeamData = async () => {
       try {
-        const res = await fetch(`http://localhost:8000/api/v1/teams/${team_id}`);
+        const res = await fetch(`${API_BASE_URL}/api/v1/teams/${team_id}`);
         if (!res.ok) throw new Error('Failed to fetch team details');
         const data = await res.json();
         setTeam(data);
 
-        const rosterRes = await fetch(`http://localhost:8000/api/v1/teams/${team_id}/roster`);
+        const rosterRes = await fetch(`${API_BASE_URL}/api/v1/teams/${team_id}/roster`);
         if (rosterRes.ok) {
           const rosterData = await rosterRes.json();
           setRoster(rosterData);

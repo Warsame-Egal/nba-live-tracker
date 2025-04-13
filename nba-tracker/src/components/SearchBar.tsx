@@ -11,6 +11,8 @@ interface SearchBarProps {
   placeholder?: string;
 }
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
 const SearchBar: React.FC<SearchBarProps> = ({
   onResults,
   setLoading,
@@ -34,7 +36,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
       setError(null);
 
       try {
-        const response = await fetch(`http://localhost:8000/api/v1/players/search/${search}`, {
+        const response = await fetch(`${API_BASE_URL}/api/v1/players/search/${search}`, {
           signal: abortController.signal,
         });
         if (!response.ok) {

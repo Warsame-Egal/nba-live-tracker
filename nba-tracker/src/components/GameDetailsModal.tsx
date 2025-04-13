@@ -4,6 +4,8 @@ import clsx from 'clsx';
 import { BoxScoreResponse, TeamBoxScoreStats, PlayerBoxScoreStats } from '../types/scoreboard';
 import PlayByPlay from './PlayByPlay';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
 interface GameDetailsModalProps {
   gameId: string | null;
   open: boolean;
@@ -21,7 +23,7 @@ const GameDetailsModal = ({ gameId, open, onClose }: GameDetailsModalProps) => {
     const fetchDetails = async () => {
       setLoading(true);
       try {
-        const res = await fetch(`http://localhost:8000/api/v1/scoreboard/game/${gameId}/boxscore`);
+        const res = await fetch(`${API_BASE_URL}/api/v1/scoreboard/game/${gameId}/boxscore`);
         const boxRes = await res.json();
         setBoxScore(boxRes);
       } catch (err) {

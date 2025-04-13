@@ -2,22 +2,19 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { TeamRoster, Player } from '../types/team';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
 const RosterPage = () => {
-  // Get the team_id from the URL parameters
   const { team_id } = useParams<{ team_id: string }>();
-  // State to hold the team roster data
   const [teamRoster, setTeamRoster] = useState<TeamRoster | null>(null);
-  // State to manage loading status
   const [loading, setLoading] = useState(true);
-  // State to manage error messages
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch the team roster data when the component mounts or team_id changes
   useEffect(() => {
     async function fetchTeamRoster() {
       try {
         const response = await fetch(
-          `http://localhost:8000/api/v1/scoreboard/team/${team_id}/roster/2024-25`,
+          `${API_BASE_URL}/api/v1/scoreboard/team/${team_id}/roster/2024-25`,
         );
 
         if (!response.ok) throw new Error('Failed to fetch roster');
@@ -51,17 +48,13 @@ const RosterPage = () => {
       </nav>
 
       {loading ? (
-        // Show loading message while fetching data
         <p className="loading">Loading roster...</p>
       ) : error ? (
-        // Show error message if there was an error fetching data
         <p className="text-center text-red-400">{error}</p>
       ) : (
         <div className="container mx-auto p-6">
-          {/* Team Roster Header */}
           <h1 className="text-3xl font-bold mb-4 text-center">{teamRoster?.team_name} Roster</h1>
 
-          {/* Roster Table */}
           <div className="overflow-x-auto">
             <table className="w-full border border-gray-700 text-left">
               <thead className="bg-black -800 text-gray-400 uppercase text-sm">
