@@ -13,7 +13,7 @@ const GameCard: React.FC<GameCardProps> = ({ game }) => {
   const isLiveGame = 'homeTeam' in game;
 
   const homeTeam = isLiveGame ? game.homeTeam?.teamTricode : game.home_team?.team_abbreviation;
-
+  
   const awayTeam = isLiveGame ? game.awayTeam?.teamTricode : game.away_team?.team_abbreviation;
 
   const homeScore = isLiveGame ? (game.homeTeam?.score ?? 0) : (game.home_team?.points ?? 0);
@@ -48,6 +48,14 @@ const GameCard: React.FC<GameCardProps> = ({ game }) => {
       className="relative bg-black rounded-md md:rounded-lg shadow-md transition duration-200 p-3 md:p-4 mb-2 md:mb-3 w-full max-w-full"
       style={{ height: '120px' }}
     >
+      {/* Top-right game time/status */}
+      <div className="flex justify-end mb-2">
+        <p className={`px-2 py-1 rounded-md text-sm md:text-base font-semibold ${statusColor}`}>
+          {isNotStarted ? gameTime : displayStatus}
+        </p>
+      </div>
+
+      {/* Team info and scores */}
       <div className="flex justify-between items-center h-full">
         <TeamInfo
           teamName={isLiveGame ? game.awayTeam?.teamName : awayTeam}
@@ -57,12 +65,6 @@ const GameCard: React.FC<GameCardProps> = ({ game }) => {
           isHomeTeam={false}
           teamId={awayId}
         />
-
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <p className={`px-2 py-1 rounded-md text-sm md:text-base font-semibold ${statusColor}`}>
-            {isNotStarted ? gameTime : displayStatus}
-          </p>
-        </div>
 
         <TeamInfo
           teamName={isLiveGame ? game.homeTeam?.teamName : homeTeam}
