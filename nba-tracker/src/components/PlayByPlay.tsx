@@ -1,19 +1,25 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import PlayByPlayWebSocketService from '../services/PlayByPlayWebSocketService';
 import { PlayByPlayResponse, PlayByPlayEvent } from '../types/playbyplay';
-import { FaClock } from 'react-icons/fa';
 
 const PlayByPlay = ({ gameId }: { gameId: string }) => {
-  const [lastPlay, setLastPlay] = useState<PlayByPlayEvent | null>(null);
+  const [actions, setActions] = useState<PlayByPlayEvent[]>([]);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  const socketRef = useRef<PlayByPlayWebSocketService | null>(null);
 
   useEffect(() => {
     if (!gameId) return;
 
     const service = new PlayByPlayWebSocketService();
+    socketRef.current = service;
 
     const handleUpdate = (data: PlayByPlayResponse) => {
+      setHasLoadedOnce(true);
       if (data?.plays?.length > 0) {
-        setLastPlay(data.plays[data.plays.length - 1]);
+        const sorted = [...data.plays].sort((a, b) => a.action_number - b.action_number);
+        setActions(sorted.reverse()); // Newest at top
+      } else {
+        setActions([]); // clear if no plays
       }
     };
 
@@ -26,36 +32,63 @@ const PlayByPlay = ({ gameId }: { gameId: string }) => {
     };
   }, [gameId]);
 
-  if (!lastPlay) return null;
+  if (!actions.length && hasLoadedOnce) {
+    return (
+      <div className="text-center text-gray-400 py-6">
+        No play-by-play data available.
+      </div>
+    );
+  }
 
-  const formatTime = (clock: string): string => {
-    const match = clock.match(/PT(\d+)M(\d+)S/);
-    if (match !== null) return `${match[1]}m ${match[2]}s`;
-
-    const minutesOnly = clock.match(/PT(\d+)M/);
-    if (minutesOnly && minutesOnly[1]) return `${minutesOnly[1]}m 0s`;
-
-    return clock;
-  };
+  if (!actions.length) {
+    return null; // Don't show anything until something loads
+  }
 
   return (
-    <div className="mt-2 px-3 py-2 rounded-md bg-black text-xs text-gray-300">
-      <div className="flex justify-between mb-1 flex-wrap">
-        <div className="flex items-center gap-2 mb-1">
-          <FaClock className="text-gray-500" />
-          <span className="text-gray-400">
-            {formatTime(lastPlay.clock)} | Q{lastPlay.period}
-          </span>
-        </div>
-      </div>
-      <div className="leading-snug">
-        {lastPlay.playerName && (
-          <span className="text-white font-semibold">{lastPlay.playerName}</span>
-        )}{' '}
-        {lastPlay.description}
-      </div>
+    <div className="overflow-x-auto border border-neutral-800 rounded-md text-white max-h-[70vh]">
+      <table className="min-w-full text-sm">
+        <thead className="bg-neutral-900 text-gray-400 sticky top-0 z-10">
+          <tr>
+            <th className="px-3 py-2 text-left">Clock</th>
+            <th className="px-3 py-2 text-left">Team</th>
+            <th className="px-3 py-2 text-left">Score</th>
+            <th className="px-3 py-2 text-left">Action</th>
+            <th className="px-3 py-2 text-left">Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          {actions.map((play, idx) => (
+            <tr
+              key={play.action_number}
+              className={idx % 2 === 0 ? 'bg-black/30' : ''}
+            >
+              <td className="px-3 py-2">{formatClock(play.clock)}</td>
+              <td className="px-3 py-2">{play.team_tricode || '-'}</td>
+              <td className="px-3 py-2 text-blue-400">
+                {play.score_home ?? '-'} - {play.score_away ?? '-'}
+              </td>
+              <td className="px-3 py-2">{play.action_type}</td>
+              <td className="px-3 py-2">{play.description}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
+};
+
+// Format PT10M30.5S to 10:30, etc.
+const formatClock = (clock: string | null): string => {
+  if (!clock) return '';
+  if (clock.startsWith('PT')) {
+    const match = clock.match(/PT(\d+)M(\d+(\.\d+)?)S/);
+    if (match) return `${match[1]}:${parseFloat(match[2]).toFixed(0).padStart(2, '0')}`;
+    const minutesOnly = clock.match(/PT(\d+)M/);
+    if (minutesOnly) return `${minutesOnly[1]}:00`;
+    const secondsOnly = clock.match(/PT(\d+)S/);
+    if (secondsOnly) return `0:${secondsOnly[1].padStart(2, '0')}`;
+  }
+  return clock;
 };
 
 export default PlayByPlay;

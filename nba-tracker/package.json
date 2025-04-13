@@ -12,6 +12,7 @@
     "format": "npx prettier . --write"
   },
   "dependencies": {
+    "@headlessui/react": "^2.2.1",
     "@heroicons/react": "^2.2.0",
     "@tailwindcss/vite": "^4.0.9",
     "date-fns": "^4.1.0",
