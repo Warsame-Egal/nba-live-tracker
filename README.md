@@ -2,6 +2,11 @@
 
 The NBA Scoreboard API by Warsame Egal is a FastAPI backend that provides real-time and historical NBA game data. It wraps the [`nba_api`](https://github.com/swar/nba_api) to expose clean RESTful endpoints for a polished frontend experience.
 
+Live Demo
+
+- **Frontend**: [https://nba-frontend-fcd3.onrender.com](https://nba-frontend-fcd3.onrender.com)
+- **Backend (API)**: [https://nba-backend-kpmp.onrender.com](https://nba-backend-kpmp.onrender.com)
+
 ### What It Does
 
 - Fetches live and historical NBA data using `nba_api`
