@@ -11,9 +11,9 @@ class PlayByPlayWebSocketService {
     this.shouldReconnect = true;
     // Dynamically set ws/wss + host
     const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-    const host = import.meta.env.VITE_WS_URL || 'localhost:8000';
-    const url = `${protocol}://${host}/api/v1/ws/${gameId}/play-by-play`;
-    
+    const baseHost = import.meta.env.VITE_WS_URL?.replace(/^https?:\/\//, '') || 'localhost:8000';
+    const url = `${protocol}://${baseHost}/api/v1/ws/${gameId}/play-by-play`;
+
     this.socket = new WebSocket(url);
 
     this.socket.onopen = () => {
