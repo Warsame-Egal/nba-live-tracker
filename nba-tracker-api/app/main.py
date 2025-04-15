@@ -16,6 +16,23 @@ from app.services.websockets_manager import (
     scoreboard_websocket_manager,
 )
 
+# Load proxy from .env and apply to nba_api if enabled
+import os
+from dotenv import load_dotenv
+from nba_api.stats.library.http import NBAStatsHTTP
+
+load_dotenv()
+
+if os.getenv("USE_PROXY", "false").lower() == "true":
+    NBAStatsHTTP._proxies = {
+        "http": os.getenv("NBA_PROXY"),
+        "https": os.getenv("NBA_PROXY"),
+    }
+    NBAStatsHTTP._timeout = int(os.getenv("NBA_PROXY_TIMEOUT", 30))
+    print("Webshare proxy enabled.")
+else:
+    print("Running without proxy (local mode).")
+
 
 # Manages WebSocket broadcasting lifecycle
 @asynccontextmanager
@@ -63,30 +80,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 # Root endpoint to check if API is running
-
-
 @app.get("/")
 def home():
     """Root endpoint for API health check."""
     return {"message": "NBA Live Tracker API is running"}
 
-
-# Register API route for health check
+# Register all API routes
 app.include_router(health_router, prefix="/api/v1")
-
-# Register API route for scoreboard
 app.include_router(scoreboard_router, prefix="/api/v1")
-
-# Register API route for schedule
 app.include_router(schedule_router, prefix="/api/v1")
-
-# Register API route for standings
 app.include_router(standings_router, prefix="/api/v1")
-
 app.include_router(player_router, prefix="/api/v1")
-
 app.include_router(game_router, prefix="/api/v1")
-
 app.include_router(team_router, prefix="/api/v1")
