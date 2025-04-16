@@ -80,11 +80,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 # Root endpoint to check if API is running
 @app.get("/")
 def home():
     """Root endpoint for API health check."""
     return {"message": "NBA Live Tracker API is running"}
+
 
 # Register all API routes
 app.include_router(health_router, prefix="/api/v1")
