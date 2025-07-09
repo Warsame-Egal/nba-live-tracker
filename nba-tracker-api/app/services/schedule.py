@@ -95,8 +95,10 @@ async def getGamesForDate(date: str) -> GamesResponse:
                         rebounds=d.get("REB", 0),
                         assists=d.get("AST", 0),
                     )
-                    for d in (dict(zip(team_leaders_headers, l)) for l in team_leaders_list)
-                    if d.get("GAME_ID") == game_id
+                    for d in (
+                        dict(zip(team_leaders_headers, leader_row))
+                        for leader_row in team_leaders_list
+                    )                    if d.get("GAME_ID") == game_id
                 ),
                 None,
             )
