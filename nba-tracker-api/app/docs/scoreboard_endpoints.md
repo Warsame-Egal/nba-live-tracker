@@ -475,3 +475,100 @@ Retrieve a real-time breakdown of game events, including scoring plays, assists,
   ]
 }
 ```
+
+## 9. Scoreboard WebSocket
+
+**Endpoint:** `/ws`
+
+### Description
+
+Establish a WebSocket connection to receive live scoreboard updates. When a client connects, the server immediately sends the current scoreboard data and continues broadcasting updates whenever game scores or statuses change.
+
+### Request Example
+
+```bash
+wscat -c ws://localhost:8000/api/v1/ws
+```
+
+### Response Example
+
+```json
+{
+  "scoreboard": {
+    "gameDate": "2025-03-08",
+    "games": [
+      {
+        "gameId": "0022400919",
+        "gameStatus": 3,
+        "gameStatusText": "Final",
+        "period": 4,
+        "gameClock": null,
+        "gameTimeUTC": "2025-03-08T01:00:00Z",
+        "homeTeam": {
+          "teamId": 1610612752,
+          "teamName": "New York Knicks",
+          "teamCity": "New York",
+          "teamTricode": "NYK",
+          "score": 115
+        },
+        "awayTeam": {
+          "teamId": 1610612738,
+          "teamName": "Boston Celtics",
+          "teamCity": "Boston",
+          "teamTricode": "BOS",
+          "score": 110
+        }
+      }
+    ]
+  }
+}
+```
+
+### Usage Notes
+
+- The message format matches the `/scoreboard` REST endpoint.
+- Keep the connection open to continue receiving updates.
+- Use `wss://` when the application is served over HTTPS.
+
+## 10. Play-by-Play WebSocket
+
+**Endpoint:** `/ws/{game_id}/play-by-play`
+
+### Description
+
+Connect to this endpoint to stream real-time play-by-play data for a specific game. Upon connection, the latest list of plays is sent. Subsequent messages contain updated play sequences as the game progresses.
+
+### Request Example
+
+```bash
+wscat -c ws://localhost:8000/api/v1/ws/0022400919/play-by-play
+```
+
+### Response Example
+
+```json
+{
+  "game_id": "0022400919",
+  "plays": [
+    {
+      "action_number": 4,
+      "clock": "PT11M58.00S",
+      "period": 1,
+      "team_id": 1610612738,
+      "team_tricode": "BOS",
+      "action_type": "jumpball",
+      "description": "Jump Ball T. Thompson vs. N. Vucevic: Tip to G. Williams",
+      "player_id": 1629684,
+      "player_name": "G. Williams",
+      "score_home": "0",
+      "score_away": "0"
+    }
+  ]
+}
+```
+
+### Usage Notes
+
+- Establish separate connections for different `game_id` values if tracking multiple games.
+- The payload structure mirrors the `GET /scoreboard/game/{game_id}/play-by-play` response.
+- Updates are pushed whenever new plays are available.

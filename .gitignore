@@ -1,5 +1,5 @@
-"nba-tracker-api/venv/" 
-"nba-tracker-api/__pycache__/" 
+nba-tracker-api/venv/
+nba-tracker-api/__pycache__/
 
 # Ignore virtual environment
 venv/
