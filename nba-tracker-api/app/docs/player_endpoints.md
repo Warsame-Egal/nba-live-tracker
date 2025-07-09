@@ -8,7 +8,7 @@ The NBA Scoreboard API endpoints to retrieve information about player details.
 
 ### 1. Get Player Details
 
-**GET** `/players/{player_id}/details`
+**GET** `/player/{player_id}`
 
 ### Description:
 
