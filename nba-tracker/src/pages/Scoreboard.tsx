@@ -10,13 +10,12 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { PlayerSummary } from '../types/player';
 import ScoringLeaders from '../components/ScoringLeaders';
 import debounce from 'lodash/debounce';
-import { FaSearch, FaTimes, FaSpinner } from 'react-icons/fa';
+import { FaSearch, FaTimes, FaSpinner, FaCalendarTimes } from 'react-icons/fa';
 
 const SCOREBOARD_WEBSOCKET_URL = `${
   window.location.protocol === 'https:' ? 'wss' : 'ws'
 }://${import.meta.env.VITE_WS_URL}/api/v1/ws`;
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-
 
 const getLocalISODate = (): string => {
   const tzoffset = new Date().getTimezoneOffset() * 60000;
@@ -88,10 +87,9 @@ const Scoreboard = () => {
       setLoading(true);
       setShowSearchResults(true);
       try {
-        const response = await fetch(
-          `${API_BASE_URL}/api/v1/players/search/${playerSearchQuery}`,
-          { signal: abortController.signal }
-        );
+        const response = await fetch(`${API_BASE_URL}/api/v1/players/search/${playerSearchQuery}`, {
+          signal: abortController.signal,
+        });
         if (!response.ok) throw new Error('Failed to fetch players.');
         const data: PlayerSummary[] = await response.json();
         setPlayers(data);
@@ -161,8 +159,10 @@ const Scoreboard = () => {
   // Update the click outside handler to check the container instead of just the input.
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
-        setShowSearchResults(false);
+      if (
+        searchContainerRef.current &&
+        !searchContainerRef.current.contains(event.target as Node)
+      ) {        setShowSearchResults(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -170,10 +170,7 @@ const Scoreboard = () => {
   }, []);
 
   // Helper render function for game cards remains unchanged.
-  const renderGameCards = (
-    gameList: (Game | GameSummary)[],
-    hideScore: boolean = false
-  ) => (
+  const renderGameCards = (gameList: (Game | GameSummary)[], hideScore: boolean = false) => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
       {gameList.map(game => (
         <div
@@ -182,9 +179,7 @@ const Scoreboard = () => {
           onClick={hideScore ? undefined : () => setSelectedGame(game)}
         >
           <GameCard game={game} hideScore={hideScore} />
-          {'gameLeaders' in game && (
-            <ScoringLeaders selectedGame={game as Game} />
-          )}
+          {'gameLeaders' in game && <ScoringLeaders selectedGame={game as Game} />}
         </div>
       ))}
     </div>
@@ -212,7 +207,10 @@ const Scoreboard = () => {
               className="w-full py-3 pl-12 pr-4 rounded-full bg-neutral-900 border border-neutral-700 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
             />
             {loading && playerSearchQuery && (
-              <FaSpinner className="absolute right-4 top-1/2 -translate-y-1/2 text-white animate-spin" size={20} />
+              <FaSpinner
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-white animate-spin"
+                size={20}
+              />
             )}
             {playerSearchQuery && (
               <button
@@ -246,10 +244,7 @@ const Scoreboard = () => {
 
           {/* Weekly Calendar remains unchanged */}
           <div className="w-full md:w-auto flex justify-center">
-            <WeeklyCalendar
-              selectedDate={selectedDate}
-              setSelectedDate={setSelectedDate}
-            />
+            <WeeklyCalendar selectedDate={selectedDate} setSelectedDate={setSelectedDate} />
           </div>
         </div>
 
@@ -295,7 +290,17 @@ const Scoreboard = () => {
           </section>
         )}
 
-        {/* Fallback Message remains unchanged */}
+        {/* Show placeholder when the API returns no games */}
+        {!loading && games.length === 0 && (
+          <div className="flex flex-col items-center py-16">
+            <FaCalendarTimes className="text-gray-500 text-6xl mb-4" />
+            <p className="text-center text-xl text-gray-500 italic">
+              No games scheduled for this date.
+            </p>
+          </div>
+        )}
+
+        {/* Fallback message when games exist but are filtered out */}
         {!loading &&
           liveGames.length === 0 &&
           upcomingGames.length === 0 &&
