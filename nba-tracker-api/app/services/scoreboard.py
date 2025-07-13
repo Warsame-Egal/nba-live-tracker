@@ -317,13 +317,6 @@ async def fetchPlayersByName(name: str) -> List[PlayerSummary]:
         raise HTTPException(status_code=500, detail=f"Error searching for players: {e}")
 
 
-def format_percentage(value: float) -> str:
-    """
-    Converts a decimal value (e.g., 0.4342) to a percentage string (e.g., '43.4%').
-    """
-    return f"{value * 100:.1f}%"
-
-
 async def getBoxScore(game_id: str) -> BoxScoreResponse:
     """
     Fetch the full box score for a given NBA game.
