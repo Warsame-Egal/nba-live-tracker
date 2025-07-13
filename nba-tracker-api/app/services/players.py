@@ -1,5 +1,6 @@
 from typing import List
 
+import asyncio
 import pandas as pd
 from fastapi import HTTPException
 from nba_api.stats.endpoints import PlayerGameLog, playerindex
@@ -14,7 +15,9 @@ async def getPlayer(player_id: str) -> PlayerSummary:
     """
     try:
         # Get player index to fetch player details
-        player_index_data = playerindex.PlayerIndex(historical_nullable=HistoricalNullable.all_time)
+        player_index_data = await asyncio.to_thread(
+            lambda: playerindex.PlayerIndex(historical_nullable=HistoricalNullable.all_time)
+        )
         player_index_df = player_index_data.get_data_frames()[0]
 
         player_id_int = int(player_id)
@@ -30,7 +33,7 @@ async def getPlayer(player_id: str) -> PlayerSummary:
             roster_status = str(roster_status)
 
         # Fetch player's recent game performances
-        game_log_data = PlayerGameLog(player_id=player_id).get_dict()
+        game_log_data = await asyncio.to_thread(lambda: PlayerGameLog(player_id=player_id).get_dict())
         game_log = game_log_data["resultSets"][0]["rowSet"]
         game_headers = game_log_data["resultSets"][0]["headers"]
 
@@ -88,7 +91,9 @@ async def search_players(search_term: str) -> List[PlayerSummary]:
     Optimized NBA player search by first, last, or full name (partial match).
     """
     try:
-        player_index_data = playerindex.PlayerIndex(historical_nullable=HistoricalNullable.all_time)
+        player_index_data = await asyncio.to_thread(
+            lambda: playerindex.PlayerIndex(historical_nullable=HistoricalNullable.all_time)
+        )
         player_index_df = player_index_data.get_data_frames()[0]
 
         # Create a lower-cased full name column once

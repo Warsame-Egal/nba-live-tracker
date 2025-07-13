@@ -1,5 +1,6 @@
 import numpy as np
 from fastapi import HTTPException
+import asyncio
 from nba_api.stats.endpoints import leaguestandingsv3
 from app.schemas.standings import StandingRecord, StandingsResponse
 
@@ -16,13 +17,13 @@ async def getSeasonStandings(season: str) -> StandingsResponse:
     Retrieves and structures the NBA standings for the specified season.
     """
     try:
-        standings = leaguestandingsv3.LeagueStandingsV3(
-            league_id="00",
-            season=season,
-            season_type="Regular Season",
+        df = await asyncio.to_thread(
+            lambda: leaguestandingsv3.LeagueStandingsV3(
+                league_id="00",
+                season=season,
+                season_type="Regular Season",
+            ).get_data_frames()[0]
         )
-
-        df = standings.get_data_frames()[0]
 
         if df.empty:
             raise HTTPException(status_code=404, detail=f"No standings found for season {season}")
@@ -66,9 +67,13 @@ async def getTeamStandings(team_id: int, season: str) -> StandingRecord:
     Fetches and structures the standings for a specific NBA team.
     """
     try:
-        standings = leaguestandingsv3.LeagueStandingsV3(league_id="00", season=season, season_type="Regular Season")
-
-        df = standings.get_data_frames()[0]
+        df = await asyncio.to_thread(
+            lambda: leaguestandingsv3.LeagueStandingsV3(
+                league_id="00",
+                season=season,
+                season_type="Regular Season",
+            ).get_data_frames()[0]
+        )
 
         if df.empty:
             raise HTTPException(status_code=404, detail=f"No standings found for season {season}")

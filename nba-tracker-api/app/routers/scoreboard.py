@@ -118,7 +118,7 @@ async def getTeamRoster(team_id: int, season: str):
         TeamRoster: A structured response containing player details.
     """
     try:
-        return fetchTeamRoster(team_id, season)
+        return await fetchTeamRoster(team_id, season)
     except HTTPException as e:
         raise e
 

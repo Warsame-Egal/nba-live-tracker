@@ -1,5 +1,6 @@
 from typing import List
 
+import asyncio
 from fastapi import HTTPException
 from nba_api.live.nba.endpoints import boxscore, playbyplay, scoreboard
 from nba_api.stats.endpoints import commonteamroster, leaguestandingsv3, playerindex
@@ -31,7 +32,7 @@ async def fetch_nba_scoreboard():
         dict: Raw scoreboard data containing game details.
     """
     try:
-        board = scoreboard.ScoreBoard().get_dict()
+        board = await asyncio.to_thread(lambda: scoreboard.ScoreBoard().get_dict())
         return board.get("scoreboard", {})  # Extract only the scoreboard section
     except Exception as e:
         print(f"Error fetching NBA scoreboard: {e}")
@@ -152,11 +153,13 @@ async def getCurrentTeamRecord(team_id: int) -> TeamDetails:
         TeamDetails: Team ranking, win-loss record, and other performance stats.
     """
     try:
-        raw_standings = leaguestandingsv3.LeagueStandingsV3(
-            league_id="00",
-            season="2023-24",  # Always fetches the current season
-            season_type="Regular Season",
-        ).get_dict()
+        raw_standings = await asyncio.to_thread(
+            lambda: leaguestandingsv3.LeagueStandingsV3(
+                league_id="00",
+                season="2023-24",  # Always fetches the current season
+                season_type="Regular Season",
+            ).get_dict()
+        )
 
         standings_data = raw_standings["resultSets"][0]["rowSet"]
         column_names = raw_standings["resultSets"][0]["headers"]
@@ -188,7 +191,7 @@ async def getCurrentTeamRecord(team_id: int) -> TeamDetails:
         raise HTTPException(status_code=500, detail=f"Error fetching team standings: {e}")
 
 
-def fetchTeamRoster(team_id: int, season: str) -> TeamRoster:
+async def fetchTeamRoster(team_id: int, season: str) -> TeamRoster:
     """
     Fetches the full team roster (players & coaching staff) from the NBA API.
 
@@ -206,7 +209,9 @@ def fetchTeamRoster(team_id: int, season: str) -> TeamRoster:
     """
     try:
         # Fetch roster data from NBA API
-        raw_roster = commonteamroster.CommonTeamRoster(team_id=team_id, season=season).get_dict()
+        raw_roster = await asyncio.to_thread(
+            lambda: commonteamroster.CommonTeamRoster(team_id=team_id, season=season).get_dict()
+        )
         player_data = raw_roster["resultSets"][0]["rowSet"]
 
         if not player_data:
@@ -264,7 +269,7 @@ async def fetchPlayersByName(name: str) -> List[PlayerSummary]:
     """
     try:
         # Fetch player data from NBA API
-        raw_data = playerindex.PlayerIndex().get_dict()
+        raw_data = await asyncio.to_thread(lambda: playerindex.PlayerIndex().get_dict())
         column_names = raw_data["resultSets"][0]["headers"]
         player_list = raw_data["resultSets"][0]["rowSet"]
 
@@ -331,7 +336,7 @@ async def getBoxScore(game_id: str) -> BoxScoreResponse:
     """
     try:
         # Fetch box score data
-        game_data = boxscore.BoxScore(game_id).get_dict()
+        game_data = await asyncio.to_thread(lambda: boxscore.BoxScore(game_id).get_dict())
 
         if "game" not in game_data:
             raise HTTPException(status_code=404, detail=f"No box score available for game ID {game_id}")
@@ -420,7 +425,7 @@ async def getTeamStats(game_id: str, team_id: int) -> TeamGameStatsResponse:
     """
     try:
         # Fetch box score data
-        game_data = boxscore.BoxScore(game_id).get_dict()
+        game_data = await asyncio.to_thread(lambda: boxscore.BoxScore(game_id).get_dict())
 
         if "game" not in game_data:
             raise HTTPException(status_code=404, detail=f"No box score available for game ID {game_id}")
@@ -485,7 +490,7 @@ async def getGameLeaders(game_id: str) -> GameLeadersResponse:
     """
     try:
         # Fetch box score data
-        game_data = boxscore.BoxScore(game_id).get_dict()
+        game_data = await asyncio.to_thread(lambda: boxscore.BoxScore(game_id).get_dict())
 
         if "game" not in game_data:
             raise HTTPException(status_code=404, detail=f"No box score available for game ID {game_id}")
@@ -563,7 +568,7 @@ async def getPlayByPlay(game_id: str) -> PlayByPlayResponse:
     """
     try:
         # Fetch play-by-play data
-        play_by_play_data = playbyplay.PlayByPlay(game_id).get_dict()
+        play_by_play_data = await asyncio.to_thread(lambda: playbyplay.PlayByPlay(game_id).get_dict())
 
         if "game" not in play_by_play_data or "actions" not in play_by_play_data["game"]:
             raise HTTPException(

@@ -1,6 +1,7 @@
 from fastapi import HTTPException
 from nba_api.stats.endpoints import scoreboardv2
 from nba_api.stats.static import teams
+import asyncio
 
 from app.schemas.schedule import GamesResponse, GameSummary, TeamSummary, TopScorer
 
@@ -11,7 +12,8 @@ NBA_TEAMS = {team["id"]: team["abbreviation"] for team in teams.get_teams()}
 async def getGamesForDate(date: str) -> GamesResponse:
     """Retrieve NBA games for a given date."""
     try:
-        games_data = scoreboardv2.ScoreboardV2(game_date=date).get_dict()
+        games_data = await asyncio.to_thread(lambda: scoreboardv2.ScoreboardV2(game_date=date).get_dict())
+
 
         if "resultSets" not in games_data or not games_data["resultSets"]:
             raise HTTPException(status_code=404, detail=f"No game data found for {date}")
@@ -95,10 +97,8 @@ async def getGamesForDate(date: str) -> GamesResponse:
                         rebounds=d.get("REB", 0),
                         assists=d.get("AST", 0),
                     )
-                    for d in (
-                        dict(zip(team_leaders_headers, leader_row))
-                        for leader_row in team_leaders_list
-                    )                    if d.get("GAME_ID") == game_id
+                    for d in (dict(zip(team_leaders_headers, leader_row)) for leader_row in team_leaders_list)
+                    if d.get("GAME_ID") == game_id
                 ),
                 None,
             )

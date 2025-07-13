@@ -1,5 +1,6 @@
 from typing import List
 
+import asyncio
 import pandas as pd
 from fastapi import HTTPException
 from nba_api.stats.endpoints import TeamDetails
@@ -14,7 +15,7 @@ async def get_team(team_id: int) -> TeamDetailsResponse:
     """
     try:
         # Fetch team details using nba_api (adjust endpoint if needed)
-        team_details_data = TeamDetails(team_id=team_id).get_dict()
+        team_details_data = await asyncio.to_thread(lambda: TeamDetails(team_id=team_id).get_dict())
 
         # Validation: Check if data is present
         if not team_details_data or "resultSets" not in team_details_data or not team_details_data["resultSets"]:

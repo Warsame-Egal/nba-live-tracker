@@ -2,6 +2,7 @@ import re
 from typing import List, Optional
 
 from fastapi import HTTPException
+import asyncio
 from nba_api.stats.endpoints import BoxScoreSummaryV2, BoxScoreTraditionalV2
 
 from app.schemas.game import (
@@ -14,8 +15,8 @@ from app.schemas.game import (
 
 async def getGameDetails(game_id: str) -> GameDetailsResponse:
     try:
-        raw_data = BoxScoreSummaryV2(game_id=game_id).get_dict()
-        stats_data = BoxScoreTraditionalV2(game_id=game_id).get_dict()
+        raw_data = await asyncio.to_thread(lambda: BoxScoreSummaryV2(game_id=game_id).get_dict())
+        stats_data = await asyncio.to_thread(lambda: BoxScoreTraditionalV2(game_id=game_id).get_dict())
 
         if not raw_data["resultSets"]:
             raise HTTPException(status_code=404, detail="No data found for this game")
@@ -65,7 +66,9 @@ async def getGameDetails(game_id: str) -> GameDetailsResponse:
 
 async def getGamePlayers(game_id: str) -> List[PlayerGameEntry]:
     try:
-        stats_data = BoxScoreTraditionalV2(game_id=game_id).get_dict()  # Fetch player stats
+        stats_data = await asyncio.to_thread(
+            lambda: BoxScoreTraditionalV2(game_id=game_id).get_dict()
+        )  # Fetch player stats
 
         if "resultSets" not in stats_data:
             raise HTTPException(status_code=404, detail="No game data found")
@@ -122,7 +125,7 @@ def clean_and_convert_minutes(minutes_str: Optional[str]) -> Optional[str]:
 
 async def getGameStats(game_id: str) -> List[PlayerGameStats]:
     try:
-        stats_data = BoxScoreTraditionalV2(game_id=game_id).get_dict()
+        stats_data = await asyncio.to_thread(lambda: BoxScoreTraditionalV2(game_id=game_id).get_dict())
 
         if "resultSets" not in stats_data:
             raise HTTPException(status_code=404, detail="No game data found")
