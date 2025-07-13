@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { Container, TextField, Typography } from '@mui/material';
 import { ScoreboardResponse, Game } from '../types/scoreboard';
 import { GamesResponse, GameSummary } from '../types/schedule';
 import WebSocketService from '../services/websocketService';
@@ -191,7 +192,7 @@ const Scoreboard = () => {
   return (
     <div className="min-h-screen bg-black text-white">
       <Navbar />
-      <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
+      <Container maxWidth="lg" sx={{ py: 8 }}>
         {/* Top Section: Search Bar and Weekly Calendar */}
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
           {/* Search Bar with a container that wraps both the input and results */}
@@ -199,12 +200,18 @@ const Scoreboard = () => {
             <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
               <FaSearch className="text-gray-400" size={20} />
             </div>
-            <input
-              type="text"
+            <TextField
+              fullWidth
               value={playerSearchQuery}
               onChange={e => setPlayerSearchQuery(e.target.value)}
               placeholder="Search players..."
-              className="w-full py-3 pl-12 pr-4 rounded-full bg-neutral-900 border border-neutral-700 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+              variant="outlined"
+              sx={{
+                bgcolor: 'neutral.900',
+                '& fieldset': { borderColor: 'neutral.700' },
+                '& input': { color: 'white', paddingLeft: '2.5rem' },
+                borderRadius: '2rem'
+              }}
             />
             {loading && playerSearchQuery && (
               <FaSpinner
@@ -257,19 +264,25 @@ const Scoreboard = () => {
           <>
             {liveGames.length > 0 && (
               <section className="space-y-4">
-                <h2 className="text-2xl font-extrabold text-gray-200">Live Games</h2>
+                <Typography variant="h5" fontWeight="bold" color="white">
+                  Live Games
+                </Typography>
                 {renderGameCards(liveGames)}
               </section>
             )}
             {upcomingGames.length > 0 && (
               <section className="space-y-4 mt-10">
-                <h2 className="text-2xl font-extrabold text-gray-200">Upcoming Games</h2>
+                <Typography variant="h5" fontWeight="bold" color="white">
+                  Upcoming Games
+                </Typography>
                 {renderGameCards(upcomingGames)}
               </section>
             )}
             {completedGames.length > 0 && (
               <section className="space-y-4 mt-10">
-                <h2 className="text-2xl font-extrabold text-gray-200">Completed Games</h2>
+                <Typography variant="h5" fontWeight="bold" color="white">
+                  Completed Games
+                </Typography>
                 {renderGameCards(completedGames)}
               </section>
             )}
@@ -278,12 +291,16 @@ const Scoreboard = () => {
           <section className="space-y-4">
             {selectedDate < today ? (
               <>
-                <h2 className="text-2xl font-extrabold text-gray-200">Completed Games</h2>
+                <Typography variant="h5" fontWeight="bold" color="white">
+                  Completed Games
+                </Typography>
                 {renderGameCards(completedGames)}
               </>
             ) : (
               <>
-                <h2 className="text-2xl font-extrabold text-gray-200">Future Games</h2>
+                <Typography variant="h5" fontWeight="bold" color="white">
+                  Future Games
+                </Typography>
                 {renderGameCards(upcomingGames, true)}
               </>
             )}
@@ -319,7 +336,7 @@ const Scoreboard = () => {
             onClose={() => setSelectedGame(null)}
           />
         )}
-      </div>
+      </Container>
     </div>
   );
 };
