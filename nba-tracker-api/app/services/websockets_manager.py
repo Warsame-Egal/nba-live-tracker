@@ -83,6 +83,12 @@ class ScoreboardWebSocketManager:
 
         while True:
             try:
+                # If no clients are connected, sleep longer to avoid
+                # requests that could trigger rate limiting.
+                if not self.active_connections:
+                    await asyncio.sleep(30)
+                    continue
+
                 scoreboard_data = await getScoreboard()
                 standardized_data = scoreboard_data.model_dump()
 
@@ -91,7 +97,7 @@ class ScoreboardWebSocketManager:
                     self.current_games = standardized_data["scoreboard"]["games"]
 
                 if not self.has_game_data_changed(self.current_games, previous_games):
-                    await asyncio.sleep(2)
+                    await asyncio.sleep(30)
                     continue
 
                 print(f"Broadcasting {len(self.current_games)} updated games")
@@ -107,7 +113,7 @@ class ScoreboardWebSocketManager:
                 for connection in disconnected_clients:
                     await self.disconnect(connection)
 
-                await asyncio.sleep(2)
+                await asyncio.sleep(30)
 
             except Exception as e:
                 print(f"Broadcast Loop Error: {e}")
