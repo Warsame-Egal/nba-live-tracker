@@ -3,13 +3,16 @@ from typing import List
 import asyncio
 import pandas as pd
 from fastapi import HTTPException
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from nba_api.stats.endpoints import TeamDetails
 from nba_api.stats.static import teams
 
 from app.schemas.team import TeamDetailsResponse, TeamSummary
+from app.models import Team
 
 
-async def get_team(team_id: int) -> TeamDetailsResponse:
+async def get_team(team_id: int, db: AsyncSession) -> TeamDetailsResponse:
     """
     Retrieves detailed information about a specific team.
     """
@@ -44,6 +47,15 @@ async def get_team(team_id: int) -> TeamDetailsResponse:
             head_coach=team_background.get("HEADCOACH"),
         )
 
+        db.add(
+            Team(
+                id=team_details.team_id,
+                name=team_details.team_name,
+                abbreviation=team_details.abbreviation or "",
+            )
+        )
+        await db.commit()
+
         return team_details
 
     except HTTPException as http_exception:
@@ -52,7 +64,7 @@ async def get_team(team_id: int) -> TeamDetailsResponse:
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}") from e
 
 
-async def search_teams(search_term: str) -> List[TeamSummary]:
+async def search_teams(search_term: str, db: AsyncSession) -> List[TeamSummary]:
     """
     Optimized NBA team search by city, name, or abbreviation (partial match).
     """

@@ -1,6 +1,8 @@
 from typing import List
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.database import get_db
 
 from app.schemas.team import TeamDetailsResponse, TeamSummary
 from app.services.teams import get_team, search_teams
@@ -15,9 +17,9 @@ router = APIRouter()
     tags=["teams"],
     description="Retrieve detailed information about a specific team.",
 )
-async def fetch_team(team_id: int):
+async def fetch_team(team_id: int, db: AsyncSession = Depends(get_db)):
     try:
-        return await get_team(team_id)
+        return await get_team(team_id, db)
     except HTTPException as e:
         raise e
     except Exception as e:
@@ -31,9 +33,9 @@ async def fetch_team(team_id: int):
     tags=["teams"],
     description="Search for teams by name or abbreviation.",
 )
-async def searchTeams(search_term: str):
+async def searchTeams(search_term: str, db: AsyncSession = Depends(get_db)):
     try:
-        return await search_teams(search_term)
+        return await search_teams(search_term, db)
     except HTTPException as e:
         raise e
     except Exception as e:

@@ -3,17 +3,32 @@ from typing import List
 import asyncio
 import pandas as pd
 from fastapi import HTTPException
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from nba_api.stats.endpoints import PlayerGameLog, playerindex
 from nba_api.stats.library.parameters import HistoricalNullable
 
 from app.schemas.player import PlayerGamePerformance, PlayerSummary
+from app.models import Player
 
 
-async def getPlayer(player_id: str) -> PlayerSummary:
+async def getPlayer(player_id: str, db: AsyncSession) -> PlayerSummary:
     """
     Retrieves detailed information about a specific player, including stats and recent performances.
     """
     try:
+        result = await db.execute(select(Player).where(Player.id == int(player_id)))
+        stored = result.scalar_one_or_none()
+        if stored:
+            return PlayerSummary(
+                PERSON_ID=stored.id,
+                PLAYER_LAST_NAME=stored.name.split(" ")[-1],
+                PLAYER_FIRST_NAME=" ".join(stored.name.split(" ")[:-1]),
+                TEAM_ID=stored.team_id,
+                POSITION=stored.position,
+                recent_games=[],
+            )
+
         # Get player index to fetch player details
         player_index_data = await asyncio.to_thread(
             lambda: playerindex.PlayerIndex(historical_nullable=HistoricalNullable.all_time)
@@ -78,6 +93,16 @@ async def getPlayer(player_id: str) -> PlayerSummary:
             recent_games=recent_games,
         )
 
+        db.add(
+            Player(
+                id=player_summary.PERSON_ID,
+                name=f"{player_summary.PLAYER_FIRST_NAME} {player_summary.PLAYER_LAST_NAME}",
+                team_id=player_summary.TEAM_ID,
+                position=player_summary.POSITION,
+            )
+        )
+        await db.commit()
+
         return player_summary
 
     except HTTPException as http_exception:
@@ -86,7 +111,7 @@ async def getPlayer(player_id: str) -> PlayerSummary:
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
 
 
-async def search_players(search_term: str) -> List[PlayerSummary]:
+async def search_players(search_term: str, db: AsyncSession) -> List[PlayerSummary]:
     """
     Optimized NBA player search by first, last, or full name (partial match).
     """
