@@ -1,11 +1,25 @@
 version: '3.9'
 
 services:
+  db:
+    image: postgres:16
+    container_name: nba-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: nba_db
+    ports:
+      - "5432:5432"
+    networks:
+      - nba-network
+
   backend:
     build: ./nba-tracker-api
     container_name: nba-backend
     ports:
       - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql+psycopg2://postgres:postgres@db:5432/nba_db
     networks:
       - nba-network
 
