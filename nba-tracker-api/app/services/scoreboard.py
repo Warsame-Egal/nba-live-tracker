@@ -22,6 +22,26 @@ from app.schemas.scoreboard import (
     TeamGameStatsResponse,
 )
 from app.schemas.team import TeamDetails
+from datetime import date
+
+
+def get_current_season(today: date | None = None) -> str:
+    """Return the NBA season string for ``today``.
+
+    The NBA season spans from October of one year through June of the next. This
+    helper gets the correct season identifier (e.g. ``"2024-25"``) for any
+    given date.
+    """
+
+    today = today or date.today()
+    # Season rolls over on October 1st
+    if today.month >= 10:
+        start_year = today.year
+    else:
+        start_year = today.year - 1
+
+    end_year = (start_year + 1) % 100
+    return f"{start_year}-{end_year:02d}"
 
 
 async def fetch_nba_scoreboard():
