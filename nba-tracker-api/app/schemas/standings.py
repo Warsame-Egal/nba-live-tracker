@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-
+from typing import List
 
 class StandingRecord(BaseModel):
     """Represents the standings of an NBA team for a given season."""
