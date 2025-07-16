@@ -10,6 +10,7 @@ from app.schemas.scoreboard import (
     ScoreboardResponse,
     TeamGameStatsResponse,
 )
+from app.schemas.scoreboard_game_db import ScoreboardGameDB
 from app.schemas.team import TeamDetails
 from app.services.scoreboard import (
     fetchPlayersByName,
@@ -19,6 +20,7 @@ from app.services.scoreboard import (
     getGameLeaders,
     getPlayByPlay,
     getScoreboard,
+    get_scoreboard_games,
     getTeamStats,
 )
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -83,6 +85,20 @@ async def scoreboard(db: AsyncSession = Depends(get_db)):
         raise e
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get(
+    "/scoreboard/games/db",
+    response_model=List[ScoreboardGameDB],
+    tags=["scoreboard"],
+    summary="Get Stored Scoreboard Games",
+    description="Return all scoreboard games stored in the database.",
+)
+async def scoreboard_games_db(db: AsyncSession = Depends(get_db)):
+    try:
+        return await get_scoreboard_games(db)
+    except HTTPException as e:
+        raise e
+
 
 
 @router.get(

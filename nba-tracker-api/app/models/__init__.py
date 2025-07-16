@@ -4,6 +4,7 @@ from .team import Team
 from .game import Game
 from .gamestat import GameStat
 from .scoreboard_snapshot import ScoreboardSnapshot
+from .standings_snapshot import StandingsSnapshot
 
 __all__ = [
     "Player",
@@ -11,6 +12,7 @@ __all__ = [
     "Game",
     "GameStat",
     "ScoreboardSnapshot",
+    "StandingsSnapshot",
     "ScoreboardGame",
     "TeamRecord",
     "TeamRosterEntry",

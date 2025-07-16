@@ -26,8 +26,8 @@ from app.schemas.scoreboard import (
 )
 from app.schemas.team import TeamDetails
 from datetime import date
-from app.models import ScoreboardSnapshot
-
+from app.models import ScoreboardSnapshot, ScoreboardGame
+from app.schemas.scoreboard_game_db import ScoreboardGameDB
 
 def get_current_season(today: date | None = None) -> str:
     """Return the NBA season string for ``today``.
@@ -170,6 +170,129 @@ async def getScoreboard(db: AsyncSession) -> ScoreboardResponse:
                 )
 
                 games.append(live_game)
+
+                
+                # Persist or update scoreboard game entry
+                stmt = select(ScoreboardGame).where(
+                    ScoreboardGame.gameId == game["gameId"],
+                    ScoreboardGame.gameDate == game_date,
+                )
+                result = await db.execute(stmt)
+                existing = result.scalar_one_or_none()
+                values = {
+                    "gameDate": game_date,
+                    "gameId": game["gameId"],
+                    "gameStatus": game["gameStatus"],
+                    "gameStatusText": game["gameStatusText"],
+                    "period": game["period"],
+                    "gameClock": game.get("gameClock"),
+                    "gameTimeUTC": game["gameTimeUTC"],
+                    "homeTeam_teamId": home_team.teamId,
+                    "homeTeam_teamName": home_team.teamName,
+                    "homeTeam_teamCity": home_team.teamCity,
+                    "homeTeam_teamTricode": home_team.teamTricode,
+                    "homeTeam_wins": home_team.wins,
+                    "homeTeam_losses": home_team.losses,
+                    "homeTeam_score": home_team.score,
+                    "homeTeam_timeoutsRemaining": home_team.timeoutsRemaining,
+                    "awayTeam_teamId": away_team.teamId,
+                    "awayTeam_teamName": away_team.teamName,
+                    "awayTeam_teamCity": away_team.teamCity,
+                    "awayTeam_teamTricode": away_team.teamTricode,
+                    "awayTeam_wins": away_team.wins,
+                    "awayTeam_losses": away_team.losses,
+                    "awayTeam_score": away_team.score,
+                    "awayTeam_timeoutsRemaining": away_team.timeoutsRemaining,
+                    "homeLeader_personId": (
+                        game_leaders.homeLeaders.personId
+                        if game_leaders and game_leaders.homeLeaders
+                        else None
+                    ),
+                    "homeLeader_name": (
+                        game_leaders.homeLeaders.name
+                        if game_leaders and game_leaders.homeLeaders
+                        else None
+                    ),
+                    "homeLeader_jerseyNum": (
+                        game_leaders.homeLeaders.jerseyNum
+                        if game_leaders and game_leaders.homeLeaders
+                        else None
+                    ),
+                    "homeLeader_position": (
+                        game_leaders.homeLeaders.position
+                        if game_leaders and game_leaders.homeLeaders
+                        else None
+                    ),
+                    "homeLeader_teamTricode": (
+                        game_leaders.homeLeaders.teamTricode
+                        if game_leaders and game_leaders.homeLeaders
+                        else None
+                    ),
+                    "homeLeader_points": (
+                        game_leaders.homeLeaders.points
+                        if game_leaders and game_leaders.homeLeaders
+                        else None
+                    ),
+                    "homeLeader_rebounds": (
+                        game_leaders.homeLeaders.rebounds
+                        if game_leaders and game_leaders.homeLeaders
+                        else None
+                    ),
+                    "homeLeader_assists": (
+                        game_leaders.homeLeaders.assists
+                        if game_leaders and game_leaders.homeLeaders
+                        else None
+                    ),
+                    "awayLeader_personId": (
+                        game_leaders.awayLeaders.personId
+                        if game_leaders and game_leaders.awayLeaders
+                        else None
+                    ),
+                    "awayLeader_name": (
+                        game_leaders.awayLeaders.name
+                        if game_leaders and game_leaders.awayLeaders
+                        else None
+                    ),
+                    "awayLeader_jerseyNum": (
+                        game_leaders.awayLeaders.jerseyNum
+                        if game_leaders and game_leaders.awayLeaders
+                        else None
+                    ),
+                    "awayLeader_position": (
+                        game_leaders.awayLeaders.position
+                        if game_leaders and game_leaders.awayLeaders
+                        else None
+                    ),
+                    "awayLeader_teamTricode": (
+                        game_leaders.awayLeaders.teamTricode
+                        if game_leaders and game_leaders.awayLeaders
+                        else None
+                    ),
+                    "awayLeader_points": (
+                        game_leaders.awayLeaders.points
+                        if game_leaders and game_leaders.awayLeaders
+                        else None
+                    ),
+                    "awayLeader_rebounds": (
+                        game_leaders.awayLeaders.rebounds
+                        if game_leaders and game_leaders.awayLeaders
+                        else None
+                    ),
+                    "awayLeader_assists": (
+                        game_leaders.awayLeaders.assists
+                        if game_leaders and game_leaders.awayLeaders
+                        else None
+                    ),
+                    "pbOdds_team": None,
+                    "pbOdds_odds": None,
+                    "pbOdds_suspended": None,
+                }
+
+                if existing:
+                    for key, value in values.items():
+                        setattr(existing, key, value)
+                else:
+                    db.add(ScoreboardGame(**values))
             except KeyError as e:
                 print(f"Missing key in game data: {e}, skipping game.")
 
@@ -191,6 +314,12 @@ async def getScoreboard(db: AsyncSession) -> ScoreboardResponse:
     except Exception as e:
         print(f"Error fetching live scoreboard: {e}")
         raise HTTPException(status_code=500, detail=f"Error fetching live scores: {e}")
+
+async def get_scoreboard_games(db: AsyncSession) -> List[ScoreboardGameDB]:
+    """Return all stored scoreboard games."""
+    result = await db.execute(select(ScoreboardGame))
+    games = result.scalars().all()
+    return [ScoreboardGameDB.model_validate(g) for g in games]
 
 
 async def getCurrentTeamRecord(team_id: int) -> TeamDetails:

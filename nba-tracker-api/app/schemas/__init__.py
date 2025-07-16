@@ -12,6 +12,7 @@ from .team import (
 from .game import GameSummary as GameSummarySchema, PlayerGameEntry, PlayerGameStats, GameDetailsResponse
 from .schedule import TeamSummary as ScheduleTeamSummary, TopScorer, GameSummary as ScheduleGameSummary, GamesResponse
 from .scoreboard import ScoreboardResponse
+from .scoreboard_game_db import ScoreboardGameDB
 from .standings import StandingsResponse
 
 from .player_db import PlayerDB

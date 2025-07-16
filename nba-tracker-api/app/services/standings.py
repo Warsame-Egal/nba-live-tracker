@@ -8,7 +8,6 @@ from nba_api.stats.endpoints import leaguestandingsv3
 from app.schemas.standings import StandingRecord, StandingsResponse
 from app.models import StandingsSnapshot
 
-
 def safe_str(value) -> str:
     """
     Safely converts a value to string. Returns an empty string if value is None.
