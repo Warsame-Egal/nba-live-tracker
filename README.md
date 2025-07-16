@@ -73,6 +73,14 @@ venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
+### Apply Database Migrations:
+
+```bash
+alembic upgrade head
+```
+
+This creates all tables, including `scoreboard_snapshots` used for caching the scoreboard.
+
 ### Run the Backend:
 
 ```bash

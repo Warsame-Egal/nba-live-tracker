@@ -22,6 +22,13 @@ The NBA Scoreboard API provides endpoints to retrieve information about team rec
 }
 ```
 
+### Caching & Database
+
+The API stores each fetch in the `scoreboard_snapshots` table. If the same data
+was retrieved within the last 60 seconds, the endpoint returns this cached
+snapshot instead of calling the NBA API again. WebSocket updates use the same
+cache to avoid redundant network requests.
+
 ### 2. Get Current Team Record
 
 **GET** `/scoreboard/team/{team_id}/record`
