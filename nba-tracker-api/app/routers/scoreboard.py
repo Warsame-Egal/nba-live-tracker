@@ -1,6 +1,6 @@
 from typing import List
 
-from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect, Depends
 
 from app.schemas.player import PlayerSummary, TeamRoster
 from app.schemas.scoreboard import (
@@ -86,6 +86,7 @@ async def scoreboard(db: AsyncSession = Depends(get_db)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.get(
     "/scoreboard/games/db",
     response_model=List[ScoreboardGameDB],
@@ -98,7 +99,6 @@ async def scoreboard_games_db(db: AsyncSession = Depends(get_db)):
         return await get_scoreboard_games(db)
     except HTTPException as e:
         raise e
-
 
 
 @router.get(
@@ -166,7 +166,7 @@ async def searchPlayers(name: str):
     summary="Get Box Score for a Game",
     description="Retrieve detailed game stats including team and player performance.",
 )
-async def get_game_boxscore(game_id: str):
+async def get_game_boxscore(game_id: str, db: AsyncSession = Depends(get_db)):
     """
     API route to fetch the full box score for a given NBA game.
 
@@ -177,7 +177,7 @@ async def get_game_boxscore(game_id: str):
         BoxScoreResponse: Full box score containing team and player stats.
     """
     try:
-        return await getBoxScore(game_id)
+        return await getBoxScore(game_id, db)
     except HTTPException as e:
         raise e
 

@@ -3,6 +3,9 @@ from typing import List, Optional
 
 from fastapi import HTTPException
 import asyncio
+from datetime import datetime, timedelta
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from nba_api.stats.endpoints import BoxScoreSummaryV2, BoxScoreTraditionalV2
 
 from app.schemas.game import (
@@ -11,10 +14,17 @@ from app.schemas.game import (
     PlayerGameEntry,
     PlayerGameStats,
 )
+from app.models import BoxScoreCache
 
 
-async def getGameDetails(game_id: str) -> GameDetailsResponse:
+async def getGameDetails(game_id: str, db: AsyncSession) -> GameDetailsResponse:
     try:
+        stmt = select(BoxScoreCache).where(BoxScoreCache.game_id == game_id)
+        result = await db.execute(stmt)
+        cached = result.scalar_one_or_none()
+        if cached and (datetime.utcnow() - cached.fetched_at) < timedelta(seconds=60):
+            return GameDetailsResponse.model_validate_json(cached.data)
+
         raw_data = await asyncio.to_thread(lambda: BoxScoreSummaryV2(game_id=game_id).get_dict())
         stats_data = await asyncio.to_thread(lambda: BoxScoreTraditionalV2(game_id=game_id).get_dict())
 
@@ -48,7 +58,7 @@ async def getGameDetails(game_id: str) -> GameDetailsResponse:
             for row in player_stats_data
         ]
 
-        return GameDetailsResponse(
+        response = GameDetailsResponse(
             game_summary=GameSummary(
                 game_date_est=game_summary.get("GAME_DATE_EST", "N/A"),
                 game_id=game_summary.get("GAME_ID", "N/A"),
@@ -59,6 +69,22 @@ async def getGameDetails(game_id: str) -> GameDetailsResponse:
             ),
             players=players,
         )
+
+        data_json = response.model_dump_json()
+        if cached:
+            cached.data = data_json
+            cached.fetched_at = datetime.utcnow()
+        else:
+            db.add(
+                BoxScoreCache(
+                    game_id=game_id,
+                    fetched_at=datetime.utcnow(),
+                    data=data_json,
+                )
+            )
+        await db.commit()
+
+        return response
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching game details: {e}")

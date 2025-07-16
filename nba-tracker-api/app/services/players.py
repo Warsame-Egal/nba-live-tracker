@@ -2,14 +2,16 @@ from typing import List
 
 import asyncio
 import pandas as pd
+import json
 from fastapi import HTTPException
 from sqlalchemy import select
+from datetime import datetime, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
 from nba_api.stats.endpoints import PlayerGameLog, playerindex
 from nba_api.stats.library.parameters import HistoricalNullable
 
 from app.schemas.player import PlayerGamePerformance, PlayerSummary
-from app.models import Player
+from app.models import Player, PlayerSummaryCache, PlayerSearchCache
 
 
 async def getPlayer(player_id: str, db: AsyncSession) -> PlayerSummary:
@@ -17,9 +19,16 @@ async def getPlayer(player_id: str, db: AsyncSession) -> PlayerSummary:
     Retrieves detailed information about a specific player, including stats and recent performances.
     """
     try:
+        stmt = select(PlayerSummaryCache).where(PlayerSummaryCache.player_id == int(player_id))
+        result = await db.execute(stmt)
+        cached = result.scalar_one_or_none()
+        if cached and (datetime.utcnow() - cached.fetched_at) < timedelta(seconds=60):
+            return PlayerSummary.model_validate_json(cached.data)
+
         result = await db.execute(select(Player).where(Player.id == int(player_id)))
         stored = result.scalar_one_or_none()
-        if stored:
+        if stored and cached is None:
+            # return minimal info if cached summary not found but player row exists
             return PlayerSummary(
                 PERSON_ID=stored.id,
                 PLAYER_LAST_NAME=stored.name.split(" ")[-1],
@@ -101,6 +110,20 @@ async def getPlayer(player_id: str, db: AsyncSession) -> PlayerSummary:
                 position=player_summary.POSITION,
             )
         )
+        
+        data_json = player_summary.model_dump_json()
+        if cached:
+            cached.data = data_json
+            cached.fetched_at = datetime.utcnow()
+        else:
+            db.add(
+                PlayerSummaryCache(
+                    player_id=player_summary.PERSON_ID,
+                    fetched_at=datetime.utcnow(),
+                    data=data_json,
+                )
+            )
+
         await db.commit()
 
         return player_summary
@@ -116,6 +139,14 @@ async def search_players(search_term: str, db: AsyncSession) -> List[PlayerSumma
     Optimized NBA player search by first, last, or full name (partial match).
     """
     try:
+        term = search_term.lower()
+        stmt = select(PlayerSearchCache).where(PlayerSearchCache.search_term == term)
+        result = await db.execute(stmt)
+        cached = result.scalar_one_or_none()
+        if cached and (datetime.utcnow() - cached.fetched_at) < timedelta(seconds=60):
+            data = json.loads(cached.data)
+            return [PlayerSummary(**item) for item in data]
+
         player_index_data = await asyncio.to_thread(
             lambda: playerindex.PlayerIndex(historical_nullable=HistoricalNullable.all_time)
         )
@@ -175,6 +206,20 @@ async def search_players(search_term: str, db: AsyncSession) -> List[PlayerSumma
             )
 
             player_summaries.append(player_summary)
+
+        data_json = json.dumps([p.model_dump() for p in player_summaries])
+        if cached:
+            cached.data = data_json
+            cached.fetched_at = datetime.utcnow()
+        else:
+            db.add(
+                PlayerSearchCache(
+                    search_term=term,
+                    fetched_at=datetime.utcnow(),
+                    data=data_json,
+                )
+            )
+        await db.commit()
 
         return player_summaries
 
