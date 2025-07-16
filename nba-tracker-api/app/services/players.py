@@ -108,14 +108,6 @@ async def getPlayer(player_id: str, db: AsyncSession) -> PlayerSummary:
     except HTTPException as http_exception:
         raise http_exception
     except Exception as e:
-        # Fall back to a minimal response when external calls fail
-        if player_id == "1641842":
-            return PlayerSummary(
-                PERSON_ID=1641842,
-                PLAYER_LAST_NAME="Test",
-                PLAYER_FIRST_NAME="Player",
-                recent_games=[],
-            )
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
 
 

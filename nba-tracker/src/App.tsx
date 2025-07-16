@@ -12,13 +12,6 @@ export default function App() {
   return (
     <Router>
       <div className="">
-        <Routes>
-          <Route path="/" element={<Scoreboard />} />
-          <Route path="/team/:team_id" element={<TeamPage />} />
-          <Route path="/team/:team_id/roster" element={<RosterPage />} />
-          <Route path="/standings" element={<Standings />} />
-          <Route path="/players/:playerId" element={<PlayerProfile />} />
-        </Routes>
         <Suspense fallback={<div className="text-center p-8 text-white">Loading...</div>}>
           <Routes>
             <Route path="/" element={<Scoreboard />} />

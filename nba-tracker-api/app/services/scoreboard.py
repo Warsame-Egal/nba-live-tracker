@@ -4,6 +4,9 @@ import asyncio
 from fastapi import HTTPException
 from nba_api.live.nba.endpoints import boxscore, playbyplay, scoreboard
 from nba_api.stats.endpoints import commonteamroster, leaguestandingsv3, playerindex
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from datetime import datetime, timedelta
 
 from app.schemas.player import Player, PlayerSummary, TeamRoster
 from app.schemas.scoreboard import (
@@ -23,6 +26,7 @@ from app.schemas.scoreboard import (
 )
 from app.schemas.team import TeamDetails
 from datetime import date
+from app.models import ScoreboardSnapshot
 
 
 def get_current_season(today: date | None = None) -> str:
@@ -115,7 +119,7 @@ def extract_game_leaders(game_leaders_data):
     return GameLeaders(homeLeaders=home_leader, awayLeaders=away_leader)
 
 
-async def getScoreboard() -> ScoreboardResponse:
+async def getScoreboard(db: AsyncSession) -> ScoreboardResponse:
     """
     Fetches the latest NBA scoreboard, processes it, and returns structured data.
 
@@ -126,6 +130,18 @@ async def getScoreboard() -> ScoreboardResponse:
         HTTPException: If there is an error fetching or processing the data.
     """
     try:
+        # Check if we recently fetched a scoreboard snapshot (within 60 seconds)
+        stmt = (
+            select(ScoreboardSnapshot)
+            .order_by(ScoreboardSnapshot.id.desc())
+            .limit(1)
+        )
+        result = await db.execute(stmt)
+        latest: ScoreboardSnapshot | None = result.scalar_one_or_none()
+
+        if latest and (datetime.utcnow() - latest.fetched_at) < timedelta(seconds=60):
+            return ScoreboardResponse.model_validate_json(latest.data)
+
         raw_scoreboard_data = await fetch_nba_scoreboard()
         if not raw_scoreboard_data:
             raise ValueError("Received empty scoreboard data.")
@@ -157,8 +173,21 @@ async def getScoreboard() -> ScoreboardResponse:
             except KeyError as e:
                 print(f"Missing key in game data: {e}, skipping game.")
 
-        return ScoreboardResponse(scoreboard=Scoreboard(gameDate=game_date, games=games))
+        response = ScoreboardResponse(scoreboard=Scoreboard(gameDate=game_date, games=games))
 
+        # Persist new snapshot if data changed
+        data_json = response.model_dump_json()
+        if not latest or latest.data != data_json:
+            db.add(
+                ScoreboardSnapshot(
+                    game_date=game_date,
+                    fetched_at=datetime.utcnow(),
+                    data=data_json,
+                )
+            )
+            await db.commit()
+
+        return response
     except Exception as e:
         print(f"Error fetching live scoreboard: {e}")
         raise HTTPException(status_code=500, detail=f"Error fetching live scores: {e}")

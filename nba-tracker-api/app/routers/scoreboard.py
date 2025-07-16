@@ -21,6 +21,9 @@ from app.services.scoreboard import (
     getScoreboard,
     getTeamStats,
 )
+from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import Depends
+from app.database import get_db
 from app.services.websockets_manager import (
     playbyplay_websocket_manager,
     scoreboard_websocket_manager,
@@ -68,14 +71,14 @@ async def websocket_endpoint(websocket: WebSocket):
     summary="Get Live NBA Scores",
     description="Fetch and return live NBA scores from the NBA API.",
 )
-async def scoreboard():
+async def scoreboard(db: AsyncSession = Depends(get_db)):
     """
     This endpoint fetches live game data, including team scores, game status,
     period, and other relevant details.
 
     """
     try:
-        return await getScoreboard()
+        return await getScoreboard(db)
     except HTTPException as e:
         raise e
     except Exception as e:
