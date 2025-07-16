@@ -11,7 +11,7 @@ from nba_api.stats.endpoints import PlayerGameLog, playerindex
 from nba_api.stats.library.parameters import HistoricalNullable
 
 from app.schemas.player import PlayerGamePerformance, PlayerSummary
-from app.models import Player, PlayerSummaryCache, PlayerSearchCache
+from app.models import Player, PlayerSummaryCache, PlayerSearchCache, Team
 
 
 async def getPlayer(player_id: str, db: AsyncSession) -> PlayerSummary:
@@ -102,6 +102,18 @@ async def getPlayer(player_id: str, db: AsyncSession) -> PlayerSummary:
             recent_games=recent_games,
         )
 
+        if player_summary.TEAM_ID is not None:
+            result = await db.execute(select(Team).where(Team.id == player_summary.TEAM_ID))
+            team = result.scalar_one_or_none()
+            if team is None:
+                db.add(
+                    Team(
+                        id=player_summary.TEAM_ID,
+                        name=player_summary.TEAM_NAME or "",
+                        abbreviation=player_summary.TEAM_ABBREVIATION or "",
+                    )
+                )
+
         db.add(
             Player(
                 id=player_summary.PERSON_ID,
@@ -110,7 +122,7 @@ async def getPlayer(player_id: str, db: AsyncSession) -> PlayerSummary:
                 position=player_summary.POSITION,
             )
         )
-        
+
         data_json = player_summary.model_dump_json()
         if cached:
             cached.data = data_json
