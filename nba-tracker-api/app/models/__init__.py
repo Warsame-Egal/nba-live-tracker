@@ -1,8 +1,6 @@
-from .endpoint_models import *
+from .endpoint_models import ScoreboardGame
 from .player import Player
 from .team import Team
-from .game import Game
-from .gamestat import GameStat
 from .scoreboard_snapshot import ScoreboardSnapshot
 from .standings_snapshot import StandingsSnapshot
 from .cache_models import (
@@ -12,6 +10,7 @@ from .cache_models import (
     ScheduleCache,
     BoxScoreCache,
 )
+
 __all__ = [
     "Player",
     "Team",
@@ -20,30 +19,6 @@ __all__ = [
     "ScoreboardSnapshot",
     "StandingsSnapshot",
     "ScoreboardGame",
-    "TeamRecord",
-    "TeamRosterEntry",
-    "BoxScoreTeamStats",
-    "BoxScorePlayerStats",
-    "TeamGameStats",
-    "TeamGamePlayerStats",
-    "GameLeader",
-    "PlayByPlayEvent",
-    "GameSummary",
-    "StandingRecord",
-    "TeamStanding",
-    "PlayerGamePerformance",
-    "PlayerSummaryEntry",
-    "PlayerSearchResult",
-    "GameDetailSummary",
-    "GameDetailPlayer",
-    "GamePlayer",
-    "GamePlayerStat",
-    "TeamDetailsResponseModel",
-    "TeamHistoryEntry",
-    "TeamAwardChampionship",
-    "TeamAwardConference",
-    "TeamAwardDivision",
-    "TeamSearchResult",
     "TeamDetailsCache",
     "PlayerSummaryCache",
     "PlayerSearchCache",

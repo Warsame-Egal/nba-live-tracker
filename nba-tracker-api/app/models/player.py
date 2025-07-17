@@ -3,6 +3,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
 
+
 class Player(Base):
     __tablename__ = "players"
 
@@ -12,4 +13,3 @@ class Player(Base):
     position: Mapped[str | None] = mapped_column(String, nullable=True)
 
     team = relationship("Team", back_populates="players")
-    stats = relationship("GameStat", back_populates="player")
