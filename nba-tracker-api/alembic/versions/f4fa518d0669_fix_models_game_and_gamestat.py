@@ -1,8 +1,8 @@
-"""add standings snapshot table
+"""fix models game and gamestat
 
-Revision ID: 83f2b5ac700f
-Revises: 2e2da960329e
-Create Date: 2025-07-16 21:37:24.492642
+Revision ID: f4fa518d0669
+Revises: 08924396482e
+Create Date: 2025-07-17 01:31:24.082894
 
 """
 from typing import Sequence, Union
@@ -12,8 +12,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '83f2b5ac700f'
-down_revision: Union[str, Sequence[str], None] = '2e2da960329e'
+revision: str = 'f4fa518d0669'
+down_revision: Union[str, Sequence[str], None] = '08924396482e'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

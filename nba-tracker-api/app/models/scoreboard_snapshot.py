@@ -11,3 +11,4 @@ class ScoreboardSnapshot(Base):
     game_date: Mapped[str] = mapped_column(Text, index=True)
     fetched_at: Mapped[datetime] = mapped_column(DateTime)
     data: Mapped[str] = mapped_column(Text)
+    
