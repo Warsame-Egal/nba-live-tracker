@@ -48,7 +48,8 @@ const Scoreboard = () => {
   const [searchResults, setSearchResults] = useState<SearchResults>({
     players: [],
     teams: [],
-  });  const [loading, setLoading] = useState(false);
+  });
+  const [loading, setLoading] = useState(false);
   const [selectedGame, setSelectedGame] = useState<Game | GameSummary | null>(null);
   const [selectedDate, setSelectedDate] = useState(getLocalISODate());
   const [searchParams] = useSearchParams();
@@ -166,7 +167,8 @@ const Scoreboard = () => {
         searchContainerRef.current &&
         !searchContainerRef.current.contains(event.target as Node)
       ) {
-        setShowSearchResults(false);      }
+        setShowSearchResults(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -237,23 +239,32 @@ const Scoreboard = () => {
                   {searchResults.players.length > 0 && (
                     <li className="px-4 py-1 text-gray-400 text-xs uppercase">Players</li>
                   )}
-                  {searchResults.players.map(player => (
-                    <li
-                      key={`p${player.PERSON_ID}`}
-                      className="py-2 px-4 hover:bg-neutral-700 transition"
-                    >
-                      <Link
-                        to={`/players/${player.PERSON_ID}`}
-                        onClick={() => setShowSearchResults(false)}
-                        className="flex items-center gap-3"
+                  {searchResults.players.map(player => {
+                    const parts = player.name.split(' ');
+                    const firstName = parts.slice(0, -1).join(' ');
+                    const lastName = parts[parts.length - 1];
+                    return (
+                      <li
+                        key={`p${player.id}`}
+                        className="py-2 px-4 hover:bg-neutral-700 transition"
                       >
-                        <span className="font-bold">
-                          {player.PLAYER_FIRST_NAME} {player.PLAYER_LAST_NAME}
-                        </span>
-                        <span className="text-sm text-gray-400">{player.TEAM_ABBREVIATION}</span>
-                      </Link>
-                    </li>
-                  ))}
+                        <Link
+                          to={`/players/${player.id}`}
+                          onClick={() => setShowSearchResults(false)}
+                          className="flex items-center gap-3"
+                        >
+                          <span className="font-bold">
+                            {firstName} {lastName}
+                          </span>
+                          {player.team_abbreviation && (
+                            <span className="text-sm text-gray-400">
+                              {player.team_abbreviation}
+                            </span>
+                          )}
+                        </Link>
+                      </li>
+                    );
+                  })}
                   {searchResults.teams.length > 0 && (
                     <li className="px-4 py-1 text-gray-400 text-xs uppercase">Teams</li>
                   )}

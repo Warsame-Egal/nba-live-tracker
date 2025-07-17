@@ -1,4 +1,9 @@
-import { PlayerSummary } from './player';
+export interface PlayerResult {
+  id: number;
+  name: string;
+  team_id?: number;
+  team_abbreviation?: string;
+}
 
 export interface TeamResult {
   id: number;
@@ -7,6 +12,6 @@ export interface TeamResult {
 }
 
 export interface SearchResults {
-  players: PlayerSummary[];
+  players: PlayerResult[];
   teams: TeamResult[];
 }

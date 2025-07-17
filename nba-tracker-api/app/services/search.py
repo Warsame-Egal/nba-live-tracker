@@ -43,7 +43,21 @@ async def search_entities(query: str, db: AsyncSession) -> SearchResults:
             result = await db.execute(stmt)
             teams += result.scalars().all()
 
-        player_results = [PlayerResult(id=p.id, name=p.name, team_id=p.team_id) for p in players]
+        team_map = {}
+        team_ids = {p.team_id for p in players if p.team_id is not None}
+        if team_ids:
+            result = await db.execute(select(Team.id, Team.abbreviation).where(Team.id.in_(team_ids)))
+            team_map = {row[0]: row[1] for row in result.all()}
+
+        player_results = [
+            PlayerResult(
+                id=p.id,
+                name=p.name,
+                team_id=p.team_id,
+                team_abbreviation=team_map.get(p.team_id),
+            )
+            for p in players
+        ]
         team_results = [TeamResult(id=t.id, name=t.name, abbreviation=t.abbreviation) for t in teams]
         return SearchResults(players=player_results, teams=team_results)
     except Exception as e:

@@ -6,6 +6,7 @@ class PlayerResult(BaseModel):
     id: int
     name: str
     team_id: Optional[int] = None
+    team_abbreviation: Optional[str] = None
 
 
 class TeamResult(BaseModel):

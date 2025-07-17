@@ -81,6 +81,15 @@ alembic upgrade head
 
 This creates all tables, including `scoreboard_snapshots` used for caching the scoreboard.
 
+### Populate the Database:
+
+```bash
+cd nba-tracker-api
+python populate_database.py
+```
+
+This loads all players and teams and caches initial data so search works. You can re-run the script at any time to refresh records.
+
 ### Caching Mechanism
 
 The backend stores each fetched scoreboard in the `scoreboard_snapshots` table.
