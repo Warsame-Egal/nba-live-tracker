@@ -12,5 +12,4 @@ class Player(Base):
     position: Mapped[str | None] = mapped_column(String, nullable=True)
 
     team = relationship("Team", back_populates="players")
-    stats = relationship("GameStat", back_populates="player")
     

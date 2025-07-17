@@ -2,8 +2,6 @@ from .endpoint_models import *
 from .endpoint_models import ScoreboardGame
 from .player import Player
 from .team import Team
-from .game import Game
-from .gamestat import GameStat
 from .scoreboard_snapshot import ScoreboardSnapshot
 from .standings_snapshot import StandingsSnapshot
 from .cache_models import (
@@ -17,8 +15,6 @@ from .cache_models import (
 __all__ = [
     "Player",
     "Team",
-    "Game",
-    "GameStat",
     "ScoreboardSnapshot",
     "StandingsSnapshot",
     "ScoreboardGame",
