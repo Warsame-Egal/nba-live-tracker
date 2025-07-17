@@ -94,7 +94,7 @@ table for historical reference.
 Other endpoints cache their responses as well (`player_summary_cache`,
 `schedule_cache`, `box_score_cache`, and `team_details_cache`). Cached rows are refreshed if the data is older than
 
-The `/api/v1/players/search/{search_term}` endpoint looks up players in the local database. If no player data exists when the first search is run, the service automatically fetches the NBA player index and stores the results. Player and team entries are inserted only if they don't already exist, so your own modifications remain intact.requests.
+The `/api/v1/players/search/{search_term}` endpoint looks up players solely in the local database. It no longer fetches data from the NBA API when the table is empty.
 
 ### Run the Backend:
 

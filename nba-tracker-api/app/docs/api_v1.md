@@ -7,9 +7,7 @@ This document outlines the available endpoints after pruning unused functionalit
 ### Players
 
 - `GET /api/v1/player/{player_id}` - Retrieve a single player's details.
-- `GET /api/v1/players/search/{search_term}` - Search for players by name. If
-  the players table is empty, it is populated from the NBA player index before
-  searching.
+- `GET /api/v1/players/search/{search_term}` - Search for players by name in the local database.
 
 ### Teams
 

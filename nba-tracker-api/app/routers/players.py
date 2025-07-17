@@ -29,10 +29,8 @@ async def fetchPlayer(player_id: str, db: AsyncSession = Depends(get_db)):
     response_model=List[PlayerSummary],
     summary="Search Players",
     tags=["players"],
-    description=(
-        "Search for players by name. If the player table is empty it will be "
-        "populated from the NBA player index on the first search."
-    ),)
+    description="Search for players by name using only the stored player records.",
+)
 async def searchPlayers(search_term: str, db: AsyncSession = Depends(get_db)):
     try:
         return await search_players(search_term, db)

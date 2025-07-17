@@ -2,9 +2,8 @@ from typing import List
 
 import asyncio
 import pandas as pd
-import json
 from fastapi import HTTPException
-from sqlalchemy import select, func
+from sqlalchemy import select
 from datetime import datetime, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
 from nba_api.stats.endpoints import PlayerGameLog, playerindex
@@ -157,42 +156,12 @@ async def getPlayer(player_id: str, db: AsyncSession) -> PlayerSummary:
 
 
 async def search_players(search_term: str, db: AsyncSession) -> List[PlayerSummary]:
-    """Search players by name using stored players and populate the table if empty."""
+    """Search players by name using only records stored in the database."""
 
     try:
         stmt = select(Player).where(Player.name.ilike(f"%{search_term}%"))
         result = await db.execute(stmt)
         players = result.scalars().all()
-
-        if not players:
-            count_stmt = select(func.count()).select_from(Player)
-            result = await db.execute(count_stmt)
-            total = result.scalar_one()
-
-            if total == 0:
-                player_index_data = await asyncio.to_thread(
-                    lambda: playerindex.PlayerIndex(historical_nullable=HistoricalNullable.all_time)
-                )
-                player_index_df = player_index_data.get_data_frames()[0]
-
-                for _, row in player_index_df.iterrows():
-                    player_id = int(row["PERSON_ID"])
-                    existing = await db.execute(select(Player).where(Player.id == player_id))
-                    if existing.scalar_one_or_none() is not None:
-                        continue
-                    db.add(
-                        Player(
-                            id=player_id,
-                            name=f"{row['PLAYER_FIRST_NAME']} {row['PLAYER_LAST_NAME']}",
-                            team_id=(int(row["TEAM_ID"]) if not pd.isna(row.get("TEAM_ID")) else None),
-                            position=row.get("POSITION"),
-                        )
-                    )
-
-                await db.commit()
-
-                result = await db.execute(stmt)
-                players = result.scalars().all()
 
         if not players:
             raise HTTPException(status_code=404, detail="No players found matching the search term")
