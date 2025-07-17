@@ -8,7 +8,7 @@ import Navbar from '../components/Navbar';
 import WeeklyCalendar from '../components/WeeklyCalendar';
 import GameDetailsModal from '../components/GameDetailsModal';
 import { useSearchParams, Link } from 'react-router-dom';
-import { PlayerSummary } from '../types/player';
+import { SearchResults } from '../types/search';
 import ScoringLeaders from '../components/ScoringLeaders';
 import debounce from 'lodash/debounce';
 import { FaSearch, FaTimes, FaSpinner, FaCalendarTimes } from 'react-icons/fa';
@@ -45,13 +45,15 @@ const Scoreboard = () => {
   const [liveGames, setLiveGames] = useState<(Game | GameSummary)[]>([]);
   const [upcomingGames, setUpcomingGames] = useState<(Game | GameSummary)[]>([]);
   const [completedGames, setCompletedGames] = useState<(Game | GameSummary)[]>([]);
-  const [players, setPlayers] = useState<PlayerSummary[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [searchResults, setSearchResults] = useState<SearchResults>({
+    players: [],
+    teams: [],
+  });  const [loading, setLoading] = useState(false);
   const [selectedGame, setSelectedGame] = useState<Game | GameSummary | null>(null);
   const [selectedDate, setSelectedDate] = useState(getLocalISODate());
   const [searchParams] = useSearchParams();
   const searchQuery = searchParams.get('search') || '';
-  const [playerSearchQuery, setPlayerSearchQuery] = useState('');
+  const [searchInput, setSearchInput] = useState('');
   const [showSearchResults, setShowSearchResults] = useState(false);
 
   // Use a container ref that wraps both the input and the search results
@@ -76,27 +78,27 @@ const Scoreboard = () => {
 
   useEffect(() => setupWebSocket(), [setupWebSocket]);
 
-  // Debounced player search remains unchanged.
+  // Debounced search for players and teams.
   useEffect(() => {
     const abortController = new AbortController();
     const debouncedFetch = debounce(async () => {
-      if (!playerSearchQuery) {
-        setPlayers([]);
+      if (!searchInput) {
+        setSearchResults({ players: [], teams: [] });
         setShowSearchResults(false);
         return;
       }
       setLoading(true);
       setShowSearchResults(true);
       try {
-        const response = await fetch(`${API_BASE_URL}/api/v1/players/search/${playerSearchQuery}`, {
+        const response = await fetch(`${API_BASE_URL}/api/v1/search?q=${searchInput}`, {
           signal: abortController.signal,
         });
-        if (!response.ok) throw new Error('Failed to fetch players.');
-        const data: PlayerSummary[] = await response.json();
-        setPlayers(data);
+        if (!response.ok) throw new Error('Failed to fetch results.');
+        const data: SearchResults = await response.json();
+        setSearchResults(data);
       } catch (err) {
         if (err instanceof Error && err.name !== 'AbortError') console.error(err);
-        setPlayers([]);
+        setSearchResults({ players: [], teams: [] });
       } finally {
         setLoading(false);
       }
@@ -106,7 +108,7 @@ const Scoreboard = () => {
       abortController.abort();
       debouncedFetch.cancel();
     };
-  }, [playerSearchQuery]);
+  }, [searchInput]);
 
   // Fetch games based on selected date if it’s not today remains unchanged.
   useEffect(() => {
@@ -163,8 +165,8 @@ const Scoreboard = () => {
       if (
         searchContainerRef.current &&
         !searchContainerRef.current.contains(event.target as Node)
-      ) {        setShowSearchResults(false);
-      }
+      ) {
+        setShowSearchResults(false);      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -202,51 +204,73 @@ const Scoreboard = () => {
             </div>
             <TextField
               fullWidth
-              value={playerSearchQuery}
-              onChange={e => setPlayerSearchQuery(e.target.value)}
+              value={searchInput}
+              onChange={e => setSearchInput(e.target.value)}
               placeholder="Search players..."
               variant="outlined"
               sx={{
                 bgcolor: 'neutral.900',
                 '& fieldset': { borderColor: 'neutral.700' },
                 '& input': { color: 'white', paddingLeft: '2.5rem' },
-                borderRadius: '2rem'
+                borderRadius: '2rem',
               }}
             />
-            {loading && playerSearchQuery && (
+            {loading && searchInput && (
               <FaSpinner
                 className="absolute right-4 top-1/2 -translate-y-1/2 text-white animate-spin"
                 size={20}
               />
             )}
-            {playerSearchQuery && (
+            {searchInput && (
               <button
                 onClick={() => {
-                  setPlayerSearchQuery('');
+                  setSearchInput('');
                 }}
                 className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300"
               >
                 <FaTimes size={20} />
               </button>
             )}
-            {showSearchResults && players.length > 0 && (
-              <ul className="absolute left-0 right-0 mt-2 bg-neutral-900 border border-neutral-700 rounded-lg shadow-md max-h-60 overflow-y-auto z-20">
-                {players.map(player => (
-                  <li key={player.PERSON_ID} className="py-2 px-4 hover:bg-neutral-700 transition">
-                    <Link
-                      to={`/players/${player.PERSON_ID}`}
-                      onClick={() => setShowSearchResults(false)}
-                      className="flex items-center gap-3"
+            {showSearchResults &&
+              (searchResults.players.length > 0 || searchResults.teams.length > 0) && (
+                <ul className="absolute left-0 right-0 mt-2 bg-neutral-900 border border-neutral-700 rounded-lg shadow-md max-h-60 overflow-y-auto z-20">
+                  {searchResults.players.length > 0 && (
+                    <li className="px-4 py-1 text-gray-400 text-xs uppercase">Players</li>
+                  )}
+                  {searchResults.players.map(player => (
+                    <li
+                      key={`p${player.PERSON_ID}`}
+                      className="py-2 px-4 hover:bg-neutral-700 transition"
                     >
-                      <span className="font-bold">
-                        {player.PLAYER_FIRST_NAME} {player.PLAYER_LAST_NAME}
-                      </span>
-                      <span className="text-sm text-gray-400">{player.TEAM_ABBREVIATION}</span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
+                      <Link
+                        to={`/players/${player.PERSON_ID}`}
+                        onClick={() => setShowSearchResults(false)}
+                        className="flex items-center gap-3"
+                      >
+                        <span className="font-bold">
+                          {player.PLAYER_FIRST_NAME} {player.PLAYER_LAST_NAME}
+                        </span>
+                        <span className="text-sm text-gray-400">{player.TEAM_ABBREVIATION}</span>
+                      </Link>
+                    </li>
+                  ))}
+                  {searchResults.teams.length > 0 && (
+                    <li className="px-4 py-1 text-gray-400 text-xs uppercase">Teams</li>
+                  )}
+                  {searchResults.teams.map(team => (
+                    <li key={`t${team.id}`} className="py-2 px-4 hover:bg-neutral-700 transition">
+                      <Link
+                        to={`/team/${team.id}`}
+                        onClick={() => setShowSearchResults(false)}
+                        className="flex items-center gap-3"
+                      >
+                        <span className="font-bold">{team.name}</span>
+                        <span className="text-sm text-gray-400">{team.abbreviation}</span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
           </div>
 
           {/* Weekly Calendar remains unchanged */}
@@ -256,7 +280,7 @@ const Scoreboard = () => {
         </div>
 
         {/* Games Display Section remains unchanged */}
-        {loading && !playerSearchQuery && games.length === 0 ? (
+        {loading && !searchInput && games.length === 0 ? (
           <div className="flex justify-center items-center py-20">
             <FaSpinner className="text-5xl text-blue-500 animate-spin" />
           </div>

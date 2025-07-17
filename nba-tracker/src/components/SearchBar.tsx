@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { FaSearch, FaTimes } from 'react-icons/fa';
 import { useSearchParams } from 'react-router-dom';
-import { PlayerSummary } from '../types/player';
+import { SearchResults } from '../types/search';
 import debounce from 'lodash/debounce';
 
 interface SearchBarProps {
-  onResults: (results: PlayerSummary[]) => void;
+  onResults: (results: SearchResults) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   placeholder?: string;
@@ -28,7 +28,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
 
     const debouncedFetch = debounce(async (search: string) => {
       if (!search) {
-        onResults([]);
+        onResults({ players: [], teams: [] });
         return;
       }
 
@@ -36,13 +36,13 @@ const SearchBar: React.FC<SearchBarProps> = ({
       setError(null);
 
       try {
-        const response = await fetch(`${API_BASE_URL}/api/v1/players/search/${search}`, {
+        const response = await fetch(`${API_BASE_URL}/api/v1/search?q=${search}`, {
           signal: abortController.signal,
         });
         if (!response.ok) {
           throw new Error('Failed to fetch data.');
         }
-        const data: PlayerSummary[] = await response.json();
+        const data: SearchResults = await response.json();
         onResults(data);
       } catch (err) {
         if (err instanceof Error) {
@@ -51,7 +51,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
         } else {
           setError('An unexpected error occurred.');
         }
-        onResults([]);
+        onResults({ players: [], teams: [] });
       } finally {
         setLoading(false);
       }
