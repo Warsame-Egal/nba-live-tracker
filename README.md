@@ -83,14 +83,14 @@ This creates all tables, including `scoreboard_snapshots` used for caching the s
 
 ### Caching Mechanism
 
-The backend stores each fetched scoreboard in the `scoreboard_snapshots` table. When a
-client requests `/api/v1/scoreboard`, the service first checks this table for a snapshot
-that was fetched within the last **60 seconds**. If such a snapshot exists, the cached data
-is returned immediately and the NBA API is bypassed. Otherwise the backend queries the NBA
-API, updates the snapshot table, and serves the fresh results.
+The backend stores each fetched scoreboard in the `scoreboard_snapshots` table.
+WebSocket connections use this cached data to broadcast live game updates. If a
+snapshot is older than **60 seconds**, the backend refreshes it from the NBA API
+before sending data to clients.
 
-Each game in the scoreboard response is also saved to the `scoreboard_games` table.
-You can retrieve these stored results via `/api/v1/scoreboard/games/db`.
+Each game in the scoreboard response is also saved to the `scoreboard_games`
+table for historical reference.
+
 Other endpoints cache their responses as well (`player_summary_cache`,
 `player_search_cache`, `schedule_cache`, `box_score_cache`, and
 `team_details_cache`). Cached rows are refreshed if the data is older than

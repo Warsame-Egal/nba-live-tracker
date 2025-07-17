@@ -54,6 +54,3 @@ class ScoreboardGame(Base):
     awayLeader_rebounds: Mapped[int | None] = mapped_column(Integer, nullable=True)
     awayLeader_assists: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
-    pbOdds_team: Mapped[str | None] = mapped_column(String, nullable=True)
-    pbOdds_odds: Mapped[float | None] = mapped_column(Float, nullable=True)
-    pbOdds_suspended: Mapped[int | None] = mapped_column(Integer, nullable=True)

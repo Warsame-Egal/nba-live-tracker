@@ -22,27 +22,7 @@ from app.schemas.scoreboard import (
     Team,
     TeamBoxScoreStats,
 )
-from datetime import date
 from app.models import ScoreboardSnapshot, ScoreboardGame, BoxScoreCache
-
-
-def get_current_season(today: date | None = None) -> str:
-    """Return the NBA season string for ``today``.
-
-    The NBA season spans from October of one year through June of the next. This
-    helper gets the correct season identifier (e.g. ``"2024-25"``) for any
-    given date.
-    """
-
-    today = today or date.today()
-    # Season rolls over on October 1st
-    if today.month >= 10:
-        start_year = today.year
-    else:
-        start_year = today.year - 1
-
-    end_year = (start_year + 1) % 100
-    return f"{start_year}-{end_year:02d}"
 
 
 async def fetch_nba_scoreboard():
@@ -163,7 +143,7 @@ async def getScoreboard(db: AsyncSession) -> ScoreboardResponse:
                 )
 
                 games.append(live_game)
-             
+
                 # Persist or update scoreboard game entry
                 stmt = select(ScoreboardGame).where(
                     ScoreboardGame.gameId == game["gameId"],
@@ -243,9 +223,6 @@ async def getScoreboard(db: AsyncSession) -> ScoreboardResponse:
                     "awayLeader_assists": (
                         game_leaders.awayLeaders.assists if game_leaders and game_leaders.awayLeaders else None
                     ),
-                    "pbOdds_team": None,
-                    "pbOdds_odds": None,
-                    "pbOdds_suspended": None,
                 }
 
                 if existing:
@@ -447,7 +424,7 @@ async def getBoxScore(game_id: str, db: AsyncSession | None = None) -> BoxScoreR
                 )
             await db.commit()
 
-        return response 
+        return response
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error retrieving box score: {str(e)}")
 
