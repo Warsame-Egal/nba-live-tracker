@@ -25,23 +25,21 @@ async def search_entities(query: str, db: AsyncSession) -> SearchResults:
 
         remaining = 10 - len(players) - len(teams)
         if remaining > 0:
-            stmt = (
-                select(Player)
-                .where(Player.name.ilike(f"%{query}%"))
-                .where(Player.id.not_in([p.id for p in players]))
-                .limit(remaining)
-            )
+            stmt = select(Player).where(Player.name.ilike(f"%{query}%"))
+            exclude_player_ids = [p.id for p in players]
+            if exclude_player_ids:
+                stmt = stmt.where(Player.id.notin_(exclude_player_ids))
+            stmt = stmt.limit(remaining)
             result = await db.execute(stmt)
             players += result.scalars().all()
 
         remaining = 10 - len(players) - len(teams)
         if remaining > 0:
-            stmt = (
-                select(Team)
-                .where((Team.name.ilike(f"%{query}%")) | (Team.abbreviation.ilike(f"%{query}%")))
-                .where(Team.id.not_in([t.id for t in teams]))
-                .limit(remaining)
-            )
+            stmt = select(Team).where((Team.name.ilike(f"%{query}%")) | (Team.abbreviation.ilike(f"%{query}%")))
+            exclude_team_ids = [t.id for t in teams]
+            if exclude_team_ids:
+                stmt = stmt.where(Team.id.notin_(exclude_team_ids))
+            stmt = stmt.limit(remaining)
             result = await db.execute(stmt)
             teams += result.scalars().all()
 
