@@ -1,5 +1,3 @@
-from typing import List
-
 import asyncio
 from fastapi import HTTPException
 from sqlalchemy import select

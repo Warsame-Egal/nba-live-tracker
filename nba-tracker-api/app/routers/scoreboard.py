@@ -1,10 +1,9 @@
-from typing import List
 
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect, Depends
 
 from app.schemas.player import TeamRoster
-from app.schemas.scoreboard import BoxScoreResponse, PlayByPlayResponse
-from app.services.scoreboard import fetchTeamRoster, getBoxScore, getPlayByPlay
+from app.schemas.scoreboard import BoxScoreResponse
+from app.services.scoreboard import fetchTeamRoster, getBoxScore
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import Depends
 from app.database import get_db
