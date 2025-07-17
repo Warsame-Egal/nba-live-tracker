@@ -9,6 +9,7 @@ from sqlalchemy import select
 from datetime import datetime, timedelta
 
 from app.schemas.player import Player, TeamRoster
+from app.schemas.coach import Coach
 from app.schemas.scoreboard import (
     BoxScoreResponse,
     GameLeaders,
@@ -275,6 +276,24 @@ async def fetchTeamRoster(team_id: int, season: str) -> TeamRoster:
             lambda: commonteamroster.CommonTeamRoster(team_id=team_id, season=season).get_dict()
         )
         player_data = raw_roster["resultSets"][0]["rowSet"]
+        # Safely parse coaches if available
+        coaches: List[Coach] = []
+        try:
+            coaches_set = [r for r in raw_roster["resultSets"] if r["name"] == "Coaches"][0]
+            coach_headers = coaches_set["headers"]
+            for row in coaches_set["rowSet"]:
+                coach_dict = dict(zip(coach_headers, row))
+                coaches.append(
+                    Coach(
+                        coach_id=int(coach_dict["COACH_ID"]),
+                        name=coach_dict["COACH_NAME"],
+                        role=coach_dict["COACH_TYPE"],
+                        is_assistant=bool(coach_dict["IS_ASSISTANT"]),
+                    )
+                )
+        except (KeyError, IndexError):
+            coaches = []
+
 
         if not player_data:
             raise HTTPException(
@@ -313,6 +332,7 @@ async def fetchTeamRoster(team_id: int, season: str) -> TeamRoster:
             team_name=player_data[0][1],  # Extract team name
             season=season,
             players=players,
+            coaches=coaches,
         )
 
     except Exception as e:

@@ -4,14 +4,14 @@ import asyncio
 import pandas as pd
 import json
 from fastapi import HTTPException
-from sqlalchemy import select
+from sqlalchemy import select, func
 from datetime import datetime, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
 from nba_api.stats.endpoints import PlayerGameLog, playerindex
 from nba_api.stats.library.parameters import HistoricalNullable
 
 from app.schemas.player import PlayerGamePerformance, PlayerSummary
-from app.models import Player, PlayerSummaryCache, PlayerSearchCache, Team
+from app.models import Player, PlayerSummaryCache, Team
 
 
 async def getPlayer(player_id: str, db: AsyncSession) -> PlayerSummary:
@@ -114,14 +114,24 @@ async def getPlayer(player_id: str, db: AsyncSession) -> PlayerSummary:
                     )
                 )
 
-        db.add(
-            Player(
-                id=player_summary.PERSON_ID,
-                name=f"{player_summary.PLAYER_FIRST_NAME} {player_summary.PLAYER_LAST_NAME}",
-                team_id=player_summary.TEAM_ID,
-                position=player_summary.POSITION,
+        stmt = select(Player).where(Player.id == player_summary.PERSON_ID)
+        result = await db.execute(stmt)
+        player = result.scalar_one_or_none()
+
+        if player is None:
+            db.add(
+                Player(
+                    id=player_summary.PERSON_ID,
+                    name=f"{player_summary.PLAYER_FIRST_NAME} {player_summary.PLAYER_LAST_NAME}",
+                    team_id=player_summary.TEAM_ID,
+                    position=player_summary.POSITION,
+                )
             )
-        )
+        else:
+            if player.team_id != player_summary.TEAM_ID:
+                player.team_id = player_summary.TEAM_ID
+            if player.position != player_summary.POSITION:
+                player.position = player_summary.POSITION
 
         data_json = player_summary.model_dump_json()
         if cached:
@@ -147,91 +157,62 @@ async def getPlayer(player_id: str, db: AsyncSession) -> PlayerSummary:
 
 
 async def search_players(search_term: str, db: AsyncSession) -> List[PlayerSummary]:
-    """
-    Optimized NBA player search by first, last, or full name (partial match).
-    """
+    """Search players by name using stored players and populate the table if empty."""
+
     try:
-        term = search_term.lower()
-        stmt = select(PlayerSearchCache).where(PlayerSearchCache.search_term == term)
+        stmt = select(Player).where(Player.name.ilike(f"%{search_term}%"))
         result = await db.execute(stmt)
-        cached = result.scalar_one_or_none()
-        if cached and (datetime.utcnow() - cached.fetched_at) < timedelta(seconds=60):
-            data = json.loads(cached.data)
-            return [PlayerSummary(**item) for item in data]
+        players = result.scalars().all()
 
-        player_index_data = await asyncio.to_thread(
-            lambda: playerindex.PlayerIndex(historical_nullable=HistoricalNullable.all_time)
-        )
-        player_index_df = player_index_data.get_data_frames()[0]
+        if not players:
+            count_stmt = select(func.count()).select_from(Player)
+            result = await db.execute(count_stmt)
+            total = result.scalar_one()
 
-        # Create a lower-cased full name column once
-        player_index_df["FULL_NAME"] = (
-            player_index_df["PLAYER_FIRST_NAME"].fillna("") + " " + player_index_df["PLAYER_LAST_NAME"].fillna("")
-        ).str.lower()
+            if total == 0:
+                player_index_data = await asyncio.to_thread(
+                    lambda: playerindex.PlayerIndex(historical_nullable=HistoricalNullable.all_time)
+                )
+                player_index_df = player_index_data.get_data_frames()[0]
 
-        search_term_lower = search_term.lower()
+                for _, row in player_index_df.iterrows():
+                    player_id = int(row["PERSON_ID"])
+                    existing = await db.execute(select(Player).where(Player.id == player_id))
+                    if existing.scalar_one_or_none() is not None:
+                        continue
+                    db.add(
+                        Player(
+                            id=player_id,
+                            name=f"{row['PLAYER_FIRST_NAME']} {row['PLAYER_LAST_NAME']}",
+                            team_id=(int(row["TEAM_ID"]) if not pd.isna(row.get("TEAM_ID")) else None),
+                            position=row.get("POSITION"),
+                        )
+                    )
 
-        # Filter with vectorized string matching
-        mask = (
-            player_index_df["PLAYER_FIRST_NAME"].str.lower().str.contains(search_term_lower)
-            | player_index_df["PLAYER_LAST_NAME"].str.lower().str.contains(search_term_lower)
-            | player_index_df["FULL_NAME"].str.contains(search_term_lower)
-        )
+                await db.commit()
 
-        filtered_players = player_index_df[mask]
+                result = await db.execute(stmt)
+                players = result.scalars().all()
 
-        if filtered_players.empty:
+        if not players:
             raise HTTPException(status_code=404, detail="No players found matching the search term")
 
-        # Build response list
-        player_summaries = []
-        for _, row in filtered_players.iterrows():
+        player_summaries: List[PlayerSummary] = []
+        for p in players:
+            parts = p.name.split(" ")
+            first_name = " ".join(parts[:-1]) if len(parts) > 1 else parts[0]
+            last_name = parts[-1] if len(parts) > 1 else ""
 
-            def safe_int(value):
-                return None if pd.isna(value) else int(value)
-
-            player_summary = PlayerSummary(
-                PERSON_ID=row["PERSON_ID"],
-                PLAYER_LAST_NAME=row["PLAYER_LAST_NAME"],
-                PLAYER_FIRST_NAME=row["PLAYER_FIRST_NAME"],
-                PLAYER_SLUG=row.get("PLAYER_SLUG"),
-                TEAM_ID=row.get("TEAM_ID"),
-                TEAM_SLUG=row.get("TEAM_SLUG"),
-                IS_DEFUNCT=row.get("IS_DEFUNCT"),
-                TEAM_CITY=row.get("TEAM_CITY"),
-                TEAM_NAME=row.get("TEAM_NAME"),
-                TEAM_ABBREVIATION=row.get("TEAM_ABBREVIATION"),
-                JERSEY_NUMBER=row.get("JERSEY_NUMBER"),
-                POSITION=row.get("POSITION"),
-                HEIGHT=row.get("HEIGHT"),
-                WEIGHT=row.get("WEIGHT"),
-                COLLEGE=row.get("COLLEGE"),
-                COUNTRY=row.get("COUNTRY"),
-                ROSTER_STATUS=(str(row.get("ROSTER_STATUS")) if not pd.isna(row.get("ROSTER_STATUS")) else None),
-                PTS=row.get("PTS"),
-                REB=row.get("REB"),
-                AST=row.get("AST"),
-                STATS_TIMEFRAME=row.get("STATS_TIMEFRAME"),
-                FROM_YEAR=row.get("FROM_YEAR"),
-                TO_YEAR=row.get("TO_YEAR"),
-                recent_games=[],  # Empty for search results
-            )
-
-            player_summaries.append(player_summary)
-
-        data_json = json.dumps([p.model_dump() for p in player_summaries])
-        if cached:
-            cached.data = data_json
-            cached.fetched_at = datetime.utcnow()
-        else:
-            db.add(
-                PlayerSearchCache(
-                    search_term=term,
-                    fetched_at=datetime.utcnow(),
-                    data=data_json,
+            player_summaries.append(
+                PlayerSummary(
+                    PERSON_ID=p.id,
+                    PLAYER_LAST_NAME=last_name,
+                    PLAYER_FIRST_NAME=first_name,
+                    TEAM_ID=p.team_id,
+                    POSITION=p.position,
+                    recent_games=[],
                 )
             )
-        await db.commit()
 
         return player_summaries
 

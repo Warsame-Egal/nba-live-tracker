@@ -48,7 +48,7 @@ export interface TeamRoster {
   team_name: string;
   season: string;
   players: Player[];
-  coaches: Coach;
+  coaches: Coach[];
 }
 
 // Clinch Status Enum

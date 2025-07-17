@@ -92,10 +92,9 @@ Each game in the scoreboard response is also saved to the `scoreboard_games`
 table for historical reference.
 
 Other endpoints cache their responses as well (`player_summary_cache`,
-`player_search_cache`, `schedule_cache`, `box_score_cache`, and
-`team_details_cache`). Cached rows are refreshed if the data is older than
-**60 seconds** to keep results up to date while avoiding unnecessary NBA API
-requests.
+`schedule_cache`, `box_score_cache`, and `team_details_cache`). Cached rows are refreshed if the data is older than
+
+The `/api/v1/players/search/{search_term}` endpoint looks up players in the local database. If no player data exists when the first search is run, the service automatically fetches the NBA player index and stores the results. Player and team entries are inserted only if they don't already exist, so your own modifications remain intact.requests.
 
 ### Run the Backend:
 

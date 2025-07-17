@@ -49,7 +49,7 @@ async def get_team(team_id: int, db: AsyncSession) -> TeamDetailsResponse:
             general_manager=team_background.get("GENERALMANAGER"),
             head_coach=team_background.get("HEADCOACH"),
         )
-        
+
         data_json = team_details.model_dump_json()
         if cached:
             cached.data = data_json
@@ -63,14 +63,28 @@ async def get_team(team_id: int, db: AsyncSession) -> TeamDetailsResponse:
                 )
             )
 
+        result = await db.execute(select(Team).where(Team.id == team_details.team_id))
+        existing_team = result.scalar_one_or_none()
 
-        db.add(
-            Team(
-                id=team_details.team_id,
-                name=team_details.team_name,
-                abbreviation=team_details.abbreviation or "",
+        if existing_team is None:
+            db.add(
+                Team(
+                    id=team_details.team_id,
+                    name=team_details.team_name,
+                    abbreviation=team_details.abbreviation or "",
+                )
             )
-        )
+        else:
+            updated = False
+            if team_details.team_name and existing_team.name != team_details.team_name:
+                existing_team.name = team_details.team_name
+                updated = True
+            if team_details.abbreviation and existing_team.abbreviation != team_details.abbreviation:
+                existing_team.abbreviation = team_details.abbreviation
+                updated = True
+            if updated:
+                db.add(existing_team)
+
         await db.commit()
 
         return team_details
