@@ -3,31 +3,27 @@ from typing import List
 import asyncio
 from fastapi import HTTPException
 from nba_api.live.nba.endpoints import boxscore, playbyplay, scoreboard
-from nba_api.stats.endpoints import commonteamroster, leaguestandingsv3, playerindex
+from nba_api.stats.endpoints import commonteamroster
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from datetime import datetime, timedelta
 
-from app.schemas.player import Player, PlayerSummary, TeamRoster
+from app.schemas.player import Player, TeamRoster
 from app.schemas.scoreboard import (
     BoxScoreResponse,
     GameLeaders,
-    GameLeadersResponse,
+    PlayerStats,
     LiveGame,
     PlayByPlayEvent,
     PlayByPlayResponse,
     PlayerBoxScoreStats,
-    PlayerStats,
     Scoreboard,
     ScoreboardResponse,
     Team,
     TeamBoxScoreStats,
-    TeamGameStatsResponse,
 )
-from app.schemas.team import TeamDetails
 from datetime import date
 from app.models import ScoreboardSnapshot, ScoreboardGame, BoxScoreCache
-from app.schemas.scoreboard_game_db import ScoreboardGameDB
 
 
 def get_current_season(today: date | None = None) -> str:
@@ -279,59 +275,6 @@ async def getScoreboard(db: AsyncSession) -> ScoreboardResponse:
         print(f"Error fetching live scoreboard: {e}")
         raise HTTPException(status_code=500, detail=f"Error fetching live scores: {e}")
 
-async def get_scoreboard_games(db: AsyncSession) -> List[ScoreboardGameDB]:
-    """Return all stored scoreboard games."""
-    result = await db.execute(select(ScoreboardGame))
-    games = result.scalars().all()
-    return [ScoreboardGameDB.model_validate(g) for g in games]
-
-
-async def getCurrentTeamRecord(team_id: int) -> TeamDetails:
-    """
-    Fetches a team record in the current season.
-    Args:
-        team_id (int): Unique identifier for the NBA team.
-    Returns:
-        TeamDetails: Team ranking, win-loss record, and other performance stats.
-    """
-    try:
-        raw_standings = await asyncio.to_thread(
-            lambda: leaguestandingsv3.LeagueStandingsV3(
-                league_id="00",
-                season="2023-24",  # Always fetches the current season
-                season_type="Regular Season",
-            ).get_dict()
-        )
-
-        standings_data = raw_standings["resultSets"][0]["rowSet"]
-        column_names = raw_standings["resultSets"][0]["headers"]
-
-        # Find the specific team's data
-        team_data = next((team for team in standings_data if team[2] == team_id), None)
-
-        if not team_data:
-            raise HTTPException(status_code=404, detail=f"No team details found for team ID {team_id}")
-
-        # Convert data to dictionary for easy mapping
-        team_dict = dict(zip(column_names, team_data))
-
-        return TeamDetails(
-            team_id=team_dict["TeamID"],
-            team_name=team_dict["TeamName"],
-            conference=team_dict["Conference"],
-            division=team_dict["Division"],
-            wins=team_dict["WINS"],
-            losses=team_dict["LOSSES"],
-            win_pct=team_dict["WinPCT"],
-            home_record=str(team_dict["HOME"]),
-            road_record=str(team_dict["ROAD"]),
-            last_10=str(team_dict["L10"]),
-            current_streak=str(team_dict["CurrentStreak"]),
-        )
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching team standings: {e}")
-
 
 async def fetchTeamRoster(team_id: int, season: str) -> TeamRoster:
     """
@@ -397,66 +340,6 @@ async def fetchTeamRoster(team_id: int, season: str) -> TeamRoster:
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching team roster: {e}")
-
-
-async def fetchPlayersByName(name: str) -> List[PlayerSummary]:
-    """
-    Retrieves players matching the search query.
-
-    Args:
-        name (str): The player's full name, first name, or last name.
-
-    Returns:
-        List[PlayerSummary]: List of matching players.
-    """
-    try:
-        # Fetch player data from NBA API
-        raw_data = await asyncio.to_thread(lambda: playerindex.PlayerIndex().get_dict())
-        column_names = raw_data["resultSets"][0]["headers"]
-        player_list = raw_data["resultSets"][0]["rowSet"]
-
-        # Convert player list to dictionary format
-        players = [dict(zip(column_names, row)) for row in player_list]
-
-        # Convert search query to lowercase for case-insensitive comparison
-        name = name.lower()
-
-        # Filter players by checking if query matches full name, first name, or
-        # last name
-        matching_players = [
-            player
-            for player in players
-            if name in f"{player['PLAYER_FIRST_NAME']} {player['PLAYER_LAST_NAME']}".lower()
-        ]
-
-        if not matching_players:
-            raise HTTPException(status_code=404, detail=f"No players found matching '{name}'")
-
-        # Process matching players into structured response
-        return [
-            PlayerSummary(
-                player_id=player["PERSON_ID"],
-                full_name=f"{player['PLAYER_FIRST_NAME']} {player['PLAYER_LAST_NAME']}",
-                team_id=player.get("TEAM_ID"),
-                team_name=player.get("TEAM_NAME"),
-                team_abbreviation=player.get("TEAM_ABBREVIATION"),
-                jersey_number=player.get("JERSEY_NUMBER"),
-                position=player.get("POSITION"),
-                height=player.get("HEIGHT"),
-                weight=int(player["WEIGHT"]) if player.get("WEIGHT") else None,
-                college=player.get("COLLEGE"),
-                country=player.get("COUNTRY"),
-                from_year=int(player["FROM_YEAR"]) if player.get("FROM_YEAR") else None,
-                to_year=int(player["TO_YEAR"]) if player.get("TO_YEAR") else None,
-                points_per_game=float(player["PTS"]) if player.get("PTS") else None,
-                rebounds_per_game=float(player["REB"]) if player.get("REB") else None,
-                assists_per_game=float(player["AST"]) if player.get("AST") else None,
-            )
-            for player in matching_players
-        ]
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error searching for players: {e}")
 
 
 async def getBoxScore(game_id: str, db: AsyncSession | None = None) -> BoxScoreResponse:
@@ -567,150 +450,6 @@ async def getBoxScore(game_id: str, db: AsyncSession | None = None) -> BoxScoreR
         return response 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error retrieving box score: {str(e)}")
-
-
-async def getTeamStats(game_id: str, team_id: int) -> TeamGameStatsResponse:
-    """
-    Fetch team statistics for a given NBA game.
-
-    Args:
-        game_id (str): Unique NBA game identifier.
-        team_id (int): Unique team identifier.
-
-    Returns:
-        TeamGameStatsResponse: A structured response containing the team's stats.
-    """
-    try:
-        # Fetch box score data
-        game_data = await asyncio.to_thread(lambda: boxscore.BoxScore(game_id).get_dict())
-
-        if "game" not in game_data:
-            raise HTTPException(status_code=404, detail=f"No box score available for game ID {game_id}")
-
-        # Extract game details
-        game_info = game_data["game"]
-        home_team = game_info["homeTeam"]
-        away_team = game_info["awayTeam"]
-
-        # Determine if the requested team is home or away
-        if home_team["teamId"] == team_id:
-            selected_team = home_team
-        elif away_team["teamId"] == team_id:
-            selected_team = away_team
-        else:
-            raise HTTPException(status_code=404, detail=f"Team ID {team_id} not found in game {game_id}")
-
-        # Construct response
-        return TeamGameStatsResponse(
-            game_id=game_info["gameId"],
-            team_id=selected_team["teamId"],
-            team_name=selected_team["teamName"],
-            score=selected_team["score"],
-            field_goal_pct=selected_team["statistics"].get("fieldGoalsPercentage", 0.0),
-            three_point_pct=selected_team["statistics"].get("threePointersPercentage", 0.0),
-            free_throw_pct=selected_team["statistics"].get("freeThrowsPercentage", 0.0),
-            rebounds_total=selected_team["statistics"].get("reboundsTotal", 0),
-            assists=selected_team["statistics"].get("assists", 0),
-            steals=selected_team["statistics"].get("steals", 0),
-            blocks=selected_team["statistics"].get("blocks", 0),
-            turnovers=selected_team["statistics"].get("turnovers", 0),
-            players=[
-                PlayerBoxScoreStats(
-                    player_id=player["personId"],
-                    name=player["name"],
-                    position=player.get("position", "N/A"),
-                    minutes=player["statistics"].get("minutesCalculated", "N/A"),
-                    points=player["statistics"].get("points", 0),
-                    rebounds=player["statistics"].get("reboundsTotal", 0),
-                    assists=player["statistics"].get("assists", 0),
-                    steals=player["statistics"].get("steals", 0),
-                    blocks=player["statistics"].get("blocks", 0),
-                    turnovers=player["statistics"].get("turnovers", 0),
-                )
-                for player in selected_team.get("players", [])
-            ],
-        )
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error retrieving team stats: {str(e)}")
-
-
-async def getGameLeaders(game_id: str) -> GameLeadersResponse:
-    """
-    Fetch top-performing players (leaders) for a given NBA game.
-
-    Args:
-        game_id (str): Unique NBA game identifier.
-
-    Returns:
-        GameLeadersResponse: A structured response containing the top players in points, assists, and rebounds.
-    """
-    try:
-        # Fetch box score data
-        game_data = await asyncio.to_thread(lambda: boxscore.BoxScore(game_id).get_dict())
-
-        if "game" not in game_data:
-            raise HTTPException(status_code=404, detail=f"No box score available for game ID {game_id}")
-
-        # Extract game details
-        game_info = game_data["game"]
-        home_team = game_info["homeTeam"]
-        away_team = game_info["awayTeam"]
-
-        # Combine both teams' players into one list
-        all_players = home_team["players"] + away_team["players"]
-
-        # Find the leaders in points, assists, and rebounds
-        points_leader = max(all_players, key=lambda p: p["statistics"].get("points", 0))
-        assists_leader = max(all_players, key=lambda p: p["statistics"].get("assists", 0))
-        rebounds_leader = max(all_players, key=lambda p: p["statistics"].get("reboundsTotal", 0))
-
-        # Construct response
-        return GameLeadersResponse(
-            game_id=game_info["gameId"],
-            points_leader=PlayerBoxScoreStats(
-                player_id=points_leader["personId"],
-                name=points_leader["name"],
-                position=points_leader.get("position", "N/A"),
-                minutes=points_leader["statistics"].get("minutesCalculated", "N/A"),
-                points=points_leader["statistics"].get("points", 0),
-                rebounds=points_leader["statistics"].get("reboundsTotal", 0),
-                assists=points_leader["statistics"].get("assists", 0),
-                steals=points_leader["statistics"].get("steals", 0),
-                blocks=points_leader["statistics"].get("blocks", 0),
-                turnovers=points_leader["statistics"].get("turnovers", 0),
-            ),
-            assists_leader=PlayerBoxScoreStats(
-                player_id=assists_leader["personId"],
-                name=assists_leader["name"],
-                position=assists_leader.get("position", "N/A"),
-                minutes=assists_leader["statistics"].get("minutesCalculated", "N/A"),
-                points=assists_leader["statistics"].get("points", 0),
-                rebounds=assists_leader["statistics"].get("reboundsTotal", 0),
-                assists=assists_leader["statistics"].get("assists", 0),
-                steals=assists_leader["statistics"].get("steals", 0),
-                blocks=assists_leader["statistics"].get("blocks", 0),
-                turnovers=assists_leader["statistics"].get("turnovers", 0),
-            ),
-            rebounds_leader=PlayerBoxScoreStats(
-                player_id=rebounds_leader["personId"],
-                name=rebounds_leader["name"],
-                position=rebounds_leader.get("position", "N/A"),
-                minutes=rebounds_leader["statistics"].get("minutesCalculated", "N/A"),
-                points=rebounds_leader["statistics"].get("points", 0),
-                rebounds=rebounds_leader["statistics"].get("reboundsTotal", 0),
-                assists=rebounds_leader["statistics"].get("assists", 0),
-                steals=rebounds_leader["statistics"].get("steals", 0),
-                blocks=rebounds_leader["statistics"].get("blocks", 0),
-                turnovers=rebounds_leader["statistics"].get("turnovers", 0),
-            ),
-        )
-
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error retrieving game leaders: {str(e)}",
-        )
 
 
 async def getPlayByPlay(game_id: str) -> PlayByPlayResponse:

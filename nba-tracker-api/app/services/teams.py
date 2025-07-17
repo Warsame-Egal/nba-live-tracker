@@ -1,15 +1,13 @@
 from typing import List
 
 import asyncio
-import pandas as pd
 from fastapi import HTTPException
 from sqlalchemy import select
 from datetime import datetime, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
 from nba_api.stats.endpoints import TeamDetails
-from nba_api.stats.static import teams
 
-from app.schemas.team import TeamDetailsResponse, TeamSummary
+from app.schemas.team import TeamDetailsResponse
 from app.models import Team, TeamDetailsCache
 
 
@@ -83,54 +81,3 @@ async def get_team(team_id: int, db: AsyncSession) -> TeamDetailsResponse:
         raise http_exception
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}") from e
-
-
-async def search_teams(search_term: str, db: AsyncSession) -> List[TeamSummary]:
-    """
-    Optimized NBA team search by city, name, or abbreviation (partial match).
-    """
-    try:
-        nba_teams = teams.get_teams()
-        team_list_data = pd.DataFrame(nba_teams)
-
-        # Create a lower-cased full name column once
-        team_list_data["full_name_lower"] = (
-            team_list_data["city"].str.lower() + " " + team_list_data["nickname"].str.lower()
-        )
-
-        search_term_lower = search_term.lower()
-
-        # Filter with vectorized string matching
-        mask = (
-            team_list_data["city"].str.lower().str.contains(search_term_lower)
-            | team_list_data["nickname"].str.lower().str.contains(search_term_lower)
-            | team_list_data["full_name_lower"].str.lower().str.contains(search_term_lower)
-            | team_list_data["abbreviation"].str.lower().str.contains(search_term_lower)
-        )
-
-        filtered_teams = team_list_data[mask]
-
-        if filtered_teams.empty:
-            raise HTTPException(status_code=404, detail="No teams found matching the search term")
-
-        # Build response list
-        team_summaries = []
-        for _, row in filtered_teams.iterrows():
-            team_summary = TeamSummary(
-                team_id=row["id"],
-                abbreviation=row["abbreviation"],
-                city=row["city"],
-                full_name=row["full_name"],
-                nickname=row["nickname"],
-                state=row.get("state"),
-                year_founded=row.get("year_founded"),
-            )
-
-            team_summaries.append(team_summary)
-
-        return team_summaries
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")

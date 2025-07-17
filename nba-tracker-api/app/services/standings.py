@@ -86,23 +86,3 @@ async def getSeasonStandings(season: str, db: AsyncSession) -> StandingsResponse
         return response
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching season standings: {e}")
-
-
-async def getTeamStandings(team_id: int, season: str, db: AsyncSession) -> StandingRecord:
-    """
-    Fetches and structures the standings for a specific NBA team.
-    """
-    try:
-        season_standings = await getSeasonStandings(season, db)
-
-        for record in season_standings.standings:
-            if record.team_id == team_id:
-                return record
-            
-        raise HTTPException(
-            status_code=404,
-            detail=f"No standings found for team {team_id} in season {season}",
-        )
-    
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching team standings: {e}")

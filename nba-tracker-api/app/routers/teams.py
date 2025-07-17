@@ -1,11 +1,9 @@
-from typing import List
-
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 
-from app.schemas.team import TeamDetailsResponse, TeamSummary
-from app.services.teams import get_team, search_teams
+from app.schemas.team import TeamDetailsResponse
+from app.services.teams import get_team
 
 router = APIRouter()
 
@@ -20,22 +18,6 @@ router = APIRouter()
 async def fetch_team(team_id: int, db: AsyncSession = Depends(get_db)):
     try:
         return await get_team(team_id, db)
-    except HTTPException as e:
-        raise e
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {str(e)}") from e
-
-
-@router.get(
-    "/teams/search/{search_term}",
-    response_model=List[TeamSummary],
-    summary="Search Teams",
-    tags=["teams"],
-    description="Search for teams by name or abbreviation.",
-)
-async def searchTeams(search_term: str, db: AsyncSession = Depends(get_db)):
-    try:
-        return await search_teams(search_term, db)
     except HTTPException as e:
         raise e
     except Exception as e:

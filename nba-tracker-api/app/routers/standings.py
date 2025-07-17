@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.schemas.standings import StandingRecord, StandingsResponse
-from app.services.standings import getSeasonStandings, getTeamStandings
+from app.schemas.standings import StandingsResponse
+from app.services.standings import getSeasonStandings
 from app.database import get_db
 
 router = APIRouter()
@@ -26,32 +26,6 @@ async def season_standings(season: str, db: AsyncSession = Depends(get_db)):
     """
     try:
         return await getSeasonStandings(season, db)
-    except HTTPException as e:
-        raise e
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.get(
-    "/standings/team/{team_id}/season/{season}",
-    response_model=StandingRecord,
-    tags=["standings"],
-    summary="Get Standings for a Specific Team",
-    description="Fetch the standings of a specific NBA team in a given season.",
-)
-async def team_standings(team_id: int, season: str, db: AsyncSession = Depends(get_db)):
-    """
-    API route to fetch and return standings for a specific NBA team.
-
-    Args:
-        team_id (int): NBA Team ID.
-        season (str): NBA season (e.g., '2023-24').
-
-    Returns:
-        StandingRecord: Standings for the specified team.
-    """
-    try:
-        return await getTeamStandings(team_id, season, db)
     except HTTPException as e:
         raise e
     except Exception as e:

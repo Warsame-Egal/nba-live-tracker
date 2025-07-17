@@ -4,8 +4,6 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers.games import router as game_router
-from app.routers.health import router as health_router
 from app.routers.players import router as player_router
 from app.routers.schedule import router as schedule_router
 from app.routers.scoreboard import router as scoreboard_router
@@ -71,10 +69,8 @@ def home():
 
 
 # Routes
-app.include_router(health_router, prefix="/api/v1")
 app.include_router(scoreboard_router, prefix="/api/v1")
 app.include_router(schedule_router, prefix="/api/v1")
 app.include_router(standings_router, prefix="/api/v1")
 app.include_router(player_router, prefix="/api/v1")
-app.include_router(game_router, prefix="/api/v1")
 app.include_router(team_router, prefix="/api/v1")
