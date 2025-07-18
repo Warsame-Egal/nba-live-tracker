@@ -7,6 +7,7 @@ from typing import Dict, List, Set
 from fastapi import WebSocket
 
 from app.services.scoreboard import getPlayByPlay, getScoreboard
+from app.database import async_session_factory
 
 
 class ScoreboardWebSocketManager:
@@ -32,10 +33,11 @@ class ScoreboardWebSocketManager:
     async def send_initial_scoreboard(self, websocket: WebSocket):
         """Sends the latest scoreboard data to a newly connected client."""
         try:
-            current_games = await getScoreboard()
-            games_data = current_games.model_dump()
-            print(f"Sending initial games data: {games_data}")
-            await websocket.send_json(games_data)
+            async with async_session_factory() as session:
+                current_games = await getScoreboard(session)
+                games_data = current_games.model_dump()
+                print(f"Sending initial games data: {games_data}")
+                await websocket.send_json(games_data)
         except Exception as e:
             print(f"Error sending initial games data: {e}")
 
@@ -83,15 +85,22 @@ class ScoreboardWebSocketManager:
 
         while True:
             try:
-                scoreboard_data = await getScoreboard()
-                standardized_data = scoreboard_data.model_dump()
+                # If no clients are connected, sleep longer to avoid
+                # requests that could trigger rate limiting.
+                if not self.active_connections:
+                    await asyncio.sleep(30)
+                    continue
+
+                async with async_session_factory() as session:
+                    scoreboard_data = await getScoreboard(session)
+                    standardized_data = scoreboard_data.model_dump()
 
                 async with self._lock:
                     previous_games = copy.deepcopy(self.current_games)
                     self.current_games = standardized_data["scoreboard"]["games"]
 
                 if not self.has_game_data_changed(self.current_games, previous_games):
-                    await asyncio.sleep(2)
+                    await asyncio.sleep(30)
                     continue
 
                 print(f"Broadcasting {len(self.current_games)} updated games")
@@ -107,7 +116,7 @@ class ScoreboardWebSocketManager:
                 for connection in disconnected_clients:
                     await self.disconnect(connection)
 
-                await asyncio.sleep(2)
+                await asyncio.sleep(30)
 
             except Exception as e:
                 print(f"Broadcast Loop Error: {e}")

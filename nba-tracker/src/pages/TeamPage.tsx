@@ -32,7 +32,9 @@ const TeamPage = () => {
         const data = await res.json();
         setTeam(data);
 
-        const rosterRes = await fetch(`${API_BASE_URL}/api/v1/teams/${team_id}/roster`);
+        const rosterRes = await fetch(
+          `${API_BASE_URL}/api/v1/scoreboard/team/${team_id}/roster/2024-25`,
+        );
         if (rosterRes.ok) {
           const rosterData = await rosterRes.json();
           setRoster(rosterData);

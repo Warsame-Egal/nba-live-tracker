@@ -1,20 +1,27 @@
-from typing import List
-
-import pandas as pd
+import asyncio
 from fastapi import HTTPException
+from sqlalchemy import select
+from datetime import datetime, timedelta
+from sqlalchemy.ext.asyncio import AsyncSession
 from nba_api.stats.endpoints import TeamDetails
-from nba_api.stats.static import teams
 
-from app.schemas.team import TeamDetailsResponse, TeamSummary
+from app.schemas.team import TeamDetailsResponse
+from app.models import Team, TeamDetailsCache
 
 
-async def get_team(team_id: int) -> TeamDetailsResponse:
+async def get_team(team_id: int, db: AsyncSession) -> TeamDetailsResponse:
     """
     Retrieves detailed information about a specific team.
     """
     try:
+        stmt = select(TeamDetailsCache).where(TeamDetailsCache.team_id == team_id)
+        result = await db.execute(stmt)
+        cached = result.scalar_one_or_none()
+        if cached and (datetime.utcnow() - cached.fetched_at) < timedelta(seconds=60):
+            return TeamDetailsResponse.model_validate_json(cached.data)
+
         # Fetch team details using nba_api (adjust endpoint if needed)
-        team_details_data = TeamDetails(team_id=team_id).get_dict()
+        team_details_data = await asyncio.to_thread(lambda: TeamDetails(team_id=team_id).get_dict())
 
         # Validation: Check if data is present
         if not team_details_data or "resultSets" not in team_details_data or not team_details_data["resultSets"]:
@@ -43,60 +50,46 @@ async def get_team(team_id: int) -> TeamDetailsResponse:
             head_coach=team_background.get("HEADCOACH"),
         )
 
+        data_json = team_details.model_dump_json()
+        if cached:
+            cached.data = data_json
+            cached.fetched_at = datetime.utcnow()
+        else:
+            db.add(
+                TeamDetailsCache(
+                    team_id=team_details.team_id,
+                    fetched_at=datetime.utcnow(),
+                    data=data_json,
+                )
+            )
+
+        result = await db.execute(select(Team).where(Team.id == team_details.team_id))
+        existing_team = result.scalar_one_or_none()
+
+        if existing_team is None:
+            db.add(
+                Team(
+                    id=team_details.team_id,
+                    name=team_details.team_name,
+                    abbreviation=team_details.abbreviation or "",
+                )
+            )
+        else:
+            updated = False
+            if team_details.team_name and existing_team.name != team_details.team_name:
+                existing_team.name = team_details.team_name
+                updated = True
+            if team_details.abbreviation and existing_team.abbreviation != team_details.abbreviation:
+                existing_team.abbreviation = team_details.abbreviation
+                updated = True
+            if updated:
+                db.add(existing_team)
+
+        await db.commit()
+
         return team_details
 
     except HTTPException as http_exception:
         raise http_exception
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}") from e
-
-
-async def search_teams(search_term: str) -> List[TeamSummary]:
-    """
-    Optimized NBA team search by city, name, or abbreviation (partial match).
-    """
-    try:
-        nba_teams = teams.get_teams()
-        team_list_data = pd.DataFrame(nba_teams)
-
-        # Create a lower-cased full name column once
-        team_list_data["full_name_lower"] = (
-            team_list_data["city"].str.lower() + " " + team_list_data["nickname"].str.lower()
-        )
-
-        search_term_lower = search_term.lower()
-
-        # Filter with vectorized string matching
-        mask = (
-            team_list_data["city"].str.lower().str.contains(search_term_lower)
-            | team_list_data["nickname"].str.lower().str.contains(search_term_lower)
-            | team_list_data["full_name_lower"].str.lower().str.contains(search_term_lower)
-            | team_list_data["abbreviation"].str.lower().str.contains(search_term_lower)
-        )
-
-        filtered_teams = team_list_data[mask]
-
-        if filtered_teams.empty:
-            raise HTTPException(status_code=404, detail="No teams found matching the search term")
-
-        # Build response list
-        team_summaries = []
-        for _, row in filtered_teams.iterrows():
-            team_summary = TeamSummary(
-                team_id=row["id"],
-                abbreviation=row["abbreviation"],
-                city=row["city"],
-                full_name=row["full_name"],
-                nickname=row["nickname"],
-                state=row.get("state"),
-                year_founded=row.get("year_founded"),
-            )
-
-            team_summaries.append(team_summary)
-
-        return team_summaries
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
