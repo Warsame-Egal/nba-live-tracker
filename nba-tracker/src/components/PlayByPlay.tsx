@@ -33,11 +33,7 @@ const PlayByPlay = ({ gameId }: { gameId: string }) => {
   }, [gameId]);
 
   if (!actions.length && hasLoadedOnce) {
-    return (
-      <div className="text-center text-gray-400 py-6">
-        No play-by-play data available.
-      </div>
-    );
+    return <div className="text-center text-gray-400 py-6">No play-by-play data available.</div>;
   }
 
   if (!actions.length) {
@@ -58,10 +54,7 @@ const PlayByPlay = ({ gameId }: { gameId: string }) => {
         </thead>
         <tbody>
           {actions.map((play, idx) => (
-            <tr
-              key={play.action_number}
-              className={idx % 2 === 0 ? 'bg-black/30' : ''}
-            >
+            <tr key={play.action_number} className={idx % 2 === 0 ? 'bg-black/30' : ''}>
               <td className="px-3 py-2">{formatClock(play.clock)}</td>
               <td className="px-3 py-2">{play.team_tricode || '-'}</td>
               <td className="px-3 py-2 text-blue-400">

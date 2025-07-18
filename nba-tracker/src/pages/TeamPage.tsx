@@ -34,7 +34,8 @@ const TeamPage = () => {
 
         const rosterRes = await fetch(
           `${API_BASE_URL}/api/v1/scoreboard/team/${team_id}/roster/2024-25`,
-        );        if (rosterRes.ok) {
+        );
+        if (rosterRes.ok) {
           const rosterData = await rosterRes.json();
           setRoster(rosterData);
         }

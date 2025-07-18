@@ -14,26 +14,14 @@ interface GameCardProps {
 const GameCard: React.FC<GameCardProps> = ({ game, hideScore = false }) => {
   const isLiveGame = 'homeTeam' in game;
 
-  const homeTeam = isLiveGame
-    ? game.homeTeam?.teamTricode
-    : game.home_team?.team_abbreviation;
-  const awayTeam = isLiveGame
-    ? game.awayTeam?.teamTricode
-    : game.away_team?.team_abbreviation;
+  const homeTeam = isLiveGame ? game.homeTeam?.teamTricode : game.home_team?.team_abbreviation;
+  const awayTeam = isLiveGame ? game.awayTeam?.teamTricode : game.away_team?.team_abbreviation;
 
-  const homeScore = isLiveGame
-    ? (game.homeTeam?.score ?? 0)
-    : (game.home_team?.points ?? 0);
-  const awayScore = isLiveGame
-    ? (game.awayTeam?.score ?? 0)
-    : (game.away_team?.points ?? 0);
+  const homeScore = isLiveGame ? (game.homeTeam?.score ?? 0) : (game.home_team?.points ?? 0);
+  const awayScore = isLiveGame ? (game.awayTeam?.score ?? 0) : (game.away_team?.points ?? 0);
 
-  const homeId = isLiveGame
-    ? game.homeTeam?.teamId
-    : game.home_team?.team_id;
-  const awayId = isLiveGame
-    ? game.awayTeam?.teamId
-    : game.away_team?.team_id;
+  const homeId = isLiveGame ? game.homeTeam?.teamId : game.home_team?.team_id;
+  const awayId = isLiveGame ? game.awayTeam?.teamId : game.away_team?.team_id;
 
   const status = isLiveGame ? game.gameStatusText : game.game_status || '';
   const period = isLiveGame ? game.period : null;
@@ -71,7 +59,18 @@ const GameCard: React.FC<GameCardProps> = ({ game, hideScore = false }) => {
   }, [isNotStarted, isLive, period, gameClock, gameTime, displayStatus]);
 
   return (
-    <Card sx={{ p: 2, mb: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', bgcolor: 'black', color: 'white', height: 100 }}>
+    <Card
+      sx={{
+        p: 2,
+        mb: 2,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        bgcolor: 'black',
+        color: 'white',
+        height: 100,
+      }}
+    >
       <TeamInfo
         teamName={isLiveGame ? game.awayTeam?.teamName : awayTeam}
         tricode={awayTeam}

@@ -60,7 +60,7 @@ const LeaderRow = ({ leader }: LeaderRowProps) => {
           src={avatarUrl}
           alt={leader.name}
           className="w-8 h-8 rounded-full object-cover"
-          onError={(e) => {
+          onError={e => {
             e.currentTarget.onerror = null;
             e.currentTarget.src = '';
           }}
