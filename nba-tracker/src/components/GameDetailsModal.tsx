@@ -60,7 +60,9 @@ const GameDetailsModal = ({ gameId, open, onClose }: GameDetailsModalProps) => {
             {team.players.map((p: PlayerBoxScoreStats, idx) => (
               <tr key={idx} className="border-t border-neutral-700">
                 <td className="px-4 py-1">{p.name}</td>
-                <td className="text-center">{p.minutes?.replace('PT', '').replace('M', ':00') || '0:00'}</td>
+                <td className="text-center">
+                  {p.minutes?.replace('PT', '').replace('M', ':00') || '0:00'}
+                </td>
                 <td className="text-center">{p.points}</td>
                 <td className="text-center">{p.rebounds}</td>
                 <td className="text-center">{p.assists}</td>
@@ -82,7 +84,9 @@ const GameDetailsModal = ({ gameId, open, onClose }: GameDetailsModalProps) => {
         <div className="inline-block w-full max-w-5xl my-8 overflow-hidden text-left align-middle transition-all transform bg-neutral-950 shadow-xl rounded-lg">
           <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-700">
             <h2 className="text-xl font-semibold text-white">Game Details</h2>
-            <button onClick={onClose} className="text-gray-400 hover:text-white">✕</button>
+            <button onClick={onClose} className="text-gray-400 hover:text-white">
+              ✕
+            </button>
           </div>
 
           <div className="px-6 pt-4">
@@ -92,7 +96,7 @@ const GameDetailsModal = ({ gameId, open, onClose }: GameDetailsModalProps) => {
                   'px-4 py-2 font-semibold border-b-2 text-sm',
                   tab === 'box'
                     ? 'text-blue-400 border-blue-400'
-                    : 'text-gray-400 border-transparent'
+                    : 'text-gray-400 border-transparent',
                 )}
                 onClick={() => setTab('box')}
               >
@@ -103,7 +107,7 @@ const GameDetailsModal = ({ gameId, open, onClose }: GameDetailsModalProps) => {
                   'ml-4 px-4 py-2 font-semibold border-b-2 text-sm',
                   tab === 'play'
                     ? 'text-blue-400 border-blue-400'
-                    : 'text-gray-400 border-transparent'
+                    : 'text-gray-400 border-transparent',
                 )}
                 onClick={() => setTab('play')}
               >

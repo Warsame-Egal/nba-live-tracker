@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { Container, TextField, Typography } from '@mui/material';
 import { ScoreboardResponse, Game } from '../types/scoreboard';
 import { GamesResponse, GameSummary } from '../types/schedule';
 import WebSocketService from '../services/websocketService';
@@ -7,16 +8,15 @@ import Navbar from '../components/Navbar';
 import WeeklyCalendar from '../components/WeeklyCalendar';
 import GameDetailsModal from '../components/GameDetailsModal';
 import { useSearchParams, Link } from 'react-router-dom';
-import { PlayerSummary } from '../types/player';
+import { SearchResults } from '../types/search';
 import ScoringLeaders from '../components/ScoringLeaders';
 import debounce from 'lodash/debounce';
-import { FaSearch, FaTimes, FaSpinner } from 'react-icons/fa';
+import { FaSearch, FaTimes, FaSpinner, FaCalendarTimes } from 'react-icons/fa';
 
 const SCOREBOARD_WEBSOCKET_URL = `${
   window.location.protocol === 'https:' ? 'wss' : 'ws'
 }://${import.meta.env.VITE_WS_URL}/api/v1/ws`;
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-
 
 const getLocalISODate = (): string => {
   const tzoffset = new Date().getTimezoneOffset() * 60000;
@@ -45,13 +45,16 @@ const Scoreboard = () => {
   const [liveGames, setLiveGames] = useState<(Game | GameSummary)[]>([]);
   const [upcomingGames, setUpcomingGames] = useState<(Game | GameSummary)[]>([]);
   const [completedGames, setCompletedGames] = useState<(Game | GameSummary)[]>([]);
-  const [players, setPlayers] = useState<PlayerSummary[]>([]);
+  const [searchResults, setSearchResults] = useState<SearchResults>({
+    players: [],
+    teams: [],
+  });
   const [loading, setLoading] = useState(false);
   const [selectedGame, setSelectedGame] = useState<Game | GameSummary | null>(null);
   const [selectedDate, setSelectedDate] = useState(getLocalISODate());
   const [searchParams] = useSearchParams();
   const searchQuery = searchParams.get('search') || '';
-  const [playerSearchQuery, setPlayerSearchQuery] = useState('');
+  const [searchInput, setSearchInput] = useState('');
   const [showSearchResults, setShowSearchResults] = useState(false);
 
   // Use a container ref that wraps both the input and the search results
@@ -76,28 +79,27 @@ const Scoreboard = () => {
 
   useEffect(() => setupWebSocket(), [setupWebSocket]);
 
-  // Debounced player search remains unchanged.
+  // Debounced search for players and teams.
   useEffect(() => {
     const abortController = new AbortController();
     const debouncedFetch = debounce(async () => {
-      if (!playerSearchQuery) {
-        setPlayers([]);
+      if (!searchInput) {
+        setSearchResults({ players: [], teams: [] });
         setShowSearchResults(false);
         return;
       }
       setLoading(true);
       setShowSearchResults(true);
       try {
-        const response = await fetch(
-          `${API_BASE_URL}/api/v1/players/search/${playerSearchQuery}`,
-          { signal: abortController.signal }
-        );
-        if (!response.ok) throw new Error('Failed to fetch players.');
-        const data: PlayerSummary[] = await response.json();
-        setPlayers(data);
+        const response = await fetch(`${API_BASE_URL}/api/v1/search?q=${searchInput}`, {
+          signal: abortController.signal,
+        });
+        if (!response.ok) throw new Error('Failed to fetch results.');
+        const data: SearchResults = await response.json();
+        setSearchResults(data);
       } catch (err) {
         if (err instanceof Error && err.name !== 'AbortError') console.error(err);
-        setPlayers([]);
+        setSearchResults({ players: [], teams: [] });
       } finally {
         setLoading(false);
       }
@@ -107,7 +109,7 @@ const Scoreboard = () => {
       abortController.abort();
       debouncedFetch.cancel();
     };
-  }, [playerSearchQuery]);
+  }, [searchInput]);
 
   // Fetch games based on selected date if it’s not today remains unchanged.
   useEffect(() => {
@@ -161,7 +163,10 @@ const Scoreboard = () => {
   // Update the click outside handler to check the container instead of just the input.
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
+      if (
+        searchContainerRef.current &&
+        !searchContainerRef.current.contains(event.target as Node)
+      ) {
         setShowSearchResults(false);
       }
     };
@@ -170,10 +175,7 @@ const Scoreboard = () => {
   }, []);
 
   // Helper render function for game cards remains unchanged.
-  const renderGameCards = (
-    gameList: (Game | GameSummary)[],
-    hideScore: boolean = false
-  ) => (
+  const renderGameCards = (gameList: (Game | GameSummary)[], hideScore: boolean = false) => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
       {gameList.map(game => (
         <div
@@ -182,9 +184,7 @@ const Scoreboard = () => {
           onClick={hideScore ? undefined : () => setSelectedGame(game)}
         >
           <GameCard game={game} hideScore={hideScore} />
-          {'gameLeaders' in game && (
-            <ScoringLeaders selectedGame={game as Game} />
-          )}
+          {'gameLeaders' in game && <ScoringLeaders selectedGame={game as Game} />}
         </div>
       ))}
     </div>
@@ -196,7 +196,7 @@ const Scoreboard = () => {
   return (
     <div className="min-h-screen bg-black text-white">
       <Navbar />
-      <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
+      <Container maxWidth="lg" sx={{ py: 8 }}>
         {/* Top Section: Search Bar and Weekly Calendar */}
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
           {/* Search Bar with a container that wraps both the input and results */}
@@ -204,57 +204,94 @@ const Scoreboard = () => {
             <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
               <FaSearch className="text-gray-400" size={20} />
             </div>
-            <input
-              type="text"
-              value={playerSearchQuery}
-              onChange={e => setPlayerSearchQuery(e.target.value)}
+            <TextField
+              fullWidth
+              value={searchInput}
+              onChange={e => setSearchInput(e.target.value)}
               placeholder="Search players..."
-              className="w-full py-3 pl-12 pr-4 rounded-full bg-neutral-900 border border-neutral-700 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+              variant="outlined"
+              sx={{
+                bgcolor: 'neutral.900',
+                '& fieldset': { borderColor: 'neutral.700' },
+                '& input': { color: 'white', paddingLeft: '2.5rem' },
+                borderRadius: '2rem',
+              }}
             />
-            {loading && playerSearchQuery && (
-              <FaSpinner className="absolute right-4 top-1/2 -translate-y-1/2 text-white animate-spin" size={20} />
+            {loading && searchInput && (
+              <FaSpinner
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-white animate-spin"
+                size={20}
+              />
             )}
-            {playerSearchQuery && (
+            {searchInput && (
               <button
                 onClick={() => {
-                  setPlayerSearchQuery('');
+                  setSearchInput('');
                 }}
                 className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300"
               >
                 <FaTimes size={20} />
               </button>
             )}
-            {showSearchResults && players.length > 0 && (
-              <ul className="absolute left-0 right-0 mt-2 bg-neutral-900 border border-neutral-700 rounded-lg shadow-md max-h-60 overflow-y-auto z-20">
-                {players.map(player => (
-                  <li key={player.PERSON_ID} className="py-2 px-4 hover:bg-neutral-700 transition">
-                    <Link
-                      to={`/players/${player.PERSON_ID}`}
-                      onClick={() => setShowSearchResults(false)}
-                      className="flex items-center gap-3"
-                    >
-                      <span className="font-bold">
-                        {player.PLAYER_FIRST_NAME} {player.PLAYER_LAST_NAME}
-                      </span>
-                      <span className="text-sm text-gray-400">{player.TEAM_ABBREVIATION}</span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
+            {showSearchResults &&
+              (searchResults.players.length > 0 || searchResults.teams.length > 0) && (
+                <ul className="absolute left-0 right-0 mt-2 bg-neutral-900 border border-neutral-700 rounded-lg shadow-md max-h-60 overflow-y-auto z-20">
+                  {searchResults.players.length > 0 && (
+                    <li className="px-4 py-1 text-gray-400 text-xs uppercase">Players</li>
+                  )}
+                  {searchResults.players.map(player => {
+                    const parts = player.name.split(' ');
+                    const firstName = parts.slice(0, -1).join(' ');
+                    const lastName = parts[parts.length - 1];
+                    return (
+                      <li
+                        key={`p${player.id}`}
+                        className="py-2 px-4 hover:bg-neutral-700 transition"
+                      >
+                        <Link
+                          to={`/players/${player.id}`}
+                          onClick={() => setShowSearchResults(false)}
+                          className="flex items-center gap-3"
+                        >
+                          <span className="font-bold">
+                            {firstName} {lastName}
+                          </span>
+                          {player.team_abbreviation && (
+                            <span className="text-sm text-gray-400">
+                              {player.team_abbreviation}
+                            </span>
+                          )}
+                        </Link>
+                      </li>
+                    );
+                  })}
+                  {searchResults.teams.length > 0 && (
+                    <li className="px-4 py-1 text-gray-400 text-xs uppercase">Teams</li>
+                  )}
+                  {searchResults.teams.map(team => (
+                    <li key={`t${team.id}`} className="py-2 px-4 hover:bg-neutral-700 transition">
+                      <Link
+                        to={`/team/${team.id}`}
+                        onClick={() => setShowSearchResults(false)}
+                        className="flex items-center gap-3"
+                      >
+                        <span className="font-bold">{team.name}</span>
+                        <span className="text-sm text-gray-400">{team.abbreviation}</span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
           </div>
 
           {/* Weekly Calendar remains unchanged */}
           <div className="w-full md:w-auto flex justify-center">
-            <WeeklyCalendar
-              selectedDate={selectedDate}
-              setSelectedDate={setSelectedDate}
-            />
+            <WeeklyCalendar selectedDate={selectedDate} setSelectedDate={setSelectedDate} />
           </div>
         </div>
 
         {/* Games Display Section remains unchanged */}
-        {loading && !playerSearchQuery && games.length === 0 ? (
+        {loading && !searchInput && games.length === 0 ? (
           <div className="flex justify-center items-center py-20">
             <FaSpinner className="text-5xl text-blue-500 animate-spin" />
           </div>
@@ -262,19 +299,25 @@ const Scoreboard = () => {
           <>
             {liveGames.length > 0 && (
               <section className="space-y-4">
-                <h2 className="text-2xl font-extrabold text-gray-200">Live Games</h2>
+                <Typography variant="h5" fontWeight="bold" color="white">
+                  Live Games
+                </Typography>
                 {renderGameCards(liveGames)}
               </section>
             )}
             {upcomingGames.length > 0 && (
               <section className="space-y-4 mt-10">
-                <h2 className="text-2xl font-extrabold text-gray-200">Upcoming Games</h2>
+                <Typography variant="h5" fontWeight="bold" color="white">
+                  Upcoming Games
+                </Typography>
                 {renderGameCards(upcomingGames)}
               </section>
             )}
             {completedGames.length > 0 && (
               <section className="space-y-4 mt-10">
-                <h2 className="text-2xl font-extrabold text-gray-200">Completed Games</h2>
+                <Typography variant="h5" fontWeight="bold" color="white">
+                  Completed Games
+                </Typography>
                 {renderGameCards(completedGames)}
               </section>
             )}
@@ -283,19 +326,33 @@ const Scoreboard = () => {
           <section className="space-y-4">
             {selectedDate < today ? (
               <>
-                <h2 className="text-2xl font-extrabold text-gray-200">Completed Games</h2>
+                <Typography variant="h5" fontWeight="bold" color="white">
+                  Completed Games
+                </Typography>
                 {renderGameCards(completedGames)}
               </>
             ) : (
               <>
-                <h2 className="text-2xl font-extrabold text-gray-200">Future Games</h2>
+                <Typography variant="h5" fontWeight="bold" color="white">
+                  Future Games
+                </Typography>
                 {renderGameCards(upcomingGames, true)}
               </>
             )}
           </section>
         )}
 
-        {/* Fallback Message remains unchanged */}
+        {/* Show placeholder when the API returns no games */}
+        {!loading && games.length === 0 && (
+          <div className="flex flex-col items-center py-16">
+            <FaCalendarTimes className="text-gray-500 text-6xl mb-4" />
+            <p className="text-center text-xl text-gray-500 italic">
+              No games scheduled for this date.
+            </p>
+          </div>
+        )}
+
+        {/* Fallback message when games exist but are filtered out */}
         {!loading &&
           liveGames.length === 0 &&
           upcomingGames.length === 0 &&
@@ -314,7 +371,7 @@ const Scoreboard = () => {
             onClose={() => setSelectedGame(null)}
           />
         )}
-      </div>
+      </Container>
     </div>
   );
 };

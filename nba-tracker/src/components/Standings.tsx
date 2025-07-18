@@ -67,7 +67,7 @@ const Standings = () => {
 
   const filteredStandings = useMemo(() => {
     return standings
-      .filter((team) => team.conference === conference)
+      .filter(team => team.conference === conference)
       .sort((a, b) => a.playoff_rank - b.playoff_rank);
   }, [standings, conference]);
 
@@ -80,7 +80,7 @@ const Standings = () => {
         </h2>
 
         <div className="flex justify-center mb-4">
-          {(['East', 'West'] as const).map((conf) => (
+          {(['East', 'West'] as const).map(conf => (
             <button
               key={conf}
               onClick={() => setConference(conf)}
@@ -121,7 +121,7 @@ const Standings = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredStandings.map((team) => {
+                {filteredStandings.map(team => {
                   const teamName = `${team.team_city} ${team.team_name}`;
                   const logo = teamMappings[teamName]?.logo || '/logos/default.svg';
                   return (
@@ -129,9 +129,7 @@ const Standings = () => {
                       key={team.team_id}
                       className="border-b border-neutral-700 hover:bg-neutral-800"
                     >
-                      <td className="px-2 py-2 text-center font-semibold">
-                        {team.playoff_rank}
-                      </td>
+                      <td className="px-2 py-2 text-center font-semibold">{team.playoff_rank}</td>
                       <td
                         className="px-2 py-2 flex items-center gap-2 cursor-pointer hover:underline"
                         onClick={() => navigate(`/team/${team.team_id}`)}
@@ -141,16 +139,16 @@ const Standings = () => {
                       </td>
                       <td className="px-2 py-2 text-center">{team.wins}</td>
                       <td className="px-2 py-2 text-center">{team.losses}</td>
-                      <td className="px-2 py-2 text-center">
-                        {team.win_pct.toFixed(3)}
-                      </td>
+                      <td className="px-2 py-2 text-center">{team.win_pct.toFixed(3)}</td>
                       <td className="px-2 py-2 text-center">{team.games_back}</td>
                       <td className="px-2 py-2 text-center">{team.home_record}</td>
                       <td className="px-2 py-2 text-center">{team.road_record}</td>
                       <td className="px-2 py-2 text-center">{team.division_record}</td>
                       <td className="px-2 py-2 text-center">{team.conference_record}</td>
                       <td className="px-2 py-2 text-center">{team.l10_record}</td>
-                      <td className={`px-2 py-2 text-center ${team.current_streak_str.startsWith('W') ? 'text-green-500' : 'text-red-500'}`}>
+                      <td
+                        className={`px-2 py-2 text-center ${team.current_streak_str.startsWith('W') ? 'text-green-500' : 'text-red-500'}`}
+                      >
                         {team.current_streak_str}
                       </td>
                     </tr>

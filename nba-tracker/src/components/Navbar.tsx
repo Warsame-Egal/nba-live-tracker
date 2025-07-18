@@ -1,22 +1,23 @@
-import { Link } from 'react-router-dom';
+import { Link as RouterLink } from 'react-router-dom';
+import { AppBar, Toolbar, Button } from '@mui/material';
 
 const Navbar = () => {
   return (
-    <nav className="bg-black py-4 shadow-lg">
-      <div className="max-w-7xl mx-auto px-4 flex justify-between items-center">
-        <Link to="/" className="text-white">
+    <AppBar position="static" sx={{ backgroundColor: '#121212', color: '#ffffff' }}>
+      <Toolbar sx={{ display: 'flex', justifyContent: 'space-between' }}>
+        <Button component={RouterLink} to="/" sx={{ fontWeight: 'bold', color: 'inherit' }}>
           NBA Scoreboard
-        </Link>
-        <div className="flex gap-6">
-          <Link to="/" className="hover:text-white">
+        </Button>
+        <div>
+          <Button component={RouterLink} to="/" sx={{ color: 'inherit' }}>
             Home
-          </Link>
-          <Link to="/standings" className="hover:text-white">
+          </Button>
+          <Button component={RouterLink} to="/standings" sx={{ color: 'inherit' }}>
             Standings
-          </Link>
+          </Button>
         </div>
-      </div>
-    </nav>
+      </Toolbar>
+    </AppBar>
   );
 };
 

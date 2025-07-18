@@ -1,5 +1,7 @@
 from typing import List, Optional
 
+from .coach import Coach
+
 from pydantic import BaseModel
 
 
@@ -21,6 +23,7 @@ class TeamRoster(BaseModel):
     team_name: str
     season: str
     players: List[Player]
+    coaches: List[Coach] = []
 
 
 class PlayerGamePerformance(BaseModel):

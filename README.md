@@ -73,6 +73,38 @@ venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
+### Apply Database Migrations:
+
+```bash
+alembic upgrade head
+```
+
+This creates all tables, including `scoreboard_snapshots` used for caching the scoreboard.
+
+### Populate the Database:
+
+```bash
+cd nba-tracker-api
+python populate_database.py
+```
+
+This loads all players and teams and caches initial data so search works. You can re-run the script at any time to refresh records.
+
+### Caching Mechanism
+
+The backend stores each fetched scoreboard in the `scoreboard_snapshots` table.
+WebSocket connections use this cached data to broadcast live game updates. If a
+snapshot is older than **60 seconds**, the backend refreshes it from the NBA API
+before sending data to clients.
+
+Each game in the scoreboard response is also saved to the `scoreboard_games`
+table for historical reference.
+
+Other endpoints cache their responses as well (`player_summary_cache`,
+`schedule_cache`, `box_score_cache`, and `team_details_cache`). Cached rows are refreshed if the data is older than
+
+The `/api/v1/players/search/{search_term}` endpoint looks up players solely in the local database. It no longer fetches data from the NBA API when the table is empty.
+
 ### Run the Backend:
 
 ```bash

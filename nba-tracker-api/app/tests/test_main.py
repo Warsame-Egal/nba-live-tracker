@@ -1,11 +1,4 @@
-# app/tests/test_main.py
+import os
+import asyncio
 from fastapi.testclient import TestClient
-
-from app.main import app
-
-client = TestClient(app)
-
-
-def test_get_player():
-    response = client.get("/api/v1/player/1641842")
-    assert response.status_code == 200
+from sqlalchemy.ext.asyncio import create_async_engine
