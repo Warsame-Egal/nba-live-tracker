@@ -15,6 +15,7 @@ The NBA Scoreboard API by Warsame Egal is a FastAPI backend that provides real-t
 - Play-by-play breakdowns
 - Full team schedule and rosters, and standings
 - Player profiles and stats
+- League leaders by stat category
 
 <img src="nba-tracker/public/screenshots/Scoreboard.png" width="300">
 <img src="nba-tracker/public/screenshots/PlayByPlay.png" width="300">

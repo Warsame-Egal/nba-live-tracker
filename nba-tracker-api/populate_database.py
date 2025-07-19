@@ -27,9 +27,11 @@ from app.models import (
     PlayerSearchCache,
     ScheduleCache,
     BoxScoreCache,
+    LeagueLeadersCache,
 )
 from app.services.scoreboard import getScoreboard
 from app.services.standings import getSeasonStandings
+from app.services.league_leaders import getLeagueLeaders
 
 
 async def clear_database(session):
@@ -45,6 +47,7 @@ async def clear_database(session):
         BoxScoreCache,
         Player,
         Team,
+        LeagueLeadersCache,
     ]
     for model in models:
         await session.execute(delete(model))
@@ -101,6 +104,13 @@ async def populate_standings(session):
     season = f"{current_year-1}-{str(current_year)[-2:]}"
     await getSeasonStandings(season, session)
 
+async def populate_league_leaders(session):
+    """Prefetch league leaders for common categories."""
+    current_year = datetime.utcnow().year
+    season = f"{current_year-1}-{str(current_year)[-2:]}"
+    for cat in ["PTS", "REB", "AST"]:
+        await getLeagueLeaders(season, cat, session)
+
 
 async def main() -> None:
     async with async_session_factory() as session:
@@ -109,6 +119,7 @@ async def main() -> None:
         await populate_players(session)
         await populate_scoreboard(session)
         await populate_standings(session)
+        await populate_league_leaders(session)
 
 
 if __name__ == "__main__":

@@ -10,6 +10,7 @@ from app.routers.scoreboard import router as scoreboard_router
 from app.routers.standings import router as standings_router
 from app.routers.teams import router as team_router
 from app.routers.search import router as search_router
+from app.routers.leaders import router as leaders_router
 from app.services.websockets_manager import (
     playbyplay_websocket_manager,
     scoreboard_websocket_manager,
@@ -76,3 +77,4 @@ app.include_router(standings_router, prefix="/api/v1")
 app.include_router(player_router, prefix="/api/v1")
 app.include_router(team_router, prefix="/api/v1")
 app.include_router(search_router, prefix="/api/v1")
+app.include_router(leaders_router, prefix="/api/v1")

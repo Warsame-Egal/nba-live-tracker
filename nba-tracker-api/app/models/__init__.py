@@ -10,6 +10,8 @@ from .cache_models import (
     PlayerSearchCache,
     ScheduleCache,
     BoxScoreCache,
+    LeagueLeadersCache,
+
 )
 
 __all__ = [
@@ -23,4 +25,5 @@ __all__ = [
     "PlayerSearchCache",
     "ScheduleCache",
     "BoxScoreCache",
+    "LeagueLeadersCache",
 ]

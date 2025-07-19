@@ -38,3 +38,11 @@ class BoxScoreCache(Base):
     game_id: Mapped[str] = mapped_column(String, primary_key=True)
     fetched_at: Mapped[datetime] = mapped_column(DateTime)
     data: Mapped[str] = mapped_column(Text)
+
+
+class LeagueLeadersCache(Base):
+    __tablename__ = "league_leaders_cache"
+    stat_category: Mapped[str] = mapped_column(String, primary_key=True)
+    season: Mapped[str] = mapped_column(String, primary_key=True)
+    fetched_at: Mapped[datetime] = mapped_column(DateTime)
+    data: Mapped[str] = mapped_column(Text)
