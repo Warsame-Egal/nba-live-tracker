@@ -8,8 +8,8 @@ class Leader(BaseModel):
     name: str = Field(..., description="Player name")
     team_id: int = Field(..., description="Team ID")
     team_abbreviation: str = Field(..., description="Team abbreviation")
-    stat_value: float = Field(..., description="Value for the chosen stat category")
-
+    games_played: int = Field(..., description="Games played for the season")
+    stat_value: float = Field(..., description="Per-game value for the chosen stat category")
 
 class LeagueLeadersResponse(BaseModel):
     leaders: List[Leader] = Field(..., description="Top players for the statistic")

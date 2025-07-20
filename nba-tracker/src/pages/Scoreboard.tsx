@@ -10,6 +10,9 @@ import GameDetailsModal from '../components/GameDetailsModal';
 import { useSearchParams, Link } from 'react-router-dom';
 import { SearchResults } from '../types/search';
 import ScoringLeaders from '../components/ScoringLeaders';
+import LeagueLeaderHighlights from '../components/LeagueLeaderHighlights';
+import TopPerformers from '../components/TopPerformers';
+import { getCurrentSeason } from '../utils/season';
 import debounce from 'lodash/debounce';
 import { FaSearch, FaTimes, FaSpinner, FaCalendarTimes } from 'react-icons/fa';
 
@@ -289,6 +292,9 @@ const Scoreboard = () => {
             <WeeklyCalendar selectedDate={selectedDate} setSelectedDate={setSelectedDate} />
           </div>
         </div>
+
+        <LeagueLeaderHighlights season={getCurrentSeason()} statCategory="AST" />
+        <TopPerformers season={getCurrentSeason()} />
 
         {/* Games Display Section remains unchanged */}
         {loading && !searchInput && games.length === 0 ? (
