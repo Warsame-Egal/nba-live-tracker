@@ -10,6 +10,12 @@ on:
       - main
       - dev
 
+env:
+  RENDER_DB_USER: ${{ secrets.RENDER_DB_USER }}
+  RENDER_DB_PASSWORD: ${{ secrets.RENDER_DB_PASSWORD }}
+  RENDER_DB_NAME: ${{ secrets.RENDER_DB_NAME }}
+  RENDER_DB_HOST: ${{ secrets.RENDER_DB_HOST }}
+
 jobs:
   backend:
     name: Backend - FastAPI Format, Lint, Test
@@ -125,9 +131,9 @@ jobs:
       - name: Import SQL to Render Postgres
         run: |
           docker run -i --rm -v ${PWD}:/mnt postgres \
-            psql -h ${{ secrets.RENDER_DB_HOST }} \
-            -U ${{ secrets.RENDER_DB_USER }} \
-            -d ${{ secrets.RENDER_DB_NAME }} \
+            psql -h $RENDER_DB_HOST \
+            -U $RENDER_DB_USER \
+            -d $RENDER_DB_NAME \
             -f /mnt/nba_dump_utf8.sql
         env:
           PGPASSWORD: ${{ secrets.RENDER_DB_PASSWORD }}
