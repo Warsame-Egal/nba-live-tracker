@@ -77,3 +77,57 @@ jobs:
         run: |
           cd nba-tracker
           npm run build
+
+  database:
+    name: Database - Migrate, Populate, Export to Render
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install backend dependencies
+        run: |
+          cd nba-tracker-api
+          python -m venv venv
+          source venv/bin/activate
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Alembic migrations
+        run: |
+          cd nba-tracker-api
+          source venv/bin/activate
+          alembic upgrade head
+
+      - name: Populate local DB with NBA data
+        run: |
+          cd nba-tracker-api
+          source venv/bin/activate
+          python populate_Database.py
+
+      - name: Dump local DB to SQL
+        run: |
+          docker-compose up -d postgres
+          sleep 10  # Wait for Postgres container to start
+          docker exec -t nba-postgres pg_dump -U postgres nba > nba_dump.sql
+
+      - name: Convert SQL to UTF-8
+        shell: pwsh
+        run: |
+          Get-Content nba_dump.sql | Set-Content -Encoding UTF8 nba_dump_utf8.sql
+
+      - name: Import SQL to Render Postgres
+        run: |
+          docker run -i --rm -v ${PWD}:/mnt postgres \
+            psql -h ${{ secrets.RENDER_DB_HOST }} \
+            -U ${{ secrets.RENDER_DB_USER }} \
+            -d ${{ secrets.RENDER_DB_NAME }} \
+            -f /mnt/nba_dump_utf8.sql
+        env:
+          PGPASSWORD: ${{ secrets.RENDER_DB_PASSWORD }}
