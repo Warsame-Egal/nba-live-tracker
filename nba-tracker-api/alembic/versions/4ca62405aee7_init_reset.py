@@ -1,11 +1,10 @@
-"""remove game and gamestat
+"""init reset
 
-Revision ID: c8859318fa7b
-Revises: f373b23db9df
-Create Date: 2025-07-17 02:04:41.520014
+Revision ID: 4ca62405aee7
+Revises: 
+Create Date: 2025-07-20 21:02:32.622171
 
 """
-
 from typing import Sequence, Union
 
 from alembic import op
@@ -13,8 +12,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = "c8859318fa7b"
-down_revision: Union[str, Sequence[str], None] = "f373b23db9df"
+revision: str = '4ca62405aee7'
+down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
