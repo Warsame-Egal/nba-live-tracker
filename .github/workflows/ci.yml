@@ -105,11 +105,11 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run Alembic migrations
+      - name: Run Alembic migrations on Render DB
         run: |
           cd nba-tracker-api
           source venv/bin/activate
-          alembic upgrade head
+          DATABASE_URL_SYNC="postgresql+psycopg2://${RENDER_DB_USER}:${RENDER_DB_PASSWORD}@${RENDER_DB_HOST}/${RENDER_DB_NAME}" alembic upgrade head
 
       - name: Populate local DB with NBA data
         run: |
