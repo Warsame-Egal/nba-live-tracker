@@ -16,38 +16,31 @@ from nba_api.stats.static import teams as static_teams
 from sqlalchemy import delete, select
 
 from app.database import async_session_factory
-from app.models import (
-    Player,
-    Team,
-    ScoreboardSnapshot,
-    StandingsSnapshot,
-    ScoreboardGame,
-    TeamDetailsCache,
-    PlayerSummaryCache,
-    PlayerSearchCache,
-    ScheduleCache,
-    BoxScoreCache,
-)
+from app import models as m
+
 from app.services.scoreboard import getScoreboard
 from app.services.standings import getSeasonStandings
 
 
 async def clear_database(session):
     """Remove all existing rows from every table."""
-    models = [
-        ScoreboardGame,
-        ScoreboardSnapshot,
-        StandingsSnapshot,
-        TeamDetailsCache,
-        PlayerSummaryCache,
-        PlayerSearchCache,
-        ScheduleCache,
-        BoxScoreCache,
-        Player,
-        Team,
+    model_names = [
+        "ScoreboardGame",
+        "ScoreboardSnapshot",
+        "StandingsSnapshot",
+        "TeamDetailsCache",
+        "PlayerSummaryCache",
+        "PlayerSearchCache",
+        "ScheduleCache",
+        "BoxScoreCache",
+        "Player",
+        "Team",
     ]
-    for model in models:
-        await session.execute(delete(model))
+
+    models_to_clear = [getattr(m, name) for name in model_names if hasattr(m, name)]
+
+    for model in models_to_clear:
+         await session.execute(delete(model))
     await session.commit()
 
 
@@ -55,7 +48,7 @@ async def populate_teams(session):
     """Insert all NBA teams."""
     for team in static_teams.get_teams():
         session.add(
-            Team(
+            m.Team(
                 id=team["id"],
                 name=team["full_name"],
                 abbreviation=team["abbreviation"],
@@ -71,7 +64,7 @@ async def populate_players(session):
     )
     df = player_index.get_data_frames()[0]
 
-    result = await session.execute(select(Team.id))
+    result = await session.execute(select(m.Team.id))
     existing_team_ids = {row[0] for row in result}
 
     for _, row in df.iterrows():
@@ -80,7 +73,7 @@ async def populate_players(session):
             team_id = None
 
         session.add(
-            Player(
+            m.Player(
                 id=int(row["PERSON_ID"]),
                 name=f"{row['PLAYER_FIRST_NAME']} {row['PLAYER_LAST_NAME']}",
                 team_id=team_id,
