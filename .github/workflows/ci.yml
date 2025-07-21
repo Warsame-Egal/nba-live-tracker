@@ -84,7 +84,7 @@ jobs:
           cd nba-tracker
           npm run build
 
-    database:
+  database:
     name: Database - Migrate, Populate, Export to Render
     runs-on: ubuntu-latest
 
