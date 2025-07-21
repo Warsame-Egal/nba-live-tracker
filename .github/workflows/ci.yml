@@ -84,9 +84,24 @@ jobs:
           cd nba-tracker
           npm run build
 
-  database:
+    database:
     name: Database - Migrate, Populate, Export to Render
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: nba
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - name: Checkout repository
@@ -110,32 +125,43 @@ jobs:
           cd nba-tracker-api
           source venv/bin/activate
           rm -rf alembic/versions/*
-          export DATABASE_URL_SYNC="postgresql+psycopg2://${RENDER_DB_USER}:${RENDER_DB_PASSWORD}@${RENDER_DB_HOST}/${RENDER_DB_NAME}"
+          export DATABASE_URL_SYNC="postgresql+psycopg2://postgres:postgres@localhost:5432/nba"
           alembic revision --autogenerate -m "Reset base migration"
 
-      - name: Run Alembic migrations on Render DB
+      - name: Run Alembic migrations on local DB
         run: |
           cd nba-tracker-api
           source venv/bin/activate
-          export DATABASE_URL_SYNC="postgresql+psycopg2://${RENDER_DB_USER}:${RENDER_DB_PASSWORD}@${RENDER_DB_HOST}/${RENDER_DB_NAME}"
+          export DATABASE_URL_SYNC="postgresql+psycopg2://postgres:postgres@localhost:5432/nba"
           alembic upgrade head
 
       - name: Populate local DB with NBA data
         run: |
           cd nba-tracker-api
           source venv/bin/activate
+          export DATABASE_URL="postgresql+asyncpg://postgres:postgres@localhost:5432/nba"
           python populate_Database.py
 
       - name: Dump local DB to SQL
         run: |
-          docker-compose up -d postgres
-          sleep 10  # Wait for Postgres container to start
-          docker exec -t nba-postgres pg_dump -U postgres nba > nba_dump.sql
+          docker run --rm -e PGPASSWORD=postgres \
+            --network host \
+            postgres pg_dump -h localhost -U postgres -d nba -F p > nba_dump.sql
 
       - name: Convert SQL to UTF-8
         shell: pwsh
         run: |
           Get-Content nba_dump.sql | Set-Content -Encoding UTF8 nba_dump_utf8.sql
+
+      - name: Reset alembic_version table in Render DB
+        run: |
+          docker run -i --rm postgres psql \
+            -h $RENDER_DB_HOST \
+            -U $RENDER_DB_USER \
+            -d $RENDER_DB_NAME \
+            -c "DROP TABLE IF EXISTS alembic_version;"
+        env:
+          PGPASSWORD: ${{ secrets.RENDER_DB_PASSWORD }}
 
       - name: Import SQL to Render Postgres
         run: |
