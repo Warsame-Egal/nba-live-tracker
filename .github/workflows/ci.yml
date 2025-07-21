@@ -110,14 +110,15 @@ jobs:
           cd nba-tracker-api
           source venv/bin/activate
           rm -rf alembic/versions/*
-          export DATABASE_URL="postgresql+psycopg2://${RENDER_DB_USER}:${RENDER_DB_PASSWORD}@${RENDER_DB_HOST}/${RENDER_DB_NAME}"
+          export DATABASE_URL_SYNC="postgresql+psycopg2://${RENDER_DB_USER}:${RENDER_DB_PASSWORD}@${RENDER_DB_HOST}/${RENDER_DB_NAME}"
           alembic revision --autogenerate -m "Reset base migration"
 
       - name: Run Alembic migrations on Render DB
         run: |
           cd nba-tracker-api
           source venv/bin/activate
-          DATABASE_URL_SYNC="postgresql+psycopg2://${RENDER_DB_USER}:${RENDER_DB_PASSWORD}@${RENDER_DB_HOST}/${RENDER_DB_NAME}" alembic upgrade head
+          export DATABASE_URL_SYNC="postgresql+psycopg2://${RENDER_DB_USER}:${RENDER_DB_PASSWORD}@${RENDER_DB_HOST}/${RENDER_DB_NAME}"
+          alembic upgrade head
 
       - name: Populate local DB with NBA data
         run: |
