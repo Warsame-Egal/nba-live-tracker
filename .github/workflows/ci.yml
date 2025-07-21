@@ -140,7 +140,7 @@ jobs:
           cd nba-tracker-api
           source venv/bin/activate
           export DATABASE_URL="postgresql+asyncpg://postgres:postgres@localhost:5432/nba"
-          python populate_Database.py
+          python populate_database.py
 
       - name: Dump local DB to SQL
         run: |
