@@ -7,6 +7,7 @@ from nba_api.stats.endpoints import TeamDetails
 
 from app.schemas.team import TeamDetailsResponse
 from app.models import Team, TeamDetailsCache
+from app.config import RUNNING_ON_RENDER
 
 
 async def get_team(team_id: int, db: AsyncSession) -> TeamDetailsResponse:
@@ -17,10 +18,12 @@ async def get_team(team_id: int, db: AsyncSession) -> TeamDetailsResponse:
         stmt = select(TeamDetailsCache).where(TeamDetailsCache.team_id == team_id)
         result = await db.execute(stmt)
         cached = result.scalar_one_or_none()
-        if cached and (datetime.utcnow() - cached.fetched_at) < timedelta(seconds=60):
-            return TeamDetailsResponse.model_validate_json(cached.data)
 
-        # Fetch team details using nba_api (adjust endpoint if needed)
+        if RUNNING_ON_RENDER:
+            if cached:
+                return TeamDetailsResponse.model_validate_json(cached.data)
+            raise HTTPException(status_code=404, detail="Team details not available")
+        
         team_details_data = await asyncio.to_thread(lambda: TeamDetails(team_id=team_id).get_dict())
 
         # Validation: Check if data is present

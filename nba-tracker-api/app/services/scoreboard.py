@@ -1,5 +1,4 @@
 from typing import List
-
 import asyncio
 from fastapi import HTTPException
 from nba_api.live.nba.endpoints import boxscore, playbyplay, scoreboard
@@ -24,6 +23,7 @@ from app.schemas.scoreboard import (
     TeamBoxScoreStats,
 )
 from app.models import ScoreboardSnapshot, ScoreboardGame, BoxScoreCache
+from app.config import RUNNING_ON_RENDER
 
 
 async def fetch_nba_scoreboard():
@@ -108,13 +108,14 @@ async def getScoreboard(db: AsyncSession) -> ScoreboardResponse:
         HTTPException: If there is an error fetching or processing the data.
     """
     try:
-        # Check if we recently fetched a scoreboard snapshot (within 60 seconds)
         stmt = select(ScoreboardSnapshot).order_by(ScoreboardSnapshot.id.desc()).limit(1)
         result = await db.execute(stmt)
         latest: ScoreboardSnapshot | None = result.scalar_one_or_none()
 
-        if latest and (datetime.utcnow() - latest.fetched_at) < timedelta(seconds=60):
-            return ScoreboardResponse.model_validate_json(latest.data)
+        if RUNNING_ON_RENDER:
+            if latest:
+                return ScoreboardResponse.model_validate_json(latest.data)
+            raise HTTPException(status_code=404, detail="Scoreboard data not available")
 
         raw_scoreboard_data = await fetch_nba_scoreboard()
         if not raw_scoreboard_data:
@@ -271,6 +272,9 @@ async def fetchTeamRoster(team_id: int, season: str) -> TeamRoster:
             - 500 for any other errors.
     """
     try:
+        if RUNNING_ON_RENDER:
+            raise HTTPException(status_code=503, detail="Roster data unavailable")
+
         # Fetch roster data from NBA API
         raw_roster = await asyncio.to_thread(
             lambda: commonteamroster.CommonTeamRoster(team_id=team_id, season=season).get_dict()
@@ -349,14 +353,17 @@ async def getBoxScore(game_id: str, db: AsyncSession | None = None) -> BoxScoreR
         BoxScoreResponse: A structured response containing team and player stats.
     """
     try:
+        cached = None
         if db:
             stmt = select(BoxScoreCache).where(BoxScoreCache.game_id == game_id)
             result = await db.execute(stmt)
             cached = result.scalar_one_or_none()
-            if cached and (datetime.utcnow() - cached.fetched_at) < timedelta(seconds=60):
-                return BoxScoreResponse.model_validate_json(cached.data)
 
-        # Fetch box score data
+        if RUNNING_ON_RENDER:
+            if cached:
+                return BoxScoreResponse.model_validate_json(cached.data)
+            raise HTTPException(status_code=404, detail="Box score not available")
+
         game_data = await asyncio.to_thread(lambda: boxscore.BoxScore(game_id).get_dict())
 
         if "game" not in game_data:
@@ -459,7 +466,8 @@ async def getPlayByPlay(game_id: str) -> PlayByPlayResponse:
         PlayByPlayResponse: A structured response containing a list of plays.
     """
     try:
-        # Fetch play-by-play data
+        if RUNNING_ON_RENDER:
+            raise HTTPException(status_code=503, detail="Play-by-play unavailable")
         play_by_play_data = await asyncio.to_thread(lambda: playbyplay.PlayByPlay(game_id).get_dict())
 
         if "game" not in play_by_play_data or "actions" not in play_by_play_data["game"]:

@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.schemas.schedule import GamesResponse, GameSummary, TeamSummary, TopScorer
 from app.models import ScheduleCache
+from app.config import RUNNING_ON_RENDER
 
 # Map team IDs to abbreviations for quick lookup
 NBA_TEAMS = {team["id"]: team["abbreviation"] for team in teams.get_teams()}
@@ -19,8 +20,11 @@ async def getGamesForDate(date: str, db: AsyncSession) -> GamesResponse:
         stmt = select(ScheduleCache).where(ScheduleCache.game_date == date)
         result = await db.execute(stmt)
         cached = result.scalar_one_or_none()
-        if cached and (datetime.utcnow() - cached.fetched_at) < timedelta(seconds=60):
-            return GamesResponse.model_validate_json(cached.data)
+
+        if RUNNING_ON_RENDER:
+            if cached:
+                return GamesResponse.model_validate_json(cached.data)
+            raise HTTPException(status_code=404, detail="Schedule data not available")
 
         games_data = await asyncio.to_thread(lambda: scoreboardv2.ScoreboardV2(game_date=date).get_dict())
 

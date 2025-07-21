@@ -11,6 +11,7 @@ from nba_api.stats.library.parameters import HistoricalNullable
 
 from app.schemas.player import PlayerGamePerformance, PlayerSummary
 from app.models import Player, PlayerSummaryCache, Team
+from app.config import RUNNING_ON_RENDER
 
 
 async def getPlayer(player_id: str, db: AsyncSession) -> PlayerSummary:
@@ -21,8 +22,11 @@ async def getPlayer(player_id: str, db: AsyncSession) -> PlayerSummary:
         stmt = select(PlayerSummaryCache).where(PlayerSummaryCache.player_id == int(player_id))
         result = await db.execute(stmt)
         cached = result.scalar_one_or_none()
-        if cached and (datetime.utcnow() - cached.fetched_at) < timedelta(seconds=60):
-            return PlayerSummary.model_validate_json(cached.data)
+
+        if RUNNING_ON_RENDER:
+            if cached:
+                return PlayerSummary.model_validate_json(cached.data)
+            raise HTTPException(status_code=404, detail="Player summary not available")
 
         result = await db.execute(select(Player).where(Player.id == int(player_id)))
         stored = result.scalar_one_or_none()

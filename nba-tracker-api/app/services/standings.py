@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from nba_api.stats.endpoints import leaguestandingsv3
 from app.schemas.standings import StandingRecord, StandingsResponse
 from app.models import StandingsSnapshot
+from app.config import RUNNING_ON_RENDER
 
 
 def safe_str(value) -> str:
@@ -29,8 +30,11 @@ async def getSeasonStandings(season: str, db: AsyncSession) -> StandingsResponse
         )
         result = await db.execute(stmt)
         latest: StandingsSnapshot | None = result.scalar_one_or_none()
-        if latest and (datetime.utcnow() - latest.fetched_at) < timedelta(hours=12):
-            return StandingsResponse.model_validate_json(latest.data)
+
+        if RUNNING_ON_RENDER:
+            if latest:
+                return StandingsResponse.model_validate_json(latest.data)
+            raise HTTPException(status_code=404, detail="Standings data not available")
 
         df = await asyncio.to_thread(
             lambda: leaguestandingsv3.LeagueStandingsV3(
