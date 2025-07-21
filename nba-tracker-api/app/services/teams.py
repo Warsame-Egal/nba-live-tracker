@@ -23,7 +23,7 @@ async def get_team(team_id: int, db: AsyncSession) -> TeamDetailsResponse:
             if cached:
                 return TeamDetailsResponse.model_validate_json(cached.data)
             raise HTTPException(status_code=404, detail="Team details not available")
-        
+
         team_details_data = await asyncio.to_thread(lambda: TeamDetails(team_id=team_id).get_dict())
 
         # Validation: Check if data is present
