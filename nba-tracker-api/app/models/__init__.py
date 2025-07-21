@@ -1,4 +1,3 @@
-from .endpoint_models import *
 from .endpoint_models import ScoreboardGame
 from .player import Player
 from .team import Team

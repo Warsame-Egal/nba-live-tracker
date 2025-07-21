@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.schemas.schedule import GamesResponse, GameSummary, TeamSummary, TopScorer
-from app.models import ScheduleCache
+from app.models import ScheduleCache, ScoreboardGame
 from app.config import RUNNING_ON_RENDER
 
 # Map team IDs to abbreviations for quick lookup
@@ -24,6 +24,62 @@ async def getGamesForDate(date: str, db: AsyncSession) -> GamesResponse:
         if RUNNING_ON_RENDER:
             if cached:
                 return GamesResponse.model_validate_json(cached.data)
+            
+            stmt_games = select(ScoreboardGame).where(ScoreboardGame.gameDate == date)
+            result_games = await db.execute(stmt_games)
+            rows = result_games.scalars().all()
+
+            if rows:
+                games = []
+                for row in rows:
+                    home_team = TeamSummary(
+                        team_id=row.homeTeam_teamId,
+                        team_abbreviation=row.homeTeam_teamTricode,
+                        points=row.homeTeam_score,
+                    )
+                    away_team = TeamSummary(
+                        team_id=row.awayTeam_teamId,
+                        team_abbreviation=row.awayTeam_teamTricode,
+                        points=row.awayTeam_score,
+                    )
+
+                    top_scorer = None
+                    if (row.homeLeader_points or 0) >= (row.awayLeader_points or 0):
+                        if row.homeLeader_personId:
+                            top_scorer = TopScorer(
+                                player_id=row.homeLeader_personId,
+                                player_name=row.homeLeader_name or "",
+                                team_id=row.homeTeam_teamId,
+                                points=row.homeLeader_points or 0,
+                                rebounds=row.homeLeader_rebounds or 0,
+                                assists=row.homeLeader_assists or 0,
+                            )
+                    else:
+                        if row.awayLeader_personId:
+                            top_scorer = TopScorer(
+                                player_id=row.awayLeader_personId,
+                                player_name=row.awayLeader_name or "",
+                                team_id=row.awayTeam_teamId,
+                                points=row.awayLeader_points or 0,
+                                rebounds=row.awayLeader_rebounds or 0,
+                                assists=row.awayLeader_assists or 0,
+                            )
+
+                    games.append(
+                        GameSummary(
+                            game_id=row.gameId,
+                            game_date=row.gameDate,
+                            matchup=f"{row.homeTeam_teamTricode} vs {row.awayTeam_teamTricode}",
+                            game_status=row.gameStatusText,
+                            arena=None,
+                            home_team=home_team,
+                            away_team=away_team,
+                            top_scorer=top_scorer,
+                        )
+                    )
+
+                return GamesResponse(games=games)
+
             raise HTTPException(status_code=404, detail="Schedule data not available")
 
         games_data = await asyncio.to_thread(lambda: scoreboardv2.ScoreboardV2(game_date=date).get_dict())

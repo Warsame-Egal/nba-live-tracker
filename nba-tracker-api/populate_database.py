@@ -16,37 +16,33 @@ from nba_api.stats.static import teams as static_teams
 from sqlalchemy import delete, select
 
 from app.database import async_session_factory
-from app.models import (
-    Player,
-    Team,
-    ScoreboardSnapshot,
-    StandingsSnapshot,
-    ScoreboardGame,
-    TeamDetailsCache,
-    PlayerSummaryCache,
-    PlayerSearchCache,
-    ScheduleCache,
-    BoxScoreCache,
-)
-from app.services.scoreboard import getScoreboard
-from app.services.standings import getSeasonStandings
+from app import models as m
 
+from app.services.scoreboard import getScoreboard, getBoxScore
+from app.services.standings import getSeasonStandings
+from app.services.teams import get_team
+from app.services.players import getPlayer
+from app.services.search import search_entities
+from app.services.schedule import getGamesForDate
 
 async def clear_database(session):
     """Remove all existing rows from every table."""
-    models = [
-        ScoreboardGame,
-        ScoreboardSnapshot,
-        StandingsSnapshot,
-        TeamDetailsCache,
-        PlayerSummaryCache,
-        PlayerSearchCache,
-        ScheduleCache,
-        BoxScoreCache,
-        Player,
-        Team,
+    model_names = [
+        "ScoreboardGame",
+        "ScoreboardSnapshot",
+        "StandingsSnapshot",
+        "TeamDetailsCache",
+        "PlayerSummaryCache",
+        "PlayerSearchCache",
+        "ScheduleCache",
+        "BoxScoreCache",
+        "Player",
+        "Team",
     ]
-    for model in models:
+
+    models_to_clear = [getattr(m, name) for name in model_names if hasattr(m, name)]
+
+    for model in models_to_clear:
         await session.execute(delete(model))
     await session.commit()
 
@@ -55,7 +51,7 @@ async def populate_teams(session):
     """Insert all NBA teams."""
     for team in static_teams.get_teams():
         session.add(
-            Team(
+            m.Team(
                 id=team["id"],
                 name=team["full_name"],
                 abbreviation=team["abbreviation"],
@@ -71,7 +67,7 @@ async def populate_players(session):
     )
     df = player_index.get_data_frames()[0]
 
-    result = await session.execute(select(Team.id))
+    result = await session.execute(select(m.Team.id))
     existing_team_ids = {row[0] for row in result}
 
     for _, row in df.iterrows():
@@ -80,7 +76,7 @@ async def populate_players(session):
             team_id = None
 
         session.add(
-            Player(
+            m.Player(
                 id=int(row["PERSON_ID"]),
                 name=f"{row['PLAYER_FIRST_NAME']} {row['PLAYER_LAST_NAME']}",
                 team_id=team_id,
@@ -88,6 +84,49 @@ async def populate_players(session):
             )
         )
     await session.commit()
+
+# Leaving the function definition in case you want to reuse it later
+async def populate_team_details(session):
+    """Cache details for all teams."""
+    result = await session.execute(select(m.Team.id))
+    team_ids = [row[0] for row in result]
+    for team_id in team_ids:
+        await get_team(int(team_id), session)
+
+
+async def populate_player_summaries(session):
+    """Cache summaries for all players."""
+    result = await session.execute(select(m.Player.id))
+    player_ids = [row[0] for row in result]
+    for player_id in player_ids:
+        await getPlayer(str(player_id), session)
+
+
+async def populate_player_search(session):
+    """Precompute basic player search results."""
+    for letter in "abcdefghijklmnopqrstuvwxyz":
+        results = await search_entities(letter, session)
+        session.add(
+            m.PlayerSearchCache(
+                search_term=letter,
+                fetched_at=datetime.utcnow(),
+                data=results.model_dump_json(),
+            )
+        )
+    await session.commit()
+
+
+async def populate_schedule(session):
+    """Cache today's schedule."""
+    today = datetime.utcnow().strftime("%Y-%m-%d")
+    await getGamesForDate(today, session)
+
+
+async def populate_box_scores(session):
+    """Cache box scores for today's games."""
+    scoreboard = await getScoreboard(session)
+    for game in scoreboard.scoreboard.games:
+        await getBoxScore(game.gameId, session)
 
 
 async def populate_scoreboard(session):
@@ -107,7 +146,12 @@ async def main() -> None:
         await clear_database(session)
         await populate_teams(session)
         await populate_players(session)
+        # await populate_team_details(session)  # Removed due to timeouts
+        await populate_player_summaries(session)
+        await populate_player_search(session)
         await populate_scoreboard(session)
+        await populate_schedule(session)
+        await populate_box_scores(session)
         await populate_standings(session)
 
 
