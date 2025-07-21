@@ -105,6 +105,13 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Reset Alembic migration history and create new migration
+        run: |
+          cd nba-tracker-api
+          source venv/bin/activate
+          rm -rf alembic/versions/*
+          alembic revision --autogenerate -m "Reset base migration"
+
       - name: Run Alembic migrations on Render DB
         run: |
           cd nba-tracker-api
