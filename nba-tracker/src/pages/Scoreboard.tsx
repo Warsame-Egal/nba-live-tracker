@@ -117,7 +117,9 @@ const Scoreboard = () => {
       const fetchGamesByDate = async (date: string) => {
         setLoading(true);
         try {
-          const response = await fetch(`${API_BASE_URL}/api/v1/schedule/date/${date}`);
+          const response = await fetch(
+            `${API_BASE_URL}/api/v1/schedule/date/${date}`
+          );
           const data: GamesResponse = await response.json();
           setGames(data.games);
           setSelectedGame(null);
