@@ -39,6 +39,8 @@ def _rows_to_games(rows: list[ScoreboardGame]) -> list[GameSummary]:
                     team_id=row.homeTeam_teamId,
                     points=row.homeLeader_points or 0,
                     rebounds=row.homeLeader_rebounds or 0,
+                )
+            else:
                 top_scorer = TopScorer(
                     player_id=row.awayLeader_personId,
                     player_name=row.awayLeader_name or "",
@@ -46,7 +48,6 @@ def _rows_to_games(rows: list[ScoreboardGame]) -> list[GameSummary]:
                     points=row.awayLeader_points or 0,
                     rebounds=row.awayLeader_rebounds or 0,
                     assists=row.awayLeader_assists or 0,
-                )
                 )
 
         games.append(
