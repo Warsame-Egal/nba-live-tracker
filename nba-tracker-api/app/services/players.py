@@ -24,7 +24,7 @@ async def getPlayer(player_id: str) -> PlayerSummary:
         player_row = player_index_df[player_index_df["PERSON_ID"] == player_id_int]
 
         if player_row.empty:
-            raise HTTPException(status_code=404, detail="Player not found in player index")
+            raise HTTPException(status_code=404, detail=f"Player not found with ID: {player_id}")
 
         player_data = player_row.iloc[0].to_dict()
 
@@ -80,14 +80,15 @@ async def getPlayer(player_id: str) -> PlayerSummary:
 
         return player_summary
 
-    except HTTPException as http_exception:
-        raise http_exception
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
 
 
 async def search_players(search_term: str) -> List[PlayerSummary]:
     """Search players by name using the NBA API."""
+
     try:
         # Get all players from player index
         player_index_data = await asyncio.to_thread(
@@ -95,22 +96,21 @@ async def search_players(search_term: str) -> List[PlayerSummary]:
         )
         player_index_df = player_index_data.get_data_frames()[0]
 
-        # Filter players by search term
+        # Filter players by search term (case-insensitive)
         search_lower = search_term.lower()
-        matching_players = player_index_df[
+        filtered_players = player_index_df[
             player_index_df["PLAYER_FIRST_NAME"].str.lower().str.contains(search_lower, na=False)
             | player_index_df["PLAYER_LAST_NAME"].str.lower().str.contains(search_lower, na=False)
-            | player_index_df["PLAYER_FIRST_NAME"].str.lower().str.contains(search_lower, na=False)
-            | (player_index_df["PLAYER_FIRST_NAME"] + " " + player_index_df["PLAYER_LAST_NAME"])
-            .str.lower()
-            .str.contains(search_lower, na=False)
         ]
 
-        if matching_players.empty:
+        if filtered_players.empty:
             raise HTTPException(status_code=404, detail="No players found matching the search term")
 
+        # Limit to 20 results
+        filtered_players = filtered_players.head(20)
+
         player_summaries: List[PlayerSummary] = []
-        for _, row in matching_players.head(20).iterrows():  # Limit to 20 results
+        for _, row in filtered_players.iterrows():
             player_data = row.to_dict()
             roster_status = player_data.get("ROSTER_STATUS")
             if isinstance(roster_status, float):

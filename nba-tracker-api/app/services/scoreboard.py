@@ -31,10 +31,10 @@ async def fetch_nba_scoreboard():
     """
     try:
         board = await asyncio.to_thread(lambda: scoreboard.ScoreBoard().get_dict())
-        return board.get("scoreboard", {})  # Extract only the scoreboard section
+        return board.get("scoreboard", {})
     except Exception as e:
         print(f"Error fetching NBA scoreboard: {e}")
-        return {}  # Return an empty dict to avoid crashes
+        return {}
 
 
 def extract_team_data(team_data):
@@ -128,16 +128,13 @@ async def getScoreboard() -> ScoreboardResponse:
                     homeTeam=home_team,
                     awayTeam=away_team,
                     gameLeaders=game_leaders,
-                    pbOdds=None,  # Set this to None as a placeholder for future updates
                 )
 
                 games.append(live_game)
             except KeyError as e:
                 print(f"Missing key in game data: {e}, skipping game.")
 
-        response = ScoreboardResponse(scoreboard=Scoreboard(gameDate=game_date, games=games))
-
-        return response
+        return ScoreboardResponse(scoreboard=Scoreboard(gameDate=game_date, games=games))
     except Exception as e:
         print(f"Error fetching live scoreboard: {e}")
         raise HTTPException(status_code=500, detail=f"Error fetching live scores: {e}")
@@ -165,6 +162,7 @@ async def fetchTeamRoster(team_id: int, season: str) -> TeamRoster:
             lambda: commonteamroster.CommonTeamRoster(team_id=team_id, season=season).get_dict()
         )
         player_data = raw_roster["resultSets"][0]["rowSet"]
+
         # Safely parse coaches if available
         coaches: List[Coach] = []
         try:
@@ -250,7 +248,7 @@ async def getBoxScore(game_id: str) -> BoxScoreResponse:
         away_team = game_info["awayTeam"]
 
         # Construct response
-        response = BoxScoreResponse(
+        return BoxScoreResponse(
             game_id=game_info["gameId"],
             status=game_info["gameStatusText"],
             home_team=TeamBoxScoreStats(
@@ -310,8 +308,8 @@ async def getBoxScore(game_id: str) -> BoxScoreResponse:
                 ],
             ),
         )
-
-        return response
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error retrieving box score: {str(e)}")
 
@@ -360,5 +358,7 @@ async def getPlayByPlay(game_id: str) -> PlayByPlayResponse:
         # Construct response
         return PlayByPlayResponse(game_id=game_id, plays=plays)
 
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error retrieving play-by-play: {str(e)}")

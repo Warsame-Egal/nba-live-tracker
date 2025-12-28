@@ -213,7 +213,7 @@ class PlayByPlayWebSocketManager:
                 await asyncio.sleep(5)
 
 
-# Singleton playbyplay instance
+# Singleton playbypLay instance
 playbyplay_websocket_manager = PlayByPlayWebSocketManager()
 
 # Singleton scoreboard instance

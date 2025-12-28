@@ -51,13 +51,11 @@ async def getSeasonStandings(season: str) -> StandingsResponse:
                 current_streak=int(team["CurrentStreak"]),
                 current_streak_str=team["strCurrentStreak"],
                 games_back=safe_str(team.get("ConferenceGamesBack")),
-                pre_as=team.get("PreAS"),
-                post_as=team.get("PostAS"),
             )
             standings_list.append(standing_record)
 
-        response = StandingsResponse(standings=standings_list)
-
-        return response
+        return StandingsResponse(standings=standings_list)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching season standings: {e}")

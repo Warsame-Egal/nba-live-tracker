@@ -37,21 +37,43 @@ async def getGamesForDate(date: str) -> GamesResponse:
 
         for game in games_list:
             game_dict = dict(zip(game_headers, game))
-            game_id = str(game_dict["GAME_ID"])
 
-            home_team_id = game_dict["HOME_TEAM_ID"]
-            away_team_id = game_dict["VISITOR_TEAM_ID"]
+            if "GAME_ID" not in game_dict:
+                continue
 
-            home_score = 0
-            away_score = 0
+            game_id = game_dict["GAME_ID"]
+            home_team_id = game_dict.get("HOME_TEAM_ID")
+            away_team_id = game_dict.get("VISITOR_TEAM_ID")
 
-            for line_score_row in line_score_list:
-                line_score_dict = dict(zip(line_score_headers, line_score_row))
-                if line_score_dict.get("GAME_ID") == game_dict["GAME_ID"]:
-                    if line_score_dict.get("TEAM_ID") == home_team_id:
-                        home_score = line_score_dict.get("PTS", 0)
-                    elif line_score_dict.get("TEAM_ID") == away_team_id:
-                        away_score = line_score_dict.get("PTS", 0)
+            # Skip if either team ID is missing
+            if home_team_id is None or away_team_id is None:
+                continue
+
+            # Ensure both IDs are integers
+            try:
+                home_team_id = int(home_team_id)
+                away_team_id = int(away_team_id)
+            except (TypeError, ValueError):
+                continue
+
+            home_score = next(
+                (
+                    dict(zip(line_score_headers, s)).get("PTS", 0)
+                    for s in line_score_list
+                    if dict(zip(line_score_headers, s)).get("GAME_ID") == game_id
+                    and dict(zip(line_score_headers, s)).get("TEAM_ID") == home_team_id
+                ),
+                0,
+            )
+            away_score = next(
+                (
+                    dict(zip(line_score_headers, s)).get("PTS", 0)
+                    for s in line_score_list
+                    if dict(zip(line_score_headers, s)).get("GAME_ID") == game_id
+                    and dict(zip(line_score_headers, s)).get("TEAM_ID") == away_team_id
+                ),
+                0,
+            )
 
             home_team = TeamSummary(
                 team_id=home_team_id,
@@ -64,19 +86,21 @@ async def getGamesForDate(date: str) -> GamesResponse:
                 points=away_score,
             )
 
-            top_scorer = None
-            for leader_row in team_leaders_list:
-                leader_dict = dict(zip(team_leaders_headers, leader_row))
-                if leader_dict.get("GAME_ID") == game_dict["GAME_ID"]:
-                    top_scorer = TopScorer(
-                        player_id=leader_dict.get("PTS_PLAYER_ID", 0),
-                        player_name=leader_dict.get("PTS_PLAYER_NAME", "Unknown"),
-                        team_id=leader_dict.get("TEAM_ID", 0),
-                        points=leader_dict.get("PTS", 0),
-                        rebounds=leader_dict.get("REB", 0),
-                        assists=leader_dict.get("AST", 0),
+            top_scorer = next(
+                (
+                    TopScorer(
+                        player_id=d.get("PTS_PLAYER_ID", 0),
+                        player_name=d.get("PTS_PLAYER_NAME", "Unknown"),
+                        team_id=d.get("TEAM_ID", 0),
+                        points=d.get("PTS", 0),
+                        rebounds=d.get("REB", 0),
+                        assists=d.get("AST", 0),
                     )
-                    break
+                    for d in (dict(zip(team_leaders_headers, leader_row)) for leader_row in team_leaders_list)
+                    if d.get("GAME_ID") == game_id
+                ),
+                None,
+            )
 
             games.append(
                 GameSummary(
@@ -91,9 +115,7 @@ async def getGamesForDate(date: str) -> GamesResponse:
                 )
             )
 
-        response = GamesResponse(games=games)
-
-        return response
+        return GamesResponse(games=games)
 
     except HTTPException:
         raise

@@ -69,16 +69,6 @@ def home():
     return {"message": "NBA Live Tracker API is running"}
 
 
-@app.get("/health")
-def health_check():
-    """Health check endpoint for monitoring and load balancers."""
-    return {
-        "status": "healthy",
-        "service": "NBA Tracker API",
-        "version": "1.0.0"
-    }
-
-
 # Routes
 app.include_router(scoreboard_router, prefix="/api/v1")
 app.include_router(schedule_router, prefix="/api/v1")

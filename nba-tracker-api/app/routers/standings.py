@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException
+
 from app.schemas.standings import StandingsResponse
 from app.services.standings import getSeasonStandings
 

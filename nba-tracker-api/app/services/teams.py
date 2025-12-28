@@ -26,7 +26,7 @@ async def get_team(team_id: int) -> TeamDetailsResponse:
 
         team_background = dict(zip(team_background_headers, team_background_rows[0]))
 
-        # Map nba_api data to your TeamDetailsResponse schema
+        # Map nba_api data to TeamDetailsResponse schema
         team_details = TeamDetailsResponse(
             team_id=int(team_background["TEAM_ID"]),
             team_name=team_background["NICKNAME"],
@@ -42,7 +42,7 @@ async def get_team(team_id: int) -> TeamDetailsResponse:
 
         return team_details
 
-    except HTTPException as http_exception:
-        raise http_exception
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}") from e
+        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
