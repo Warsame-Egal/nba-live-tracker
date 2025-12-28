@@ -14,9 +14,3 @@ class TeamDetailsResponse(BaseModel):
     owner: Optional[str] = None  # Team owner
     general_manager: Optional[str] = None  # Team general manager
     head_coach: Optional[str] = None  # Team head coach
-    conference: Optional[str] = None  # Conference (e.g., "East", "West")
-    division: Optional[str] = None  # Division (e.g., "Pacific", "Atlantic")
-    team_history: Optional[List[dict]] = None  # List of dictionaries containing team history
-    team_awards_championships: Optional[List[dict]] = None  # List of championships won
-    team_awards_conf: Optional[List[dict]] = None  # List of conference titles
-    team_awards_div: Optional[List[dict]] = None  # List of division titles
