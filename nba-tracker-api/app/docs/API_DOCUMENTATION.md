@@ -1,10 +1,27 @@
 # NBA Tracker API Documentation
 
-A FastAPI-based REST API and WebSocket service for real-time NBA game data.
+A comprehensive REST API and WebSocket service for real-time NBA game data, player statistics, team information, and more.
 
 **Base URL:** `http://localhost:8000`  
 **API Version:** `v1`  
-**Prefix:** `/api/v1`
+**API Prefix:** `/api/v1`
+
+---
+
+## Table of Contents
+
+- [REST Endpoints](#rest-endpoints)
+  - [Players](#players)
+  - [Teams](#teams)
+  - [Schedule](#schedule)
+  - [Standings](#standings)
+  - [Scoreboard](#scoreboard)
+  - [Search](#search)
+- [WebSocket Endpoints](#websocket-endpoints)
+  - [Live Scoreboard](#live-scoreboard-updates)
+  - [Play-by-Play](#live-play-by-play-updates)
+- [Error Handling](#error-handling)
+- [Interactive Documentation](#interactive-documentation)
 
 ---
 
@@ -13,16 +30,17 @@ A FastAPI-based REST API and WebSocket service for real-time NBA game data.
 ### Players
 
 #### Get Player Details
+
+Get comprehensive information about a specific player including stats and recent game performances.
+
 ```http
 GET /api/v1/player/{player_id}
 ```
 
-Returns detailed player information including stats and recent games.
-
 **Parameters:**
-- `player_id` (string) - Player ID
+- `player_id` (string, path, required) - The NBA player ID (e.g., "2544" for LeBron James)
 
-**Example:**
+**Example Request:**
 ```bash
 curl http://localhost:8000/api/v1/player/2544
 ```
@@ -39,42 +57,75 @@ curl http://localhost:8000/api/v1/player/2544
   "PTS": 25.5,
   "REB": 7.2,
   "AST": 8.1,
-  "recent_games": [...]
+  "recent_games": [
+    {
+      "GAME_DATE": "2024-01-15",
+      "MATCHUP": "LAL vs. GSW",
+      "PTS": 32,
+      "REB": 8,
+      "AST": 9
+    }
+  ]
 }
 ```
+
+**Status Codes:**
+- `200 OK` - Player found and returned
+- `404 Not Found` - Player ID not found
+- `500 Internal Server Error` - Server error
 
 ---
 
 #### Search Players
+
+Search for players by name. Returns up to 20 matching players.
+
 ```http
 GET /api/v1/players/search/{search_term}
 ```
 
-Search for players by name.
-
 **Parameters:**
-- `search_term` (string) - Player name or partial name
+- `search_term` (string, path, required) - Player name or partial name to search for
 
-**Example:**
+**Example Request:**
 ```bash
 curl http://localhost:8000/api/v1/players/search/lebron
 ```
+
+**Response:**
+```json
+[
+  {
+    "PERSON_ID": 2544,
+    "PLAYER_FIRST_NAME": "LeBron",
+    "PLAYER_LAST_NAME": "James",
+    "TEAM_NAME": "Los Angeles Lakers",
+    "JERSEY_NUMBER": "6",
+    "POSITION": "F"
+  }
+]
+```
+
+**Status Codes:**
+- `200 OK` - Search completed (may return empty array)
+- `500 Internal Server Error` - Server error
 
 ---
 
 ### Teams
 
 #### Get Team Details
+
+Get detailed information about a specific NBA team including arena, owner, and coaching staff.
+
 ```http
 GET /api/v1/teams/{team_id}
 ```
 
-Returns team information including arena, owner, and coaching staff.
-
 **Parameters:**
-- `team_id` (integer) - Team ID (e.g., 1610612747)
+- `team_id` (integer, path, required) - The NBA team ID (e.g., `1610612747` for Los Angeles Lakers)
 
-**Example:**
+**Example Request:**
 ```bash
 curl http://localhost:8000/api/v1/teams/1610612747
 ```
@@ -93,39 +144,76 @@ curl http://localhost:8000/api/v1/teams/1610612747
 }
 ```
 
+**Status Codes:**
+- `200 OK` - Team found and returned
+- `404 Not Found` - Team ID not found
+- `500 Internal Server Error` - Server error
+
 ---
 
 #### Get Team Roster
+
+Get the full roster (players and coaches) for a team in a specific season.
+
 ```http
 GET /api/v1/scoreboard/team/{team_id}/roster/{season}
 ```
 
-Returns full team roster for a season.
-
 **Parameters:**
-- `team_id` (integer) - Team ID
-- `season` (string) - Season (e.g., "2024-25")
+- `team_id` (integer, path, required) - The NBA team ID
+- `season` (string, path, required) - Season in format "YYYY-YY" (e.g., "2024-25")
 
-**Example:**
+**Example Request:**
 ```bash
 curl http://localhost:8000/api/v1/scoreboard/team/1610612747/roster/2024-25
 ```
+
+**Response:**
+```json
+{
+  "team_id": 1610612747,
+  "season": "2024-25",
+  "players": [
+    {
+      "PERSON_ID": 2544,
+      "PLAYER": "LeBron James",
+      "JERSEY": "6",
+      "POSITION": "F",
+      "HEIGHT": "6-9",
+      "WEIGHT": "250"
+    }
+  ],
+  "coaches": [
+    {
+      "COACH_ID": 1234,
+      "COACH_NAME": "Darvin Ham",
+      "COACH_TYPE": "Head Coach"
+    }
+  ]
+}
+```
+
+**Status Codes:**
+- `200 OK` - Roster retrieved successfully
+- `404 Not Found` - Team or season not found
+- `500 Internal Server Error` - Server error
 
 ---
 
 ### Schedule
 
 #### Get Games for Date
+
+Get all games scheduled or played on a specific date.
+
 ```http
 GET /api/v1/schedule/date/{date}
 ```
 
-Returns all games scheduled or played on a specific date.
-
 **Parameters:**
-- `date` (string) - Date in `YYYY-MM-DD` format
+- `date` (string, path, required) - Date in `YYYY-MM-DD` format (e.g., "2024-01-15")
 
-**Example:**
+**Example Request:**
 ```bash
 curl http://localhost:8000/api/v1/schedule/date/2024-01-15
 ```
@@ -133,6 +221,7 @@ curl http://localhost:8000/api/v1/schedule/date/2024-01-15
 **Response:**
 ```json
 {
+  "date": "2024-01-15",
   "games": [
     {
       "game_id": "0022400123",
@@ -140,33 +229,47 @@ curl http://localhost:8000/api/v1/schedule/date/2024-01-15
       "matchup": "LAL @ GSW",
       "game_status": "Final",
       "home_team": {
+        "team_id": 1610612744,
         "team_abbreviation": "GSW",
+        "team_name": "Warriors",
         "points": 128
       },
       "away_team": {
+        "team_id": 1610612747,
         "team_abbreviation": "LAL",
+        "team_name": "Lakers",
         "points": 121
+      },
+      "top_scorer": {
+        "name": "Stephen Curry",
+        "points": 32
       }
     }
   ]
 }
 ```
 
+**Status Codes:**
+- `200 OK` - Games retrieved (may be empty array if no games)
+- `400 Bad Request` - Invalid date format
+- `500 Internal Server Error` - Server error
+
 ---
 
 ### Standings
 
 #### Get Season Standings
+
+Get NBA standings for a season with conference rankings, win/loss records, and playoff positions.
+
 ```http
 GET /api/v1/standings/season/{season}
 ```
 
-Returns NBA standings for a season with conference rankings and records.
-
 **Parameters:**
-- `season` (string) - Season (e.g., "2023-24")
+- `season` (string, path, required) - Season in format "YYYY-YY" (e.g., "2023-24")
 
-**Example:**
+**Example Request:**
 ```bash
 curl http://localhost:8000/api/v1/standings/season/2023-24
 ```
@@ -185,27 +288,35 @@ curl http://localhost:8000/api/v1/standings/season/2023-24
       "wins": 64,
       "losses": 18,
       "win_pct": 0.780,
-      "current_streak_str": "W3"
+      "current_streak_str": "W3",
+      "home_record": "37-4",
+      "away_record": "27-14"
     }
   ]
 }
 ```
+
+**Status Codes:**
+- `200 OK` - Standings retrieved successfully
+- `404 Not Found` - Season not found
+- `500 Internal Server Error` - Server error
 
 ---
 
 ### Scoreboard
 
 #### Get Box Score
+
+Get detailed box score with team and player statistics for a specific game.
+
 ```http
 GET /api/v1/scoreboard/game/{game_id}/boxscore
 ```
 
-Returns detailed box score with team and player statistics.
-
 **Parameters:**
-- `game_id` (string) - Game ID (e.g., "0022400123")
+- `game_id` (string, path, required) - The unique game ID (e.g., "0022400123")
 
-**Example:**
+**Example Request:**
 ```bash
 curl http://localhost:8000/api/v1/scoreboard/game/0022400123/boxscore
 ```
@@ -215,41 +326,64 @@ curl http://localhost:8000/api/v1/scoreboard/game/0022400123/boxscore
 {
   "game_id": "0022400123",
   "status": "Final",
+  "game_date": "2024-01-15T19:00:00",
   "home_team": {
+    "team_id": 1610612744,
     "team_name": "Golden State Warriors",
+    "team_abbreviation": "GSW",
     "score": 128,
+    "stats": {
+      "points": 128,
+      "field_goals_made": 45,
+      "field_goals_attempted": 92,
+      "three_pointers_made": 18,
+      "free_throws_made": 20
+    },
     "players": [
       {
+        "person_id": 201939,
         "name": "Stephen Curry",
+        "position": "G",
         "points": 32,
         "rebounds": 5,
-        "assists": 8
+        "assists": 8,
+        "field_goals_made": 12,
+        "field_goals_attempted": 20
       }
     ]
   },
   "away_team": {
+    "team_id": 1610612747,
     "team_name": "Los Angeles Lakers",
+    "team_abbreviation": "LAL",
     "score": 121,
-    "players": [...]
+    "stats": { ... },
+    "players": [ ... ]
   }
 }
 ```
+
+**Status Codes:**
+- `200 OK` - Box score retrieved successfully
+- `404 Not Found` - Game ID not found
+- `500 Internal Server Error` - Server error
 
 ---
 
 ### Search
 
 #### Search Players and Teams
+
+Combined search endpoint that returns both matching players and teams in a single response.
+
 ```http
 GET /api/v1/search?q={query}
 ```
 
-Combined search for players and teams.
-
 **Query Parameters:**
-- `q` (string, required) - Search term
+- `q` (string, query, required, min_length=1) - Search term for players or teams
 
-**Example:**
+**Example Request:**
 ```bash
 curl "http://localhost:8000/api/v1/search?q=lakers"
 ```
@@ -261,41 +395,59 @@ curl "http://localhost:8000/api/v1/search?q=lakers"
     {
       "id": 2544,
       "name": "LeBron James",
-      "team_abbreviation": "LAL"
+      "team_abbreviation": "LAL",
+      "team_name": "Los Angeles Lakers"
     }
   ],
   "teams": [
     {
       "id": 1610612747,
       "name": "Los Angeles Lakers",
-      "abbreviation": "LAL"
+      "abbreviation": "LAL",
+      "city": "Los Angeles"
     }
   ]
 }
 ```
 
+**Status Codes:**
+- `200 OK` - Search completed (may return empty arrays)
+- `400 Bad Request` - Query parameter missing or invalid
+- `500 Internal Server Error` - Server error
+
 ---
 
 ## WebSocket Endpoints
 
+The API provides real-time updates via WebSocket connections for live game data.
+
 ### Live Scoreboard Updates
 
-Real-time scoreboard updates broadcast to all connected clients.
+Get real-time scoreboard updates broadcast to all connected clients. Updates are sent automatically when scores or game status changes.
 
-**Endpoint:** `ws://localhost:8000/api/v1/ws`
+**Endpoint:** `ws://localhost:8000/api/v1/ws`  
+**Protocol:** WebSocket
 
-**Connection:**
+**Connection Example (JavaScript):**
 ```javascript
 const ws = new WebSocket('ws://localhost:8000/api/v1/ws');
 
 ws.onopen = () => {
-  console.log('Connected');
+  console.log('Connected to scoreboard updates');
 };
 
 ws.onmessage = (event) => {
   const data = JSON.parse(event.data);
-  // Handle scoreboard updates
-  console.log(data);
+  console.log('Scoreboard update:', data);
+  // Update your UI with the new scores
+};
+
+ws.onerror = (error) => {
+  console.error('WebSocket error:', error);
+};
+
+ws.onclose = () => {
+  console.log('Disconnected from scoreboard updates');
 };
 ```
 
@@ -327,6 +479,12 @@ ws.onmessage = (event) => {
             "points": 32,
             "rebounds": 5,
             "assists": 8
+          },
+          "awayLeaders": {
+            "name": "LeBron James",
+            "points": 28,
+            "rebounds": 7,
+            "assists": 9
           }
         }
       }
@@ -335,32 +493,44 @@ ws.onmessage = (event) => {
 }
 ```
 
-**Update Frequency:** Every 30 seconds when changes detected
+**Update Frequency:**
+- Updates are sent every 30 seconds when changes are detected
+- Updates are throttled to prevent spam (minimum 5 seconds between updates per game)
+- Initial data is sent immediately upon connection
 
 ---
 
 ### Live Play-by-Play Updates
 
-Real-time play-by-play updates for a specific game.
+Get real-time play-by-play updates for a specific game. Connect to this endpoint to receive all game events (shots, fouls, timeouts, etc.) as they happen.
 
-**Endpoint:** `ws://localhost:8000/api/v1/ws/{game_id}/play-by-play`
+**Endpoint:** `ws://localhost:8000/api/v1/ws/{game_id}/play-by-play`  
+**Protocol:** WebSocket
 
 **Parameters:**
-- `game_id` (string) - Game ID
+- `game_id` (string, path, required) - The game ID to receive play-by-play updates for
 
-**Connection:**
+**Connection Example (JavaScript):**
 ```javascript
 const gameId = '0022400123';
 const ws = new WebSocket(`ws://localhost:8000/api/v1/ws/${gameId}/play-by-play`);
 
 ws.onopen = () => {
-  console.log('Connected to play-by-play');
+  console.log(`Connected to play-by-play for game ${gameId}`);
 };
 
 ws.onmessage = (event) => {
   const data = JSON.parse(event.data);
-  // Handle play-by-play updates
-  console.log(data);
+  console.log('New play:', data);
+  // Add the new play to your play-by-play list
+};
+
+ws.onerror = (error) => {
+  console.error('WebSocket error:', error);
+};
+
+ws.onclose = () => {
+  console.log('Disconnected from play-by-play');
 };
 ```
 
@@ -372,122 +542,139 @@ ws.onmessage = (event) => {
     {
       "action_number": 1,
       "clock": "PT12M00S",
+      "period": 1,
       "team_tricode": "LAL",
       "score_home": 0,
       "score_away": 2,
       "action_type": "2pt Shot",
-      "description": "Anthony Davis makes 2-pt shot from 8 ft"
+      "description": "Anthony Davis makes 2-pt shot from 8 ft",
+      "player_name": "Anthony Davis"
+    },
+    {
+      "action_number": 2,
+      "clock": "PT11M45S",
+      "period": 1,
+      "team_tricode": "GSW",
+      "score_home": 3,
+      "score_away": 2,
+      "action_type": "3pt Shot",
+      "description": "Stephen Curry makes 3-pt shot from 26 ft",
+      "player_name": "Stephen Curry"
     }
   ]
 }
 ```
 
-**Update Frequency:** Every 2 seconds when new plays detected
-
----
-
-## WebSocket Implementation
-
-### Backend Architecture
-
-The WebSocket system uses manager classes that handle connections and broadcasting:
-
-**ScoreboardWebSocketManager:**
-- Maintains set of active connections
-- Background task fetches scoreboard every 30 seconds
-- Broadcasts updates only when scores/status change
-- Throttles updates (min 5 seconds between updates per game)
-
-**PlayByPlayWebSocketManager:**
-- Manages connections per game (`{game_id: Set[WebSocket]}`)
-- Fetches play-by-play every 2 seconds for active games
-- Broadcasts when new plays are detected
-
-**Lifecycle:**
-1. App starts → Background tasks begin
-2. Client connects → Manager accepts and sends initial data
-3. Background loop → Fetches data, checks for changes, broadcasts
-4. Client disconnects → Manager cleans up connection
-
-### Frontend Implementation
-
-**Scoreboard WebSocket Service:**
-```typescript
-class WebSocketService {
-  private socket: WebSocket | null = null;
-  private listeners: Set<(data: ScoreboardResponse) => void> = new Set();
-
-  connect(url: string) {
-    this.socket = new WebSocket(url);
-    this.socket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      this.listeners.forEach(callback => callback(data));
-    };
-    // Auto-reconnect on close
-  }
-
-  subscribe(callback: (data: ScoreboardResponse) => void) {
-    this.listeners.add(callback);
-  }
-}
-```
-
-**Usage in React:**
-```typescript
-useEffect(() => {
-  WebSocketService.connect(WS_URL);
-  const handleUpdate = (data: ScoreboardResponse) => {
-    setGames(data.scoreboard.games);
-  };
-  WebSocketService.subscribe(handleUpdate);
-  
-  return () => {
-    WebSocketService.unsubscribe(handleUpdate);
-    WebSocketService.disconnect();
-  };
-}, []);
-```
+**Update Frequency:**
+- Updates are sent every 2 seconds when new plays are detected
+- Only active games (live or recently finished) are monitored
+- All historical plays are sent immediately upon connection
 
 ---
 
 ## Error Handling
 
-**HTTP Status Codes:**
-- `200 OK` - Success
-- `400 Bad Request` - Invalid parameters
+### HTTP Status Codes
+
+- `200 OK` - Request successful
+- `400 Bad Request` - Invalid request parameters
 - `404 Not Found` - Resource not found
 - `500 Internal Server Error` - Server error
 
-**Error Response:**
+### Error Response Format
+
+All errors follow a consistent format:
+
+```json
+{
+  "detail": "Error message describing what went wrong"
+}
+```
+
+**Example Error Responses:**
+
 ```json
 {
   "detail": "Player not found with ID: 99999"
 }
 ```
 
----
-
-## Interactive Docs
-
-- **Swagger UI:** `http://localhost:8000/docs`
-- **ReDoc:** `http://localhost:8000/redoc`
-
----
-
-## Health Check
-
-```http
-GET /health
+```json
+{
+  "detail": "Invalid date format. Expected YYYY-MM-DD"
+}
 ```
 
-Returns API health status.
+### WebSocket Error Handling
+
+WebSocket connections may close unexpectedly. Best practices:
+
+1. **Implement reconnection logic** - Automatically reconnect if the connection drops
+2. **Handle connection errors** - Listen for `onerror` events
+3. **Graceful degradation** - Fall back to polling REST endpoints if WebSocket fails
+
+**Example Reconnection Pattern:**
+```javascript
+function connectWebSocket(url) {
+  const ws = new WebSocket(url);
+  
+  ws.onclose = () => {
+    // Reconnect after 5 seconds
+    setTimeout(() => connectWebSocket(url), 5000);
+  };
+  
+  return ws;
+}
+```
+
+---
+
+## Interactive Documentation
+
+The API includes interactive documentation powered by Swagger/OpenAPI:
+
+- **Swagger UI:** http://localhost:8000/docs
+  - Interactive API explorer
+  - Try endpoints directly from the browser
+  - See request/response schemas
+
+- **ReDoc:** http://localhost:8000/redoc
+  - Beautiful, readable documentation
+  - Perfect for sharing with team members
+
+### Health Check
+
+Check if the API is running:
+
+```http
+GET /
+```
 
 **Response:**
 ```json
 {
-  "status": "healthy",
-  "service": "NBA Tracker API",
-  "version": "1.0.0"
+  "message": "NBA Live Tracker API is running"
 }
 ```
 
+---
+
+## Rate Limiting
+
+Currently, there are no rate limits on the API. However, please be respectful:
+- Don't make excessive requests
+- Use WebSocket connections for real-time data instead of polling
+- Cache responses when appropriate
+
+---
+
+## Support
+
+For issues, questions, or contributions:
+- Check the [main README](../README.md) for setup instructions
+- Open an issue on GitHub
+- Review the interactive API docs at `/docs`
+
+---
+
+**Happy coding! 🏀**

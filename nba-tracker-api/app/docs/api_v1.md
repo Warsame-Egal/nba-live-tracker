@@ -1,51 +1,103 @@
-# NBA Tracker API v1
+# NBA Tracker API v1 - Quick Reference
 
-This document outlines the available endpoints after pruning unused functionality.
+A quick reference guide for all available API endpoints.
 
-## Endpoints
+## Base URL
+
+```
+http://localhost:8000/api/v1
+```
+
+## Endpoints Overview
 
 ### Players
 
-- `GET /api/v1/player/{player_id}` - Retrieve a single player's details.
-- `GET /api/v1/players/search/{search_term}` - Search for players by name in the local database.
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/player/{player_id}` | Get player details and stats |
+| `GET` | `/players/search/{search_term}` | Search players by name |
 
 ### Teams
 
-- `GET /api/v1/teams/{team_id}` - Retrieve team details.
-- `GET /api/v1/scoreboard/team/{team_id}/roster/{season}` - Team roster for a season.
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/teams/{team_id}` | Get team details |
+| `GET` | `/scoreboard/team/{team_id}/roster/{season}` | Get team roster |
 
 ### Schedule
 
-- `GET /api/v1/schedule/date/{date}` - Games for a specific date.
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/schedule/date/{date}` | Get games for a date (YYYY-MM-DD) |
 
 ### Standings
 
-- `GET /api/v1/standings/season/{season}` - League standings for a season.
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/standings/season/{season}` | Get league standings (YYYY-YY format) |
 
-### Game Data
+### Scoreboard
 
-- `GET /api/v1/scoreboard/game/{game_id}/boxscore` - Box score for a game.
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/scoreboard/game/{game_id}/boxscore` | Get game box score |
 
 ### Search
 
-- `GET /api/v1/search?q=<term>` - Combined fuzzy search for players and teams.
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/search?q={query}` | Search players and teams |
 
-Example response:
+### WebSockets
+
+| Endpoint | Description |
+|----------|-------------|
+| `ws://host/api/v1/ws` | Live scoreboard updates |
+| `ws://host/api/v1/ws/{game_id}/play-by-play` | Real-time play-by-play for a game |
+
+## Example Responses
+
+### Search Response
 
 ```json
 {
   "players": [
-    { "id": 1, "name": "LeBron James", "team_id": 14 },
-    { "id": 2, "name": "Stephen Curry", "team_id": 10 }
+    {
+      "id": 2544,
+      "name": "LeBron James",
+      "team_abbreviation": "LAL"
+    }
   ],
   "teams": [
-    { "id": 1610612747, "name": "Los Angeles Lakers", "abbreviation": "LAL" },
-    { "id": 1610612744, "name": "Golden State Warriors", "abbreviation": "GSW" }
+    {
+      "id": 1610612747,
+      "name": "Los Angeles Lakers",
+      "abbreviation": "LAL"
+    }
   ]
 }
 ```
 
-### WebSockets
+## Quick Examples
 
-- `ws://<host>/api/v1/ws` - Live scoreboard updates.
-- `ws://<host>/api/v1/ws/{game_id}/play-by-play` - Real‑time play‑by‑play for a game.
+```bash
+# Get player
+curl http://localhost:8000/api/v1/player/2544
+
+# Search players
+curl http://localhost:8000/api/v1/players/search/lebron
+
+# Get team
+curl http://localhost:8000/api/v1/teams/1610612747
+
+# Get games for date
+curl http://localhost:8000/api/v1/schedule/date/2024-01-15
+
+# Get standings
+curl http://localhost:8000/api/v1/standings/season/2023-24
+
+# Search
+curl "http://localhost:8000/api/v1/search?q=lakers"
+```
+
+For detailed documentation, see [API_DOCUMENTATION.md](./API_DOCUMENTATION.md) or visit http://localhost:8000/docs

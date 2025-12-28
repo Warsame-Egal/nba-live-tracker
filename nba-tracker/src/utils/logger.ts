@@ -4,8 +4,6 @@
  * In production, you could replace this with a proper logging service.
  */
 
-type LogLevel = 'debug' | 'info' | 'warn' | 'error';
-
 class Logger {
   private isDevelopment = import.meta.env.DEV;
 

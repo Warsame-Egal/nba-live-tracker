@@ -1,4 +1,6 @@
 import os
 import asyncio
 from fastapi.testclient import TestClient
-from sqlalchemy.ext.asyncio import create_async_engine
+
+# Note: Tests are currently minimal. 
+# Future tests will be added to work with the direct API integration approach.

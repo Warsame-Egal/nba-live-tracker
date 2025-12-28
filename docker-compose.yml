@@ -6,26 +6,8 @@ services:
     container_name: nba-backend
     ports:
       - "8000:8000"
-    environment:
-      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/nba
-      - DATABASE_URL_SYNC=postgresql+psycopg2://postgres:postgres@postgres:5432/nba
     volumes:
       - ./nba-tracker-api:/app
-    networks:
-      - nba-network
-
-  postgres:
-    image: postgres:16
-    container_name: nba-postgres
-    restart: always
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: nba
-    ports:
-      - "5433:5432"
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
     networks:
       - nba-network
 
@@ -40,6 +22,3 @@ services:
 networks:
   nba-network:
     driver: bridge
-volumes:
-  postgres-data:
-
