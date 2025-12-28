@@ -1,4 +1,15 @@
 import { useEffect, useState, useRef } from 'react';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Box,
+  Typography,
+} from '@mui/material';
 import PlayByPlayWebSocketService from '../services/PlayByPlayWebSocketService';
 import { PlayByPlayResponse, PlayByPlayEvent } from '../types/playbyplay';
 
@@ -17,9 +28,9 @@ const PlayByPlay = ({ gameId }: { gameId: string }) => {
       setHasLoadedOnce(true);
       if (data?.plays?.length > 0) {
         const sorted = [...data.plays].sort((a, b) => a.action_number - b.action_number);
-        setActions(sorted.reverse()); // Newest at top
+        setActions(sorted.reverse());
       } else {
-        setActions([]); // clear if no plays
+        setActions([]);
       }
     };
 
@@ -33,44 +44,68 @@ const PlayByPlay = ({ gameId }: { gameId: string }) => {
   }, [gameId]);
 
   if (!actions.length && hasLoadedOnce) {
-    return <div className="text-center text-gray-400 py-6">No play-by-play data available.</div>;
+    return (
+      <Box sx={{ textAlign: 'center', py: 6 }}>
+        <Typography variant="body1" color="text.secondary">
+          No play-by-play data available.
+        </Typography>
+      </Box>
+    );
   }
 
   if (!actions.length) {
-    return null; // Don't show anything until something loads
+    return null;
   }
 
   return (
-    <div className="overflow-x-auto border border-neutral-800 rounded-md text-white max-h-[70vh]">
-      <table className="min-w-full text-sm">
-        <thead className="bg-neutral-900 text-gray-400 sticky top-0 z-10">
-          <tr>
-            <th className="px-3 py-2 text-left">Clock</th>
-            <th className="px-3 py-2 text-left">Team</th>
-            <th className="px-3 py-2 text-left">Score</th>
-            <th className="px-3 py-2 text-left">Action</th>
-            <th className="px-3 py-2 text-left">Description</th>
-          </tr>
-        </thead>
-        <tbody>
-          {actions.map((play, idx) => (
-            <tr key={play.action_number} className={idx % 2 === 0 ? 'bg-black/30' : ''}>
-              <td className="px-3 py-2">{formatClock(play.clock)}</td>
-              <td className="px-3 py-2">{play.team_tricode || '-'}</td>
-              <td className="px-3 py-2 text-blue-400">
+    <TableContainer
+      component={Paper}
+      elevation={0}
+      sx={{
+        border: '1px solid',
+        borderColor: 'divider',
+        maxHeight: '70vh',
+        overflow: 'auto',
+      }}
+    >
+      <Table size="small" stickyHeader>
+        <TableHead>
+          <TableRow>
+            <TableCell sx={{ fontWeight: 600 }}>Clock</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Team</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Score</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Action</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Description</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {actions.map((play) => (
+            <TableRow
+              key={play.action_number}
+              sx={{
+                '&:nth-of-type(even)': {
+                  backgroundColor: 'action.hover',
+                },
+                '&:hover': {
+                  backgroundColor: 'action.selected',
+                },
+              }}
+            >
+              <TableCell>{formatClock(play.clock)}</TableCell>
+              <TableCell>{play.team_tricode || '-'}</TableCell>
+              <TableCell sx={{ color: 'primary.light', fontWeight: 500 }}>
                 {play.score_home ?? '-'} - {play.score_away ?? '-'}
-              </td>
-              <td className="px-3 py-2">{play.action_type}</td>
-              <td className="px-3 py-2">{play.description}</td>
-            </tr>
+              </TableCell>
+              <TableCell>{play.action_type}</TableCell>
+              <TableCell>{play.description}</TableCell>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
-    </div>
+        </TableBody>
+      </Table>
+    </TableContainer>
   );
 };
 
-// Format PT10M30.5S to 10:30, etc.
 const formatClock = (clock: string | null): string => {
   if (!clock) return '';
   if (clock.startsWith('PT')) {
