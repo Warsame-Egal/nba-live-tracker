@@ -27,8 +27,3 @@ export interface GameSummary {
 export interface GamesResponse {
   games: GameSummary[];
 }
-
-export interface WeeklyCalendarProps {
-  selectedDate: string; // "YYYY-MM-DD"
-  setSelectedDate: (date: string) => void;
-}
