@@ -23,14 +23,26 @@ import { format } from 'date-fns';
 import { enUS } from 'date-fns/locale';
 import Navbar from '../components/Navbar';
 
+// Base URL for API calls
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
+/**
+ * Page that shows detailed information about a specific player.
+ * Displays player stats, recent games, and personal information.
+ */
 const PlayerProfile: React.FC = () => {
+  // Get the player ID from the URL
   const { playerId } = useParams<{ playerId: string }>();
+  // The player data
   const [player, setPlayer] = useState<PlayerSummary | null>(null);
+  // Whether we're loading the player data
   const [loading, setLoading] = useState(true);
+  // Error message if something goes wrong
   const [error, setError] = useState<string | null>(null);
 
+  /**
+   * Fetch player data when the component loads or player ID changes.
+   */
   useEffect(() => {
     if (!playerId) return;
 
@@ -52,6 +64,7 @@ const PlayerProfile: React.FC = () => {
     fetchPlayer();
   }, [playerId]);
 
+  // Show loading spinner while fetching data
   if (loading) {
     return (
       <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
@@ -63,6 +76,7 @@ const PlayerProfile: React.FC = () => {
     );
   }
 
+  // Show error message if something went wrong
   if (error) {
     return (
       <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
@@ -74,6 +88,7 @@ const PlayerProfile: React.FC = () => {
     );
   }
 
+  // Show message if player not found
   if (!player) {
     return (
       <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
@@ -87,6 +102,7 @@ const PlayerProfile: React.FC = () => {
     );
   }
 
+  // Calculate player's full name and years of experience
   const fullName = `${player.PLAYER_FIRST_NAME} ${player.PLAYER_LAST_NAME}`;
   const experience =
     player.FROM_YEAR && player.TO_YEAR ? `${player.TO_YEAR - player.FROM_YEAR} Years` : 'N/A';
@@ -95,7 +111,7 @@ const PlayerProfile: React.FC = () => {
     <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
       <Navbar />
       <Container maxWidth="lg" sx={{ py: { xs: 3, sm: 4, md: 5 } }}>
-        {/* Header Section */}
+        {/* Header section with player photo and basic info */}
         <Box
           sx={{
             display: 'flex',
@@ -105,6 +121,7 @@ const PlayerProfile: React.FC = () => {
             mb: 5,
           }}
         >
+          {/* Player photo */}
           <Avatar
             src={`https://cdn.nba.com/headshots/nba/latest/1040x760/${player.PERSON_ID}.png`}
             alt={fullName}
@@ -118,6 +135,7 @@ const PlayerProfile: React.FC = () => {
             onError={e => ((e.target as HTMLImageElement).src = '/fallback-player.png')}
           />
 
+          {/* Player information */}
           <Box sx={{ flex: 1, textAlign: { xs: 'center', md: 'left' } }}>
             <Typography
               variant="h2"
@@ -141,6 +159,7 @@ const PlayerProfile: React.FC = () => {
               {player.POSITION ?? 'N/A'}
             </Typography>
 
+            {/* Player details grid */}
             <Grid container spacing={2}>
               <Grid item xs={6} sm={4}>
                 <InfoItem label="Height" value={player.HEIGHT ?? 'N/A'} />
@@ -161,7 +180,7 @@ const PlayerProfile: React.FC = () => {
           </Box>
         </Box>
 
-        {/* Key Stats */}
+        {/* Key stats cards (points, rebounds, assists per game) */}
         <Grid container spacing={3} sx={{ mb: 5 }}>
           <Grid item xs={12} sm={4}>
             <StatCard label="Points Per Game" value={player.PTS} />
@@ -174,7 +193,7 @@ const PlayerProfile: React.FC = () => {
           </Grid>
         </Grid>
 
-        {/* Recent Games */}
+        {/* Recent games table */}
         {player.recent_games && player.recent_games.length > 0 && (
           <Box>
             <Typography variant="h5" sx={{ fontWeight: 700, mb: 3 }}>
@@ -245,6 +264,9 @@ const PlayerProfile: React.FC = () => {
   );
 };
 
+/**
+ * Component to display a stat card (like points per game).
+ */
 const StatCard: React.FC<{ label: string; value?: number }> = ({ label, value }) => (
   <Card
     elevation={0}
@@ -283,6 +305,9 @@ const StatCard: React.FC<{ label: string; value?: number }> = ({ label, value })
   </Card>
 );
 
+/**
+ * Component to display a label and value (like Height: 6'8").
+ */
 const InfoItem = ({ label, value }: { label: string; value: string }) => (
   <Box>
     <Typography

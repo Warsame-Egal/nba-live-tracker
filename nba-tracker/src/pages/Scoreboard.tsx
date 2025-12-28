@@ -27,24 +27,35 @@ import { useSearchParams } from 'react-router-dom';
 import { SearchResults } from '../types/search';
 import ScoringLeaders from '../components/ScoringLeaders';
 import debounce from 'lodash/debounce';
+import { logger } from '../utils/logger';
 
+// WebSocket URL for live score updates
 const SCOREBOARD_WEBSOCKET_URL = `${
   window.location.protocol === 'https:' ? 'wss' : 'ws'
 }://${import.meta.env.VITE_WS_URL}/api/v1/ws`;
+// Base URL for API calls
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
+/**
+ * Get today's date in YYYY-MM-DD format, adjusted for local timezone.
+ */
 const getLocalISODate = (): string => {
   const tzoffset = new Date().getTimezoneOffset() * 60000;
   return new Date(Date.now() - tzoffset).toISOString().slice(0, 10);
 };
 
+/**
+ * Figure out if a game is live, upcoming, or completed based on its status.
+ */
 const getGameStatus = (game: Game | GameSummary): 'live' | 'upcoming' | 'completed' => {
+  // Check if it's a live game (has homeTeam property)
   if ('homeTeam' in game) {
     if (game.gameStatusText && game.gameStatusText.toLowerCase().includes('final')) {
       return 'completed';
     }
     return 'live';
   }
+  // Check if it's a scheduled game (has game_status property)
   if ('game_status' in game && typeof game.game_status === 'string') {
     const lowerStatus = game.game_status.toLowerCase();
     if (lowerStatus.includes('final')) return 'completed';
@@ -54,24 +65,40 @@ const getGameStatus = (game: Game | GameSummary): 'live' | 'upcoming' | 'complet
   return 'upcoming';
 };
 
+/**
+ * Main scoreboard page that shows all NBA games.
+ * Displays live games, upcoming games, and completed games.
+ * Also has search functionality and a date picker.
+ */
 const Scoreboard = () => {
+  // List of all games to display
   const [games, setGames] = useState<(Game | GameSummary)[]>([]);
+  // Search results from the API
   const [searchResults, setSearchResults] = useState<SearchResults>({
     players: [],
     teams: [],
   });
+  // Whether we're loading data
   const [loading, setLoading] = useState(false);
+  // The game the user clicked on (to show details modal)
   const [selectedGame, setSelectedGame] = useState<Game | GameSummary | null>(null);
+  // The date the user selected to view games for
   const [selectedDate, setSelectedDate] = useState(getLocalISODate());
+  // Get search query from URL if present
   const [searchParams] = useSearchParams();
   const searchQuery = searchParams.get('search') || '';
+  // The text the user typed in the search box
   const [searchInput, setSearchInput] = useState('');
+  // Whether to show the search results dropdown
   const [showSearchResults, setShowSearchResults] = useState(false);
 
+  // Reference to the search container (to detect clicks outside)
   const searchContainerRef = useRef<HTMLDivElement>(null);
 
-  // Memoize game categorization for performance
+  // Split games into live, upcoming, and completed categories
+  // This is memoized so it only recalculates when games or date changes
   const { liveGames, upcomingGames, completedGames } = useMemo(() => {
+    // Filter games by search query if there is one
     const filtered = games.filter(game => {
       if (!searchQuery) return true;
       const homeName =
@@ -85,6 +112,7 @@ const Scoreboard = () => {
     });
 
     const today = getLocalISODate();
+    // If viewing today, show all three categories
     if (selectedDate === today) {
       return {
         liveGames: filtered.filter(game => getGameStatus(game) === 'live'),
@@ -92,12 +120,14 @@ const Scoreboard = () => {
         completedGames: filtered.filter(game => getGameStatus(game) === 'completed'),
       };
     } else if (selectedDate < today) {
+      // If viewing past date, only show completed games
       return {
         liveGames: [],
         upcomingGames: [],
         completedGames: filtered,
       };
     } else {
+      // If viewing future date, only show upcoming games
       return {
         liveGames: [],
         upcomingGames: filtered,
@@ -106,31 +136,41 @@ const Scoreboard = () => {
     }
   }, [games, searchQuery, selectedDate]);
 
+  /**
+   * Set up WebSocket connection for live score updates.
+   * Only connects if viewing today's games.
+   */
   const setupWebSocket = useCallback(() => {
     if (selectedDate === getLocalISODate()) {
+      // Connect to WebSocket for live updates
       WebSocketService.connect(SCOREBOARD_WEBSOCKET_URL);
+      // This function gets called whenever new score data arrives
       const handleScoreboardUpdate = (data: ScoreboardResponse) => {
-        // Update games state without causing full re-render
+        // Update games state efficiently using a Map
+        // This prevents unnecessary re-renders
         setGames(prevGames => {
           const gameMap = new Map<string, Game | GameSummary>();
-          
-          // Add existing games
+
+          // Add existing games to the map
           prevGames.forEach(g => {
             const key = 'gameId' in g ? g.gameId : g.game_id;
             gameMap.set(key, g);
           });
-          
-          // Update with new data
+
+          // Update with new data from WebSocket
           data.scoreboard.games.forEach(newGame => {
             const key = 'gameId' in newGame ? newGame.gameId : (newGame as GameSummary).game_id;
             gameMap.set(key, newGame);
           });
-          
+
+          // Convert map back to array
           return Array.from(gameMap.values());
         });
         setLoading(false);
       };
+      // Subscribe to score updates
       WebSocketService.subscribe(handleScoreboardUpdate);
+      // Cleanup: unsubscribe when component unmounts or date changes
       return () => {
         WebSocketService.unsubscribe(handleScoreboardUpdate);
         WebSocketService.disconnect();
@@ -139,12 +179,19 @@ const Scoreboard = () => {
     return () => {};
   }, [selectedDate]);
 
+  // Set up WebSocket when component mounts or date changes
   useEffect(() => setupWebSocket(), [setupWebSocket]);
 
+  /**
+   * Search for players and teams as the user types.
+   * Uses debouncing to avoid making too many API calls.
+   */
   useEffect(() => {
     const abortController = new AbortController();
+    // Wait 300ms after user stops typing before searching
     const debouncedFetch = debounce(async () => {
       if (!searchInput) {
+        // Clear results if search is empty
         setSearchResults({ players: [], teams: [] });
         setShowSearchResults(false);
         return;
@@ -155,23 +202,31 @@ const Scoreboard = () => {
         const response = await fetch(`${API_BASE_URL}/api/v1/search?q=${searchInput}`, {
           signal: abortController.signal,
         });
-        if (!response.ok) throw new Error('Failed to fetch results.');
+        if (!response.ok) throw new Error('Failed to fetch search results.');
         const data: SearchResults = await response.json();
         setSearchResults(data);
       } catch (err) {
-        if (err instanceof Error && err.name !== 'AbortError') console.error(err);
+        // Don't log abort errors (they're normal when user types quickly)
+        if (err instanceof Error && err.name !== 'AbortError') {
+          logger.error('Error searching players and teams', err);
+        }
         setSearchResults({ players: [], teams: [] });
       } finally {
         setLoading(false);
       }
     }, 300);
     debouncedFetch();
+    // Cleanup: cancel the request if user types again or component unmounts
     return () => {
       abortController.abort();
       debouncedFetch.cancel();
     };
   }, [searchInput]);
 
+  /**
+   * Fetch games for a specific date when user selects a different date.
+   * Only runs if the selected date is not today (today uses WebSocket).
+   */
   useEffect(() => {
     if (selectedDate !== getLocalISODate()) {
       const fetchGamesByDate = async (date: string) => {
@@ -182,7 +237,7 @@ const Scoreboard = () => {
           setGames(data.games);
           setSelectedGame(null);
         } catch (err) {
-          console.error(err);
+          logger.error('Error fetching games for date', err);
         } finally {
           setLoading(false);
         }
@@ -191,6 +246,9 @@ const Scoreboard = () => {
     }
   }, [selectedDate]);
 
+  /**
+   * Close search results dropdown when user clicks outside of it.
+   */
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -207,6 +265,9 @@ const Scoreboard = () => {
   const today = getLocalISODate();
   const isToday = selectedDate === today;
 
+  /**
+   * Helper function to render a section of games (live, upcoming, or completed).
+   */
   const renderGameSection = (
     title: string,
     gameList: (Game | GameSummary)[],
@@ -239,6 +300,7 @@ const Scoreboard = () => {
                   hideScore={hideScore}
                   onClick={() => setSelectedGame(game)}
                 />
+                {/* Show top scorers for live games */}
                 {'gameLeaders' in game && (
                   <Box sx={{ mt: 2 }}>
                     <ScoringLeaders selectedGame={game as Game} />
@@ -256,7 +318,7 @@ const Scoreboard = () => {
     <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
       <Navbar />
       <Container maxWidth="xl" sx={{ py: { xs: 3, sm: 4, md: 5 } }}>
-        {/* Header Section */}
+        {/* Header with search and date picker */}
         <Box
           sx={{
             display: 'flex',
@@ -267,6 +329,7 @@ const Scoreboard = () => {
             mb: 5,
           }}
         >
+          {/* Search box */}
           <Box ref={searchContainerRef} sx={{ position: 'relative', width: { xs: '100%', md: '40%' } }}>
             <TextField
               fullWidth
@@ -297,6 +360,7 @@ const Scoreboard = () => {
                 ),
               }}
             />
+            {/* Search results dropdown */}
             {showSearchResults && (searchResults.players.length > 0 || searchResults.teams.length > 0) && (
               <Paper
                 elevation={8}
@@ -313,6 +377,7 @@ const Scoreboard = () => {
                 }}
               >
                 <List dense>
+                  {/* Players section */}
                   {searchResults.players.length > 0 && (
                     <>
                       <ListItem>
@@ -349,6 +414,7 @@ const Scoreboard = () => {
                       })}
                     </>
                   )}
+                  {/* Teams section */}
                   {searchResults.teams.length > 0 && (
                     <>
                       <ListItem>
@@ -385,6 +451,7 @@ const Scoreboard = () => {
             )}
           </Box>
 
+          {/* Date picker calendar */}
           <Box sx={{ width: { xs: '100%', md: 'auto' }, display: 'flex', justifyContent: 'center' }}>
             <WeeklyCalendar selectedDate={selectedDate} setSelectedDate={setSelectedDate} />
           </Box>
@@ -396,12 +463,14 @@ const Scoreboard = () => {
             <CircularProgress size={60} />
           </Box>
         ) : isToday ? (
+          // If viewing today, show all three categories
           <Box>
             {renderGameSection('Live Games', liveGames)}
             {renderGameSection('Upcoming Games', upcomingGames)}
             {renderGameSection('Completed Games', completedGames)}
           </Box>
         ) : (
+          // If viewing past or future date, show appropriate category
           <Box>
             {selectedDate < today
               ? renderGameSection('Completed Games', completedGames)
@@ -409,7 +478,7 @@ const Scoreboard = () => {
           </Box>
         )}
 
-        {/* Empty States */}
+        {/* Empty state: no games scheduled */}
         {!loading && games.length === 0 && (
           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 10 }}>
             <Event sx={{ fontSize: 80, color: 'text.disabled', mb: 2 }} />
@@ -419,6 +488,7 @@ const Scoreboard = () => {
           </Box>
         )}
 
+        {/* Empty state: games exist but don't match filters */}
         {!loading &&
           liveGames.length === 0 &&
           upcomingGames.length === 0 &&
@@ -431,7 +501,7 @@ const Scoreboard = () => {
             </Box>
           )}
 
-        {/* Game Details Modal */}
+        {/* Game details modal (shows when user clicks a game) */}
         {selectedGame && (
           <GameDetailsModal
             gameId={'gameId' in selectedGame ? selectedGame.gameId : selectedGame.game_id}

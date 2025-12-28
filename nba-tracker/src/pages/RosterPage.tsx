@@ -17,18 +17,32 @@ import {
 } from '@mui/material';
 import { TeamRoster, Player } from '../types/team';
 import Navbar from '../components/Navbar';
+import { logger } from '../utils/logger';
 
+// Base URL for API calls
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
+/**
+ * Page that shows the full roster (all players) for a team.
+ * Displays player information like name, position, height, weight, etc.
+ */
 const RosterPage = () => {
+  // Get the team ID from the URL
   const { team_id } = useParams<{ team_id: string }>();
+  // The team roster data
   const [teamRoster, setTeamRoster] = useState<TeamRoster | null>(null);
+  // Whether we're loading the roster
   const [loading, setLoading] = useState(true);
+  // Error message if something goes wrong
   const [error, setError] = useState<string | null>(null);
 
+  /**
+   * Fetch the team roster when the component loads or team ID changes.
+   */
   useEffect(() => {
     async function fetchTeamRoster() {
       try {
+        // Get roster for the 2024-25 season
         const response = await fetch(
           `${API_BASE_URL}/api/v1/scoreboard/team/${team_id}/roster/2024-25`,
         );
@@ -38,7 +52,7 @@ const RosterPage = () => {
         const data = await response.json();
         setTeamRoster(data);
       } catch (error) {
-        console.error('Error fetching team roster:', error);
+        logger.error('Error fetching team roster', error);
         setError('Failed to load team roster.');
       } finally {
         setLoading(false);
@@ -48,6 +62,7 @@ const RosterPage = () => {
     fetchTeamRoster();
   }, [team_id]);
 
+  // Show loading spinner while fetching data
   if (loading) {
     return (
       <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
@@ -59,6 +74,7 @@ const RosterPage = () => {
     );
   }
 
+  // Show error message if something went wrong
   if (error) {
     return (
       <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
@@ -74,10 +90,12 @@ const RosterPage = () => {
     <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
       <Navbar />
       <Container maxWidth="lg" sx={{ py: 4 }}>
+        {/* Page title */}
         <Typography variant="h4" sx={{ fontWeight: 700, mb: 4, textAlign: 'center' }}>
           {teamRoster?.team_name} Roster
         </Typography>
 
+        {/* Players table */}
         <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
           <Table>
             <TableHead>
@@ -103,11 +121,13 @@ const RosterPage = () => {
                 >
                   <TableCell>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                      {/* Player photo */}
                       <Avatar
                         src={`https://cdn.nba.com/headshots/nba/latest/1040x760/${player.player_id}.png`}
                         alt={player.name}
                         sx={{ width: 40, height: 40 }}
                         onError={e => {
+                          // If player photo fails to load, use fallback
                           const target = e.currentTarget as HTMLImageElement;
                           target.src = 'https://cdn.nba.com/headshots/nba/latest/1040x760/fallback.png';
                         }}

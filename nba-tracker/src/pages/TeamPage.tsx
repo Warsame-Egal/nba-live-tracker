@@ -18,8 +18,12 @@ import {
 import { TeamRoster } from '../types/team';
 import Navbar from '../components/Navbar';
 
+// Base URL for API calls
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
+/**
+ * Interface for team details from the API.
+ */
 interface TeamDetails {
   team_id: number;
   team_name: string;
@@ -32,21 +36,35 @@ interface TeamDetails {
   head_coach: string;
 }
 
+/**
+ * Page that shows detailed information about a specific team.
+ * Displays team info, roster, and other details.
+ */
 const TeamPage = () => {
+  // Get the team ID from the URL
   const { team_id } = useParams<{ team_id: string }>();
+  // The team data
   const [team, setTeam] = useState<TeamDetails | null>(null);
+  // The team roster
   const [roster, setRoster] = useState<TeamRoster | null>(null);
+  // Whether we're loading the team data
   const [loading, setLoading] = useState(true);
+  // Error message if something goes wrong
   const [error, setError] = useState('');
 
+  /**
+   * Fetch team data and roster when the component loads or team ID changes.
+   */
   useEffect(() => {
     const fetchTeamData = async () => {
       try {
+        // Get team details
         const res = await fetch(`${API_BASE_URL}/api/v1/teams/${team_id}`);
         if (!res.ok) throw new Error('Failed to fetch team details');
         const data = await res.json();
         setTeam(data);
 
+        // Get team roster for the 2024-25 season
         const rosterRes = await fetch(
           `${API_BASE_URL}/api/v1/scoreboard/team/${team_id}/roster/2024-25`,
         );
@@ -64,6 +82,7 @@ const TeamPage = () => {
     fetchTeamData();
   }, [team_id]);
 
+  // Show loading spinner while fetching data
   if (loading) {
     return (
       <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
@@ -75,6 +94,7 @@ const TeamPage = () => {
     );
   }
 
+  // Show error message if something went wrong
   if (error) {
     return (
       <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
@@ -86,6 +106,7 @@ const TeamPage = () => {
     );
   }
 
+  // Show message if team not found
   if (!team) {
     return (
       <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
@@ -103,6 +124,7 @@ const TeamPage = () => {
     <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
       <Navbar />
       <Container maxWidth="lg" sx={{ py: 4 }}>
+        {/* Header section with team logo and info */}
         <Box
           sx={{
             display: 'flex',
@@ -112,6 +134,7 @@ const TeamPage = () => {
             mb: 4,
           }}
         >
+          {/* Team logo */}
           <Avatar
             src={`/logos/${team.abbreviation ?? team.team_id}.svg`}
             alt={team.team_name}
@@ -123,6 +146,7 @@ const TeamPage = () => {
             onError={e => ((e.target as HTMLImageElement).src = '/fallback-team.png')}
           />
 
+          {/* Team information */}
           <Box sx={{ flex: 1 }}>
             <Typography variant="h3" sx={{ fontWeight: 700, mb: 1 }}>
               {team.team_name}
@@ -131,6 +155,7 @@ const TeamPage = () => {
               {team.team_city}
             </Typography>
 
+            {/* Team details grid */}
             <Box
               sx={{
                 display: 'grid',
@@ -147,6 +172,7 @@ const TeamPage = () => {
           </Box>
         </Box>
 
+        {/* Team roster table */}
         {roster?.players?.length ? (
           <Box sx={{ mt: 4 }}>
             <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>
@@ -196,6 +222,9 @@ const TeamPage = () => {
   );
 };
 
+/**
+ * Component to display a label and value (like Founded: 1946).
+ */
 const InfoItem = ({ label, value }: { label: string; value: string }) => (
   <Box>
     <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', display: 'block' }}>
