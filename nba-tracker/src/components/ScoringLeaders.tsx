@@ -6,11 +6,19 @@ interface ScoringLeadersProps {
   selectedGame: Game;
 }
 
+/**
+ * Helper function to fix encoding issues with player names.
+ */
 const fixEncoding = (str: string) => decodeURIComponent(escape(str));
 
+/**
+ * Component that displays the top scorers for both teams in a game.
+ * Shows player photo, name, and key stats (points, rebounds, assists).
+ */
 const ScoringLeaders = ({ selectedGame }: ScoringLeadersProps) => {
   const { gameLeaders } = selectedGame;
 
+  // Don't show anything if there are no leaders
   if (!gameLeaders?.homeLeaders && !gameLeaders?.awayLeaders) {
     return null;
   }
@@ -40,6 +48,7 @@ const ScoringLeaders = ({ selectedGame }: ScoringLeadersProps) => {
         Game Leaders
       </Typography>
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+        {/* Home team leader */}
         {gameLeaders?.homeLeaders && (
           <LeaderRow
             leader={gameLeaders.homeLeaders}
@@ -47,6 +56,7 @@ const ScoringLeaders = ({ selectedGame }: ScoringLeadersProps) => {
             teamColor="primary"
           />
         )}
+        {/* Away team leader */}
         {gameLeaders?.awayLeaders && (
           <LeaderRow
             leader={gameLeaders.awayLeaders}
@@ -71,11 +81,16 @@ interface LeaderRowProps {
   teamColor: 'primary' | 'secondary';
 }
 
+/**
+ * Component that displays one team's scoring leader.
+ */
 const LeaderRow = ({ leader, teamName, teamColor }: LeaderRowProps) => {
+  // URL for player photo
   const avatarUrl = `https://cdn.nba.com/headshots/nba/latest/1040x760/${leader.personId}.png`;
 
   return (
     <Box>
+      {/* Team name */}
       <Typography
         variant="caption"
         sx={{
@@ -89,6 +104,7 @@ const LeaderRow = ({ leader, teamName, teamColor }: LeaderRowProps) => {
         {teamName}
       </Typography>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+        {/* Player photo (clickable link to player page) */}
         <MuiLink component={Link} to={`/players/${leader.personId}`} sx={{ textDecoration: 'none' }}>
           <Avatar
             src={avatarUrl}
@@ -100,6 +116,7 @@ const LeaderRow = ({ leader, teamName, teamColor }: LeaderRowProps) => {
               borderColor: 'divider',
             }}
             onError={e => {
+              // If photo fails to load, clear it
               const target = e.currentTarget as HTMLImageElement;
               target.onerror = null;
               target.src = '';
@@ -107,6 +124,7 @@ const LeaderRow = ({ leader, teamName, teamColor }: LeaderRowProps) => {
           />
         </MuiLink>
         <Box sx={{ flex: 1, minWidth: 0 }}>
+          {/* Player name (clickable link to player page) */}
           <MuiLink
             component={Link}
             to={`/players/${leader.personId}`}
@@ -127,6 +145,7 @@ const LeaderRow = ({ leader, teamName, teamColor }: LeaderRowProps) => {
           >
             {fixEncoding(leader.name)}
           </MuiLink>
+          {/* Player stats */}
           <Typography
             variant="caption"
             sx={{

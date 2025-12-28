@@ -20,7 +20,9 @@ import {
 import { Close } from '@mui/icons-material';
 import { BoxScoreResponse, TeamBoxScoreStats, PlayerBoxScoreStats } from '../types/scoreboard';
 import PlayByPlay from './PlayByPlay';
+import { logger } from '../utils/logger';
 
+// Base URL for API calls
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 interface GameDetailsModalProps {
@@ -29,11 +31,21 @@ interface GameDetailsModalProps {
   onClose: () => void;
 }
 
+/**
+ * Modal that shows detailed information about a game.
+ * Has two tabs: Box Score (player stats) and Play by Play (game events).
+ */
 const GameDetailsModal = ({ gameId, open, onClose }: GameDetailsModalProps) => {
+  // Which tab is selected: 'box' for box score, 'play' for play-by-play
   const [tab, setTab] = useState<'box' | 'play'>('box');
+  // The box score data
   const [boxScore, setBoxScore] = useState<BoxScoreResponse | null>(null);
+  // Whether we're loading the box score
   const [loading, setLoading] = useState(false);
 
+  /**
+   * Fetch the box score when the modal opens or game ID changes.
+   */
   useEffect(() => {
     if (!gameId) return;
 
@@ -44,7 +56,7 @@ const GameDetailsModal = ({ gameId, open, onClose }: GameDetailsModalProps) => {
         const boxRes = await res.json();
         setBoxScore(boxRes);
       } catch (err) {
-        console.error('Failed to fetch game details:', err);
+        logger.error('Failed to fetch game details', err);
       } finally {
         setLoading(false);
       }
@@ -53,6 +65,9 @@ const GameDetailsModal = ({ gameId, open, onClose }: GameDetailsModalProps) => {
     fetchDetails();
   }, [gameId]);
 
+  /**
+   * Render the stats table for one team (home or away).
+   */
   const renderTeamStats = (team: TeamBoxScoreStats) => (
     <Box sx={{ mb: 3 }}>
       <Paper
@@ -63,6 +78,7 @@ const GameDetailsModal = ({ gameId, open, onClose }: GameDetailsModalProps) => {
           overflow: 'hidden',
         }}
       >
+        {/* Team header with name and score */}
         <Box
           sx={{
             display: 'flex',
@@ -82,6 +98,7 @@ const GameDetailsModal = ({ gameId, open, onClose }: GameDetailsModalProps) => {
             {team.score}
           </Typography>
         </Box>
+        {/* Player stats table */}
         <TableContainer>
           <Table size="small">
             <TableHead>
@@ -115,6 +132,7 @@ const GameDetailsModal = ({ gameId, open, onClose }: GameDetailsModalProps) => {
                 <TableRow key={idx} sx={{ '&:hover': { backgroundColor: 'action.hover' } }}>
                   <TableCell>{p.name}</TableCell>
                   <TableCell align="center">
+                    {/* Convert minutes from "PT10M30S" format to "10:30" */}
                     {p.minutes?.replace('PT', '').replace('M', ':00') || '0:00'}
                   </TableCell>
                   <TableCell align="center">{p.points}</TableCell>
@@ -146,6 +164,7 @@ const GameDetailsModal = ({ gameId, open, onClose }: GameDetailsModalProps) => {
         },
       }}
     >
+      {/* Modal header */}
       <DialogTitle
         sx={{
           display: 'flex',
@@ -164,6 +183,7 @@ const GameDetailsModal = ({ gameId, open, onClose }: GameDetailsModalProps) => {
         </IconButton>
       </DialogTitle>
       <DialogContent sx={{ p: 0 }}>
+        {/* Tabs to switch between Box Score and Play by Play */}
         <Box sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
           <Tabs value={tab} onChange={(_, newValue) => setTab(newValue)}>
             <Tab
@@ -186,19 +206,23 @@ const GameDetailsModal = ({ gameId, open, onClose }: GameDetailsModalProps) => {
             />
           </Tabs>
         </Box>
+        {/* Content based on selected tab */}
         <Box sx={{ p: 3 }}>
           {loading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
               <CircularProgress />
             </Box>
           ) : tab === 'box' && boxScore ? (
+            // Show box score for both teams
             <>
               {renderTeamStats(boxScore.home_team)}
               {renderTeamStats(boxScore.away_team)}
             </>
           ) : tab === 'play' ? (
+            // Show play-by-play component
             <PlayByPlay gameId={gameId!} />
           ) : (
+            // No data available
             <Box sx={{ textAlign: 'center', py: 6 }}>
               <Typography variant="body1" color="text.secondary">
                 No data available.

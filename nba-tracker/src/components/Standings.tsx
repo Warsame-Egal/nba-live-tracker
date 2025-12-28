@@ -20,8 +20,13 @@ import {
 import { StandingRecord, StandingsResponse } from '../types/standings';
 import Navbar from '../components/Navbar';
 
+// Base URL for API calls
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
+/**
+ * Map of team names to their abbreviations and logo paths.
+ * Used to display team logos in the standings table.
+ */
 const teamMappings: { [key: string]: { abbreviation: string; logo: string } } = {
   'Atlanta Hawks': { abbreviation: 'ATL', logo: '/logos/ATL.svg' },
   'Boston Celtics': { abbreviation: 'BOS', logo: '/logos/BOS.svg' },
@@ -55,16 +60,29 @@ const teamMappings: { [key: string]: { abbreviation: string; logo: string } } = 
   'Washington Wizards': { abbreviation: 'WAS', logo: '/logos/WAS.svg' },
 };
 
+/**
+ * Page that displays NBA standings (win/loss records for all teams).
+ * Shows teams ranked by their playoff position.
+ */
 const Standings = () => {
+  // Get season from URL if provided
   const { season } = useParams<{ season?: string }>();
   const navigate = useNavigate();
+  // Default to current season if not provided
   const currentYear = new Date().getFullYear();
   const seasonParam = season || `${currentYear - 1}-${currentYear.toString().slice(2)}`;
+  // List of all team standings
   const [standings, setStandings] = useState<StandingRecord[]>([]);
+  // Whether we're loading the standings
   const [loading, setLoading] = useState(true);
+  // Error message if something goes wrong
   const [error, setError] = useState('');
+  // Which conference to show (East or West)
   const [conference, setConference] = useState<'East' | 'West'>('East');
 
+  /**
+   * Fetch standings when component loads or season changes.
+   */
   useEffect(() => {
     const fetchStandings = async () => {
       setLoading(true);
@@ -82,6 +100,10 @@ const Standings = () => {
     fetchStandings();
   }, [seasonParam]);
 
+  /**
+   * Filter standings by selected conference and sort by playoff rank.
+   * This is memoized so it only recalculates when standings or conference changes.
+   */
   const filteredStandings = useMemo(() => {
     return standings
       .filter(team => team.conference === conference)
@@ -92,6 +114,7 @@ const Standings = () => {
     <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
       <Navbar />
       <Container maxWidth="xl" sx={{ py: { xs: 3, sm: 4, md: 5 } }}>
+        {/* Page title */}
         <Typography
           variant="h3"
           sx={{
@@ -111,6 +134,7 @@ const Standings = () => {
           {seasonParam} Season
         </Typography>
 
+        {/* Conference selector buttons */}
         <Box sx={{ display: 'flex', justifyContent: 'center', mb: 4 }}>
           <ToggleButtonGroup
             value={conference}
@@ -140,22 +164,26 @@ const Standings = () => {
           </ToggleButtonGroup>
         </Box>
 
+        {/* Loading spinner */}
         {loading && (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
             <CircularProgress />
           </Box>
         )}
+        {/* Error message */}
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>
             {error}
           </Alert>
         )}
+        {/* Empty state */}
         {!loading && !error && filteredStandings.length === 0 && (
           <Typography variant="body1" color="text.secondary" textAlign="center">
             No standings data available.
           </Typography>
         )}
 
+        {/* Standings table */}
         {!loading && !error && filteredStandings.length > 0 && (
           <TableContainer
             component={Paper}
@@ -201,9 +229,11 @@ const Standings = () => {
                       }}
                       onClick={() => navigate(`/team/${team.team_id}`)}
                     >
+                      {/* Playoff rank */}
                       <TableCell align="center" sx={{ fontWeight: 700, fontSize: '1rem' }}>
                         {team.playoff_rank}
                       </TableCell>
+                      {/* Team name and logo */}
                       <TableCell>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                           <Avatar
@@ -218,19 +248,29 @@ const Standings = () => {
                           </Box>
                         </Box>
                       </TableCell>
+                      {/* Wins */}
                       <TableCell align="center" sx={{ fontWeight: 600 }}>
                         {team.wins}
                       </TableCell>
+                      {/* Losses */}
                       <TableCell align="center" sx={{ fontWeight: 600 }}>
                         {team.losses}
                       </TableCell>
+                      {/* Win percentage */}
                       <TableCell align="center">{team.win_pct.toFixed(3)}</TableCell>
+                      {/* Games behind */}
                       <TableCell align="center">{team.games_back}</TableCell>
+                      {/* Home record */}
                       <TableCell align="center">{team.home_record}</TableCell>
+                      {/* Road record */}
                       <TableCell align="center">{team.road_record}</TableCell>
+                      {/* Division record */}
                       <TableCell align="center">{team.division_record}</TableCell>
+                      {/* Conference record */}
                       <TableCell align="center">{team.conference_record}</TableCell>
+                      {/* Last 10 games record */}
                       <TableCell align="center">{team.l10_record}</TableCell>
+                      {/* Current streak (green for wins, red for losses) */}
                       <TableCell
                         align="center"
                         sx={{

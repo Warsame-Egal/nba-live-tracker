@@ -2,14 +2,23 @@ import { Link as RouterLink, useLocation } from 'react-router-dom';
 import { AppBar, Toolbar, Button, Box, Typography } from '@mui/material';
 import { SportsBasketball } from '@mui/icons-material';
 
+/**
+ * Navigation bar component that appears at the top of every page.
+ * Shows the app logo and navigation links.
+ */
 const Navbar = () => {
+  // Get current page location to highlight active link
   const location = useLocation();
 
+  // Navigation items to display
   const navItems = [
     { label: 'Scoreboard', path: '/' },
     { label: 'Standings', path: '/standings' },
   ];
 
+  /**
+   * Check if a navigation item is currently active (on that page).
+   */
   const isActive = (path: string) => location.pathname === path;
 
   return (
@@ -23,6 +32,7 @@ const Navbar = () => {
           minHeight: { xs: 64, sm: 72 },
         }}
       >
+        {/* App logo and title */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
           <SportsBasketball sx={{ fontSize: 28, color: 'primary.main' }} />
           <Typography
@@ -44,6 +54,7 @@ const Navbar = () => {
           </Typography>
         </Box>
 
+        {/* Navigation links */}
         <Box sx={{ display: 'flex', gap: 0.5 }}>
           {navItems.map(item => (
             <Button
@@ -57,6 +68,7 @@ const Navbar = () => {
                 px: 2.5,
                 py: 1,
                 position: 'relative',
+                // Show underline for active link
                 ...(isActive(item.path) && {
                   '&::after': {
                     content: '""',

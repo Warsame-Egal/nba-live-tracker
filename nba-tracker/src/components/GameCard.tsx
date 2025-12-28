@@ -12,22 +12,32 @@ interface GameCardProps {
   onClick?: () => void;
 }
 
+/**
+ * Component that displays a single game card.
+ * Shows team names, scores, and game status (live, final, upcoming).
+ */
 const GameCard: React.FC<GameCardProps> = ({ game, hideScore = false, onClick }) => {
+  // Check if this is a live game (has homeTeam) or a scheduled game (has home_team)
   const isLiveGame = 'homeTeam' in game;
 
+  // Get team information based on game type
   const homeTeam = isLiveGame ? game.homeTeam?.teamTricode : game.home_team?.team_abbreviation;
   const awayTeam = isLiveGame ? game.awayTeam?.teamTricode : game.away_team?.team_abbreviation;
 
+  // Get scores
   const homeScore = isLiveGame ? (game.homeTeam?.score ?? 0) : (game.home_team?.points ?? 0);
   const awayScore = isLiveGame ? (game.awayTeam?.score ?? 0) : (game.away_team?.points ?? 0);
 
+  // Get team IDs for navigation
   const homeId = isLiveGame ? game.homeTeam?.teamId : game.home_team?.team_id;
   const awayId = isLiveGame ? game.awayTeam?.teamId : game.away_team?.team_id;
 
+  // Get game status information
   const status = isLiveGame ? game.gameStatusText : game.game_status || '';
   const period = isLiveGame ? game.period : null;
   const gameClock = isLiveGame ? game.gameClock : null;
 
+  // Format the game time
   const gameTime = isLiveGame
     ? game.gameEt
       ? format(parseISO(game.gameEt), 'h:mm a')
@@ -38,9 +48,13 @@ const GameCard: React.FC<GameCardProps> = ({ game, hideScore = false, onClick })
       ? format(parseISO(game.game_date), 'h:mm a')
       : 'TBD';
 
+  // Determine if game is live or final
   const isLive = status.includes('LIVE') || status.includes('Q');
   const isFinal = status.includes('FINAL');
 
+  /**
+   * Get the status label to display (LIVE, FINAL, or game time).
+   */
   const getStatusLabel = () => {
     if (isFinal) return 'FINAL';
     if (isLive && period && gameClock) return `${period}Q ${gameClock}`;
@@ -48,6 +62,9 @@ const GameCard: React.FC<GameCardProps> = ({ game, hideScore = false, onClick })
     return gameTime;
   };
 
+  /**
+   * Get the color for the status badge.
+   */
   const getStatusColor = () => {
     if (isLive) return 'error.main';
     if (isFinal) return 'text.secondary';
@@ -73,7 +90,7 @@ const GameCard: React.FC<GameCardProps> = ({ game, hideScore = false, onClick })
           : {},
       }}
     >
-      {/* Status Badge */}
+      {/* Status badge (LIVE, FINAL, or game time) */}
       <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
         <Chip
           label={getStatusLabel()}
@@ -94,7 +111,7 @@ const GameCard: React.FC<GameCardProps> = ({ game, hideScore = false, onClick })
         />
       </Box>
 
-      {/* Teams and Scores */}
+      {/* Teams and scores */}
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
         <TeamRow
           teamName={isLiveGame ? game.awayTeam?.teamName : awayTeam}
@@ -133,6 +150,9 @@ interface TeamRowProps {
   hideScore?: boolean;
 }
 
+/**
+ * Component that displays one team row (logo, name, score).
+ */
 const TeamRow: React.FC<TeamRowProps> = ({
   teamName,
   tricode,
@@ -141,11 +161,15 @@ const TeamRow: React.FC<TeamRowProps> = ({
   teamId,
   hideScore = false,
 }) => {
+  // Get the team logo path
   const logoSrc = teamLogos[tricode || 'NBA'] || teamLogos['NBA'];
   const navigate = useNavigate();
 
+  /**
+   * Handle click on team logo/name to navigate to team page.
+   */
   const handleTeamClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
+    e.stopPropagation(); // Don't trigger the game card click
     if (teamId) navigate(`/team/${teamId}`);
   };
 
@@ -158,6 +182,7 @@ const TeamRow: React.FC<TeamRowProps> = ({
         gap: 2,
       }}
     >
+      {/* Team logo and name (clickable) */}
       <Box
         onClick={handleTeamClick}
         sx={{
@@ -210,6 +235,7 @@ const TeamRow: React.FC<TeamRowProps> = ({
         </Box>
       </Box>
 
+      {/* Team score (highlighted if they're winning) */}
       {!hideScore && (
         <Typography
           variant="h4"
@@ -229,6 +255,9 @@ const TeamRow: React.FC<TeamRowProps> = ({
   );
 };
 
+/**
+ * Map of team abbreviations to logo file paths.
+ */
 const teamLogos: Record<string, string> = {
   ATL: '/logos/ATL.svg',
   BOS: '/logos/BOS.svg',
