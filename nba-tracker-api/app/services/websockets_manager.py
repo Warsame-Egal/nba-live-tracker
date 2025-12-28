@@ -7,7 +7,6 @@ from typing import Dict, List, Set
 from fastapi import WebSocket
 
 from app.services.scoreboard import getPlayByPlay, getScoreboard
-from app.database import async_session_factory
 
 
 class ScoreboardWebSocketManager:
@@ -33,11 +32,10 @@ class ScoreboardWebSocketManager:
     async def send_initial_scoreboard(self, websocket: WebSocket):
         """Sends the latest scoreboard data to a newly connected client."""
         try:
-            async with async_session_factory() as session:
-                current_games = await getScoreboard(session)
-                games_data = current_games.model_dump()
-                print(f"Sending initial games data: {games_data}")
-                await websocket.send_json(games_data)
+            current_games = await getScoreboard()
+            games_data = current_games.model_dump()
+            print(f"Sending initial games data: {games_data}")
+            await websocket.send_json(games_data)
         except Exception as e:
             print(f"Error sending initial games data: {e}")
 
@@ -91,9 +89,8 @@ class ScoreboardWebSocketManager:
                     await asyncio.sleep(30)
                     continue
 
-                async with async_session_factory() as session:
-                    scoreboard_data = await getScoreboard(session)
-                    standardized_data = scoreboard_data.model_dump()
+                scoreboard_data = await getScoreboard()
+                standardized_data = scoreboard_data.model_dump()
 
                 async with self._lock:
                     previous_games = copy.deepcopy(self.current_games)
@@ -216,7 +213,7 @@ class PlayByPlayWebSocketManager:
                 await asyncio.sleep(5)
 
 
-# Singleton playbypLay instance
+# Singleton playbyplay instance
 playbyplay_websocket_manager = PlayByPlayWebSocketManager()
 
 # Singleton scoreboard instance

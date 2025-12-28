@@ -23,6 +23,17 @@ The NBA Scoreboard API by Warsame Egal is a FastAPI backend that provides real-t
 <img src="nba-tracker/public/screenshots/Player.png" width="300">
 <img src="nba-tracker/public/screenshots/Team.png" width="300">
 
+### Environment Variables
+
+#### Frontend (`nba-tracker`)
+
+- `VITE_API_BASE_URL` - Backend API URL (default: `http://localhost:8000`)
+- `VITE_WS_URL` - WebSocket URL without protocol (default: `localhost:8000`)
+
+Create `.env` files in each directory based on these variables for local development.
+
+**Note:** This application uses the NBA API directly. All data is fetched in real-time from the NBA API.
+
 ### Getting Started
 
 ### Option 1: Run with Docker
@@ -73,38 +84,6 @@ venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### Apply Database Migrations:
-
-```bash
-alembic upgrade head
-```
-
-This creates all tables, including `scoreboard_snapshots` used for caching the scoreboard.
-
-### Populate the Database:
-
-```bash
-cd nba-tracker-api
-python populate_database.py
-```
-
-This loads all players and teams and caches initial data so search works. You can re-run the script at any time to refresh records.
-
-### Caching Mechanism
-
-The backend stores each fetched scoreboard in the `scoreboard_snapshots` table.
-WebSocket connections use this cached data to broadcast live game updates. If a
-snapshot is older than **60 seconds**, the backend refreshes it from the NBA API
-before sending data to clients.
-
-Each game in the scoreboard response is also saved to the `scoreboard_games`
-table for historical reference.
-
-Other endpoints cache their responses as well (`player_summary_cache`,
-`schedule_cache`, `box_score_cache`, and `team_details_cache`). Cached rows are refreshed if the data is older than
-
-The `/api/v1/players/search/{search_term}` endpoint looks up players solely in the local database. It no longer fetches data from the NBA API when the table is empty.
-
 ### Run the Backend:
 
 ```bash
@@ -122,7 +101,7 @@ ReDoc → http://localhost:8000/redoc
 
 Python  
 FastAPI + Uvicorn  
-nba_api (NBA data wrapper)  
+nba_api (NBA data wrapper)
 WebSocket  
 Docker & Docker Compose
 

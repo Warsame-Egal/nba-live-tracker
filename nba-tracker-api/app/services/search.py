@@ -1,64 +1,69 @@
 from typing import List
 from fastapi import HTTPException
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+import asyncio
 
-from app.models import Player, Team
+from nba_api.stats.endpoints import playerindex
+from nba_api.stats.library.parameters import HistoricalNullable
+from nba_api.stats.static import teams
+
 from app.schemas.search import PlayerResult, TeamResult, SearchResults
 
 
-async def search_entities(query: str, db: AsyncSession) -> SearchResults:
+async def search_entities(query: str) -> SearchResults:
     try:
-        players: List[Player] = []
-        teams: List[Team] = []
+        query_lower = query.lower()
+        player_results: List[PlayerResult] = []
+        team_results: List[TeamResult] = []
 
-        # exact player matches
-        stmt = select(Player).where(Player.name.ilike(query))
-        result = await db.execute(stmt)
-        players += result.scalars().all()
+        # Search teams from static data
+        all_teams = teams.get_teams()
+        for team in all_teams:
+            team_name_lower = team["full_name"].lower()
+            abbreviation_lower = team["abbreviation"].lower()
+            city_lower = team["city"].lower()
 
-        remaining = 10 - len(players) - len(teams)
+            if (
+                query_lower in team_name_lower
+                or query_lower in abbreviation_lower
+                or query_lower in city_lower
+            ):
+                team_results.append(
+                    TeamResult(
+                        id=team["id"],
+                        name=team["full_name"],
+                        abbreviation=team["abbreviation"],
+                    )
+                )
+                if len(team_results) >= 5:  # Limit teams to 5
+                    break
+
+        # Search players from NBA API
+        remaining = 10 - len(team_results)
         if remaining > 0:
-            stmt = select(Team).where((Team.name.ilike(query)) | (Team.abbreviation.ilike(query)))
-            result = await db.execute(stmt)
-            teams += result.scalars().all()[:remaining]
-
-        remaining = 10 - len(players) - len(teams)
-        if remaining > 0:
-            stmt = select(Player).where(Player.name.ilike(f"%{query}%"))
-            exclude_player_ids = [p.id for p in players]
-            if exclude_player_ids:
-                stmt = stmt.where(Player.id.notin_(exclude_player_ids))
-            stmt = stmt.limit(remaining)
-            result = await db.execute(stmt)
-            players += result.scalars().all()
-
-        remaining = 10 - len(players) - len(teams)
-        if remaining > 0:
-            stmt = select(Team).where((Team.name.ilike(f"%{query}%")) | (Team.abbreviation.ilike(f"%{query}%")))
-            exclude_team_ids = [t.id for t in teams]
-            if exclude_team_ids:
-                stmt = stmt.where(Team.id.notin_(exclude_team_ids))
-            stmt = stmt.limit(remaining)
-            result = await db.execute(stmt)
-            teams += result.scalars().all()
-
-        team_map = {}
-        team_ids = {p.team_id for p in players if p.team_id is not None}
-        if team_ids:
-            result = await db.execute(select(Team.id, Team.abbreviation).where(Team.id.in_(team_ids)))
-            team_map = {row[0]: row[1] for row in result.all()}
-
-        player_results = [
-            PlayerResult(
-                id=p.id,
-                name=p.name,
-                team_id=p.team_id,
-                team_abbreviation=team_map.get(p.team_id),
+            player_index_data = await asyncio.to_thread(
+                lambda: playerindex.PlayerIndex(historical_nullable=HistoricalNullable.all_time)
             )
-            for p in players
-        ]
-        team_results = [TeamResult(id=t.id, name=t.name, abbreviation=t.abbreviation) for t in teams]
+            player_index_df = player_index_data.get_data_frames()[0]
+
+            matching_players = player_index_df[
+                player_index_df["PLAYER_FIRST_NAME"].str.lower().str.contains(query_lower, na=False)
+                | player_index_df["PLAYER_LAST_NAME"].str.lower().str.contains(query_lower, na=False)
+                | (player_index_df["PLAYER_FIRST_NAME"] + " " + player_index_df["PLAYER_LAST_NAME"])
+                .str.lower()
+                .str.contains(query_lower, na=False)
+            ]
+
+            for _, row in matching_players.head(remaining).iterrows():
+                player_data = row.to_dict()
+                player_results.append(
+                    PlayerResult(
+                        id=int(player_data["PERSON_ID"]),
+                        name=f"{player_data['PLAYER_FIRST_NAME']} {player_data['PLAYER_LAST_NAME']}",
+                        team_id=player_data.get("TEAM_ID"),
+                        team_abbreviation=player_data.get("TEAM_ABBREVIATION"),
+                    )
+                )
+
         return SearchResults(players=player_results, teams=team_results)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")

@@ -4,9 +4,6 @@ import asyncio
 from fastapi import HTTPException
 from nba_api.live.nba.endpoints import boxscore, playbyplay, scoreboard
 from nba_api.stats.endpoints import commonteamroster
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from datetime import datetime, timedelta
 
 from app.schemas.player import Player, TeamRoster
 from app.schemas.coach import Coach
@@ -23,7 +20,6 @@ from app.schemas.scoreboard import (
     Team,
     TeamBoxScoreStats,
 )
-from app.models import ScoreboardSnapshot, ScoreboardGame, BoxScoreCache
 
 
 async def fetch_nba_scoreboard():
@@ -97,7 +93,7 @@ def extract_game_leaders(game_leaders_data):
     return GameLeaders(homeLeaders=home_leader, awayLeaders=away_leader)
 
 
-async def getScoreboard(db: AsyncSession) -> ScoreboardResponse:
+async def getScoreboard() -> ScoreboardResponse:
     """
     Fetches the latest NBA scoreboard, processes it, and returns structured data.
 
@@ -108,14 +104,6 @@ async def getScoreboard(db: AsyncSession) -> ScoreboardResponse:
         HTTPException: If there is an error fetching or processing the data.
     """
     try:
-        # Check if we recently fetched a scoreboard snapshot (within 60 seconds)
-        stmt = select(ScoreboardSnapshot).order_by(ScoreboardSnapshot.id.desc()).limit(1)
-        result = await db.execute(stmt)
-        latest: ScoreboardSnapshot | None = result.scalar_one_or_none()
-
-        if latest and (datetime.utcnow() - latest.fetched_at) < timedelta(seconds=60):
-            return ScoreboardResponse.model_validate_json(latest.data)
-
         raw_scoreboard_data = await fetch_nba_scoreboard()
         if not raw_scoreboard_data:
             raise ValueError("Received empty scoreboard data.")
@@ -144,109 +132,10 @@ async def getScoreboard(db: AsyncSession) -> ScoreboardResponse:
                 )
 
                 games.append(live_game)
-
-                # Persist or update scoreboard game entry
-                stmt = select(ScoreboardGame).where(
-                    ScoreboardGame.gameId == game["gameId"],
-                    ScoreboardGame.gameDate == game_date,
-                )
-                result = await db.execute(stmt)
-                existing = result.scalar_one_or_none()
-                values = {
-                    "gameDate": game_date,
-                    "gameId": game["gameId"],
-                    "gameStatus": game["gameStatus"],
-                    "gameStatusText": game["gameStatusText"],
-                    "period": game["period"],
-                    "gameClock": game.get("gameClock"),
-                    "gameTimeUTC": game["gameTimeUTC"],
-                    "homeTeam_teamId": home_team.teamId,
-                    "homeTeam_teamName": home_team.teamName,
-                    "homeTeam_teamCity": home_team.teamCity,
-                    "homeTeam_teamTricode": home_team.teamTricode,
-                    "homeTeam_wins": home_team.wins,
-                    "homeTeam_losses": home_team.losses,
-                    "homeTeam_score": home_team.score,
-                    "homeTeam_timeoutsRemaining": home_team.timeoutsRemaining,
-                    "awayTeam_teamId": away_team.teamId,
-                    "awayTeam_teamName": away_team.teamName,
-                    "awayTeam_teamCity": away_team.teamCity,
-                    "awayTeam_teamTricode": away_team.teamTricode,
-                    "awayTeam_wins": away_team.wins,
-                    "awayTeam_losses": away_team.losses,
-                    "awayTeam_score": away_team.score,
-                    "awayTeam_timeoutsRemaining": away_team.timeoutsRemaining,
-                    "homeLeader_personId": (
-                        game_leaders.homeLeaders.personId if game_leaders and game_leaders.homeLeaders else None
-                    ),
-                    "homeLeader_name": (
-                        game_leaders.homeLeaders.name if game_leaders and game_leaders.homeLeaders else None
-                    ),
-                    "homeLeader_jerseyNum": (
-                        game_leaders.homeLeaders.jerseyNum if game_leaders and game_leaders.homeLeaders else None
-                    ),
-                    "homeLeader_position": (
-                        game_leaders.homeLeaders.position if game_leaders and game_leaders.homeLeaders else None
-                    ),
-                    "homeLeader_teamTricode": (
-                        game_leaders.homeLeaders.teamTricode if game_leaders and game_leaders.homeLeaders else None
-                    ),
-                    "homeLeader_points": (
-                        game_leaders.homeLeaders.points if game_leaders and game_leaders.homeLeaders else None
-                    ),
-                    "homeLeader_rebounds": (
-                        game_leaders.homeLeaders.rebounds if game_leaders and game_leaders.homeLeaders else None
-                    ),
-                    "homeLeader_assists": (
-                        game_leaders.homeLeaders.assists if game_leaders and game_leaders.homeLeaders else None
-                    ),
-                    "awayLeader_personId": (
-                        game_leaders.awayLeaders.personId if game_leaders and game_leaders.awayLeaders else None
-                    ),
-                    "awayLeader_name": (
-                        game_leaders.awayLeaders.name if game_leaders and game_leaders.awayLeaders else None
-                    ),
-                    "awayLeader_jerseyNum": (
-                        game_leaders.awayLeaders.jerseyNum if game_leaders and game_leaders.awayLeaders else None
-                    ),
-                    "awayLeader_position": (
-                        game_leaders.awayLeaders.position if game_leaders and game_leaders.awayLeaders else None
-                    ),
-                    "awayLeader_teamTricode": (
-                        game_leaders.awayLeaders.teamTricode if game_leaders and game_leaders.awayLeaders else None
-                    ),
-                    "awayLeader_points": (
-                        game_leaders.awayLeaders.points if game_leaders and game_leaders.awayLeaders else None
-                    ),
-                    "awayLeader_rebounds": (
-                        game_leaders.awayLeaders.rebounds if game_leaders and game_leaders.awayLeaders else None
-                    ),
-                    "awayLeader_assists": (
-                        game_leaders.awayLeaders.assists if game_leaders and game_leaders.awayLeaders else None
-                    ),
-                }
-
-                if existing:
-                    for key, value in values.items():
-                        setattr(existing, key, value)
-                else:
-                    db.add(ScoreboardGame(**values))
             except KeyError as e:
                 print(f"Missing key in game data: {e}, skipping game.")
 
         response = ScoreboardResponse(scoreboard=Scoreboard(gameDate=game_date, games=games))
-
-        # Persist new snapshot if data changed
-        data_json = response.model_dump_json()
-        if not latest or latest.data != data_json:
-            db.add(
-                ScoreboardSnapshot(
-                    game_date=game_date,
-                    fetched_at=datetime.utcnow(),
-                    data=data_json,
-                )
-            )
-            await db.commit()
 
         return response
     except Exception as e:
@@ -320,7 +209,7 @@ async def fetchTeamRoster(team_id: int, season: str) -> TeamRoster:
                     age=int(player_dict["AGE"]) if player_dict["AGE"] else None,
                     experience=(
                         "Rookie" if str(player_dict["EXP"]).upper() == "R" else str(player_dict["EXP"])
-                    ),  # Update 'R' to 'Rookie
+                    ),
                     school=player_dict["SCHOOL"] or None,
                 )
             )
@@ -338,7 +227,7 @@ async def fetchTeamRoster(team_id: int, season: str) -> TeamRoster:
         raise HTTPException(status_code=500, detail=f"Error fetching team roster: {e}")
 
 
-async def getBoxScore(game_id: str, db: AsyncSession | None = None) -> BoxScoreResponse:
+async def getBoxScore(game_id: str) -> BoxScoreResponse:
     """
     Fetch the full box score for a given NBA game.
 
@@ -349,13 +238,6 @@ async def getBoxScore(game_id: str, db: AsyncSession | None = None) -> BoxScoreR
         BoxScoreResponse: A structured response containing team and player stats.
     """
     try:
-        if db:
-            stmt = select(BoxScoreCache).where(BoxScoreCache.game_id == game_id)
-            result = await db.execute(stmt)
-            cached = result.scalar_one_or_none()
-            if cached and (datetime.utcnow() - cached.fetched_at) < timedelta(seconds=60):
-                return BoxScoreResponse.model_validate_json(cached.data)
-
         # Fetch box score data
         game_data = await asyncio.to_thread(lambda: boxscore.BoxScore(game_id).get_dict())
 
@@ -370,7 +252,7 @@ async def getBoxScore(game_id: str, db: AsyncSession | None = None) -> BoxScoreR
         # Construct response
         response = BoxScoreResponse(
             game_id=game_info["gameId"],
-            status=game_info["gameStatusText"],  # Accept values like "Q3 2:50"
+            status=game_info["gameStatusText"],
             home_team=TeamBoxScoreStats(
                 team_id=home_team["teamId"],
                 team_name=home_team["teamName"],
@@ -387,7 +269,7 @@ async def getBoxScore(game_id: str, db: AsyncSession | None = None) -> BoxScoreR
                     PlayerBoxScoreStats(
                         player_id=player["personId"],
                         name=player["name"],
-                        position=player.get("position", "N/A"),  # Default to "N/A"
+                        position=player.get("position", "N/A"),
                         minutes=player["statistics"].get("minutesCalculated", "N/A"),
                         points=player["statistics"].get("points", 0),
                         rebounds=player["statistics"].get("reboundsTotal", 0),
@@ -396,7 +278,7 @@ async def getBoxScore(game_id: str, db: AsyncSession | None = None) -> BoxScoreR
                         blocks=player["statistics"].get("blocks", 0),
                         turnovers=player["statistics"].get("turnovers", 0),
                     )
-                    for player in home_team.get("players", [])  # Handle missing "players"
+                    for player in home_team.get("players", [])
                 ],
             ),
             away_team=TeamBoxScoreStats(
@@ -428,20 +310,6 @@ async def getBoxScore(game_id: str, db: AsyncSession | None = None) -> BoxScoreR
                 ],
             ),
         )
-        if db:
-            data_json = response.model_dump_json()
-            if cached:
-                cached.data = data_json
-                cached.fetched_at = datetime.utcnow()
-            else:
-                db.add(
-                    BoxScoreCache(
-                        game_id=game_id,
-                        fetched_at=datetime.utcnow(),
-                        data=data_json,
-                    )
-                )
-            await db.commit()
 
         return response
     except Exception as e:

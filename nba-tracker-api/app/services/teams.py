@@ -1,26 +1,16 @@
 import asyncio
 from fastapi import HTTPException
-from sqlalchemy import select
-from datetime import datetime, timedelta
-from sqlalchemy.ext.asyncio import AsyncSession
 from nba_api.stats.endpoints import TeamDetails
 
 from app.schemas.team import TeamDetailsResponse
-from app.models import Team, TeamDetailsCache
 
 
-async def get_team(team_id: int, db: AsyncSession) -> TeamDetailsResponse:
+async def get_team(team_id: int) -> TeamDetailsResponse:
     """
     Retrieves detailed information about a specific team.
     """
     try:
-        stmt = select(TeamDetailsCache).where(TeamDetailsCache.team_id == team_id)
-        result = await db.execute(stmt)
-        cached = result.scalar_one_or_none()
-        if cached and (datetime.utcnow() - cached.fetched_at) < timedelta(seconds=60):
-            return TeamDetailsResponse.model_validate_json(cached.data)
-
-        # Fetch team details using nba_api (adjust endpoint if needed)
+        # Fetch team details using nba_api
         team_details_data = await asyncio.to_thread(lambda: TeamDetails(team_id=team_id).get_dict())
 
         # Validation: Check if data is present
@@ -49,43 +39,6 @@ async def get_team(team_id: int, db: AsyncSession) -> TeamDetailsResponse:
             general_manager=team_background.get("GENERALMANAGER"),
             head_coach=team_background.get("HEADCOACH"),
         )
-
-        data_json = team_details.model_dump_json()
-        if cached:
-            cached.data = data_json
-            cached.fetched_at = datetime.utcnow()
-        else:
-            db.add(
-                TeamDetailsCache(
-                    team_id=team_details.team_id,
-                    fetched_at=datetime.utcnow(),
-                    data=data_json,
-                )
-            )
-
-        result = await db.execute(select(Team).where(Team.id == team_details.team_id))
-        existing_team = result.scalar_one_or_none()
-
-        if existing_team is None:
-            db.add(
-                Team(
-                    id=team_details.team_id,
-                    name=team_details.team_name,
-                    abbreviation=team_details.abbreviation or "",
-                )
-            )
-        else:
-            updated = False
-            if team_details.team_name and existing_team.name != team_details.team_name:
-                existing_team.name = team_details.team_name
-                updated = True
-            if team_details.abbreviation and existing_team.abbreviation != team_details.abbreviation:
-                existing_team.abbreviation = team_details.abbreviation
-                updated = True
-            if updated:
-                db.add(existing_team)
-
-        await db.commit()
 
         return team_details
 

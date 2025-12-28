@@ -1,11 +1,8 @@
-from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect, Depends
+from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 
 from app.schemas.player import TeamRoster
 from app.schemas.scoreboard import BoxScoreResponse
 from app.services.scoreboard import fetchTeamRoster, getBoxScore
-from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import Depends
-from app.database import get_db
 from app.services.websockets_manager import (
     playbyplay_websocket_manager,
     scoreboard_websocket_manager,
@@ -75,7 +72,7 @@ async def getTeamRoster(team_id: int, season: str):
     summary="Get Box Score for a Game",
     description="Retrieve detailed game stats including team and player performance.",
 )
-async def get_game_boxscore(game_id: str, db: AsyncSession = Depends(get_db)):
+async def get_game_boxscore(game_id: str):
     """
     API route to fetch the full box score for a given NBA game.
 
@@ -86,7 +83,7 @@ async def get_game_boxscore(game_id: str, db: AsyncSession = Depends(get_db)):
         BoxScoreResponse: Full box score containing team and player stats.
     """
     try:
-        return await getBoxScore(game_id, db)
+        return await getBoxScore(game_id)
     except HTTPException as e:
         raise e
 
