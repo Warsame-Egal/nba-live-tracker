@@ -1,6 +1,6 @@
 # NBA Tracker API Documentation
 
-A comprehensive REST API and WebSocket service for real-time NBA game data, player statistics, team information, and more.
+A REST API and WebSocket service for real-time NBA game data, player statistics, team information, and more.
 
 **Base URL:** `http://localhost:8000`  
 **API Version:** `v1`  
@@ -31,21 +31,24 @@ A comprehensive REST API and WebSocket service for real-time NBA game data, play
 
 #### Get Player Details
 
-Get comprehensive information about a specific player including stats and recent game performances.
+Get information about a specific player including stats and recent game performances.
 
 ```http
 GET /api/v1/player/{player_id}
 ```
 
 **Parameters:**
+
 - `player_id` (string, path, required) - The NBA player ID (e.g., "2544" for LeBron James)
 
 **Example Request:**
+
 ```bash
 curl http://localhost:8000/api/v1/player/2544
 ```
 
 **Response:**
+
 ```json
 {
   "PERSON_ID": 2544,
@@ -70,6 +73,7 @@ curl http://localhost:8000/api/v1/player/2544
 ```
 
 **Status Codes:**
+
 - `200 OK` - Player found and returned
 - `404 Not Found` - Player ID not found
 - `500 Internal Server Error` - Server error
@@ -85,14 +89,17 @@ GET /api/v1/players/search/{search_term}
 ```
 
 **Parameters:**
+
 - `search_term` (string, path, required) - Player name or partial name to search for
 
 **Example Request:**
+
 ```bash
 curl http://localhost:8000/api/v1/players/search/lebron
 ```
 
 **Response:**
+
 ```json
 [
   {
@@ -107,6 +114,7 @@ curl http://localhost:8000/api/v1/players/search/lebron
 ```
 
 **Status Codes:**
+
 - `200 OK` - Search completed (may return empty array)
 - `500 Internal Server Error` - Server error
 
@@ -123,14 +131,17 @@ GET /api/v1/teams/{team_id}
 ```
 
 **Parameters:**
+
 - `team_id` (integer, path, required) - The NBA team ID (e.g., `1610612747` for Los Angeles Lakers)
 
 **Example Request:**
+
 ```bash
 curl http://localhost:8000/api/v1/teams/1610612747
 ```
 
 **Response:**
+
 ```json
 {
   "team_id": 1610612747,
@@ -145,6 +156,7 @@ curl http://localhost:8000/api/v1/teams/1610612747
 ```
 
 **Status Codes:**
+
 - `200 OK` - Team found and returned
 - `404 Not Found` - Team ID not found
 - `500 Internal Server Error` - Server error
@@ -160,15 +172,18 @@ GET /api/v1/scoreboard/team/{team_id}/roster/{season}
 ```
 
 **Parameters:**
+
 - `team_id` (integer, path, required) - The NBA team ID
 - `season` (string, path, required) - Season in format "YYYY-YY" (e.g., "2024-25")
 
 **Example Request:**
+
 ```bash
 curl http://localhost:8000/api/v1/scoreboard/team/1610612747/roster/2024-25
 ```
 
 **Response:**
+
 ```json
 {
   "team_id": 1610612747,
@@ -194,6 +209,7 @@ curl http://localhost:8000/api/v1/scoreboard/team/1610612747/roster/2024-25
 ```
 
 **Status Codes:**
+
 - `200 OK` - Roster retrieved successfully
 - `404 Not Found` - Team or season not found
 - `500 Internal Server Error` - Server error
@@ -211,14 +227,17 @@ GET /api/v1/schedule/date/{date}
 ```
 
 **Parameters:**
+
 - `date` (string, path, required) - Date in `YYYY-MM-DD` format (e.g., "2024-01-15")
 
 **Example Request:**
+
 ```bash
 curl http://localhost:8000/api/v1/schedule/date/2024-01-15
 ```
 
 **Response:**
+
 ```json
 {
   "date": "2024-01-15",
@@ -250,6 +269,7 @@ curl http://localhost:8000/api/v1/schedule/date/2024-01-15
 ```
 
 **Status Codes:**
+
 - `200 OK` - Games retrieved (may be empty array if no games)
 - `400 Bad Request` - Invalid date format
 - `500 Internal Server Error` - Server error
@@ -267,14 +287,17 @@ GET /api/v1/standings/season/{season}
 ```
 
 **Parameters:**
+
 - `season` (string, path, required) - Season in format "YYYY-YY" (e.g., "2023-24")
 
 **Example Request:**
+
 ```bash
 curl http://localhost:8000/api/v1/standings/season/2023-24
 ```
 
 **Response:**
+
 ```json
 {
   "season": "2023-24",
@@ -287,7 +310,7 @@ curl http://localhost:8000/api/v1/standings/season/2023-24
       "playoff_rank": 1,
       "wins": 64,
       "losses": 18,
-      "win_pct": 0.780,
+      "win_pct": 0.78,
       "current_streak_str": "W3",
       "home_record": "37-4",
       "away_record": "27-14"
@@ -297,6 +320,7 @@ curl http://localhost:8000/api/v1/standings/season/2023-24
 ```
 
 **Status Codes:**
+
 - `200 OK` - Standings retrieved successfully
 - `404 Not Found` - Season not found
 - `500 Internal Server Error` - Server error
@@ -314,14 +338,17 @@ GET /api/v1/scoreboard/game/{game_id}/boxscore
 ```
 
 **Parameters:**
+
 - `game_id` (string, path, required) - The unique game ID (e.g., "0022400123")
 
 **Example Request:**
+
 ```bash
 curl http://localhost:8000/api/v1/scoreboard/game/0022400123/boxscore
 ```
 
 **Response:**
+
 ```json
 {
   "game_id": "0022400123",
@@ -364,6 +391,7 @@ curl http://localhost:8000/api/v1/scoreboard/game/0022400123/boxscore
 ```
 
 **Status Codes:**
+
 - `200 OK` - Box score retrieved successfully
 - `404 Not Found` - Game ID not found
 - `500 Internal Server Error` - Server error
@@ -381,14 +409,17 @@ GET /api/v1/search?q={query}
 ```
 
 **Query Parameters:**
+
 - `q` (string, query, required, min_length=1) - Search term for players or teams
 
 **Example Request:**
+
 ```bash
 curl "http://localhost:8000/api/v1/search?q=lakers"
 ```
 
 **Response:**
+
 ```json
 {
   "players": [
@@ -411,6 +442,7 @@ curl "http://localhost:8000/api/v1/search?q=lakers"
 ```
 
 **Status Codes:**
+
 - `200 OK` - Search completed (may return empty arrays)
 - `400 Bad Request` - Query parameter missing or invalid
 - `500 Internal Server Error` - Server error
@@ -429,29 +461,31 @@ Get real-time scoreboard updates broadcast to all connected clients. Updates are
 **Protocol:** WebSocket
 
 **Connection Example (JavaScript):**
+
 ```javascript
-const ws = new WebSocket('ws://localhost:8000/api/v1/ws');
+const ws = new WebSocket("ws://localhost:8000/api/v1/ws");
 
 ws.onopen = () => {
-  console.log('Connected to scoreboard updates');
+  console.log("Connected to scoreboard updates");
 };
 
 ws.onmessage = (event) => {
   const data = JSON.parse(event.data);
-  console.log('Scoreboard update:', data);
+  console.log("Scoreboard update:", data);
   // Update your UI with the new scores
 };
 
 ws.onerror = (error) => {
-  console.error('WebSocket error:', error);
+  console.error("WebSocket error:", error);
 };
 
 ws.onclose = () => {
-  console.log('Disconnected from scoreboard updates');
+  console.log("Disconnected from scoreboard updates");
 };
 ```
 
 **Message Format:**
+
 ```json
 {
   "scoreboard": {
@@ -494,6 +528,7 @@ ws.onclose = () => {
 ```
 
 **Update Frequency:**
+
 - Updates are sent every 30 seconds when changes are detected
 - Updates are throttled to prevent spam (minimum 5 seconds between updates per game)
 - Initial data is sent immediately upon connection
@@ -508,12 +543,16 @@ Get real-time play-by-play updates for a specific game. Connect to this endpoint
 **Protocol:** WebSocket
 
 **Parameters:**
+
 - `game_id` (string, path, required) - The game ID to receive play-by-play updates for
 
 **Connection Example (JavaScript):**
+
 ```javascript
-const gameId = '0022400123';
-const ws = new WebSocket(`ws://localhost:8000/api/v1/ws/${gameId}/play-by-play`);
+const gameId = "0022400123";
+const ws = new WebSocket(
+  `ws://localhost:8000/api/v1/ws/${gameId}/play-by-play`
+);
 
 ws.onopen = () => {
   console.log(`Connected to play-by-play for game ${gameId}`);
@@ -521,20 +560,21 @@ ws.onopen = () => {
 
 ws.onmessage = (event) => {
   const data = JSON.parse(event.data);
-  console.log('New play:', data);
+  console.log("New play:", data);
   // Add the new play to your play-by-play list
 };
 
 ws.onerror = (error) => {
-  console.error('WebSocket error:', error);
+  console.error("WebSocket error:", error);
 };
 
 ws.onclose = () => {
-  console.log('Disconnected from play-by-play');
+  console.log("Disconnected from play-by-play");
 };
 ```
 
 **Message Format:**
+
 ```json
 {
   "game_id": "0022400123",
@@ -566,6 +606,7 @@ ws.onclose = () => {
 ```
 
 **Update Frequency:**
+
 - Updates are sent every 2 seconds when new plays are detected
 - Only active games (live or recently finished) are monitored
 - All historical plays are sent immediately upon connection
@@ -614,15 +655,16 @@ WebSocket connections may close unexpectedly. Best practices:
 3. **Graceful degradation** - Fall back to polling REST endpoints if WebSocket fails
 
 **Example Reconnection Pattern:**
+
 ```javascript
 function connectWebSocket(url) {
   const ws = new WebSocket(url);
-  
+
   ws.onclose = () => {
     // Reconnect after 5 seconds
     setTimeout(() => connectWebSocket(url), 5000);
   };
-  
+
   return ws;
 }
 ```
@@ -634,6 +676,7 @@ function connectWebSocket(url) {
 The API includes interactive documentation powered by Swagger/OpenAPI:
 
 - **Swagger UI:** http://localhost:8000/docs
+
   - Interactive API explorer
   - Try endpoints directly from the browser
   - See request/response schemas
@@ -651,6 +694,7 @@ GET /
 ```
 
 **Response:**
+
 ```json
 {
   "message": "NBA Live Tracker API is running"
@@ -662,6 +706,7 @@ GET /
 ## Rate Limiting
 
 Currently, there are no rate limits on the API. However, please be respectful:
+
 - Don't make excessive requests
 - Use WebSocket connections for real-time data instead of polling
 - Cache responses when appropriate
@@ -671,6 +716,7 @@ Currently, there are no rate limits on the API. However, please be respectful:
 ## Support
 
 For issues, questions, or contributions:
+
 - Check the [main README](../README.md) for setup instructions
 - Open an issue on GitHub
 - Review the interactive API docs at `/docs`
