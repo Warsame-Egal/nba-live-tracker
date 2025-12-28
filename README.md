@@ -23,17 +23,6 @@ The NBA Scoreboard API by Warsame Egal is a FastAPI backend that provides real-t
 <img src="nba-tracker/public/screenshots/Player.png" width="300">
 <img src="nba-tracker/public/screenshots/Team.png" width="300">
 
-### Environment Variables
-
-#### Frontend (`nba-tracker`)
-
-- `VITE_API_BASE_URL` - Backend API URL (default: `http://localhost:8000`)
-- `VITE_WS_URL` - WebSocket URL without protocol (default: `localhost:8000`)
-
-Create `.env` files in each directory based on these variables for local development.
-
-**Note:** This application uses the NBA API directly. All data is fetched in real-time from the NBA API.
-
 ### Getting Started
 
 ### Option 1: Run with Docker
@@ -101,12 +90,12 @@ ReDoc → http://localhost:8000/redoc
 
 Python  
 FastAPI + Uvicorn  
-nba_api (NBA data wrapper)
+nba_api (NBA data wrapper)  
 WebSocket  
 Docker & Docker Compose
 
 ### Frontend
 
 React + TypeScript  
-Tailwind CSS  
+Material UI  
 Vite
