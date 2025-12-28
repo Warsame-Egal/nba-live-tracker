@@ -69,8 +69,24 @@ const Standings = () => {
   const { season } = useParams<{ season?: string }>();
   const navigate = useNavigate();
   // Default to current season if not provided
-  const currentYear = new Date().getFullYear();
-  const seasonParam = season || `${currentYear - 1}-${currentYear.toString().slice(2)}`;
+  // NBA season starts in October, so if we're in Oct-Dec, we're in the current year's season
+  // If we're in Jan-Sep, we're in the previous year's season
+  const getCurrentSeason = () => {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1; // getMonth() returns 0-11, so add 1
+    
+    // If we're in October (10) or later, we're in the current year's season
+    // Otherwise, we're in the previous year's season
+    if (currentMonth >= 10) {
+      // October-December: 2025-26 season
+      return `${currentYear}-${(currentYear + 1).toString().slice(2)}`;
+    } else {
+      // January-September: 2024-25 season (if current year is 2025)
+      return `${currentYear - 1}-${currentYear.toString().slice(2)}`;
+    }
+  };
+  const seasonParam = season || getCurrentSeason();
   // List of all team standings
   const [standings, setStandings] = useState<StandingRecord[]>([]);
   // Whether we're loading the standings
