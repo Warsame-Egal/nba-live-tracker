@@ -1,27 +1,33 @@
+import logging
+
 from fastapi import APIRouter, HTTPException
 
 from app.schemas.schedule import GamesResponse
 from app.services.schedule import getGamesForDate
 
+# Set up logger for this file
+logger = logging.getLogger(__name__)
+
 router = APIRouter()
 
 
+# Get games for a date endpoint
 @router.get(
     "/schedule/date/{date}",
     response_model=GamesResponse,
     tags=["scoreboard"],
     summary="Get Games for a Specific Date",
-    description="Retrieve past and present NBA games for a given date.",
+    description="Get all NBA games for a specific date.",
 )
 async def get_games_for_date(date: str):
     """
-    API route to fetch NBA games scheduled or played on a specific date.
-
+    Get all games that were played or scheduled for a specific date.
+    
     Args:
-        date (str): Date to fetch games for (YYYY-MM-DD).
-
+        date: The date in YYYY-MM-DD format
+        
     Returns:
-        GamesResponse: List of games played on the specified date.
+        GamesResponse: List of all games for that date
     """
     try:
         return await getGamesForDate(date)

@@ -70,14 +70,6 @@ class GameLeaders(BaseModel):
     awayLeaders: Optional[PlayerStats] = Field(None, description="Top-performing player from the away team.")
 
 
-class PbOdds(BaseModel):
-    """Represents pre-game betting odds."""
-
-    team: Optional[str] = Field(None, description="Team associated with the odds.")
-    odds: Optional[float] = Field(0.0, description="Betting odds value.")
-    suspended: Optional[int] = Field(0, description="Indicates if betting is suspended (1 = Yes, 0 = No).")
-
-
 # Represents individual player statistics in a game.
 
 
@@ -162,8 +154,6 @@ class LiveGame(BaseModel):
     homeTeam: Team = Field(..., description="Information about the home team.")
     awayTeam: Team = Field(..., description="Information about the away team.")
     gameLeaders: Optional[GameLeaders] = Field(None, description="Top-performing players from each team.")
-    pbOdds: Optional[PbOdds] = Field(None, description="Pre-game betting odds.")
-    boxScore: Optional[BoxScoreResponse] = Field(None, description="Detailed box score if available.")
 
     @field_validator("gameStatusText", mode="before")
     @classmethod
