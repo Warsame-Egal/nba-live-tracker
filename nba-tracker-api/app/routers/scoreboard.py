@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 
 from app.schemas.player import TeamRoster
@@ -8,56 +10,60 @@ from app.services.websockets_manager import (
     scoreboard_websocket_manager,
 )
 
+# Set up logger for this file
+logger = logging.getLogger(__name__)
+
 router = APIRouter()
 
 
-# WebSocket Endpoint for Real-Time Score Updates
+# WebSocket endpoint for live score updates
 @router.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     """
-    WebSocket connection handler for live NBA scoreboard updates.
-
-    This function:
-    - Accepts WebSocket connections from clients.
-    - Sends the latest scoreboard data when a client connects.
-    - Listens for incoming messages from the client (currently just logs received data).
-    - Handles disconnections gracefully.
+    WebSocket connection for live NBA scoreboard updates.
+    
+    When a client connects:
+    - They get the latest scores right away
+    - They receive updates automatically when scores change
+    - Connection stays open until client disconnects
     """
 
-    # Accept and register the new WebSocket connection
+    # Accept the connection and register it
     await scoreboard_websocket_manager.connect(websocket)
 
     try:
-        # Send the latest scoreboard data to the newly connected client
+        # Send the latest scores to the newly connected client
         await scoreboard_websocket_manager.send_initial_scoreboard(websocket)
 
-        # Keep the WebSocket connection open and listen for incoming messages
+        # Keep connection open and listen for messages from client
         while True:
-            data = await websocket.receive_text()  # Receive message from client
-            print(f"Received: {data}")  # Log incoming messages (if needed for debugging)
+            data = await websocket.receive_text()  # Get message from client
+            logger.debug(f"Received message from client: {data}")
 
     except WebSocketDisconnect:
-        # Handle client disconnection
-        print(f"Client disconnected: {websocket}")
+        # Client disconnected - clean up the connection
+        logger.info(f"Client disconnected from scoreboard WebSocket")
         await scoreboard_websocket_manager.disconnect(websocket)
 
 
+# Get team roster endpoint
 @router.get(
     "/scoreboard/team/{team_id}/roster/{season}",
     response_model=TeamRoster,
     tags=["teams"],
     summary="Get Team Roster",
-    description="Fetch the full roster and coaching staff for a given team and season.",
+    description="Get the full roster (players and coaches) for a team in a season.",
 )
 async def getTeamRoster(team_id: int, season: str):
     """
-    API endpoint to retrieve the full roster of a given
-      NBA team for a specific season.
+    Get all players and coaches on a team for a specific season.
+    
     Args:
-        team_id (int): The unique identifier for the NBA team.
-        season (str): The NBA season identifier (e.g., "2023-24").
+        team_id: The NBA team ID
+        season: The season year like "2024-25"
+        
     Returns:
-        TeamRoster: A structured response containing player details.
+        TeamRoster: All players and coaches on the team
     """
     try:
         return await fetchTeamRoster(team_id, season)
@@ -65,22 +71,23 @@ async def getTeamRoster(team_id: int, season: str):
         raise e
 
 
+# Get box score endpoint
 @router.get(
     "/scoreboard/game/{game_id}/boxscore",
     response_model=BoxScoreResponse,
     tags=["boxscore"],
     summary="Get Box Score for a Game",
-    description="Retrieve detailed game stats including team and player performance.",
+    description="Get detailed stats for a game including all player stats.",
 )
 async def get_game_boxscore(game_id: str):
     """
-    API route to fetch the full box score for a given NBA game.
-
+    Get the full box score (detailed stats) for a specific game.
+    
     Args:
-        game_id (str): Unique game identifier.
-
+        game_id: The unique game ID from NBA
+        
     Returns:
-        BoxScoreResponse: Full box score containing team and player stats.
+        BoxScoreResponse: Complete stats for both teams and all players
     """
     try:
         return await getBoxScore(game_id)
@@ -88,21 +95,28 @@ async def get_game_boxscore(game_id: str):
         raise e
 
 
+# WebSocket endpoint for play-by-play updates
 @router.websocket("/ws/{game_id}/play-by-play")
 async def playbyplay_websocket_endpoint(websocket: WebSocket, game_id: str):
     """
-    WebSocket connection handler for live NBA Play-by-Play updates.
-
-    - Accepts WebSocket connections from clients.
-    - Sends real-time play-by-play data to connected clients.
-    - Handles disconnections gracefully.
+    WebSocket connection for live play-by-play updates for a specific game.
+    
+    When a client connects:
+    - They get all plays that have happened so far
+    - They receive new plays automatically as they happen
+    - Connection stays open until client disconnects
+    
+    Args:
+        game_id: The game to watch for play-by-play updates
     """
     await playbyplay_websocket_manager.connect(websocket, game_id)
 
     try:
-        # Continuously send real-time Play-by-Play updates
+        # Keep connection open and listen for messages from client
         while True:
             data = await websocket.receive_text()
-            print(f"Received from client: {data}")
+            logger.debug(f"Received message from client for game {game_id}: {data}")
     except WebSocketDisconnect:
+        # Client disconnected - clean up the connection
+        logger.info(f"Client disconnected from play-by-play WebSocket for game {game_id}")
         await playbyplay_websocket_manager.disconnect(websocket, game_id)
