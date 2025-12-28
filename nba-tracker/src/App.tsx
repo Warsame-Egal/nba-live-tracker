@@ -2,6 +2,8 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Suspense, lazy } from 'react';
 import { Box, CircularProgress } from '@mui/material';
 
+// Lazy load pages to improve initial load time
+// Pages are only loaded when the user navigates to them
 const Scoreboard = lazy(() => import('./pages/Scoreboard'));
 const TeamPage = lazy(() => import('./pages/TeamPage'));
 const RosterPage = lazy(() => import('./pages/RosterPage'));
@@ -9,10 +11,15 @@ const PlayerProfile = lazy(() => import('./pages/PlayerProfile'));
 const Standings = lazy(() => import('./components/Standings'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
+/**
+ * Main app component that sets up routing.
+ * Defines all the routes (pages) in the application.
+ */
 export default function App() {
   return (
     <Router>
       <Box>
+        {/* Show loading spinner while a page is being loaded */}
         <Suspense
           fallback={
             <Box
@@ -27,12 +34,19 @@ export default function App() {
             </Box>
           }
         >
+          {/* Define all the routes */}
           <Routes>
+            {/* Home page - shows the scoreboard */}
             <Route path="/" element={<Scoreboard />} />
+            {/* Team page - shows team details */}
             <Route path="/team/:team_id" element={<TeamPage />} />
+            {/* Roster page - shows team roster */}
             <Route path="/team/:team_id/roster" element={<RosterPage />} />
+            {/* Standings page - shows league standings */}
             <Route path="/standings" element={<Standings />} />
+            {/* Player profile page - shows player details */}
             <Route path="/players/:playerId" element={<PlayerProfile />} />
+            {/* 404 page - shows when user goes to a page that doesn't exist */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
