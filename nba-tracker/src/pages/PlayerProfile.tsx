@@ -1,5 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import {
+  Container,
+  Box,
+  Typography,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  CircularProgress,
+  Alert,
+  Avatar,
+  Grid,
+  Card,
+  CardContent,
+} from '@mui/material';
 import { PlayerSummary } from '../types/player';
 import { format } from 'date-fns';
 import { enUS } from 'date-fns/locale';
@@ -34,123 +52,256 @@ const PlayerProfile: React.FC = () => {
     fetchPlayer();
   }, [playerId]);
 
-  if (loading) return <p className="text-gray-400 text-center mt-4">Loading...</p>;
-  if (error) return <p className="text-red-500 text-center mt-4">{error}</p>;
-  if (!player) return <p className="text-gray-500 text-center mt-4">Player not found.</p>;
+  if (loading) {
+    return (
+      <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
+        <Navbar />
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 10 }}>
+          <CircularProgress />
+        </Box>
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
+        <Navbar />
+        <Container sx={{ py: 4 }}>
+          <Alert severity="error">{error}</Alert>
+        </Container>
+      </Box>
+    );
+  }
+
+  if (!player) {
+    return (
+      <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
+        <Navbar />
+        <Container sx={{ py: 4 }}>
+          <Typography variant="body1" color="text.secondary" textAlign="center">
+            Player not found.
+          </Typography>
+        </Container>
+      </Box>
+    );
+  }
 
   const fullName = `${player.PLAYER_FIRST_NAME} ${player.PLAYER_LAST_NAME}`;
   const experience =
     player.FROM_YEAR && player.TO_YEAR ? `${player.TO_YEAR - player.FROM_YEAR} Years` : 'N/A';
 
   return (
-    <div className="min-h-screen bg-black -to-b from-gray-900 to-black text-white relative">
+    <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
       <Navbar />
-      <div className="bg-black -to-b from-gray-900 to-black text-white min-h-screen font-sans">
-        <div className="max-w-6xl mx-auto px-4 py-10">
-          {/* Header Section */}
-          <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
-            {/* Player Image */}
-            <div className="w-52 h-auto">
-              <img
-                src={`https://cdn.nba.com/headshots/nba/latest/1040x760/${player.PERSON_ID}.png`}
-                alt={fullName}
-                className="rounded-md w-full"
-                onError={e => ((e.target as HTMLImageElement).src = '/fallback-player.png')}
-              />
-            </div>
+      <Container maxWidth="lg" sx={{ py: { xs: 3, sm: 4, md: 5 } }}>
+        {/* Header Section */}
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: { xs: 'column', md: 'row' },
+            alignItems: { xs: 'center', md: 'flex-start' },
+            gap: 4,
+            mb: 5,
+          }}
+        >
+          <Avatar
+            src={`https://cdn.nba.com/headshots/nba/latest/1040x760/${player.PERSON_ID}.png`}
+            alt={fullName}
+            sx={{
+              width: { xs: 180, sm: 220, md: 260 },
+              height: { xs: 180, sm: 220, md: 260 },
+              backgroundColor: 'transparent',
+              border: '3px solid',
+              borderColor: 'divider',
+            }}
+            onError={e => ((e.target as HTMLImageElement).src = '/fallback-player.png')}
+          />
 
-            {/* Player Info */}
-            <div className="flex-1 text-center md:text-left space-y-3">
-              <h1 className="text-3xl font-bold leading-tight">
-                {player.PLAYER_FIRST_NAME}
-                <br />
-                {player.PLAYER_LAST_NAME}
-              </h1>
-              <p className="text-sm text-gray-300 uppercase">
-                {player.TEAM_NAME ?? 'Free Agent'} | #{player.JERSEY_NUMBER ?? 'N/A'} |{' '}
-                {player.POSITION ?? 'N/A'}
-              </p>
+          <Box sx={{ flex: 1, textAlign: { xs: 'center', md: 'left' } }}>
+            <Typography
+              variant="h2"
+              sx={{
+                fontWeight: 800,
+                mb: 1,
+                fontSize: { xs: '2rem', sm: '2.5rem', md: '3rem' },
+                lineHeight: 1.1,
+              }}
+            >
+              {player.PLAYER_FIRST_NAME}
+              <br />
+              {player.PLAYER_LAST_NAME}
+            </Typography>
+            <Typography
+              variant="h6"
+              color="text.secondary"
+              sx={{ textTransform: 'uppercase', mb: 4, fontWeight: 500 }}
+            >
+              {player.TEAM_NAME ?? 'Free Agent'} • #{player.JERSEY_NUMBER ?? 'N/A'} •{' '}
+              {player.POSITION ?? 'N/A'}
+            </Typography>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-2 text-sm mt-4">
-                <p>
-                  <span className="text-gray-400 uppercase">Height:</span> {player.HEIGHT ?? 'N/A'}
-                </p>
-                <p>
-                  <span className="text-gray-400 uppercase">Weight:</span>{' '}
-                  {player.WEIGHT ? `${player.WEIGHT} lb` : 'N/A'}
-                </p>
-                <p>
-                  <span className="text-gray-400 uppercase">Country:</span>{' '}
-                  {player.COUNTRY ?? 'N/A'}
-                </p>
-                <p>
-                  <span className="text-gray-400 uppercase">College:</span>{' '}
-                  {player.COLLEGE ?? 'N/A'}
-                </p>
-                <p>
-                  <span className="text-gray-400 uppercase">Experience:</span> {experience}
-                </p>
-              </div>
-            </div>
-          </div>
+            <Grid container spacing={2}>
+              <Grid item xs={6} sm={4}>
+                <InfoItem label="Height" value={player.HEIGHT ?? 'N/A'} />
+              </Grid>
+              <Grid item xs={6} sm={4}>
+                <InfoItem label="Weight" value={player.WEIGHT ? `${player.WEIGHT} lb` : 'N/A'} />
+              </Grid>
+              <Grid item xs={6} sm={4}>
+                <InfoItem label="Country" value={player.COUNTRY ?? 'N/A'} />
+              </Grid>
+              <Grid item xs={6} sm={4}>
+                <InfoItem label="College" value={player.COLLEGE ?? 'N/A'} />
+              </Grid>
+              <Grid item xs={6} sm={4}>
+                <InfoItem label="Experience" value={experience} />
+              </Grid>
+            </Grid>
+          </Box>
+        </Box>
 
-          {/* PPG / RPG / APG */}
-          <div className="grid grid-cols-3 text-center mt-10 border-t border-neutral-700 pt-6">
-            <Stat label="PPG" value={player.PTS} />
-            <Stat label="RPG" value={player.REB} />
-            <Stat label="APG" value={player.AST} />
-          </div>
+        {/* Key Stats */}
+        <Grid container spacing={3} sx={{ mb: 5 }}>
+          <Grid item xs={12} sm={4}>
+            <StatCard label="Points Per Game" value={player.PTS} />
+          </Grid>
+          <Grid item xs={12} sm={4}>
+            <StatCard label="Rebounds Per Game" value={player.REB} />
+          </Grid>
+          <Grid item xs={12} sm={4}>
+            <StatCard label="Assists Per Game" value={player.AST} />
+          </Grid>
+        </Grid>
 
-          {/* Recent Games */}
-          {player.recent_games && player.recent_games.length > 0 && (
-            <div className="mt-12">
-              <h2 className="text-2xl font-bold mb-4 text-gray-200">Last 5 Games</h2>
-              <div className="overflow-x-auto">
-                <table className="min-w-full text-left table-auto border border-neutral-700">
-                  <thead className="bg-black -800 border-b border-neutral-700">
-                    <tr>
-                      <th className="text-xs font-semibold text-gray-300 p-2">DATE</th>
-                      <th className="text-xs font-semibold text-gray-300 p-2">OPP</th>
-                      <th className="text-xs font-semibold text-gray-300 p-2">PTS</th>
-                      <th className="text-xs font-semibold text-gray-300 p-2">REB</th>
-                      <th className="text-xs font-semibold text-gray-300 p-2">AST</th>
-                      <th className="text-xs font-semibold text-gray-300 p-2">STL</th>
-                      <th className="text-xs font-semibold text-gray-300 p-2">BLK</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {player.recent_games.map(game => (
-                      <tr
-                        key={game.game_id}
-                        className="border-b border-neutral-700 hover:bg-black -800 transition"
-                      >
-                        <td className="text-xs p-2">
-                          {format(new Date(game.date), 'MMM dd, yyyy', { locale: enUS })}
-                        </td>
-                        <td className="text-xs p-2">{game.opponent_team_abbreviation}</td>
-                        <td className="text-xs p-2">{game.points}</td>
-                        <td className="text-xs p-2">{game.rebounds}</td>
-                        <td className="text-xs p-2">{game.assists}</td>
-                        <td className="text-xs p-2">{game.steals}</td>
-                        <td className="text-xs p-2">{game.blocks}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
+        {/* Recent Games */}
+        {player.recent_games && player.recent_games.length > 0 && (
+          <Box>
+            <Typography variant="h5" sx={{ fontWeight: 700, mb: 3 }}>
+              Recent Games
+            </Typography>
+            <TableContainer
+              component={Paper}
+              elevation={0}
+              sx={{
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: 2,
+                overflow: 'hidden',
+              }}
+            >
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Opponent</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 700 }}>
+                      PTS
+                    </TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 700 }}>
+                      REB
+                    </TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 700 }}>
+                      AST
+                    </TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 700 }}>
+                      STL
+                    </TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 700 }}>
+                      BLK
+                    </TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {player.recent_games.map(game => (
+                    <TableRow
+                      key={game.game_id}
+                      sx={{
+                        '&:hover': {
+                          backgroundColor: 'rgba(255, 255, 255, 0.04)',
+                        },
+                      }}
+                    >
+                      <TableCell>
+                        {format(new Date(game.date), 'MMM dd, yyyy', { locale: enUS })}
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>{game.opponent_team_abbreviation}</TableCell>
+                      <TableCell align="center" sx={{ fontWeight: 600 }}>
+                        {game.points}
+                      </TableCell>
+                      <TableCell align="center">{game.rebounds}</TableCell>
+                      <TableCell align="center">{game.assists}</TableCell>
+                      <TableCell align="center">{game.steals}</TableCell>
+                      <TableCell align="center">{game.blocks}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Box>
+        )}
+      </Container>
+    </Box>
   );
 };
 
-const Stat: React.FC<{ label: string; value?: number }> = ({ label, value }) => (
-  <div>
-    <p className="text-xs text-gray-400 uppercase">{label}</p>
-    <p className="text-2xl font-bold">{value ?? 'N/A'}</p>
-  </div>
+const StatCard: React.FC<{ label: string; value?: number }> = ({ label, value }) => (
+  <Card
+    elevation={0}
+    sx={{
+      backgroundColor: 'background.paper',
+      border: '1px solid',
+      borderColor: 'divider',
+      height: '100%',
+    }}
+  >
+    <CardContent>
+      <Typography
+        variant="caption"
+        color="text.secondary"
+        sx={{
+          textTransform: 'uppercase',
+          letterSpacing: '0.08em',
+          fontWeight: 600,
+          display: 'block',
+          mb: 1,
+        }}
+      >
+        {label}
+      </Typography>
+      <Typography
+        variant="h3"
+        sx={{
+          fontWeight: 800,
+          fontSize: { xs: '2rem', sm: '2.5rem' },
+          lineHeight: 1,
+        }}
+      >
+        {value ?? 'N/A'}
+      </Typography>
+    </CardContent>
+  </Card>
+);
+
+const InfoItem = ({ label, value }: { label: string; value: string }) => (
+  <Box>
+    <Typography
+      variant="caption"
+      color="text.secondary"
+      sx={{
+        textTransform: 'uppercase',
+        letterSpacing: '0.05em',
+        fontWeight: 600,
+        display: 'block',
+        mb: 0.5,
+      }}
+    >
+      {label}
+    </Typography>
+    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+      {value}
+    </Typography>
+  </Box>
 );
 
 export default PlayerProfile;

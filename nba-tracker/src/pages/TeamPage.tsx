@@ -1,5 +1,20 @@
 import { useParams } from 'react-router-dom';
 import { useEffect, useState } from 'react';
+import {
+  Container,
+  Box,
+  Typography,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  CircularProgress,
+  Alert,
+  Avatar,
+} from '@mui/material';
 import { TeamRoster } from '../types/team';
 import Navbar from '../components/Navbar';
 
@@ -49,92 +64,145 @@ const TeamPage = () => {
     fetchTeamData();
   }, [team_id]);
 
-  if (loading) return <p className="text-gray-400 text-center mt-8">Loading team details...</p>;
-  if (error) return <p className="text-red-500 text-center mt-8">{error}</p>;
-  if (!team) return <p className="text-gray-500 text-center mt-4">Team not found.</p>;
+  if (loading) {
+    return (
+      <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
+        <Navbar />
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 8 }}>
+          <CircularProgress />
+        </Box>
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
+        <Navbar />
+        <Container sx={{ py: 4 }}>
+          <Alert severity="error">{error}</Alert>
+        </Container>
+      </Box>
+    );
+  }
+
+  if (!team) {
+    return (
+      <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
+        <Navbar />
+        <Container sx={{ py: 4 }}>
+          <Typography variant="body1" color="text.secondary" textAlign="center">
+            Team not found.
+          </Typography>
+        </Container>
+      </Box>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
       <Navbar />
-      <div className="max-w-6xl mx-auto px-4 py-10">
-        <div className="flex flex-col md:flex-row items-start gap-8">
-          {/* Team Logo */}
-          <div className="w-52 h-auto">
-            <img
-              src={`/logos/${team.abbreviation ?? team.team_id}.svg`}
-              alt={team.team_name}
-              className="rounded-md w-full"
-              onError={e => ((e.target as HTMLImageElement).src = '/fallback-team.png')}
-            />
-          </div>
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: { xs: 'column', md: 'row' },
+            alignItems: { xs: 'center', md: 'flex-start' },
+            gap: 4,
+            mb: 4,
+          }}
+        >
+          <Avatar
+            src={`/logos/${team.abbreviation ?? team.team_id}.svg`}
+            alt={team.team_name}
+            sx={{
+              width: { xs: 150, md: 200 },
+              height: { xs: 150, md: 200 },
+              backgroundColor: 'transparent',
+            }}
+            onError={e => ((e.target as HTMLImageElement).src = '/fallback-team.png')}
+          />
 
-          {/* Team Info */}
-          <div className="flex-1 space-y-3">
-            <h1 className="text-3xl font-bold leading-tight">{team.team_name}</h1>
-            <p className="text-sm text-gray-300 uppercase">{team.team_city}</p>
+          <Box sx={{ flex: 1 }}>
+            <Typography variant="h3" sx={{ fontWeight: 700, mb: 1 }}>
+              {team.team_name}
+            </Typography>
+            <Typography variant="body1" color="text.secondary" sx={{ textTransform: 'uppercase', mb: 3 }}>
+              {team.team_city}
+            </Typography>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-2 text-sm mt-4">
-              <p>
-                <span className="text-gray-400 uppercase">Founded:</span> {team.year_founded ?? '—'}
-              </p>
-              <p>
-                <span className="text-gray-400 uppercase">Arena:</span> {team.arena ?? '—'}
-              </p>
-              <p>
-                <span className="text-gray-400 uppercase">Owner:</span> {team.owner ?? '—'}
-              </p>
-              <p>
-                <span className="text-gray-400 uppercase">GM:</span> {team.general_manager ?? '—'}
-              </p>
-              <p>
-                <span className="text-gray-400 uppercase">Coach:</span> {team.head_coach ?? '—'}
-              </p>
-            </div>
-          </div>
-        </div>
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
+                gap: 2,
+              }}
+            >
+              <InfoItem label="Founded" value={team.year_founded?.toString() ?? '—'} />
+              <InfoItem label="Arena" value={team.arena ?? '—'} />
+              <InfoItem label="Owner" value={team.owner ?? '—'} />
+              <InfoItem label="GM" value={team.general_manager ?? '—'} />
+              <InfoItem label="Coach" value={team.head_coach ?? '—'} />
+            </Box>
+          </Box>
+        </Box>
 
-        {/* Roster */}
         {roster?.players?.length ? (
-          <div className="mt-12">
-            <h2 className="text-2xl font-bold mb-4 text-gray-200">Roster</h2>
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-left table-auto border border-neutral-700">
-                <thead className="bg-neutral-900 border-b border-neutral-700">
-                  <tr>
-                    <th className="p-2 text-xs font-semibold">#</th>
-                    <th className="p-2 text-xs font-semibold">Name</th>
-                    <th className="p-2 text-xs font-semibold">Position</th>
-                    <th className="p-2 text-xs font-semibold">Height</th>
-                    <th className="p-2 text-xs font-semibold">Weight</th>
-                    <th className="p-2 text-xs font-semibold">Age</th>
-                    <th className="p-2 text-xs font-semibold">Experience</th>
-                    <th className="p-2 text-xs font-semibold">School</th>
-                  </tr>
-                </thead>
-                <tbody>
+          <Box sx={{ mt: 4 }}>
+            <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>
+              Roster
+            </Typography>
+            <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 600 }}>#</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Name</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Position</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Height</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Weight</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Age</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Experience</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>School</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
                   {roster.players.map(player => (
-                    <tr
+                    <TableRow
                       key={player.player_id}
-                      className="border-b border-neutral-700 hover:bg-neutral-800"
+                      sx={{
+                        '&:hover': {
+                          backgroundColor: 'action.hover',
+                        },
+                      }}
                     >
-                      <td className="p-2 text-xs">{player.jersey_number}</td>
-                      <td className="p-2 text-xs">{player.name}</td>
-                      <td className="p-2 text-xs">{player.position}</td>
-                      <td className="p-2 text-xs">{player.height}</td>
-                      <td className="p-2 text-xs">{player.weight}</td>
-                      <td className="p-2 text-xs">{player.age}</td>
-                      <td className="p-2 text-xs">{player.experience}</td>
-                      <td className="p-2 text-xs">{player.school}</td>
-                    </tr>
+                      <TableCell>{player.jersey_number}</TableCell>
+                      <TableCell>{player.name}</TableCell>
+                      <TableCell>{player.position}</TableCell>
+                      <TableCell>{player.height}</TableCell>
+                      <TableCell>{player.weight}</TableCell>
+                      <TableCell>{player.age}</TableCell>
+                      <TableCell>{player.experience}</TableCell>
+                      <TableCell>{player.school}</TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Box>
         ) : null}
-      </div>
-    </div>
+      </Container>
+    </Box>
   );
 };
+
+const InfoItem = ({ label, value }: { label: string; value: string }) => (
+  <Box>
+    <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', display: 'block' }}>
+      {label}:
+    </Typography>
+    <Typography variant="body2">{value}</Typography>
+  </Box>
+);
 
 export default TeamPage;
