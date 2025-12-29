@@ -241,6 +241,42 @@ async def fetchTeamRoster(team_id: int, season: str) -> TeamRoster:
         raise HTTPException(status_code=500, detail=f"Error fetching team roster: {e}")
 
 
+async def _get_game_info_from_scoreboard(game_id: str):
+    """
+    Helper function to get basic game info from scoreboard when boxscore is not available.
+    
+    Args:
+        game_id: The unique game ID from NBA
+        
+    Returns:
+        dict: Basic game info with team names and status, or None if not found
+    """
+    try:
+        raw_scoreboard_data = await fetch_nba_scoreboard()
+        if not raw_scoreboard_data:
+            return None
+            
+        raw_games = raw_scoreboard_data.get("games", [])
+        for game in raw_games:
+            if game.get("gameId") == game_id:
+                return {
+                    "gameId": game_id,
+                    "status": game.get("gameStatusText", "Scheduled"),
+                    "homeTeam": {
+                        "teamId": game["homeTeam"].get("teamId"),
+                        "teamName": game["homeTeam"].get("teamName", "Home Team"),
+                    },
+                    "awayTeam": {
+                        "teamId": game["awayTeam"].get("teamId"),
+                        "teamName": game["awayTeam"].get("teamName", "Away Team"),
+                    },
+                }
+        return None
+    except Exception as e:
+        logger.warning(f"Error fetching game info from scoreboard for game {game_id}: {e}")
+        return None
+
+
 async def getBoxScore(game_id: str) -> BoxScoreResponse:
     """
     Get the full box score (detailed stats) for a specific game.
@@ -259,7 +295,44 @@ async def getBoxScore(game_id: str) -> BoxScoreResponse:
         game_data = await asyncio.to_thread(lambda: boxscore.BoxScore(game_id).get_dict())
 
         if "game" not in game_data:
-            raise HTTPException(status_code=404, detail=f"No box score available for game ID {game_id}")
+            # Game hasn't started yet - get basic info from scoreboard and return empty boxscore
+            logger.warning(f"Box score data not available for game {game_id} (game may not have started)")
+            game_info = await _get_game_info_from_scoreboard(game_id)
+            if game_info:
+                return BoxScoreResponse(
+                    game_id=game_info["gameId"],
+                    status=game_info["status"],
+                    home_team=TeamBoxScoreStats(
+                        team_id=game_info["homeTeam"]["teamId"],
+                        team_name=game_info["homeTeam"]["teamName"],
+                        score=0,
+                        field_goal_pct=0.0,
+                        three_point_pct=0.0,
+                        free_throw_pct=0.0,
+                        rebounds_total=0,
+                        assists=0,
+                        steals=0,
+                        blocks=0,
+                        turnovers=0,
+                        players=[],
+                    ),
+                    away_team=TeamBoxScoreStats(
+                        team_id=game_info["awayTeam"]["teamId"],
+                        team_name=game_info["awayTeam"]["teamName"],
+                        score=0,
+                        field_goal_pct=0.0,
+                        three_point_pct=0.0,
+                        free_throw_pct=0.0,
+                        rebounds_total=0,
+                        assists=0,
+                        steals=0,
+                        blocks=0,
+                        turnovers=0,
+                        players=[],
+                    ),
+                )
+            else:
+                raise HTTPException(status_code=404, detail=f"Game {game_id} not found")
 
         # Extract game information
         game_info = game_data["game"]
@@ -330,6 +403,45 @@ async def getBoxScore(game_id: str) -> BoxScoreResponse:
     except HTTPException:
         raise
     except Exception as e:
+        # If boxscore API fails (e.g., game hasn't started), try to get basic info from scoreboard
+        error_str = str(e)
+        if "Expecting value" in error_str or "JSONDecodeError" in error_str or "game" not in error_str.lower():
+            logger.warning(f"Box score data not available for game {game_id} (game may not have started): {type(e).__name__} - {error_str}")
+            game_info = await _get_game_info_from_scoreboard(game_id)
+            if game_info:
+                return BoxScoreResponse(
+                    game_id=game_info["gameId"],
+                    status=game_info["status"],
+                    home_team=TeamBoxScoreStats(
+                        team_id=game_info["homeTeam"]["teamId"],
+                        team_name=game_info["homeTeam"]["teamName"],
+                        score=0,
+                        field_goal_pct=0.0,
+                        three_point_pct=0.0,
+                        free_throw_pct=0.0,
+                        rebounds_total=0,
+                        assists=0,
+                        steals=0,
+                        blocks=0,
+                        turnovers=0,
+                        players=[],
+                    ),
+                    away_team=TeamBoxScoreStats(
+                        team_id=game_info["awayTeam"]["teamId"],
+                        team_name=game_info["awayTeam"]["teamName"],
+                        score=0,
+                        field_goal_pct=0.0,
+                        three_point_pct=0.0,
+                        free_throw_pct=0.0,
+                        rebounds_total=0,
+                        assists=0,
+                        steals=0,
+                        blocks=0,
+                        turnovers=0,
+                        players=[],
+                    ),
+                )
+        
         logger.error(f"Error retrieving box score for game {game_id}: {e}")
         raise HTTPException(status_code=500, detail=f"Error retrieving box score: {str(e)}")
 
@@ -343,6 +455,7 @@ async def getPlayByPlay(game_id: str) -> PlayByPlayResponse:
         
     Returns:
         PlayByPlayResponse: List of all plays/events that happened in the game
+        Returns empty list if game hasn't started yet.
         
     Raises:
         HTTPException: If game not found or API error
@@ -352,10 +465,9 @@ async def getPlayByPlay(game_id: str) -> PlayByPlayResponse:
         play_by_play_data = await asyncio.to_thread(lambda: playbyplay.PlayByPlay(game_id).get_dict())
 
         if "game" not in play_by_play_data or "actions" not in play_by_play_data["game"]:
-            raise HTTPException(
-                status_code=404,
-                detail=f"No play-by-play data available for game ID {game_id}",
-            )
+            # Game hasn't started yet - return empty play-by-play
+            logger.warning(f"Play-by-play data not available for game {game_id} (game may not have started)")
+            return PlayByPlayResponse(game_id=game_id, plays=[])
 
         # Get all the game actions (shots, fouls, timeouts, etc.)
         actions = play_by_play_data["game"]["actions"]
@@ -384,5 +496,11 @@ async def getPlayByPlay(game_id: str) -> PlayByPlayResponse:
     except HTTPException:
         raise
     except Exception as e:
+        # If play-by-play API fails (e.g., game hasn't started), return empty response
+        error_str = str(e)
+        if "Expecting value" in error_str or "JSONDecodeError" in error_str:
+            logger.warning(f"Play-by-play data not available for game {game_id} (game may not have started): {type(e).__name__} - {error_str}")
+            return PlayByPlayResponse(game_id=game_id, plays=[])
+        
         logger.error(f"Error retrieving play-by-play for game {game_id}: {e}")
         raise HTTPException(status_code=500, detail=f"Error retrieving play-by-play: {str(e)}")

@@ -1,8 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
-import { theme } from './theme';
+import { ThemeContextProvider } from './contexts/ThemeContext';
 import './index.css';
 import App from './App.tsx';
 
@@ -12,12 +11,12 @@ import App from './App.tsx';
  */
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    {/* Provide Material UI theme to all components */}
-    <ThemeProvider theme={theme}>
+    {/* Provide theme context with dark/light mode support */}
+    <ThemeContextProvider>
       {/* Reset default browser styles and apply Material UI base styles */}
       <CssBaseline />
       {/* Main app component */}
       <App />
-    </ThemeProvider>
+    </ThemeContextProvider>
   </StrictMode>,
 );

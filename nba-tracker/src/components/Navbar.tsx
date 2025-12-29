@@ -1,6 +1,7 @@
 import { Link as RouterLink, useLocation } from 'react-router-dom';
-import { AppBar, Toolbar, Button, Box, Typography } from '@mui/material';
-import { SportsBasketball } from '@mui/icons-material';
+import { AppBar, Toolbar, Button, Box, Typography, IconButton, Tooltip } from '@mui/material';
+import { SportsBasketball, LightMode, DarkMode } from '@mui/icons-material';
+import { useThemeMode } from '../contexts/ThemeContext';
 
 /**
  * Navigation bar component that appears at the top of every page.
@@ -9,6 +10,8 @@ import { SportsBasketball } from '@mui/icons-material';
 const Navbar = () => {
   // Get current page location to highlight active link
   const location = useLocation();
+  // Get theme mode and toggle function
+  const { mode, toggleColorMode } = useThemeMode();
 
   // Navigation items to display
   const navItems = [
@@ -54,43 +57,64 @@ const Navbar = () => {
           </Typography>
         </Box>
 
-        {/* Navigation links */}
-        <Box sx={{ display: 'flex', gap: 0.5 }}>
-          {navItems.map(item => (
-            <Button
-              key={item.path}
-              component={RouterLink}
-              to={item.path}
-              sx={{
-                color: isActive(item.path) ? 'primary.main' : 'text.secondary',
-                fontWeight: isActive(item.path) ? 700 : 500,
-                fontSize: '0.9375rem',
-                px: 2.5,
-                py: 1,
-                position: 'relative',
-                // Show underline for active link
-                ...(isActive(item.path) && {
-                  '&::after': {
-                    content: '""',
-                    position: 'absolute',
-                    bottom: 0,
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    width: '60%',
-                    height: 2,
-                    backgroundColor: 'primary.main',
-                    borderRadius: '2px 2px 0 0',
+        {/* Navigation links and theme toggle */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          {/* Navigation links */}
+          <Box sx={{ display: 'flex', gap: 0.5 }}>
+            {navItems.map(item => (
+              <Button
+                key={item.path}
+                component={RouterLink}
+                to={item.path}
+                sx={{
+                  color: isActive(item.path) ? 'primary.main' : 'text.secondary',
+                  fontWeight: isActive(item.path) ? 700 : 500,
+                  fontSize: '0.9375rem',
+                  px: 2.5,
+                  py: 1,
+                  position: 'relative',
+                  // Show underline for active link
+                  ...(isActive(item.path) && {
+                    '&::after': {
+                      content: '""',
+                      position: 'absolute',
+                      bottom: 0,
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      width: '60%',
+                      height: 2,
+                      backgroundColor: 'primary.main',
+                      borderRadius: '2px 2px 0 0',
+                    },
+                  }),
+                  '&:hover': {
+                    backgroundColor: 'action.hover',
+                    color: isActive(item.path) ? 'primary.main' : 'text.primary',
                   },
-                }),
+                }}
+              >
+                {item.label}
+              </Button>
+            ))}
+          </Box>
+
+          {/* Theme toggle button */}
+          <Tooltip title={mode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
+            <IconButton
+              onClick={toggleColorMode}
+              sx={{
+                color: 'text.secondary',
                 '&:hover': {
-                  backgroundColor: 'rgba(255, 255, 255, 0.04)',
-                  color: isActive(item.path) ? 'primary.main' : 'text.primary',
+                  backgroundColor: 'action.hover',
+                  color: 'primary.main',
                 },
+                transition: 'all 0.2s ease-in-out',
               }}
+              aria-label="toggle theme"
             >
-              {item.label}
-            </Button>
-          ))}
+              {mode === 'dark' ? <LightMode /> : <DarkMode />}
+            </IconButton>
+          </Tooltip>
         </Box>
       </Toolbar>
     </AppBar>

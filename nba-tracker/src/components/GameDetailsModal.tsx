@@ -49,18 +49,25 @@ const GameDetailsModal = ({ gameId, open, onClose }: GameDetailsModalProps) => {
   useEffect(() => {
     if (!gameId) return;
 
-    const fetchDetails = async () => {
-      setLoading(true);
-      try {
-        const res = await fetch(`${API_BASE_URL}/api/v1/scoreboard/game/${gameId}/boxscore`);
-        const boxRes = await res.json();
-        setBoxScore(boxRes);
-      } catch (err) {
-        logger.error('Failed to fetch game details', err);
-      } finally {
-        setLoading(false);
-      }
-    };
+      const fetchDetails = async () => {
+        setLoading(true);
+        try {
+          const res = await fetch(`${API_BASE_URL}/api/v1/scoreboard/game/${gameId}/boxscore`);
+          if (!res.ok) {
+            // If API returns error, still try to show empty boxscore structure
+            logger.warn(`Boxscore API returned ${res.status} for game ${gameId}`);
+            setBoxScore(null);
+          } else {
+            const boxRes = await res.json();
+            setBoxScore(boxRes);
+          }
+        } catch (err) {
+          logger.error('Failed to fetch game details', err);
+          setBoxScore(null);
+        } finally {
+          setLoading(false);
+        }
+      };
 
     fetchDetails();
   }, [gameId]);
@@ -128,21 +135,29 @@ const GameDetailsModal = ({ gameId, open, onClose }: GameDetailsModalProps) => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {team.players.map((p: PlayerBoxScoreStats, idx) => (
-                <TableRow key={idx} sx={{ '&:hover': { backgroundColor: 'action.hover' } }}>
-                  <TableCell>{p.name}</TableCell>
-                  <TableCell align="center">
-                    {/* Convert minutes from "PT10M30S" format to "10:30" */}
-                    {p.minutes?.replace('PT', '').replace('M', ':00') || '0:00'}
+              {team.players.length > 0 ? (
+                team.players.map((p: PlayerBoxScoreStats, idx) => (
+                  <TableRow key={idx} sx={{ '&:hover': { backgroundColor: 'action.hover' } }}>
+                    <TableCell>{p.name}</TableCell>
+                    <TableCell align="center">
+                      {/* Convert minutes from "PT10M30S" format to "10:30" */}
+                      {p.minutes?.replace('PT', '').replace('M', ':00') || '0:00'}
+                    </TableCell>
+                    <TableCell align="center">{p.points}</TableCell>
+                    <TableCell align="center">{p.rebounds}</TableCell>
+                    <TableCell align="center">{p.assists}</TableCell>
+                    <TableCell align="center">{p.steals}</TableCell>
+                    <TableCell align="center">{p.blocks}</TableCell>
+                    <TableCell align="center">{p.turnovers}</TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={8} align="center" sx={{ py: 4, color: 'text.secondary' }}>
+                    No player stats available. Game may not have started yet.
                   </TableCell>
-                  <TableCell align="center">{p.points}</TableCell>
-                  <TableCell align="center">{p.rebounds}</TableCell>
-                  <TableCell align="center">{p.assists}</TableCell>
-                  <TableCell align="center">{p.steals}</TableCell>
-                  <TableCell align="center">{p.blocks}</TableCell>
-                  <TableCell align="center">{p.turnovers}</TableCell>
                 </TableRow>
-              ))}
+              )}
             </TableBody>
           </Table>
         </TableContainer>
