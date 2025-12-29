@@ -14,8 +14,11 @@ import {
   CircularProgress,
   Link as MuiLink,
   Chip,
+  ToggleButton,
+  ToggleButtonGroup,
+  Divider,
 } from '@mui/material';
-import { Search, Close, Event } from '@mui/icons-material';
+import { Search, Close, Event, Sports, TrendingUp, Whatshot, Schedule } from '@mui/icons-material';
 import { ScoreboardResponse, Game } from '../types/scoreboard';
 import { GamesResponse, GameSummary } from '../types/schedule';
 import WebSocketService from '../services/websocketService';
@@ -91,6 +94,8 @@ const Scoreboard = () => {
   const [searchInput, setSearchInput] = useState('');
   // Whether to show the search results dropdown
   const [showSearchResults, setShowSearchResults] = useState(false);
+  // Filter type for games
+  const [gameFilter, setGameFilter] = useState<'all' | 'close' | 'blowout' | 'overtime'>('all');
 
   // Reference to the search container (to detect clicks outside)
   const searchContainerRef = useRef<HTMLDivElement>(null);
@@ -264,6 +269,95 @@ const Scoreboard = () => {
 
   const today = getLocalISODate();
   const isToday = selectedDate === today;
+
+  /**
+   * Calculate game statistics from the current games list.
+   */
+  const gameStats = useMemo(() => {
+    const allGamesWithScores = games.filter(game => {
+      const isLiveGame = 'homeTeam' in game;
+      const homeScore = isLiveGame ? game.homeTeam?.score ?? 0 : game.home_team?.points ?? 0;
+      const awayScore = isLiveGame ? game.awayTeam?.score ?? 0 : game.away_team?.points ?? 0;
+      return homeScore > 0 || awayScore > 0;
+    });
+
+    const totalGames = games.length;
+    const gamesInProgress = liveGames.length;
+    
+    // Calculate average score
+    let totalScore = 0;
+    let gamesWithScores = 0;
+    allGamesWithScores.forEach(game => {
+      const isLiveGame = 'homeTeam' in game;
+      const homeScore = isLiveGame ? game.homeTeam?.score ?? 0 : game.home_team?.points ?? 0;
+      const awayScore = isLiveGame ? game.awayTeam?.score ?? 0 : game.away_team?.points ?? 0;
+      if (homeScore > 0 || awayScore > 0) {
+        totalScore += homeScore + awayScore;
+        gamesWithScores++;
+      }
+    });
+    const averageScore = gamesWithScores > 0 ? Math.round(totalScore / gamesWithScores) : 0;
+
+    // Find closest game (smallest score differential)
+    let closestGame: { game: Game | GameSummary; differential: number } | null = null;
+    allGamesWithScores.forEach(game => {
+      const isLiveGame = 'homeTeam' in game;
+      const homeScore = isLiveGame ? game.homeTeam?.score ?? 0 : game.home_team?.points ?? 0;
+      const awayScore = isLiveGame ? game.awayTeam?.score ?? 0 : game.away_team?.points ?? 0;
+      const differential = Math.abs(homeScore - awayScore);
+      if (!closestGame || differential < closestGame.differential) {
+        closestGame = { game, differential };
+      }
+    });
+
+    return {
+      totalGames,
+      gamesInProgress,
+      averageScore,
+      closestGame: closestGame?.game || null,
+      closestDifferential: closestGame?.differential || null,
+    };
+  }, [games, liveGames]);
+
+  /**
+   * Apply game filter to the game lists.
+   */
+  const applyGameFilter = useCallback(
+    (gameList: (Game | GameSummary)[]): (Game | GameSummary)[] => {
+      if (gameFilter === 'all') return gameList;
+
+      return gameList.filter(game => {
+        const isLiveGame = 'homeTeam' in game;
+        const homeScore = isLiveGame ? game.homeTeam?.score ?? 0 : game.home_team?.points ?? 0;
+        const awayScore = isLiveGame ? game.awayTeam?.score ?? 0 : game.away_team?.points ?? 0;
+        const differential = Math.abs(homeScore - awayScore);
+        const status = isLiveGame ? game.gameStatusText : game.game_status || '';
+
+        switch (gameFilter) {
+          case 'close':
+            return differential <= 10 && (homeScore > 0 || awayScore > 0);
+          case 'blowout':
+            return differential >= 20 && (homeScore > 0 || awayScore > 0);
+          case 'overtime':
+            return status.toLowerCase().includes('ot') || status.toLowerCase().includes('overtime');
+          default:
+            return true;
+        }
+      });
+    },
+    [gameFilter],
+  );
+
+  // Apply filters to game lists
+  const filteredLiveGames = useMemo(() => applyGameFilter(liveGames), [liveGames, applyGameFilter]);
+  const filteredUpcomingGames = useMemo(
+    () => applyGameFilter(upcomingGames),
+    [upcomingGames, applyGameFilter],
+  );
+  const filteredCompletedGames = useMemo(
+    () => applyGameFilter(completedGames),
+    [completedGames, applyGameFilter],
+  );
 
   /**
    * Helper function to render a section of games (live, upcoming, or completed).
@@ -457,24 +551,143 @@ const Scoreboard = () => {
           </Box>
         </Box>
 
+        {/* Game Statistics Summary Bar */}
+        {games.length > 0 && isToday && (
+          <Paper
+            elevation={0}
+            sx={{
+              p: 3,
+              mb: 4,
+              backgroundColor: 'background.paper',
+              border: '1px solid',
+              borderColor: 'divider',
+              borderRadius: 2,
+            }}
+          >
+            <Box
+              sx={{
+                display: 'flex',
+                flexDirection: { xs: 'column', sm: 'row' },
+                gap: { xs: 2, sm: 4 },
+                alignItems: { xs: 'flex-start', sm: 'center' },
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+              }}
+            >
+              {/* Stats */}
+              <Box
+                sx={{
+                  display: 'flex',
+                  gap: { xs: 2, sm: 4 },
+                  flexWrap: 'wrap',
+                  alignItems: 'center',
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Sports sx={{ color: 'text.secondary', fontSize: 20 }} />
+                  <Box>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
+                      Total Games
+                    </Typography>
+                    <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                      {gameStats.totalGames}
+                    </Typography>
+                  </Box>
+                </Box>
+                <Divider orientation="vertical" flexItem sx={{ display: { xs: 'none', sm: 'block' } }} />
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <TrendingUp sx={{ color: 'error.main', fontSize: 20 }} />
+                  <Box>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
+                      In Progress
+                    </Typography>
+                    <Typography variant="h6" sx={{ fontWeight: 700, color: 'error.main' }}>
+                      {gameStats.gamesInProgress}
+                    </Typography>
+                  </Box>
+                </Box>
+                <Divider orientation="vertical" flexItem sx={{ display: { xs: 'none', sm: 'block' } }} />
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Whatshot sx={{ color: 'primary.main', fontSize: 20 }} />
+                  <Box>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
+                      Avg Score
+                    </Typography>
+                    <Typography variant="h6" sx={{ fontWeight: 700, color: 'primary.main' }}>
+                      {gameStats.averageScore}
+                    </Typography>
+                  </Box>
+                </Box>
+                {gameStats.closestGame && gameStats.closestDifferential !== null && (
+                  <>
+                    <Divider orientation="vertical" flexItem sx={{ display: { xs: 'none', sm: 'block' } }} />
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Schedule sx={{ color: 'text.secondary', fontSize: 20 }} />
+                      <Box>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
+                          Closest Game
+                        </Typography>
+                        <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                          {gameStats.closestDifferential} pts
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </>
+                )}
+              </Box>
+
+              {/* Filter Buttons */}
+              <ToggleButtonGroup
+                value={gameFilter}
+                exclusive
+                onChange={(_, newValue) => newValue && setGameFilter(newValue)}
+                size="small"
+                sx={{
+                  '& .MuiToggleButton-root': {
+                    px: 2,
+                    py: 0.75,
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    borderColor: 'divider',
+                    color: 'text.secondary',
+                    '&.Mui-selected': {
+                      backgroundColor: 'primary.main',
+                      color: 'primary.contrastText',
+                      borderColor: 'primary.main',
+                      '&:hover': {
+                        backgroundColor: 'primary.dark',
+                      },
+                    },
+                  },
+                }}
+              >
+                <ToggleButton value="all">All Games</ToggleButton>
+                <ToggleButton value="close">Close (≤10)</ToggleButton>
+                <ToggleButton value="blowout">Blowout (≥20)</ToggleButton>
+                <ToggleButton value="overtime">Overtime</ToggleButton>
+              </ToggleButtonGroup>
+            </Box>
+          </Paper>
+        )}
+
         {/* Games Display */}
         {loading && !searchInput && games.length === 0 ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 10 }}>
             <CircularProgress size={60} />
           </Box>
         ) : isToday ? (
-          // If viewing today, show all three categories
+          // If viewing today, show all three categories with filters applied
           <Box>
-            {renderGameSection('Live Games', liveGames)}
-            {renderGameSection('Upcoming Games', upcomingGames)}
-            {renderGameSection('Completed Games', completedGames)}
+            {renderGameSection('Live Games', filteredLiveGames)}
+            {renderGameSection('Upcoming Games', filteredUpcomingGames)}
+            {renderGameSection('Completed Games', filteredCompletedGames)}
           </Box>
         ) : (
-          // If viewing past or future date, show appropriate category
+          // If viewing past or future date, show appropriate category with filters applied
           <Box>
             {selectedDate < today
-              ? renderGameSection('Completed Games', completedGames)
-              : renderGameSection('Future Games', upcomingGames, true)}
+              ? renderGameSection('Completed Games', filteredCompletedGames)
+              : renderGameSection('Future Games', filteredUpcomingGames, true)}
           </Box>
         )}
 
