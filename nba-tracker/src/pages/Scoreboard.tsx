@@ -18,7 +18,7 @@ import {
   ToggleButtonGroup,
   Divider,
 } from '@mui/material';
-import { Search, Close, Event, Sports, TrendingUp, Whatshot, Schedule } from '@mui/icons-material';
+import { Search, Close, Event, Sports, TrendingUp, Schedule } from '@mui/icons-material';
 import { ScoreboardResponse, Game } from '../types/scoreboard';
 import { GamesResponse, GameSummary } from '../types/schedule';
 import WebSocketService from '../services/websocketService';
@@ -282,42 +282,48 @@ const Scoreboard = () => {
     });
 
     const totalGames = games.length;
-    const gamesInProgress = liveGames.length;
-    
-    // Calculate average score
-    let totalScore = 0;
-    let gamesWithScores = 0;
-    allGamesWithScores.forEach(game => {
+    // Only count games that are actually live (started and in progress, not just scheduled)
+    const gamesInProgress = games.filter(game => {
+      const status = 'homeTeam' in game ? game.gameStatusText : game.game_status || '';
+      const statusLower = status.toLowerCase();
+      
+      // Game must be explicitly marked as LIVE or in a quarter/OT
+      const isLive = statusLower.includes('live') || 
+                     (statusLower.match(/\b[1-4]q\b/) && !statusLower.includes('final')) ||
+                     (statusLower.includes('ot') && !statusLower.includes('final'));
+      
+      // Also check if game has scores (meaning it has actually started)
       const isLiveGame = 'homeTeam' in game;
       const homeScore = isLiveGame ? game.homeTeam?.score ?? 0 : game.home_team?.points ?? 0;
       const awayScore = isLiveGame ? game.awayTeam?.score ?? 0 : game.away_team?.points ?? 0;
-      if (homeScore > 0 || awayScore > 0) {
-        totalScore += homeScore + awayScore;
-        gamesWithScores++;
-      }
-    });
-    const averageScore = gamesWithScores > 0 ? Math.round(totalScore / gamesWithScores) : 0;
+      const hasStarted = homeScore > 0 || awayScore > 0;
+      
+      // Must be live AND have started (not just scheduled)
+      return isLive && hasStarted;
+    }).length;
 
     // Find closest game (smallest score differential)
-    let closestGame: { game: Game | GameSummary; differential: number } | null = null;
+    let closestGame: Game | GameSummary | null = null;
+    let closestDifferential: number | null = null;
+    
     allGamesWithScores.forEach(game => {
       const isLiveGame = 'homeTeam' in game;
       const homeScore = isLiveGame ? game.homeTeam?.score ?? 0 : game.home_team?.points ?? 0;
       const awayScore = isLiveGame ? game.awayTeam?.score ?? 0 : game.away_team?.points ?? 0;
       const differential = Math.abs(homeScore - awayScore);
-      if (!closestGame || differential < closestGame.differential) {
-        closestGame = { game, differential };
+      if (closestDifferential === null || differential < closestDifferential) {
+        closestGame = game;
+        closestDifferential = differential;
       }
     });
 
     return {
       totalGames,
       gamesInProgress,
-      averageScore,
-      closestGame: closestGame?.game || null,
-      closestDifferential: closestGame?.differential || null,
+      closestGame,
+      closestDifferential,
     };
-  }, [games, liveGames]);
+  }, [games]);
 
   /**
    * Apply game filter to the game lists.
@@ -603,18 +609,6 @@ const Scoreboard = () => {
                     </Typography>
                     <Typography variant="h6" sx={{ fontWeight: 700, color: 'error.main' }}>
                       {gameStats.gamesInProgress}
-                    </Typography>
-                  </Box>
-                </Box>
-                <Divider orientation="vertical" flexItem sx={{ display: { xs: 'none', sm: 'block' } }} />
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Whatshot sx={{ color: 'primary.main', fontSize: 20 }} />
-                  <Box>
-                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
-                      Avg Score
-                    </Typography>
-                    <Typography variant="h6" sx={{ fontWeight: 700, color: 'primary.main' }}>
-                      {gameStats.averageScore}
                     </Typography>
                   </Box>
                 </Box>
