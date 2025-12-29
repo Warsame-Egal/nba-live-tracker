@@ -119,16 +119,6 @@ const GameCard: React.FC<GameCardProps> = ({ game, hideScore = false, onClick })
     return 'text.secondary';
   };
 
-  // Determine border color based on team colors and game status
-  const getBorderColor = () => {
-    if (isLive) return 'error.main';
-    if (homeTeamColor && awayTeamColor) {
-      // Use gradient for team colors
-      return `linear-gradient(90deg, ${homeTeamColor} 0%, ${awayTeamColor} 100%)`;
-    }
-    return 'divider';
-  };
-
   return (
     <Card
       onClick={onClick}
@@ -287,10 +277,10 @@ const GameCard: React.FC<GameCardProps> = ({ game, hideScore = false, onClick })
           }}
         >
           {gameLeaders.awayLeaders && (
-            <LeaderPreview leader={gameLeaders.awayLeaders} teamTricode={awayTeam} />
+            <LeaderPreview leader={gameLeaders.awayLeaders} />
           )}
           {gameLeaders.homeLeaders && (
-            <LeaderPreview leader={gameLeaders.homeLeaders} teamTricode={homeTeam} />
+            <LeaderPreview leader={gameLeaders.homeLeaders} />
           )}
         </Box>
       )}
@@ -480,10 +470,9 @@ interface LeaderPreviewProps {
     rebounds: number;
     assists: number;
   };
-  teamTricode?: string | null;
 }
 
-const LeaderPreview: React.FC<LeaderPreviewProps> = ({ leader, teamTricode }) => {
+const LeaderPreview: React.FC<LeaderPreviewProps> = ({ leader }) => {
   const avatarUrl = `https://cdn.nba.com/headshots/nba/latest/1040x760/${leader.personId}.png`;
   const navigate = useNavigate();
 
