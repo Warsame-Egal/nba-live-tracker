@@ -18,13 +18,14 @@ interface GameCardProps {
   game: Game | GameSummary;
   hideScore?: boolean;
   onClick?: () => void;
+  isRecentlyUpdated?: boolean;
 }
 
 /**
  * Component that displays a single game card with enhanced visuals.
  * Shows team names, scores, game status, leaders, and additional game information.
  */
-const GameCard: React.FC<GameCardProps> = ({ game, hideScore = false, onClick }) => {
+const GameCard: React.FC<GameCardProps> = ({ game, hideScore = false, onClick, isRecentlyUpdated = false }) => {
   // Check if this is a live game (has homeTeam) or a scheduled game (has home_team)
   const isLiveGame = 'homeTeam' in game;
 
@@ -139,6 +140,13 @@ const GameCard: React.FC<GameCardProps> = ({ game, hideScore = false, onClick })
           : '0 2px 8px rgba(0, 0, 0, 0.1)',
         position: 'relative',
         overflow: 'hidden',
+        // Animation for recently updated games
+        ...(isRecentlyUpdated && {
+          animation: 'scoreUpdateFlash 0.6s ease-out',
+          boxShadow: isLive
+            ? '0 4px 20px rgba(25, 118, 210, 0.3), 0 0 0 2px rgba(25, 118, 210, 0.2)'
+            : '0 2px 8px rgba(0, 0, 0, 0.1), 0 0 0 2px rgba(25, 118, 210, 0.2)',
+        }),
         '&::before': isLive
           ? {
               content: '""',
@@ -163,6 +171,20 @@ const GameCard: React.FC<GameCardProps> = ({ game, hideScore = false, onClick })
         '@keyframes pulse': {
           '0%, 100%': { opacity: 0.5 },
           '50%': { opacity: 1 },
+        },
+        '@keyframes scoreUpdateFlash': {
+          '0%': {
+            backgroundColor: 'background.paper',
+            transform: 'scale(1)',
+          },
+          '50%': {
+            backgroundColor: 'rgba(25, 118, 210, 0.08)',
+            transform: 'scale(1.02)',
+          },
+          '100%': {
+            backgroundColor: 'background.paper',
+            transform: 'scale(1)',
+          },
         },
       }}
     >
@@ -242,6 +264,7 @@ const GameCard: React.FC<GameCardProps> = ({ game, hideScore = false, onClick })
           hideScore={hideScore}
           isLive={isLive}
           leader={gameLeaders?.awayLeaders}
+          isScoreUpdated={isRecentlyUpdated}
         />
         <Box
           sx={{
@@ -260,6 +283,7 @@ const GameCard: React.FC<GameCardProps> = ({ game, hideScore = false, onClick })
           hideScore={hideScore}
           isLive={isLive}
           leader={gameLeaders?.homeLeaders}
+          isScoreUpdated={isRecentlyUpdated}
         />
       </Box>
 
@@ -324,6 +348,7 @@ interface TeamRowProps {
   hideScore?: boolean;
   isLive?: boolean;
   leader?: { personId: number; name: string; points: number; rebounds: number; assists: number } | null;
+  isScoreUpdated?: boolean;
 }
 
 /**
@@ -338,6 +363,7 @@ const TeamRow: React.FC<TeamRowProps> = ({
   hideScore = false,
   isLive = false,
   leader,
+  isScoreUpdated = false,
 }) => {
   // Get the team logo path
   const logoSrc = teamLogos[tricode || 'NBA'] || teamLogos['NBA'];
@@ -441,6 +467,7 @@ const TeamRow: React.FC<TeamRowProps> = ({
       {!hideScore && (
         <Typography
           variant="h4"
+          key={score}
           sx={{
             fontWeight: 800,
             fontSize: { xs: '2rem', sm: '2.5rem' },
@@ -450,6 +477,24 @@ const TeamRow: React.FC<TeamRowProps> = ({
             letterSpacing: '-0.02em',
             textShadow: isWinner && isLive ? '0 0 8px rgba(25, 118, 210, 0.3)' : 'none',
             transition: 'all 0.2s ease-in-out',
+            ...(isScoreUpdated && {
+              animation: 'scorePulse 0.5s ease-out',
+            }),
+            '@keyframes scorePulse': {
+              '0%': {
+                transform: 'scale(1)',
+                color: isWinner ? 'primary.main' : 'text.primary',
+              },
+              '50%': {
+                transform: 'scale(1.15)',
+                color: 'primary.main',
+                textShadow: '0 0 12px rgba(25, 118, 210, 0.5)',
+              },
+              '100%': {
+                transform: 'scale(1)',
+                color: isWinner ? 'primary.main' : 'text.primary',
+              },
+            },
           }}
         >
           {score}

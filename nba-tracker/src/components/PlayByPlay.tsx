@@ -10,6 +10,7 @@ import {
   Box,
   Typography,
 } from '@mui/material';
+import { Sports } from '@mui/icons-material';
 import PlayByPlayWebSocketService from '../services/PlayByPlayWebSocketService';
 import { PlayByPlayResponse, PlayByPlayEvent } from '../types/playbyplay';
 
@@ -39,11 +40,12 @@ const PlayByPlay = ({ gameId }: { gameId: string }) => {
     // This function gets called whenever new play-by-play data arrives
     const handleUpdate = (data: PlayByPlayResponse) => {
       setHasLoadedOnce(true);
-      if (data?.plays?.length > 0) {
+      if (data?.plays && data.plays.length > 0) {
         // Sort plays by action number and reverse so newest is at top
         const sorted = [...data.plays].sort((a, b) => a.action_number - b.action_number);
         setActions(sorted.reverse());
       } else {
+        // Empty plays array - game hasn't started or no data available
         setActions([]);
       }
     };
@@ -62,9 +64,48 @@ const PlayByPlay = ({ gameId }: { gameId: string }) => {
   // Show message if no data available (but only after we've tried to load)
   if (!actions.length && hasLoadedOnce) {
     return (
-      <Box sx={{ textAlign: 'center', py: 6 }}>
-        <Typography variant="body1" color="text.secondary">
-          No play-by-play data available.
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          py: { xs: 6, sm: 8 },
+          px: 3,
+        }}
+      >
+        <Box
+          sx={{
+            position: 'relative',
+            mb: 3,
+            animation: 'pulse 2s ease-in-out infinite',
+            '@keyframes pulse': {
+              '0%, 100%': { opacity: 0.4 },
+              '50%': { opacity: 0.8 },
+            },
+          }}
+        >
+          <Sports
+            sx={{
+              fontSize: 80,
+              color: 'text.disabled',
+              opacity: 0.3,
+            }}
+          />
+        </Box>
+        <Typography
+          variant="h6"
+          sx={{
+            fontWeight: 600,
+            mb: 1,
+            textAlign: 'center',
+            color: 'text.primary',
+          }}
+        >
+          No Play-by-Play Data
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', maxWidth: 400 }}>
+          Play-by-play data is not available for this game. Game may not have started yet.
         </Typography>
       </Box>
     );

@@ -18,6 +18,7 @@ import {
   ToggleButtonGroup,
 } from '@mui/material';
 import { StandingRecord, StandingsResponse } from '../types/standings';
+import { Sports } from '@mui/icons-material';
 import Navbar from '../components/Navbar';
 
 // Base URL for API calls
@@ -194,9 +195,59 @@ const Standings = () => {
         )}
         {/* Empty state */}
         {!loading && !error && filteredStandings.length === 0 && (
-          <Typography variant="body1" color="text.secondary" textAlign="center">
-            No standings data available.
-          </Typography>
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              py: { xs: 8, sm: 12 },
+              px: 3,
+              minHeight: '40vh',
+            }}
+          >
+            <Box
+              sx={{
+                position: 'relative',
+                mb: 4,
+                animation: 'float 3s ease-in-out infinite',
+                '@keyframes float': {
+                  '0%, 100%': { transform: 'translateY(0px)' },
+                  '50%': { transform: 'translateY(-10px)' },
+                },
+              }}
+            >
+              <Sports
+                sx={{
+                  fontSize: { xs: 100, sm: 120 },
+                  color: 'primary.main',
+                  opacity: 0.3,
+                }}
+              />
+            </Box>
+            <Typography
+              variant="h5"
+              sx={{
+                fontWeight: 700,
+                mb: 1,
+                textAlign: 'center',
+                color: 'text.primary',
+              }}
+            >
+              No Standings Data Available
+            </Typography>
+            <Typography
+              variant="body1"
+              color="text.secondary"
+              sx={{
+                textAlign: 'center',
+                maxWidth: 500,
+                lineHeight: 1.6,
+              }}
+            >
+              Unable to load standings data for the selected season. Please try again later or select a different season.
+            </Typography>
+          </Box>
         )}
 
         {/* Standings table */}
