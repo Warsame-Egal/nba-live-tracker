@@ -126,11 +126,11 @@ async def search_players(search_term: str) -> List[PlayerSummary]:
     """
 
     try:
-            # Get all players from NBA API
-            proxy_kwargs = get_proxy_kwargs()
-            player_index_data = await asyncio.to_thread(
-                lambda: playerindex.PlayerIndex(historical_nullable=HistoricalNullable.all_time, **proxy_kwargs)
-            )
+        # Get all players from NBA API
+        proxy_kwargs = get_proxy_kwargs()
+        player_index_data = await asyncio.to_thread(
+            lambda: playerindex.PlayerIndex(historical_nullable=HistoricalNullable.all_time, **proxy_kwargs)
+        )
         player_index_df = player_index_data.get_data_frames()[0]
 
         # Search for players whose name matches (case-insensitive)
