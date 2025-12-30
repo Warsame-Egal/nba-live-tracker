@@ -8,6 +8,8 @@ import { logger } from '../utils/logger';
 class WebSocketService {
   // The WebSocket connection
   private socket: WebSocket | null = null;
+  // The WebSocket URL (stored for reconnection)
+  private url: string | null = null;
   // List of functions to call when we get new score updates
   private listeners: Set<(data: ScoreboardResponse) => void> = new Set();
   // Whether to automatically reconnect if connection is lost
@@ -19,10 +21,19 @@ class WebSocketService {
    * @param url - The WebSocket URL to connect to
    */
   connect(url: string) {
-    // Don't connect if we're already connected
-    if (this.socket) return;
+    // Don't connect if we're already connected and the socket is open
+    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+      return;
+    }
+
+    // Clean up existing connection if it exists but is not open
+    if (this.socket) {
+      this.socket.close();
+      this.socket = null;
+    }
 
     this.shouldReconnect = true;
+    this.url = url; // Store URL for reconnection
     this.socket = new WebSocket(url);
 
     // When connection opens successfully
@@ -47,13 +58,20 @@ class WebSocketService {
     };
 
     // When the connection closes
-    this.socket.onclose = () => {
-      logger.info('WebSocket disconnected');
+    this.socket.onclose = (event) => {
+      logger.info(`WebSocket disconnected (code: ${event.code}, reason: ${event.reason || 'none'})`);
+      
+      // Clear the socket reference
+      this.socket = null;
 
-      // Try to reconnect after 5 seconds if we should reconnect
-      if (this.shouldReconnect) {
+      // Try to reconnect after 5 seconds if we should reconnect and have a URL
+      if (this.shouldReconnect && this.url) {
         logger.info('Reconnecting in 5 seconds...');
-        setTimeout(() => this.connect(url), 5000);
+        setTimeout(() => {
+          if (this.shouldReconnect && this.url) {
+            this.connect(this.url);
+          }
+        }, 5000);
       }
     };
   }
@@ -87,6 +105,7 @@ class WebSocketService {
       this.socket.close();
       this.socket = null;
     }
+    this.url = null; // Clear stored URL
   }
 }
 

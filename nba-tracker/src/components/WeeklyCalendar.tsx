@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { format, addDays, subDays, startOfWeek, isSameDay } from 'date-fns';
 import { Box, Button, Typography, Grid, Paper } from '@mui/material';
 import { ChevronLeft, ChevronRight } from '@mui/icons-material';
+import { responsiveSpacing, borderRadius, transitions, typography, shadows } from '../theme/designTokens';
 
 interface WeeklyCalendarProps {
   selectedDate: string;
@@ -38,30 +39,41 @@ const WeeklyCalendar = ({ selectedDate, setSelectedDate }: WeeklyCalendarProps) 
   const handleNextWeek = () => setCurrentWeekStart(addDays(currentWeekStart, 7));
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%', maxWidth: { xs: '100%', sm: 500 } }}>
       {/* Week navigation buttons and month/year display */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: responsiveSpacing.elementCompact }}>
         <Button
           onClick={handlePrevWeek}
           variant="outlined"
           size="small"
           sx={{
-            minWidth: 40,
-            height: 40,
-            borderRadius: '50%',
+            minWidth: { xs: 32, sm: 36 },
+            height: { xs: 32, sm: 36 },
+            borderRadius: borderRadius.full,
             borderColor: 'divider',
-            color: 'text.primary',
+            color: 'text.secondary',
+            transition: transitions.normal,
+            p: 0,
             '&:hover': {
               borderColor: 'primary.main',
               backgroundColor: 'action.hover',
+              color: 'primary.main',
+              transform: 'scale(1.1)',
             },
           }}
         >
           <ChevronLeft fontSize="small" />
         </Button>
 
-        <Typography variant="h6" sx={{ fontWeight: 600, minWidth: 150, textAlign: 'center' }}>
-          {format(currentWeekStart, 'MMMM yyyy')}
+        <Typography
+          variant="body1"
+          sx={{
+            fontWeight: typography.weight.semibold,
+            fontSize: typography.size.body,
+            color: 'text.primary',
+          }}
+        >
+          {format(currentWeekStart, 'MMM yyyy')}
         </Typography>
 
         <Button
@@ -69,14 +81,18 @@ const WeeklyCalendar = ({ selectedDate, setSelectedDate }: WeeklyCalendarProps) 
           variant="outlined"
           size="small"
           sx={{
-            minWidth: 40,
-            height: 40,
-            borderRadius: '50%',
+            minWidth: { xs: 32, sm: 36 },
+            height: { xs: 32, sm: 36 },
+            borderRadius: borderRadius.full,
             borderColor: 'divider',
-            color: 'text.primary',
+            color: 'text.secondary',
+            transition: transitions.normal,
+            p: 0,
             '&:hover': {
               borderColor: 'primary.main',
               backgroundColor: 'action.hover',
+              color: 'primary.main',
+              transform: 'scale(1.1)',
             },
           }}
         >
@@ -88,15 +104,20 @@ const WeeklyCalendar = ({ selectedDate, setSelectedDate }: WeeklyCalendarProps) 
       <Paper
         elevation={0}
         sx={{
-          p: 2,
+          p: responsiveSpacing.elementCompact,
           width: '100%',
-          maxWidth: 600,
           backgroundColor: 'background.paper',
           border: '1px solid',
           borderColor: 'divider',
+          borderRadius: borderRadius.sm,
+          transition: transitions.normal,
+          '&:hover': {
+            borderColor: 'primary.light',
+            boxShadow: shadows.sm,
+          },
         }}
       >
-        <Grid container spacing={1}>
+        <Grid container spacing={0.5}>
           {Array.from({ length: 7 }).map((_, i) => {
             // Calculate the date for this day
             const day = addDays(currentWeekStart, i);
@@ -113,22 +134,58 @@ const WeeklyCalendar = ({ selectedDate, setSelectedDate }: WeeklyCalendarProps) 
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
-                    p: 1.5,
-                    borderRadius: 2,
+                    gap: 0.25,
+                    p: { xs: 0.75, sm: 1 },
+                    minHeight: { xs: 56, sm: 64 },
+                    borderRadius: borderRadius.sm,
                     backgroundColor: isSelected ? 'primary.main' : 'transparent',
-                    color: isToday ? 'primary.light' : isSelected ? 'primary.contrastText' : 'text.secondary',
-                    fontWeight: isSelected ? 600 : 400,
+                    color: isToday && !isSelected ? 'primary.main' : isSelected ? 'primary.contrastText' : 'text.secondary',
+                    fontWeight: isSelected ? typography.weight.bold : isToday ? typography.weight.semibold : typography.weight.regular,
+                    transition: transitions.smooth,
+                    position: 'relative',
+                    '&::before': isToday && !isSelected
+                      ? {
+                          content: '""',
+                          position: 'absolute',
+                          top: 6,
+                          right: 6,
+                          width: 5,
+                          height: 5,
+                          borderRadius: borderRadius.full,
+                          backgroundColor: 'primary.main',
+                        }
+                      : {},
                     '&:hover': {
                       backgroundColor: isSelected ? 'primary.dark' : 'action.hover',
+                      transform: 'translateY(-2px)',
+                      boxShadow: isSelected ? shadows.primary.md : shadows.sm,
+                    },
+                    '&:active': {
+                      transform: 'translateY(0)',
                     },
                   }}
                 >
                   {/* Day of week abbreviation (Mon, Tue, etc.) */}
-                  <Typography variant="caption" sx={{ fontSize: '0.75rem' }}>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      fontSize: typography.size.captionSmall,
+                      textTransform: 'uppercase',
+                      letterSpacing: typography.letterSpacing.wider,
+                      opacity: isSelected ? 1 : 0.6,
+                      fontWeight: typography.weight.semibold,
+                    }}
+                  >
                     {format(day, 'EEE')}
                   </Typography>
                   {/* Day number */}
-                  <Typography variant="h6" sx={{ fontSize: '1.125rem', fontWeight: 'inherit' }}>
+                  <Typography
+                    variant="body1"
+                    sx={{
+                      fontSize: { xs: '0.9375rem', sm: '1rem' },
+                      fontWeight: 'inherit',
+                    }}
+                  >
                     {format(day, 'd')}
                   </Typography>
                 </Button>

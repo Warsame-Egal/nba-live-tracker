@@ -61,13 +61,23 @@ class ScoreboardWebSocketManager:
             websocket: The WebSocket connection to send data to
         """
         try:
+            # Check if connection is still active
+            if websocket not in self.active_connections:
+                logger.debug("Client disconnected before initial scoreboard could be sent")
+                return
+            
             # Get the latest scores from the NBA API
             current_games = await getScoreboard()
             games_data = current_games.model_dump()
             logger.debug(f"Sending initial scoreboard data to new client")
             await websocket.send_json(games_data)
         except Exception as e:
-            logger.error(f"Error sending initial scoreboard data: {e}")
+            # This is usually harmless - client may have disconnected quickly
+            # Log as warning instead of error since it's expected behavior
+            error_msg = str(e) if str(e) else type(e).__name__
+            logger.warning(f"Could not send initial scoreboard data (client may have disconnected): {error_msg}")
+            # Clean up the connection if it's still in our set
+            self.active_connections.discard(websocket)
 
     def has_game_data_changed(self, new_data: List[Dict], old_data: List[Dict]) -> bool:
         """
@@ -243,6 +253,11 @@ class PlayByPlayWebSocketManager:
             game_id: The game they want to watch
         """
         try:
+            # Check if connection is still active
+            if game_id not in self.active_connections or websocket not in self.active_connections[game_id]:
+                logger.debug(f"Client disconnected before initial play-by-play could be sent for game {game_id}")
+                return
+            
             # Get the latest play-by-play data from NBA API
             playbyplay_data = await getPlayByPlay(game_id)
             plays_data = playbyplay_data.model_dump()
@@ -250,7 +265,13 @@ class PlayByPlayWebSocketManager:
 
             await websocket.send_json(plays_data)
         except Exception as e:
-            logger.error(f"Error sending initial play-by-play data for game {game_id}: {e}")
+            # This is usually harmless - client may have disconnected quickly
+            # Log as warning instead of error since it's expected behavior
+            error_msg = str(e) if str(e) else type(e).__name__
+            logger.warning(f"Could not send initial play-by-play data for game {game_id} (client may have disconnected): {error_msg}")
+            # Clean up the connection if it's still in our set
+            if game_id in self.active_connections:
+                self.active_connections[game_id].discard(websocket)
 
     def has_playbyplay_changed(self, new_data: List[Dict], old_data: List[Dict]) -> bool:
         """

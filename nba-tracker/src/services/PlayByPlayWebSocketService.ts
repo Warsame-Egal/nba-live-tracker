@@ -9,6 +9,8 @@ import { logger } from '../utils/logger';
 class PlayByPlayWebSocketService {
   // The WebSocket connection
   private socket: WebSocket | null = null;
+  // The current game ID (stored for reconnection)
+  private currentGameId: string | null = null;
   // List of functions to call when we get new play-by-play updates
   private listeners: Set<(data: PlayByPlayResponse) => void> = new Set();
   // Whether to automatically reconnect if connection is lost
@@ -20,10 +22,19 @@ class PlayByPlayWebSocketService {
    * @param gameId - The ID of the game to get play-by-play updates for
    */
   connect(gameId: string) {
-    // Don't connect if we're already connected
-    if (this.socket) return;
+    // Don't connect if we're already connected and the socket is open
+    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+      return;
+    }
+
+    // Clean up existing connection if it exists but is not open
+    if (this.socket) {
+      this.socket.close();
+      this.socket = null;
+    }
 
     this.shouldReconnect = true;
+    this.currentGameId = gameId; // Store game ID for reconnection
     
     // Build the WebSocket URL based on whether we're using https or http
     // Use 'wss' for secure connections (https) and 'ws' for regular (http)
@@ -55,13 +66,20 @@ class PlayByPlayWebSocketService {
     };
 
     // When the connection closes
-    this.socket.onclose = () => {
-      logger.info(`Play-by-play WebSocket disconnected for game ${gameId}`);
+    this.socket.onclose = (event) => {
+      logger.info(`Play-by-play WebSocket disconnected for game ${gameId} (code: ${event.code}, reason: ${event.reason || 'none'})`);
+      
+      // Clear the socket reference
+      this.socket = null;
 
-      // Try to reconnect after 5 seconds if we should reconnect
-      if (this.shouldReconnect) {
+      // Try to reconnect after 5 seconds if we should reconnect and have a game ID
+      if (this.shouldReconnect && this.currentGameId) {
         logger.info('Reconnecting play-by-play in 5 seconds...');
-        setTimeout(() => this.connect(gameId), 5000);
+        setTimeout(() => {
+          if (this.shouldReconnect && this.currentGameId) {
+            this.connect(this.currentGameId);
+          }
+        }, 5000);
       }
     };
   }
@@ -95,6 +113,7 @@ class PlayByPlayWebSocketService {
       this.socket.close();
       this.socket = null;
     }
+    this.currentGameId = null; // Clear stored game ID
   }
 }
 

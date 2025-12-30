@@ -67,7 +67,7 @@ const RosterPage = () => {
     return (
       <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
         <Navbar />
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 8 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: { xs: 8, sm: 10 } }}>
           <CircularProgress />
         </Box>
       </Box>
@@ -79,7 +79,7 @@ const RosterPage = () => {
     return (
       <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
         <Navbar />
-        <Container sx={{ py: 4 }}>
+        <Container sx={{ py: { xs: 4, sm: 5 }, px: { xs: 2, sm: 3 } }}>
           <Alert severity="error">{error}</Alert>
         </Container>
       </Box>
@@ -89,14 +89,31 @@ const RosterPage = () => {
   return (
     <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
       <Navbar />
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Container maxWidth="lg" sx={{ py: { xs: 4, sm: 5, md: 6 }, px: { xs: 2, sm: 3, md: 4 } }}>
         {/* Page title */}
-        <Typography variant="h4" sx={{ fontWeight: 700, mb: 4, textAlign: 'center' }}>
+        <Typography
+          variant="h4"
+          sx={{
+            fontWeight: 700,
+            mb: { xs: 3, sm: 4 },
+            textAlign: 'center',
+            fontSize: { xs: '1.75rem', sm: '2rem', md: '2.25rem' },
+          }}
+        >
           {teamRoster?.team_name} Roster
         </Typography>
 
         {/* Players table */}
-        <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
+        <TableContainer
+          component={Paper}
+          elevation={0}
+          sx={{
+            border: '1px solid',
+            borderColor: 'divider',
+            borderRadius: 2,
+            overflow: 'hidden',
+          }}
+        >
           <Table>
             <TableHead>
               <TableRow>
@@ -114,13 +131,14 @@ const RosterPage = () => {
                 <TableRow
                   key={player.player_id}
                   sx={{
+                    transition: 'background-color 0.2s ease-in-out',
                     '&:hover': {
                       backgroundColor: 'action.hover',
                     },
                   }}
                 >
                   <TableCell>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 1.5 } }}>
                       {/* Player photo */}
                       <Avatar
                         src={`https://cdn.nba.com/headshots/nba/latest/1040x760/${player.player_id}.png`}

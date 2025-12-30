@@ -69,7 +69,7 @@ const PlayerProfile: React.FC = () => {
     return (
       <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
         <Navbar />
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 10 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: { xs: 8, sm: 10 } }}>
           <CircularProgress />
         </Box>
       </Box>
@@ -81,7 +81,7 @@ const PlayerProfile: React.FC = () => {
     return (
       <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
         <Navbar />
-        <Container sx={{ py: 4 }}>
+        <Container sx={{ py: { xs: 4, sm: 5 }, px: { xs: 2, sm: 3 } }}>
           <Alert severity="error">{error}</Alert>
         </Container>
       </Box>
@@ -93,7 +93,7 @@ const PlayerProfile: React.FC = () => {
     return (
       <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
         <Navbar />
-        <Container sx={{ py: 4 }}>
+        <Container sx={{ py: { xs: 4, sm: 5 }, px: { xs: 2, sm: 3 } }}>
           <Typography variant="body1" color="text.secondary" textAlign="center">
             Player not found.
           </Typography>
@@ -110,15 +110,15 @@ const PlayerProfile: React.FC = () => {
   return (
     <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
       <Navbar />
-      <Container maxWidth="lg" sx={{ py: { xs: 3, sm: 4, md: 5 } }}>
+      <Container maxWidth="lg" sx={{ py: { xs: 4, sm: 5, md: 6 }, px: { xs: 2, sm: 3, md: 4 } }}>
         {/* Header section with player photo and basic info */}
         <Box
           sx={{
             display: 'flex',
             flexDirection: { xs: 'column', md: 'row' },
             alignItems: { xs: 'center', md: 'flex-start' },
-            gap: 4,
-            mb: 5,
+            gap: { xs: 3, sm: 4 },
+            mb: { xs: 4, sm: 5 },
           }}
         >
           {/* Player photo */}
@@ -153,14 +153,19 @@ const PlayerProfile: React.FC = () => {
             <Typography
               variant="h6"
               color="text.secondary"
-              sx={{ textTransform: 'uppercase', mb: 4, fontWeight: 500 }}
+              sx={{
+                textTransform: 'uppercase',
+                mb: { xs: 3, sm: 4 },
+                fontWeight: 500,
+                fontSize: { xs: '0.875rem', sm: '1rem' },
+              }}
             >
               {player.TEAM_NAME ?? 'Free Agent'} • #{player.JERSEY_NUMBER ?? 'N/A'} •{' '}
               {player.POSITION ?? 'N/A'}
             </Typography>
 
             {/* Player details grid */}
-            <Grid container spacing={2}>
+            <Grid container spacing={{ xs: 2, sm: 2.5 }}>
               <Grid item xs={6} sm={4}>
                 <InfoItem label="Height" value={player.HEIGHT ?? 'N/A'} />
               </Grid>
@@ -181,7 +186,7 @@ const PlayerProfile: React.FC = () => {
         </Box>
 
         {/* Key stats cards (points, rebounds, assists per game) */}
-        <Grid container spacing={3} sx={{ mb: 5 }}>
+        <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ mb: { xs: 4, sm: 5 } }}>
           <Grid item xs={12} sm={4}>
             <StatCard label="Points Per Game" value={player.PTS} />
           </Grid>
@@ -196,7 +201,14 @@ const PlayerProfile: React.FC = () => {
         {/* Recent games table */}
         {player.recent_games && player.recent_games.length > 0 && (
           <Box>
-            <Typography variant="h5" sx={{ fontWeight: 700, mb: 3 }}>
+            <Typography
+              variant="h5"
+              sx={{
+                fontWeight: 700,
+                mb: { xs: 2.5, sm: 3 },
+                fontSize: { xs: '1.5rem', sm: '1.75rem' },
+              }}
+            >
               Recent Games
             </Typography>
             <TableContainer
@@ -236,8 +248,9 @@ const PlayerProfile: React.FC = () => {
                     <TableRow
                       key={game.game_id}
                       sx={{
+                        transition: 'background-color 0.2s ease-in-out',
                         '&:hover': {
-                          backgroundColor: 'rgba(255, 255, 255, 0.04)',
+                          backgroundColor: 'action.hover',
                         },
                       }}
                     >

@@ -51,16 +51,16 @@ class Team(BaseModel):
 
 
 class PlayerStats(BaseModel):
-    """Represents an individual player's performance in a game."""
+    """Represents an individual player's performance in a game or season averages."""
 
     personId: int = Field(..., description="Unique identifier for the player.")
     name: str = Field(..., description="Full name of the player.")
     jerseyNum: str = Field(..., description="Player's jersey number.")
     position: str = Field(..., description="Player's position on the court.")
     teamTricode: str = Field(..., description="Three-letter abbreviation of the player's team.")
-    points: int = Field(..., ge=0, description="Total points scored by the player.")
-    rebounds: int = Field(..., ge=0, description="Total rebounds secured by the player.")
-    assists: int = Field(..., ge=0, description="Total assists made by the player.")
+    points: float = Field(..., ge=0, description="Points (game stats or season average PPG).")
+    rebounds: float = Field(..., ge=0, description="Rebounds (game stats or season average RPG).")
+    assists: float = Field(..., ge=0, description="Assists (game stats or season average APG).")
 
 
 class GameLeaders(BaseModel):

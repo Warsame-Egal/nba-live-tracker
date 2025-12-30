@@ -4,7 +4,7 @@ export const theme = createTheme({
   palette: {
     mode: 'dark',
     primary: {
-      main: '#1E88E5', // Premium blue (ESPN/Apple Sports inspired)
+      main: '#1E88E5',
       light: '#42A5F5',
       dark: '#1565C0',
       contrastText: '#FFFFFF',

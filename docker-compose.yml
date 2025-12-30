@@ -16,6 +16,9 @@ services:
     container_name: nba-frontend
     ports:
       - "3000:3000"
+    volumes:
+      - ./nba-tracker:/src
+      - /src/node_modules
     networks:
       - nba-network
 

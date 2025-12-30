@@ -1,10 +1,12 @@
 import asyncio
 import logging
+import re
 from typing import List
 
 from fastapi import HTTPException
 from nba_api.live.nba.endpoints import boxscore, playbyplay, scoreboard
-from nba_api.stats.endpoints import commonteamroster
+from nba_api.stats.endpoints import commonteamroster, playerindex
+from nba_api.stats.library.parameters import HistoricalNullable
 
 from app.schemas.player import Player, TeamRoster
 from app.schemas.coach import Coach
@@ -24,6 +26,44 @@ from app.schemas.scoreboard import (
 
 # Set up logger for this file
 logger = logging.getLogger(__name__)
+
+# Cache for player season averages to avoid repeated API calls
+_player_stats_cache = {}
+
+
+async def get_player_season_averages(player_id: int) -> dict:
+    """
+    Get season averages for a player from the player index.
+    Returns a dict with PTS, REB, AST averages.
+    """
+    if player_id in _player_stats_cache:
+        return _player_stats_cache[player_id]
+    
+    try:
+        # Get player index data
+        player_index_data = await asyncio.to_thread(
+            lambda: playerindex.PlayerIndex(historical_nullable=HistoricalNullable.all_time)
+        )
+        player_index_df = player_index_data.get_data_frames()[0]
+        
+        # Find the player
+        player_row = player_index_df[player_index_df["PERSON_ID"] == player_id]
+        
+        if not player_row.empty:
+            player_data = player_row.iloc[0].to_dict()
+            stats = {
+                "PTS": player_data.get("PTS", 0.0) or 0.0,
+                "REB": player_data.get("REB", 0.0) or 0.0,
+                "AST": player_data.get("AST", 0.0) or 0.0,
+                "JERSEY_NUMBER": player_data.get("JERSEY_NUMBER"),
+                "POSITION": player_data.get("POSITION"),
+            }
+            _player_stats_cache[player_id] = stats
+            return stats
+    except Exception as e:
+        logger.warning(f"Error fetching season averages for player {player_id}: {e}")
+    
+    return {"PTS": 0.0, "REB": 0.0, "AST": 0.0, "JERSEY_NUMBER": None, "POSITION": None}
 
 
 async def fetch_nba_scoreboard():
@@ -64,12 +104,17 @@ def extract_team_data(team_data):
     )
 
 
-def extract_game_leaders(game_leaders_data):
+async def extract_game_leaders(game_leaders_data, home_team_id=None, away_team_id=None, game_status_text=None):
     """
-    Get the top player stats for both teams (who scored the most points, etc.).
+    Get the top player stats for both teams.
+    For live games: uses current game stats (points, rebounds, assists in this game).
+    For upcoming games: uses season averages (PPG, RPG, APG).
     
     Args:
         game_leaders_data: Raw game leaders data from NBA API
+        home_team_id: Home team ID (optional, for fallback if no leaders)
+        away_team_id: Away team ID (optional, for fallback if no leaders)
+        game_status_text: Game status text to determine if game is live
         
     Returns:
         GameLeaders: Top players for home and away teams
@@ -77,29 +122,81 @@ def extract_game_leaders(game_leaders_data):
     if not game_leaders_data:
         return None
 
-    def extract_player(leader_data):
+    # Check if game is live (has started and is in progress)
+    is_live = game_status_text and (
+        'live' in game_status_text.lower() or 
+        bool(re.search(r'\b[1-4]q\b', game_status_text, re.IGNORECASE)) or
+        ('ot' in game_status_text.lower() and 'final' not in game_status_text.lower())
+    )
+
+    async def extract_player(leader_data, use_game_stats=False):
         """
         Helper function to safely get player stats.
         Returns None if there's no data.
+        
+        Args:
+            leader_data: Raw leader data from NBA API
+            use_game_stats: If True, use current game stats; if False, use season averages
         """
         if not leader_data:
             return None
+        
+        person_id = leader_data.get("personId")
+        if not person_id or person_id == 0:
+            return None
+        
+        if use_game_stats:
+            # For live games, use current game stats from the API
+            points = float(leader_data.get("points", 0))
+            rebounds = float(leader_data.get("rebounds", 0))
+            assists = float(leader_data.get("assists", 0))
+            
+            # Skip if no game stats (game just started)
+            if points == 0 and rebounds == 0 and assists == 0:
+                return None
+        else:
+            # For upcoming games, use season averages
+            season_stats = await get_player_season_averages(person_id)
+            points = float(season_stats.get("PTS", 0.0))
+            rebounds = float(season_stats.get("REB", 0.0))
+            assists = float(season_stats.get("AST", 0.0))
+            
+            # Skip if no season stats available
+            if points == 0.0 and rebounds == 0.0 and assists == 0.0:
+                return None
+        
+        # Get jersey number and position
+        if use_game_stats:
+            # Use from game data for live games
+            jersey_num = leader_data.get("jerseyNum", "N/A")
+            position = leader_data.get("position", "N/A")
+        else:
+            # Get from season stats for upcoming games
+            season_stats = await get_player_season_averages(person_id)
+            jersey_num = season_stats.get("JERSEY_NUMBER") or leader_data.get("jerseyNum", "N/A")
+            position = season_stats.get("POSITION") or leader_data.get("position", "N/A")
+        
         return PlayerStats(
-            personId=leader_data.get("personId"),
+            personId=person_id,
             name=leader_data.get("name", "Unknown"),
-            jerseyNum=leader_data.get("jerseyNum", "N/A"),
-            position=leader_data.get("position", "N/A"),
+            jerseyNum=str(jersey_num) if jersey_num else "N/A",
+            position=position if position else "N/A",
             teamTricode=leader_data.get("teamTricode", ""),
-            points=leader_data.get("points", 0),
-            rebounds=leader_data.get("rebounds", 0),
-            assists=leader_data.get("assists", 0),
+            points=points,
+            rebounds=rebounds,
+            assists=assists,
         )
 
     # Get top players for both teams
-    home_leader = extract_player(game_leaders_data.get("homeLeaders"))
-    away_leader = extract_player(game_leaders_data.get("awayLeaders"))
+    # For live games, use current game stats; for upcoming, use season averages
+    home_leader = await extract_player(game_leaders_data.get("homeLeaders"), use_game_stats=is_live)
+    away_leader = await extract_player(game_leaders_data.get("awayLeaders"), use_game_stats=is_live)
 
-    return GameLeaders(homeLeaders=home_leader, awayLeaders=away_leader)
+    # Only return if at least one leader exists
+    if home_leader or away_leader:
+        return GameLeaders(homeLeaders=home_leader, awayLeaders=away_leader)
+    
+    return None
 
 
 async def getScoreboard() -> ScoreboardResponse:
@@ -130,7 +227,13 @@ async def getScoreboard() -> ScoreboardResponse:
                 home_team = extract_team_data(game["homeTeam"])
                 away_team = extract_team_data(game["awayTeam"])
                 # Get the top players for this game
-                game_leaders = extract_game_leaders(game.get("gameLeaders", {}))
+                # For live games: uses current game stats; for upcoming: uses season averages
+                game_leaders = await extract_game_leaders(
+                    game.get("gameLeaders", {}),
+                    home_team_id=home_team.teamId,
+                    away_team_id=away_team.teamId,
+                    game_status_text=game.get("gameStatusText", "")
+                )
 
                 # Create a LiveGame object with all the game info
                 live_game = LiveGame(
