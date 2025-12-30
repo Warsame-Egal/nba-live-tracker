@@ -1,8 +1,8 @@
 {
-  "buildCommand": "cd nba-tracker && npm install && npm run build",
-  "outputDirectory": "nba-tracker/dist",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
   "framework": "vite",
-  "installCommand": "cd nba-tracker && npm install",
+  "installCommand": "npm install",
   "rewrites": [
     {
       "source": "/(.*)",
