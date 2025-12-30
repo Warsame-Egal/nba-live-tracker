@@ -66,7 +66,9 @@ npm run dev
 
 **Frontend:** React, TypeScript, Material UI, Vite, React Router, WebSockets
 
-**Backend:** FastAPI, Python, nba_api, WebSockets, Uvicorn
+**Backend:** FastAPI, Python, WebSockets, Uvicorn
+
+**Third-Party Package:** This project uses the [`nba_api`](https://github.com/swar/nba_api) Python package by [swar](https://github.com/swar) to access NBA.com data.
 
 ## API Documentation
 
@@ -90,6 +92,10 @@ nba-live-tracker/
         ├── services/     # Business logic
         └── schemas/       # Data models
 ```
+
+## Credits
+
+This project uses the [`nba_api`](https://github.com/swar/nba_api) Python package by [swar](https://github.com/swar) to access NBA.com data. The `nba_api` package is open source with an MIT License.
 
 ## License
 
