@@ -13,6 +13,7 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 /**
  * Hook to use the theme context.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export const useThemeMode = () => {
   const context = useContext(ThemeContext);
   if (!context) {
