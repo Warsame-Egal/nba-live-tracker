@@ -35,37 +35,65 @@ def patch_http_file(http_file_path: Path, proxy_list: list):
             insert_pos = class_match.start()
             content = content[:insert_pos] + f'\nPROXY_LIST = {proxy_list_str}\n\n' + content[insert_pos:]
     
-    # Patch the proxy logic: replace "if proxy is None: request_proxy = PROXY"
-    # Try flexible whitespace matching
-    pattern = r'(if\s+proxy\s+is\s+None:\s*\n\s+request_proxy\s*=\s*PROXY)'
-    replacement = '''if proxy is None:
+    # Patch the proxy logic - try multiple approaches
+    patched = False
+    
+    # Method 1: Direct pattern match for "if proxy is None: request_proxy = PROXY"
+    pattern1 = r'(if\s+proxy\s+is\s+None:\s*\n\s+request_proxy\s*=\s*PROXY)'
+    replacement1 = '''if proxy is None:
             if PROXY_LIST:
                 request_proxy = random.choice(PROXY_LIST)
             else:
                 request_proxy = PROXY'''
     
-    if re.search(pattern, content):
-        content = re.sub(pattern, replacement, content)
-        print("   Successfully patched proxy logic")
-    else:
-        # Try line-by-line approach as fallback
+    if re.search(pattern1, content):
+        content = re.sub(pattern1, replacement1, content)
+        patched = True
+        print("   Successfully patched proxy logic (pattern match)")
+    
+    # Method 2: Line-by-line approach
+    if not patched:
         lines = content.split('\n')
         for i, line in enumerate(lines):
             if 'if proxy is None:' in line and i + 1 < len(lines):
                 if 'request_proxy = PROXY' in lines[i + 1]:
-                    # Get indentation from the if line
                     indent = len(line) - len(line.lstrip())
-                    # Replace the next line with our logic
                     lines[i + 1] = ' ' * (indent + 4) + 'if PROXY_LIST:'
                     lines.insert(i + 2, ' ' * (indent + 8) + 'request_proxy = random.choice(PROXY_LIST)')
-                    lines.insert(i + 3, ' ' * (indent + 4) + 'else:')
+                    lines.insert(i + 3, ' ' * indent + 'else:')
                     lines.insert(i + 4, ' ' * (indent + 8) + 'request_proxy = PROXY')
                     content = '\n'.join(lines)
-                    print("   Successfully patched proxy logic (line-by-line method)")
+                    patched = True
+                    print("   Successfully patched proxy logic (line-by-line)")
                     break
+    
+    # Method 3: Inject before proxies dict (fallback from old working code)
+    if not patched:
+        proxies_pattern = r'proxies\s*=\s*\{[^}]*"http"[^}]*"https"[^}]*\}'
+        proxies_match = re.search(proxies_pattern, content)
+        
+        if proxies_match:
+            before_proxies = content[:proxies_match.start()]
+            # Check if there's already proxy handling
+            if 'if proxy is None' not in before_proxies[-500:]:
+                proxy_selection = '''
+        if proxy is None:
+            if PROXY_LIST:
+                request_proxy = random.choice(PROXY_LIST)
+            else:
+                request_proxy = PROXY
+        elif not proxy:
+            request_proxy = None
         else:
-            print("Error: Could not find proxy pattern to patch")
-            sys.exit(1)
+            request_proxy = proxy
+'''
+                content = before_proxies + proxy_selection + content[proxies_match.start():]
+                patched = True
+                print("   Successfully patched proxy logic (injected before proxies dict)")
+    
+    if not patched:
+        print("Error: Could not find proxy pattern to patch")
+        sys.exit(1)
     
     # Write patched content
     with open(http_file_path, 'w', encoding='utf-8') as f:
