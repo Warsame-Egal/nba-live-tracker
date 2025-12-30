@@ -13,13 +13,12 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
+# Copy application code (includes docker-entrypoint.sh and patch_nba_api.py)
 COPY . .
 
-# Copy entrypoint script and patch script
-COPY docker-entrypoint.sh /app/docker-entrypoint.sh
-COPY patch_nba_api.py /app/patch_nba_api.py
-RUN chmod +x /app/docker-entrypoint.sh /app/patch_nba_api.py
+# Make scripts executable (if they exist)
+RUN if [ -f /app/docker-entrypoint.sh ]; then chmod +x /app/docker-entrypoint.sh; fi && \
+    if [ -f /app/patch_nba_api.py ]; then chmod +x /app/patch_nba_api.py; fi
 
 # Expose port
 EXPOSE 8000
