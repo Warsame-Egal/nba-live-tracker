@@ -16,9 +16,14 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Copy application code
 COPY . .
 
+# Copy entrypoint script and patch script
+COPY docker-entrypoint.sh /app/docker-entrypoint.sh
+COPY patch_nba_api.py /app/patch_nba_api.py
+RUN chmod +x /app/docker-entrypoint.sh /app/patch_nba_api.py
+
 # Expose port
 EXPOSE 8000
 
-# Run with production settings (no reload)
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Use entrypoint script that patches nba_api before starting
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
 
