@@ -375,14 +375,14 @@ ssh -i ~/.ssh/oracle_key ubuntu@40.233.116.242
 
    ```bash
    sudo docker run -d -p 8000:8000 --name nba-backend --restart unless-stopped \
-     -e NBA_API_PROXY="http://efoygpvt-rotate:2oatwqcdic2b@p.webshare.io:80" \
+     -e NBA_API_PROXY="http://YOUR_USERNAME:YOUR_PASSWORD@p.webshare.io:80" \
      nba-backend
    ```
 
    **Replace with your actual webshare.io credentials:**
 
-   - `efoygpvt-rotate` → your webshare.io username
-   - `2oatwqcdic2b` → your webshare.io password
+   - `YOUR_USERNAME` → your webshare.io username
+   - `YOUR_PASSWORD` → your webshare.io password
 
 4. **Configure firewall:**
    ```bash
@@ -506,7 +506,7 @@ ssh -i ~/.ssh/oracle_key ubuntu@40.233.116.242
    sudo docker rm nba-backend
    sudo docker build -f Dockerfile.prod -t nba-backend .
    sudo docker run -d -p 8000:8000 --name nba-backend --restart unless-stopped \
-     -e NBA_API_PROXY="http://efoygpvt-rotate:2oatwqcdic2b@p.webshare.io:80" \
+     -e NBA_API_PROXY="http://YOUR_USERNAME:YOUR_PASSWORD@p.webshare.io:80" \
      nba-backend
    ```
 
@@ -722,8 +722,8 @@ After signing up, go to **Products** → **Proxy List** in your webshare.io dash
 - **Proxy Protocol**: `0` (HTTP)
 - **Domain Name**: `p.webshare.io`
 - **Proxy Port**: `80`
-- **Proxy Username**: `efoygpvt-rotate` (your username will be different)
-- **Proxy Password**: `2oatwqcdic2b` (your password will be different)
+- **Proxy Username**: `YOUR_USERNAME` (replace with your actual username)
+- **Proxy Password**: `YOUR_PASSWORD` (replace with your actual password)
 
 **Note**: With rotating proxies, you only need one endpoint - it automatically rotates IPs for each request.
 
@@ -734,7 +734,7 @@ After signing up, go to **Products** → **Proxy List** in your webshare.io dash
 **Example**:
 
 ```
-http://efoygpvt-rotate:2oatwqcdic2b@p.webshare.io:80
+http://YOUR_USERNAME:YOUR_PASSWORD@p.webshare.io:80
 ```
 
 ### Step 4: Use Proxy in Docker
@@ -743,14 +743,14 @@ When running your Docker container, set the `NBA_API_PROXY` environment variable
 
 ```bash
 sudo docker run -d -p 8000:8000 --name nba-backend --restart unless-stopped \
-  -e NBA_API_PROXY="http://efoygpvt-rotate:2oatwqcdic2b@p.webshare.io:80" \
+  -e NBA_API_PROXY="http://YOUR_USERNAME:YOUR_PASSWORD@p.webshare.io:80" \
   nba-backend
 ```
 
 **Important**:
 
-- Replace `efoygpvt-rotate` with your actual webshare.io username
-- Replace `2oatwqcdic2b` with your actual webshare.io password
+- Replace `YOUR_USERNAME` with your actual webshare.io username
+- Replace `YOUR_PASSWORD` with your actual webshare.io password
 - The patch script automatically modifies the nba_api library to use your proxy at container startup
 - This command is run on your Oracle Cloud VM after building the Docker image
 
@@ -759,7 +759,7 @@ sudo docker run -d -p 8000:8000 --name nba-backend --restart unless-stopped \
 1. Container starts with `NBA_API_PROXY` environment variable
 2. `docker-entrypoint.sh` runs automatically
 3. Checks if `NBA_API_PROXY` is set
-4. Runs `patch_nba_api.py` to modify the nba_api library
+4. Runs `patch_http.py` to modify the nba_api library
 5. Patches `nba_api/library/http.py` with your proxy configuration
 6. Starts the FastAPI server with uvicorn
 
@@ -776,7 +776,7 @@ sudo docker logs nba-backend | grep -i "patch\|proxy"
 
 ### How It Works
 
-1. **Patch Script**: The `docker-entrypoint.sh` runs `patch_nba_api.py` at container startup
+1. **Patch Script**: The `docker-entrypoint.sh` runs `patch_http.py` at container startup
 2. **Library Modification**: The script modifies `nba_api/library/http.py` to add your proxy to `PROXY_LIST`
 3. **Automatic Usage**: All NBA API requests automatically use your proxy
 4. **Random Selection**: If you add multiple proxies, the script randomly selects one for each request
@@ -802,6 +802,7 @@ This section documents all code changes made to support deployment.
 All frontend components now use environment variables for API and WebSocket URLs:
 
 **Files Updated:**
+
 - `src/pages/Scoreboard.tsx`
 - `src/pages/PlayerProfile.tsx`
 - `src/pages/TeamPage.tsx`
@@ -812,22 +813,29 @@ All frontend components now use environment variables for API and WebSocket URLs
 - `src/services/PlayByPlayWebSocketService.ts`
 
 **Pattern Used:**
+
 ```typescript
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
-const WS_URL = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${import.meta.env.VITE_WS_URL || 'localhost:8000'}/api/v1/ws`;
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+const WS_URL = `${window.location.protocol === "https:" ? "wss" : "ws"}://${
+  import.meta.env.VITE_WS_URL || "localhost:8000"
+}/api/v1/ws`;
 ```
 
 **Vercel Configuration (`vercel.json`):**
+
 - Removed `cd nba-tracker` from build/install commands (handled by Root Directory setting)
 - Simplified to work with Vercel's Root Directory configuration
 - Kept SPA rewrite rules for React Router
 
 **Frontend Dockerfile (`nba-tracker/Dockerfile.prod`):**
+
 - Multi-stage build (Node.js builder + nginx server)
 - Uses `nginx.conf` for SPA routing
 - Optimized for production
 
 **Nginx Configuration (`nba-tracker/nginx.conf`):**
+
 - SPA routing (all routes serve index.html)
 - Gzip compression
 - Static asset caching
@@ -836,48 +844,61 @@ const WS_URL = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${impo
 ### Backend Changes
 
 **CORS Configuration (`nba-tracker-api/app/main.py`):**
+
 - Added `FRONTEND_URL` environment variable support
 - CORS middleware uses `FRONTEND_URL` if set, otherwise allows all origins
 
 **Proxy Configuration (`nba-tracker-api/app/config.py`):**
+
 - Manages proxy configuration for nba_api library
 - Supports single or multiple proxies (comma-separated)
 - Randomly selects from multiple proxies for load balancing
 
-**NBA API Patching (`nba-tracker-api/patch_nba_api.py`):**
-- Automatically patches nba_api library's `http.py` file to use proxies
+**NBA API Patching (`nba-tracker-api/patch_http.py`):**
+
+- Patches nba_api library's `http.py` file to use proxies
 - Finds `nba_api/library/http.py` in installed packages
 - Adds `PROXY_LIST` variable with your proxies
-- Creates backup of original file
+- Modifies proxy logic to use PROXY_LIST when available
+
+**Scoreboard Bug Fix (`nba-tracker-api/patch_scoreboard.py`):**
+
+- Fixes nba_api bug where scoreboardv2.py crashes if WinProbability field is missing
+- Replaces hard-coded dict access with .get() to prevent KeyError
 
 **Docker Entrypoint (`nba-tracker-api/docker-entrypoint.sh`):**
+
 - Checks if `NBA_API_PROXY` is set
 - Runs patch script if proxy is configured
 - Starts uvicorn server
 
 **Backend Dockerfile (`nba-tracker-api/Dockerfile.prod`):**
-- Added `docker-entrypoint.sh` and `patch_nba_api.py`
+
+- Added `docker-entrypoint.sh`, `patch_http.py`, and `patch_scoreboard.py`
 - Uses entrypoint script instead of direct uvicorn command
 - Patches nba_api library at container startup
 
 ### New Files Created
 
 1. `nba-tracker-api/app/config.py` - Proxy configuration management
-2. `nba-tracker-api/patch_nba_api.py` - NBA API patching script
-3. `nba-tracker-api/docker-entrypoint.sh` - Docker entrypoint script
-4. `nba-tracker/nginx.conf` - Nginx configuration for Docker
-5. `deploy-backend.sh` - Deployment helper script (optional)
-6. `vercel.json` - Vercel deployment configuration
+2. `nba-tracker-api/patch_http.py` - Patches nba_api/http.py for proxy support
+3. `nba-tracker-api/patch_scoreboard.py` - Fixes scoreboardv2.py WinProbability bug
+4. `nba-tracker-api/docker-entrypoint.sh` - Docker entrypoint script
+5. `nba-tracker/nginx.conf` - Nginx configuration for Docker
+6. `deploy-backend.sh` - Deployment helper script (optional)
+7. `vercel.json` - Vercel deployment configuration
 
 ### Environment Variables
 
 **Frontend (Vercel):**
+
 - `VITE_API_BASE_URL` - Backend API URL
 - `VITE_WS_URL` - WebSocket URL (without protocol, code adds ws:// or wss://)
 
 **Backend (Docker):**
+
 - `NBA_API_PROXY` - Proxy URL(s) for NBA API (comma-separated)
-- `FRONTEND_URL` - Vercel frontend URL for CORS (optional, defaults to "*")
+- `FRONTEND_URL` - Vercel frontend URL for CORS (optional, defaults to "\*")
 
 ## Troubleshooting
 

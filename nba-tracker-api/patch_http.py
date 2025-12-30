@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Simple patch script to modify nba_api library's http.py file to use proxies.
+Patches nba_api/library/http.py to use proxies from NBA_API_PROXY environment variable.
 """
 import os
 import sys
@@ -8,7 +8,7 @@ import re
 from pathlib import Path
 
 def find_nba_api_http_file():
-    """Find the http.py file in the installed nba_api package."""
+    """Locate nba_api's http.py file."""
     import nba_api
     nba_api_path = Path(nba_api.__file__).parent
     http_file = nba_api_path / "library" / "http.py"
@@ -19,7 +19,7 @@ def find_nba_api_http_file():
     return http_file
 
 def patch_http_file(http_file_path: Path, proxy_list: list):
-    """Patch the http.py file to add proxy support."""
+    """Modify http.py to use proxies from PROXY_LIST."""
     print(f"Patching {http_file_path}...")
     
     with open(http_file_path, 'r', encoding='utf-8') as f:
@@ -35,10 +35,10 @@ def patch_http_file(http_file_path: Path, proxy_list: list):
             insert_pos = class_match.start()
             content = content[:insert_pos] + f'\nPROXY_LIST = {proxy_list_str}\n\n' + content[insert_pos:]
     
-    # Patch the proxy logic - try multiple approaches
+    # Try to patch the proxy logic - use first method that works
     patched = False
     
-    # Method 1: Direct pattern match for "if proxy is None: request_proxy = PROXY"
+    # Method 1: Regex pattern match
     pattern1 = r'(if\s+proxy\s+is\s+None:\s*\n\s+request_proxy\s*=\s*PROXY)'
     replacement1 = '''if proxy is None:
             if PROXY_LIST:
@@ -49,9 +49,9 @@ def patch_http_file(http_file_path: Path, proxy_list: list):
     if re.search(pattern1, content):
         content = re.sub(pattern1, replacement1, content)
         patched = True
-        print("   Successfully patched proxy logic (pattern match)")
+        print("   Patched proxy logic")
     
-    # Method 2: Line-by-line approach
+    # Method 2: Line-by-line parsing
     if not patched:
         lines = content.split('\n')
         for i, line in enumerate(lines):
@@ -64,10 +64,10 @@ def patch_http_file(http_file_path: Path, proxy_list: list):
                     lines.insert(i + 4, ' ' * (indent + 8) + 'request_proxy = PROXY')
                     content = '\n'.join(lines)
                     patched = True
-                    print("   Successfully patched proxy logic (line-by-line)")
+                    print("   Patched proxy logic")
                     break
     
-    # Method 3: Inject before proxies dict (fallback from old working code)
+    # Method 3: Fallback - inject before proxies dict
     if not patched:
         proxies_pattern = r'proxies\s*=\s*\{[^}]*"http"[^}]*"https"[^}]*\}'
         proxies_match = re.search(proxies_pattern, content)
@@ -89,17 +89,17 @@ def patch_http_file(http_file_path: Path, proxy_list: list):
 '''
                 content = before_proxies + proxy_selection + content[proxies_match.start():]
                 patched = True
-                print("   Successfully patched proxy logic (injected before proxies dict)")
+                print("   Patched proxy logic")
     
     if not patched:
-        print("Error: Could not find proxy pattern to patch")
+        print("Failed: Could not find proxy pattern")
         sys.exit(1)
     
     # Write patched content
     with open(http_file_path, 'w', encoding='utf-8') as f:
         f.write(content)
     
-    print("Successfully patched nba_api http.py file!")
+    print("Patch complete")
 
 def main():
     """Main function."""

@@ -24,3 +24,7 @@ logs/
 Pipfile.lock
 
 test.db
+
+# Local deployment file with credentials (DO NOT COMMIT)
+DEPLOYMENT.local.md
+*.local.md

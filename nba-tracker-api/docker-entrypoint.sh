@@ -1,14 +1,14 @@
 #!/bin/bash
 set -e
 
-# Patch nba_api if NBA_API_PROXY is set
+# Fix nba_api WinProbability bug
+python3 /app/patch_scoreboard.py || echo "Failed to patch scoreboard"
+
+# Patch nba_api to use proxy if configured
 if [ -n "$NBA_API_PROXY" ]; then
-    echo "Patching nba_api library with proxy configuration..."
-    python3 /app/patch_nba_api.py || echo "Warning: Failed to patch nba_api, continuing anyway..."
-else
-    echo "NBA_API_PROXY not set, skipping nba_api patch"
+    python3 /app/patch_http.py || echo "Failed to patch http"
 fi
 
-# Start the application
+# Start FastAPI server
 exec uvicorn app.main:app --host 0.0.0.0 --port 8000
 
