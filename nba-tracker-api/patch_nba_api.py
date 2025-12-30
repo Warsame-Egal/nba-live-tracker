@@ -28,14 +28,6 @@ def patch_http_file(http_file_path: Path, proxy_list: list):
     # Create PROXY_LIST
     proxy_list_str = "[\n" + "".join(f'    "{proxy}",\n' for proxy in proxy_list) + "]"
     
-    # Add import random if not present
-    if 'import random' not in content and 'from random import' not in content:
-        # Insert after first import
-        first_import = re.search(r'^(import|from)\s+', content, re.MULTILINE)
-        if first_import:
-            insert_pos = content.find('\n', first_import.end())
-            content = content[:insert_pos+1] + 'import random\n' + content[insert_pos+1:]
-    
     # Add PROXY_LIST after imports (before first class)
     if 'PROXY_LIST =' not in content:
         class_match = re.search(r'^(class\s+\w+)', content, re.MULTILINE)
@@ -43,16 +35,20 @@ def patch_http_file(http_file_path: Path, proxy_list: list):
             insert_pos = class_match.start()
             content = content[:insert_pos] + f'\nPROXY_LIST = {proxy_list_str}\n\n' + content[insert_pos:]
     
-    # Modify proxy logic: find "if proxy is None:" and replace
-    proxy_pattern = r'if\s+proxy\s+is\s+None:\s*\n\s*proxy\s*=\s*[^\n]+'
+    # Patch the proxy logic: replace "if proxy is None: request_proxy = PROXY"
+    pattern = r'(if\s+proxy\s+is\s+None:\s*\n\s+request_proxy\s*=\s*PROXY)'
     replacement = '''if proxy is None:
             if PROXY_LIST:
-                proxy = random.choice(PROXY_LIST)'''
+                request_proxy = random.choice(PROXY_LIST)
+            else:
+                request_proxy = PROXY'''
     
-    if re.search(proxy_pattern, content):
-        content = re.sub(proxy_pattern, replacement, content)
+    if re.search(pattern, content):
+        content = re.sub(pattern, replacement, content)
+        print("   Successfully patched proxy logic")
     else:
-        print("Warning: Could not find proxy pattern to replace")
+        print("Error: Could not find proxy pattern to patch")
+        sys.exit(1)
     
     # Write patched content
     with open(http_file_path, 'w', encoding='utf-8') as f:
