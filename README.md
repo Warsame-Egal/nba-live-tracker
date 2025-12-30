@@ -5,13 +5,15 @@ A real-time NBA scoreboard and stats tracker built with React and FastAPI. Watch
 ## Screenshots
 
 <div align="center">
-  <img src="nba-tracker/public/screenshots/Scoreboard.png" alt="Scoreboard" width="280" style="margin: 10px;">
-  <img src="nba-tracker/public/screenshots/PlayByPlay.png" alt="Play-by-Play" width="280" style="margin: 10px;">
-  <img src="nba-tracker/public/screenshots/BoxScore.png" alt="Box Score" width="280" style="margin: 10px;">
+  <img src="nba-tracker/public/screenshots/Scoreboard.png" alt="Scoreboard" width="240" style="margin: 8px; border-radius: 8px;">
+  <img src="nba-tracker/public/screenshots/BoxScore.png" alt="Box Score" width="240" style="margin: 8px; border-radius: 8px;">
+  <img src="nba-tracker/public/screenshots/PlayByPlay.png" alt="Play-by-Play" width="240" style="margin: 8px; border-radius: 8px;">
   <br>
-  <img src="nba-tracker/public/screenshots/Standings.png" alt="Standings" width="280" style="margin: 10px;">
-  <img src="nba-tracker/public/screenshots/Player.png" alt="Player Profile" width="280" style="margin: 10px;">
-  <img src="nba-tracker/public/screenshots/Team.png" alt="Team Page" width="280" style="margin: 10px;">
+  <img src="nba-tracker/public/screenshots/Standings.png" alt="Standings" width="240" style="margin: 8px; border-radius: 8px;">
+  <img src="nba-tracker/public/screenshots/Player.png" alt="Player Profile" width="240" style="margin: 8px; border-radius: 8px;">
+  <img src="nba-tracker/public/screenshots/Team.png" alt="Team Page" width="240" style="margin: 8px; border-radius: 8px;">
+  <br>
+  <img src="nba-tracker/public/screenshots/Search.png" alt="Search" width="240" style="margin: 8px; border-radius: 8px;">
 </div>
 
 ## Features
