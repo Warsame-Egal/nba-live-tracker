@@ -13,6 +13,7 @@ import {
   Tooltip,
 } from '@mui/material';
 import { FiberManualRecord, TrendingUp, TrendingDown } from '@mui/icons-material';
+import { responsiveSpacing, borderRadius, transitions, shadows, typography } from '../theme/designTokens';
 
 interface GameCardProps {
   game: Game | GameSummary;
@@ -124,7 +125,7 @@ const GameCard: React.FC<GameCardProps> = ({ game, hideScore = false, onClick, i
     <Card
       onClick={onClick}
       sx={{
-        p: 3,
+        p: responsiveSpacing.card,
         cursor: onClick ? 'pointer' : 'default',
         backgroundColor: 'background.paper',
         backgroundImage: isLive
@@ -134,18 +135,16 @@ const GameCard: React.FC<GameCardProps> = ({ game, hideScore = false, onClick, i
         borderColor: isLive ? 'error.main' : 'divider',
         borderLeft: homeTeamColor && awayTeamColor ? `4px solid ${homeTeamColor}` : undefined,
         borderRight: homeTeamColor && awayTeamColor ? `4px solid ${awayTeamColor}` : undefined,
-        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-        boxShadow: isLive
-          ? '0 4px 20px rgba(239, 83, 80, 0.15)'
-          : '0 2px 8px rgba(0, 0, 0, 0.1)',
+        transition: transitions.smooth,
+        boxShadow: isLive ? shadows.error.md : shadows.sm,
         position: 'relative',
         overflow: 'hidden',
         // Animation for recently updated games
         ...(isRecentlyUpdated && {
           animation: 'scoreUpdateFlash 0.6s ease-out',
           boxShadow: isLive
-            ? '0 4px 20px rgba(25, 118, 210, 0.3), 0 0 0 2px rgba(25, 118, 210, 0.2)'
-            : '0 2px 8px rgba(0, 0, 0, 0.1), 0 0 0 2px rgba(25, 118, 210, 0.2)',
+            ? `${shadows.error.md}, 0 0 0 2px rgba(25, 118, 210, 0.2)`
+            : `${shadows.sm}, 0 0 0 2px rgba(25, 118, 210, 0.2)`,
         }),
         '&::before': isLive
           ? {
@@ -163,9 +162,7 @@ const GameCard: React.FC<GameCardProps> = ({ game, hideScore = false, onClick, i
           ? {
               borderColor: isLive ? 'error.main' : 'primary.main',
               transform: 'translateY(-4px)',
-              boxShadow: isLive
-                ? '0 12px 32px rgba(239, 83, 80, 0.25)'
-                : '0 8px 24px rgba(0, 0, 0, 0.2)',
+              boxShadow: isLive ? shadows.error.lg : shadows.lg,
             }
           : {},
         '@keyframes pulse': {
@@ -189,7 +186,7 @@ const GameCard: React.FC<GameCardProps> = ({ game, hideScore = false, onClick, i
       }}
     >
       {/* Status badge and win probability */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: responsiveSpacing.element }}>
         <Chip
           label={getStatusLabel()}
           size="small"
@@ -197,8 +194,8 @@ const GameCard: React.FC<GameCardProps> = ({ game, hideScore = false, onClick, i
           sx={{
             backgroundColor: isLive ? 'rgba(239, 83, 80, 0.15)' : 'transparent',
             color: getStatusColor(),
-            fontWeight: 700,
-            fontSize: '0.75rem',
+            fontWeight: typography.weight.bold,
+            fontSize: typography.size.caption.sm,
             height: 24,
             border: isLive ? '1px solid' : 'none',
             borderColor: isLive ? 'error.main' : 'transparent',
@@ -210,7 +207,7 @@ const GameCard: React.FC<GameCardProps> = ({ game, hideScore = false, onClick, i
         {/* Win probability for upcoming games */}
         {winProbability !== null && (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: typography.weight.semibold }}>
               {winProbability}%
             </Typography>
             <LinearProgress
@@ -219,7 +216,7 @@ const GameCard: React.FC<GameCardProps> = ({ game, hideScore = false, onClick, i
               sx={{
                 width: 40,
                 height: 4,
-                borderRadius: 2,
+                borderRadius: borderRadius.sm,
                 backgroundColor: 'rgba(255, 255, 255, 0.1)',
                 '& .MuiLinearProgress-bar': {
                   backgroundColor: 'primary.main',
@@ -254,7 +251,7 @@ const GameCard: React.FC<GameCardProps> = ({ game, hideScore = false, onClick, i
       </Box>
 
       {/* Teams and scores */}
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: responsiveSpacing.element }}>
         <TeamRow
           teamName={awayTeamName || awayTeam}
           tricode={awayTeam}
@@ -291,12 +288,12 @@ const GameCard: React.FC<GameCardProps> = ({ game, hideScore = false, onClick, i
       {gameLeaders && (gameLeaders.homeLeaders || gameLeaders.awayLeaders) && (
         <Box
           sx={{
-            mt: 2.5,
-            pt: 2,
+            mt: responsiveSpacing.element,
+            pt: responsiveSpacing.elementCompact,
             borderTop: '1px solid',
             borderColor: 'divider',
             display: 'flex',
-            gap: 2,
+            gap: responsiveSpacing.elementCompact,
             justifyContent: 'space-around',
           }}
         >
@@ -313,8 +310,8 @@ const GameCard: React.FC<GameCardProps> = ({ game, hideScore = false, onClick, i
       {isLive && (
         <Box
           sx={{
-            mt: 2,
-            pt: 2,
+            mt: responsiveSpacing.elementCompact,
+            pt: responsiveSpacing.elementCompact,
             borderTop: '1px solid',
             borderColor: 'divider',
           }}
@@ -384,7 +381,7 @@ const TeamRow: React.FC<TeamRowProps> = ({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        gap: 2,
+        gap: responsiveSpacing.elementCompact,
         position: 'relative',
       }}
     >
@@ -394,9 +391,10 @@ const TeamRow: React.FC<TeamRowProps> = ({
         sx={{
           display: 'flex',
           alignItems: 'center',
-          gap: 2,
+          gap: responsiveSpacing.elementCompact,
           flex: 1,
           cursor: 'pointer',
+          transition: transitions.normal,
           '&:hover': {
             opacity: 0.8,
           },
@@ -411,8 +409,8 @@ const TeamRow: React.FC<TeamRowProps> = ({
             backgroundColor: 'transparent',
             border: teamColor ? `2px solid ${teamColor}` : '2px solid',
             borderColor: teamColor || 'divider',
-            boxShadow: teamColor ? `0 2px 8px ${teamColor}40` : 'none',
-            transition: 'all 0.2s ease-in-out',
+            boxShadow: teamColor ? shadows.sm.replace('rgba(0, 0, 0, 0.1)', `${teamColor}40`) : 'none',
+            transition: transitions.normal,
             '&:hover': {
               transform: 'scale(1.05)',
             },
@@ -422,9 +420,9 @@ const TeamRow: React.FC<TeamRowProps> = ({
           <Typography
             variant="h6"
             sx={{
-              fontWeight: 700,
+              fontWeight: typography.weight.bold,
               fontSize: { xs: '1.1rem', sm: '1.25rem' },
-              lineHeight: 1.2,
+              lineHeight: typography.lineHeight.normal,
               color: isWinner && !hideScore ? 'primary.main' : 'text.primary',
             }}
             noWrap
@@ -452,9 +450,9 @@ const TeamRow: React.FC<TeamRowProps> = ({
               variant="caption"
               sx={{
                 color: 'text.secondary',
-                fontSize: '0.7rem',
+                fontSize: { xs: '0.65rem', sm: '0.7rem' },
                 display: 'block',
-                mt: 0.5,
+                mt: { xs: 0.25, sm: 0.5 },
               }}
             >
               {leader.name}: {leader.points} PTS
@@ -468,15 +466,15 @@ const TeamRow: React.FC<TeamRowProps> = ({
         <Typography
           variant="h4"
           key={score}
-          sx={{
-            fontWeight: 800,
-            fontSize: { xs: '2rem', sm: '2.5rem' },
-            color: isWinner ? 'primary.main' : 'text.primary',
-            minWidth: 70,
-            textAlign: 'right',
-            letterSpacing: '-0.02em',
-            textShadow: isWinner && isLive ? '0 0 8px rgba(25, 118, 210, 0.3)' : 'none',
-            transition: 'all 0.2s ease-in-out',
+            sx={{
+              fontWeight: typography.weight.extrabold,
+              fontSize: { xs: '2rem', sm: '2.5rem' },
+              color: isWinner ? 'primary.main' : 'text.primary',
+              minWidth: { xs: 60, sm: 70 },
+              textAlign: 'right',
+              letterSpacing: typography.letterSpacing.tight,
+              textShadow: isWinner && isLive ? '0 0 8px rgba(25, 118, 210, 0.3)' : 'none',
+              transition: transitions.normal,
             ...(isScoreUpdated && {
               animation: 'scorePulse 0.5s ease-out',
             }),
@@ -573,11 +571,11 @@ const LeaderPreview: React.FC<LeaderPreviewProps> = ({ leader }) => {
         </Typography>
         <Typography
           variant="caption"
-          sx={{
-            fontSize: '0.7rem',
-            fontWeight: 700,
-            color: 'primary.main',
-          }}
+            sx={{
+              fontSize: typography.size.caption.sm,
+              fontWeight: typography.weight.bold,
+              color: 'primary.main',
+            }}
         >
           {leader.points}
         </Typography>

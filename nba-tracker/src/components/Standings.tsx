@@ -4,22 +4,20 @@ import {
   Container,
   Box,
   Typography,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   Avatar,
   CircularProgress,
   Alert,
   ToggleButton,
   ToggleButtonGroup,
+  Chip,
+  Grid,
+  Card,
+  CardContent,
 } from '@mui/material';
 import { StandingRecord, StandingsResponse } from '../types/standings';
-import { Sports } from '@mui/icons-material';
-import Navbar from '../components/Navbar';
+import { Sports, TrendingUp, TrendingDown, EmojiEvents } from '@mui/icons-material';
+import Navbar from './Navbar';
+import { responsiveSpacing, borderRadius, transitions, typography } from '../theme/designTokens';
 
 // Base URL for API calls
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -62,28 +60,22 @@ const teamMappings: { [key: string]: { abbreviation: string; logo: string } } = 
 };
 
 /**
- * Page that displays NBA standings (win/loss records for all teams).
- * Shows teams ranked by their playoff position.
+ * Modern standings page that displays NBA standings with card-based design.
+ * Shows teams ranked by their playoff position with enhanced visuals.
  */
 const Standings = () => {
   // Get season from URL if provided
   const { season } = useParams<{ season?: string }>();
   const navigate = useNavigate();
   // Default to current season if not provided
-  // NBA season starts in October, so if we're in Oct-Dec, we're in the current year's season
-  // If we're in Jan-Sep, we're in the previous year's season
   const getCurrentSeason = () => {
     const now = new Date();
     const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth() + 1; // getMonth() returns 0-11, so add 1
+    const currentMonth = now.getMonth() + 1;
     
-    // If we're in October (10) or later, we're in the current year's season
-    // Otherwise, we're in the previous year's season
     if (currentMonth >= 10) {
-      // October-December: 2025-26 season
       return `${currentYear}-${(currentYear + 1).toString().slice(2)}`;
     } else {
-      // January-September: 2024-25 season (if current year is 2025)
       return `${currentYear - 1}-${currentYear.toString().slice(2)}`;
     }
   };
@@ -119,7 +111,6 @@ const Standings = () => {
 
   /**
    * Filter standings by selected conference and sort by playoff rank.
-   * This is memoized so it only recalculates when standings or conference changes.
    */
   const filteredStandings = useMemo(() => {
     return standings
@@ -130,41 +121,48 @@ const Standings = () => {
   return (
     <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
       <Navbar />
-      <Container maxWidth="xl" sx={{ py: { xs: 3, sm: 4, md: 5 } }}>
+      <Container maxWidth="xl" sx={{ py: responsiveSpacing.containerVertical, px: responsiveSpacing.container }}>
         {/* Page title */}
-        <Typography
-          variant="h3"
-          sx={{
-            fontWeight: 800,
-            textAlign: 'center',
-            mb: 1,
-            fontSize: { xs: '1.75rem', sm: '2.25rem', md: '3rem' },
-          }}
-        >
-          NBA Standings
-        </Typography>
-        <Typography
-          variant="body1"
-          color="text.secondary"
-          sx={{ textAlign: 'center', mb: 4 }}
-        >
-          {seasonParam} Season
-        </Typography>
+        <Box sx={{ textAlign: 'center', mb: responsiveSpacing.section }}>
+          <Typography
+            variant="h4"
+            sx={{
+              fontWeight: typography.weight.bold,
+              mb: 0.5,
+              fontSize: typography.size.h4,
+              color: 'text.primary',
+            }}
+          >
+            Standings
+          </Typography>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ 
+              fontSize: { xs: '0.75rem', sm: '0.8125rem' },
+              fontWeight: typography.weight.regular,
+            }}
+          >
+            {seasonParam}
+          </Typography>
+        </Box>
 
         {/* Conference selector buttons */}
-        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 4 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'center', mb: responsiveSpacing.section }}>
           <ToggleButtonGroup
             value={conference}
             exclusive
             onChange={(_, newValue) => newValue && setConference(newValue)}
             sx={{
               '& .MuiToggleButton-root': {
-                px: 4,
-                py: 1.5,
-                fontWeight: 600,
+                px: { xs: 3, sm: 4 },
+                py: { xs: 1, sm: 1.5 },
+                fontWeight: typography.weight.semibold,
+                fontSize: typography.size.button,
                 textTransform: 'none',
                 borderColor: 'divider',
                 color: 'text.secondary',
+                transition: transitions.normal,
                 '&.Mui-selected': {
                   backgroundColor: 'primary.main',
                   color: 'primary.contrastText',
@@ -172,6 +170,9 @@ const Standings = () => {
                   '&:hover': {
                     backgroundColor: 'primary.dark',
                   },
+                },
+                '&:hover': {
+                  backgroundColor: 'action.hover',
                 },
               },
             }}
@@ -183,13 +184,13 @@ const Standings = () => {
 
         {/* Loading spinner */}
         {loading && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: { xs: 6, sm: 8 } }}>
             <CircularProgress />
           </Box>
         )}
         {/* Error message */}
         {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
+          <Alert severity="error" sx={{ mb: { xs: 3, sm: 4 } }}>
             {error}
           </Alert>
         )}
@@ -228,7 +229,7 @@ const Standings = () => {
             <Typography
               variant="h5"
               sx={{
-                fontWeight: 700,
+                fontWeight: typography.weight.bold,
                 mb: 1,
                 textAlign: 'center',
                 color: 'text.primary',
@@ -250,115 +251,212 @@ const Standings = () => {
           </Box>
         )}
 
-        {/* Standings table */}
+        {/* Standings cards */}
         {!loading && !error && filteredStandings.length > 0 && (
-          <TableContainer
-            component={Paper}
-            elevation={0}
-            sx={{
-              border: '1px solid',
-              borderColor: 'divider',
-              borderRadius: 2,
-              overflow: 'hidden',
-            }}
-          >
-            <Table size="small" stickyHeader>
-              <TableHead>
-                <TableRow>
-                  <TableCell align="center" sx={{ fontWeight: 700, minWidth: 50 }}>
-                    #
-                  </TableCell>
-                  <TableCell sx={{ fontWeight: 700, minWidth: 200 }}>Team</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 700 }}>W</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 700 }}>L</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 700 }}>PCT</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 700 }}>GB</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 700 }}>Home</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 700 }}>Away</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 700 }}>Div</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 700 }}>Conf</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 700 }}>L10</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 700 }}>Strk</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {filteredStandings.map(team => {
-                  const teamName = `${team.team_city} ${team.team_name}`;
-                  const logo = teamMappings[teamName]?.logo || '/logos/default.svg';
-                  return (
-                    <TableRow
-                      key={team.team_id}
-                      sx={{
-                        '&:hover': {
-                          backgroundColor: 'rgba(255, 255, 255, 0.04)',
-                          cursor: 'pointer',
-                        },
-                      }}
-                      onClick={() => navigate(`/team/${team.team_id}`)}
-                    >
-                      {/* Playoff rank */}
-                      <TableCell align="center" sx={{ fontWeight: 700, fontSize: '1rem' }}>
-                        {team.playoff_rank}
-                      </TableCell>
-                      {/* Team name and logo */}
-                      <TableCell>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <Grid container spacing={{ xs: 2, sm: 3 }}>
+            {filteredStandings.map((team) => {
+              const teamName = `${team.team_city} ${team.team_name}`;
+              const logo = teamMappings[teamName]?.logo || '/logos/default.svg';
+              const isPlayoffTeam = team.playoff_rank <= 8;
+              const isTopSeed = team.playoff_rank <= 3;
+              const streakColor = team.current_streak_str.startsWith('W') ? 'success.main' : 'error.main';
+
+              return (
+                <Grid item xs={12} sm={6} md={4} lg={3} key={team.team_id}>
+                  <Card
+                    elevation={0}
+                    onClick={() => navigate(`/team/${team.team_id}`)}
+                    sx={{
+                      height: '100%',
+                      cursor: 'pointer',
+                      backgroundColor: 'background.paper',
+                      border: '1px solid',
+                      borderColor: isTopSeed ? 'primary.main' : 'divider',
+                      borderLeft: isTopSeed ? '4px solid' : '1px solid',
+                      borderLeftColor: isTopSeed ? 'primary.main' : 'divider',
+                      borderRadius: borderRadius.sm,
+                      transition: transitions.normal,
+                      '&:hover': {
+                        transform: 'translateY(-4px)',
+                        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
+                        borderColor: 'primary.main',
+                      },
+                    }}
+                  >
+                    <CardContent sx={{ p: responsiveSpacing.cardCompact }}>
+                      {/* Header with rank and team */}
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flex: 1, minWidth: 0 }}>
+                          {/* Playoff rank badge */}
+                          <Chip
+                            label={team.playoff_rank}
+                            size="small"
+                            icon={isPlayoffTeam ? <EmojiEvents sx={{ fontSize: 14 }} /> : undefined}
+                            sx={{
+                              height: 28,
+                              minWidth: 28,
+                              fontWeight: typography.weight.bold,
+                              fontSize: typography.size.body.sm,
+                              backgroundColor: isTopSeed
+                                ? 'primary.main'
+                                : isPlayoffTeam
+                                  ? 'rgba(25, 118, 210, 0.15)'
+                                  : 'transparent',
+                              color: isTopSeed ? 'primary.contrastText' : 'text.primary',
+                              border: isPlayoffTeam && !isTopSeed ? '1px solid' : 'none',
+                              borderColor: isPlayoffTeam && !isTopSeed ? 'primary.main' : 'transparent',
+                            }}
+                          />
+                          {/* Team logo */}
                           <Avatar
                             src={logo}
                             alt={teamName}
-                            sx={{ width: 32, height: 32, backgroundColor: 'transparent' }}
+                            sx={{
+                              width: { xs: 36, sm: 40 },
+                              height: { xs: 36, sm: 40 },
+                              backgroundColor: 'transparent',
+                              border: '1px solid',
+                              borderColor: 'divider',
+                            }}
                           />
-                          <Box>
-                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                              {teamName}
+                          {/* Team name */}
+                          <Box sx={{ flex: 1, minWidth: 0 }}>
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                fontWeight: 700,
+                                fontSize: { xs: '0.8125rem', sm: '0.875rem' },
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {team.team_city}
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                color: 'text.secondary',
+                                fontSize: { xs: '0.7rem', sm: '0.75rem' },
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                                display: 'block',
+                              }}
+                            >
+                              {team.team_name}
                             </Typography>
                           </Box>
                         </Box>
-                      </TableCell>
-                      {/* Wins */}
-                      <TableCell align="center" sx={{ fontWeight: 600 }}>
-                        {team.wins}
-                      </TableCell>
-                      {/* Losses */}
-                      <TableCell align="center" sx={{ fontWeight: 600 }}>
-                        {team.losses}
-                      </TableCell>
-                      {/* Win percentage */}
-                      <TableCell align="center">{team.win_pct.toFixed(3)}</TableCell>
-                      {/* Games behind */}
-                      <TableCell align="center">{team.games_back}</TableCell>
-                      {/* Home record */}
-                      <TableCell align="center">{team.home_record}</TableCell>
-                      {/* Road record */}
-                      <TableCell align="center">{team.road_record}</TableCell>
-                      {/* Division record */}
-                      <TableCell align="center">{team.division_record}</TableCell>
-                      {/* Conference record */}
-                      <TableCell align="center">{team.conference_record}</TableCell>
-                      {/* Last 10 games record */}
-                      <TableCell align="center">{team.l10_record}</TableCell>
-                      {/* Current streak (green for wins, red for losses) */}
-                      <TableCell
-                        align="center"
+                      </Box>
+
+                      {/* Main stats */}
+                      <Box sx={{ mb: 2 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                          <Typography variant="h5" sx={{ fontWeight: typography.weight.extrabold, fontSize: typography.size.h5 }}>
+                            {team.wins} - {team.losses}
+                          </Typography>
+                          <Chip
+                            label={team.win_pct.toFixed(3)}
+                            size="small"
+                            sx={{
+                              height: 24,
+                              fontWeight: typography.weight.semibold,
+                              fontSize: typography.size.caption.sm,
+                              backgroundColor: 'rgba(25, 118, 210, 0.1)',
+                              color: 'primary.main',
+                            }}
+                          />
+                        </Box>
+                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: typography.size.caption }}>
+                          {team.games_back === '0.0' ? '—' : `${team.games_back} GB`}
+                        </Typography>
+                      </Box>
+
+                      {/* Divider */}
+                      <Box
                         sx={{
-                          color: team.current_streak_str.startsWith('W')
-                            ? 'success.main'
-                            : 'error.main',
-                          fontWeight: 700,
+                          height: 1,
+                          backgroundColor: 'divider',
+                          mb: 2,
+                          mx: -2.5,
                         }}
-                      >
-                        {team.current_streak_str}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                      />
+
+                      {/* Secondary stats grid */}
+                      <Grid container spacing={1} sx={{ mb: 1.5 }}>
+                        <Grid item xs={6}>
+                          <StatItem label="Home" value={team.home_record} />
+                        </Grid>
+                        <Grid item xs={6}>
+                          <StatItem label="Away" value={team.road_record} />
+                        </Grid>
+                        <Grid item xs={6}>
+                          <StatItem label="L10" value={team.l10_record} />
+                        </Grid>
+                        <Grid item xs={6}>
+                          <StatItem
+                            label="Streak"
+                            value={team.current_streak_str}
+                            color={streakColor}
+                            icon={team.current_streak_str.startsWith('W') ? <TrendingUp sx={{ fontSize: 12 }} /> : <TrendingDown sx={{ fontSize: 12 }} />}
+                          />
+                        </Grid>
+                      </Grid>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              );
+            })}
+          </Grid>
         )}
       </Container>
     </Box>
   );
 };
+
+/**
+ * Helper component for displaying a stat item.
+ */
+const StatItem = ({
+  label,
+  value,
+  color,
+  icon,
+}: {
+  label: string;
+  value: string;
+  color?: string;
+  icon?: React.ReactNode;
+}) => (
+  <Box>
+    <Typography
+      variant="caption"
+      sx={{
+        color: 'text.secondary',
+        fontSize: typography.size.captionSmall,
+        fontWeight: typography.weight.semibold,
+        textTransform: 'uppercase',
+        display: 'block',
+        mb: 0.25,
+      }}
+    >
+      {label}
+    </Typography>
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+      {icon}
+      <Typography
+        variant="body2"
+        sx={{
+          fontWeight: typography.weight.bold,
+          fontSize: typography.size.bodySmall,
+          color: color || 'text.primary',
+        }}
+      >
+        {value}
+      </Typography>
+    </Box>
+  </Box>
+);
 
 export default Standings;

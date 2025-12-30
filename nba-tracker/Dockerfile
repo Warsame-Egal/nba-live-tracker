@@ -6,10 +6,8 @@ WORKDIR /src
 COPY package*.json ./
 RUN npm install
 
-COPY . .
+# Expose Vite dev server port
+EXPOSE 3000
 
-RUN npm run build
-
-# Optional: serve the built frontend
-RUN npm install -g serve
-CMD ["serve", "-s", "dist", "-l", "3000"]
+# Run Vite dev server for hot reloading
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]

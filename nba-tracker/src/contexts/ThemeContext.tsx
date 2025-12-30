@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { ThemeProvider as MuiThemeProvider, createTheme, Theme } from '@mui/material/styles';
 import { PaletteMode } from '@mui/material';
+import { shadows, transitions, typography } from '../theme/designTokens';
 
 interface ThemeContextType {
   mode: PaletteMode;
@@ -137,22 +138,23 @@ const createAppTheme = (mode: PaletteMode): Theme => {
       },
     },
     shape: {
-      borderRadius: 8,
+      borderRadius: 8, // 8px - matches borderRadius.sm (2 * 4px spacing unit)
     },
     components: {
       MuiButton: {
         styleOverrides: {
           root: {
-            borderRadius: 8,
+            borderRadius: 8, // 8px - matches borderRadius.sm
             padding: '10px 20px',
-            fontWeight: 600,
-            fontSize: '0.9375rem',
+            fontWeight: typography.weight.semibold,
+            fontSize: typography.size.button.sm,
             textTransform: 'none',
+            transition: transitions.normal,
           },
           contained: {
             boxShadow: 'none',
             '&:hover': {
-              boxShadow: '0 4px 12px rgba(30, 136, 229, 0.3)',
+              boxShadow: shadows.primary.md,
             },
           },
         },
@@ -160,16 +162,15 @@ const createAppTheme = (mode: PaletteMode): Theme => {
       MuiCard: {
         styleOverrides: {
           root: {
-            borderRadius: 12,
+            borderRadius: 8, // 8px - standardized to match components (borderRadius.sm)
             backgroundColor: isDark ? '#141414' : '#FFFFFF',
-            border: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(0, 0, 0, 0.08)',
-            transition: 'all 0.2s ease-in-out',
+            border: '1px solid',
+            borderColor: 'divider',
+            transition: transitions.normal,
             '&:hover': {
-              borderColor: isDark ? 'rgba(255, 255, 255, 0.16)' : 'rgba(0, 0, 0, 0.16)',
+              borderColor: 'primary.main',
               transform: 'translateY(-2px)',
-              boxShadow: isDark
-                ? '0 8px 24px rgba(0, 0, 0, 0.4)'
-                : '0 8px 24px rgba(0, 0, 0, 0.1)',
+              boxShadow: isDark ? shadows.dark.lg : shadows.lg,
             },
           },
         },
@@ -178,16 +179,17 @@ const createAppTheme = (mode: PaletteMode): Theme => {
         styleOverrides: {
           root: {
             '& .MuiOutlinedInput-root': {
-              borderRadius: 10,
+              borderRadius: 8, // 8px - standardized (borderRadius.sm)
               backgroundColor: isDark ? '#1A1A1A' : '#F5F5F5',
+              transition: transitions.normal,
               '& fieldset': {
-                borderColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.12)',
+                borderColor: 'divider',
               },
               '&:hover fieldset': {
-                borderColor: isDark ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.2)',
+                borderColor: 'primary.light',
               },
               '&.Mui-focused fieldset': {
-                borderColor: '#1E88E5',
+                borderColor: 'primary.main',
                 borderWidth: '2px',
               },
             },
@@ -244,9 +246,9 @@ const createAppTheme = (mode: PaletteMode): Theme => {
       MuiChip: {
         styleOverrides: {
           root: {
-            borderRadius: 6,
-            fontWeight: 600,
-            fontSize: '0.75rem',
+            borderRadius: 4, // 4px - matches borderRadius.xs
+            fontWeight: typography.weight.semibold,
+            fontSize: typography.size.caption.sm,
             height: 24,
           },
         },

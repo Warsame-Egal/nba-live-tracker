@@ -22,6 +22,7 @@ A real-time NBA scoreboard and stats tracker built with React and FastAPI. Watch
 - **Team Rosters** - Browse full team lineups with player details
 - **League Standings** - Track playoff races and conference rankings
 - **Smart Search** - Find players and teams instantly
+- **Game Leaders** - See top performers with season averages for upcoming games and live stats for active games
 
 ## Quick Start
 
@@ -61,9 +62,9 @@ npm run dev
 
 ## Tech Stack
 
-**Frontend:** React 19, TypeScript, Material UI, Vite, React Router, WebSockets
+**Frontend:** React, TypeScript, Material UI, Vite, React Router, WebSockets
 
-**Backend:** FastAPI, Python 3.12+, nba_api, WebSockets, Uvicorn
+**Backend:** FastAPI, Python, nba_api, WebSockets, Uvicorn
 
 ## API Documentation
 

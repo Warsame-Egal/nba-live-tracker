@@ -87,7 +87,7 @@ const TeamPage = () => {
     return (
       <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
         <Navbar />
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 8 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: { xs: 8, sm: 10 } }}>
           <CircularProgress />
         </Box>
       </Box>
@@ -99,7 +99,7 @@ const TeamPage = () => {
     return (
       <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
         <Navbar />
-        <Container sx={{ py: 4 }}>
+        <Container sx={{ py: { xs: 4, sm: 5 }, px: { xs: 2, sm: 3 } }}>
           <Alert severity="error">{error}</Alert>
         </Container>
       </Box>
@@ -111,7 +111,7 @@ const TeamPage = () => {
     return (
       <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
         <Navbar />
-        <Container sx={{ py: 4 }}>
+        <Container sx={{ py: { xs: 4, sm: 5 }, px: { xs: 2, sm: 3 } }}>
           <Typography variant="body1" color="text.secondary" textAlign="center">
             Team not found.
           </Typography>
@@ -123,15 +123,15 @@ const TeamPage = () => {
   return (
     <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
       <Navbar />
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Container maxWidth="lg" sx={{ py: { xs: 4, sm: 5, md: 6 }, px: { xs: 2, sm: 3, md: 4 } }}>
         {/* Header section with team logo and info */}
         <Box
           sx={{
             display: 'flex',
             flexDirection: { xs: 'column', md: 'row' },
             alignItems: { xs: 'center', md: 'flex-start' },
-            gap: 4,
-            mb: 4,
+            gap: { xs: 3, sm: 4 },
+            mb: { xs: 4, sm: 5 },
           }}
         >
           {/* Team logo */}
@@ -147,11 +147,27 @@ const TeamPage = () => {
           />
 
           {/* Team information */}
-          <Box sx={{ flex: 1 }}>
-            <Typography variant="h3" sx={{ fontWeight: 700, mb: 1 }}>
+          <Box sx={{ flex: 1, width: '100%' }}>
+            <Typography
+              variant="h3"
+              sx={{
+                fontWeight: 700,
+                mb: { xs: 1, sm: 1.5 },
+                fontSize: { xs: '1.75rem', sm: '2.25rem', md: '3rem' },
+                textAlign: { xs: 'center', md: 'left' },
+              }}
+            >
               {team.team_name}
             </Typography>
-            <Typography variant="body1" color="text.secondary" sx={{ textTransform: 'uppercase', mb: 3 }}>
+            <Typography
+              variant="body1"
+              color="text.secondary"
+              sx={{
+                textTransform: 'uppercase',
+                mb: { xs: 2.5, sm: 3 },
+                textAlign: { xs: 'center', md: 'left' },
+              }}
+            >
               {team.team_city}
             </Typography>
 
@@ -160,7 +176,7 @@ const TeamPage = () => {
               sx={{
                 display: 'grid',
                 gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
-                gap: 2,
+                gap: { xs: 2, sm: 2.5 },
               }}
             >
               <InfoItem label="Founded" value={team.year_founded?.toString() ?? '—'} />
@@ -174,11 +190,27 @@ const TeamPage = () => {
 
         {/* Team roster table */}
         {roster?.players?.length ? (
-          <Box sx={{ mt: 4 }}>
-            <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>
+          <Box sx={{ mt: { xs: 4, sm: 5 } }}>
+            <Typography
+              variant="h5"
+              sx={{
+                fontWeight: 700,
+                mb: { xs: 2, sm: 2.5 },
+                fontSize: { xs: '1.5rem', sm: '1.75rem' },
+              }}
+            >
               Roster
             </Typography>
-            <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
+            <TableContainer
+              component={Paper}
+              elevation={0}
+              sx={{
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: 2,
+                overflow: 'hidden',
+              }}
+            >
               <Table size="small">
                 <TableHead>
                   <TableRow>
@@ -197,6 +229,7 @@ const TeamPage = () => {
                     <TableRow
                       key={player.player_id}
                       sx={{
+                        transition: 'background-color 0.2s ease-in-out',
                         '&:hover': {
                           backgroundColor: 'action.hover',
                         },

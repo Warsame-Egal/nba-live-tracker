@@ -1,6 +1,6 @@
 import { Link as RouterLink, useLocation } from 'react-router-dom';
 import { AppBar, Toolbar, Button, Box, Typography, IconButton, Tooltip } from '@mui/material';
-import { SportsBasketball, LightMode, DarkMode } from '@mui/icons-material';
+import { LightMode, DarkMode } from '@mui/icons-material';
 import { useThemeMode } from '../contexts/ThemeContext';
 
 /**
@@ -30,37 +30,45 @@ const Navbar = () => {
         sx={{
           display: 'flex',
           justifyContent: 'space-between',
+          alignItems: 'center',
           px: { xs: 2, sm: 3, md: 4 },
-          py: 1.5,
+          py: { xs: 1, sm: 1.5 },
           minHeight: { xs: 64, sm: 72 },
+          gap: 2,
         }}
       >
-        {/* App logo and title */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <SportsBasketball sx={{ fontSize: 28, color: 'primary.main' }} />
+        {/* App title */}
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            flexShrink: 0,
+          }}
+        >
           <Typography
             variant="h6"
             component={RouterLink}
             to="/"
             sx={{
               fontWeight: 800,
-              fontSize: { xs: '1.125rem', sm: '1.25rem' },
+              fontSize: { xs: '1.125rem', sm: '1.25rem', md: '1.375rem' },
               color: 'text.primary',
               textDecoration: 'none',
               letterSpacing: '-0.01em',
+              transition: 'color 0.2s ease-in-out',
               '&:hover': {
                 color: 'primary.main',
               },
             }}
           >
-            NBA Live
+            NBA Live Tracker
           </Typography>
         </Box>
 
         {/* Navigation links and theme toggle */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, sm: 1 }, flexShrink: 0 }}>
           {/* Navigation links */}
-          <Box sx={{ display: 'flex', gap: 0.5 }}>
+          <Box sx={{ display: 'flex', gap: { xs: 0.25, sm: 0.5 } }}>
             {navItems.map(item => (
               <Button
                 key={item.path}
@@ -69,10 +77,12 @@ const Navbar = () => {
                 sx={{
                   color: isActive(item.path) ? 'primary.main' : 'text.secondary',
                   fontWeight: isActive(item.path) ? 700 : 500,
-                  fontSize: '0.9375rem',
-                  px: 2.5,
-                  py: 1,
+                  fontSize: { xs: '0.875rem', sm: '0.9375rem' },
+                  px: { xs: 2, sm: 2.5 },
+                  py: { xs: 0.75, sm: 1 },
                   position: 'relative',
+                  transition: 'all 0.2s ease-in-out',
+                  borderRadius: 1,
                   // Show underline for active link
                   ...(isActive(item.path) && {
                     '&::after': {
@@ -90,6 +100,7 @@ const Navbar = () => {
                   '&:hover': {
                     backgroundColor: 'action.hover',
                     color: isActive(item.path) ? 'primary.main' : 'text.primary',
+                    transform: 'translateY(-1px)',
                   },
                 }}
               >
@@ -104,11 +115,13 @@ const Navbar = () => {
               onClick={toggleColorMode}
               sx={{
                 color: 'text.secondary',
+                ml: { xs: 0.5, sm: 1 },
+                transition: 'all 0.2s ease-in-out',
                 '&:hover': {
                   backgroundColor: 'action.hover',
                   color: 'primary.main',
+                  transform: 'rotate(15deg) scale(1.1)',
                 },
-                transition: 'all 0.2s ease-in-out',
               }}
               aria-label="toggle theme"
             >

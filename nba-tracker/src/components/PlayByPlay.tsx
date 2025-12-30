@@ -1,21 +1,11 @@
 import { useEffect, useState, useRef } from 'react';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Box,
-  Typography,
-} from '@mui/material';
-import { Sports } from '@mui/icons-material';
+import { Box, Typography, Chip, Paper, Divider } from '@mui/material';
+import { Sports, FiberManualRecord } from '@mui/icons-material';
 import PlayByPlayWebSocketService from '../services/PlayByPlayWebSocketService';
 import { PlayByPlayResponse, PlayByPlayEvent } from '../types/playbyplay';
 
 /**
- * Component that displays play-by-play events for a game.
+ * Modern play-by-play component that displays game events in a timeline format.
  * Shows all the game events (shots, fouls, timeouts, etc.) in real-time.
  * Connects to WebSocket to get live updates.
  */
@@ -116,52 +106,209 @@ const PlayByPlay = ({ gameId }: { gameId: string }) => {
     return null;
   }
 
+  // Group plays by period
+  const playsByPeriod = actions.reduce((acc, play) => {
+    const period = play.period || 0;
+    if (!acc[period]) {
+      acc[period] = [];
+    }
+    acc[period].push(play);
+    return acc;
+  }, {} as Record<number, PlayByPlayEvent[]>);
+
+  const periods = Object.keys(playsByPeriod)
+    .map(Number)
+    .sort((a, b) => b - a); // Most recent period first
+
   return (
-    <TableContainer
-      component={Paper}
-      elevation={0}
-      sx={{
-        border: '1px solid',
-        borderColor: 'divider',
-        maxHeight: '70vh',
-        overflow: 'auto',
-      }}
-    >
-      <Table size="small" stickyHeader>
-        <TableHead>
-          <TableRow>
-            <TableCell sx={{ fontWeight: 600 }}>Clock</TableCell>
-            <TableCell sx={{ fontWeight: 600 }}>Team</TableCell>
-            <TableCell sx={{ fontWeight: 600 }}>Score</TableCell>
-            <TableCell sx={{ fontWeight: 600 }}>Action</TableCell>
-            <TableCell sx={{ fontWeight: 600 }}>Description</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {actions.map((play) => (
-            <TableRow
-              key={play.action_number}
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 3, sm: 4 } }}>
+      {periods.map((period, periodIdx) => {
+        const periodPlays = playsByPeriod[period];
+        const periodLabel = period === 0 ? 'OT' : period > 4 ? `${period}OT` : `Q${period}`;
+
+        return (
+          <Box key={period}>
+            {/* Period header */}
+            <Box
               sx={{
-                '&:nth-of-type(even)': {
-                  backgroundColor: 'action.hover',
-                },
-                '&:hover': {
-                  backgroundColor: 'action.selected',
-                },
+                display: 'flex',
+                alignItems: 'center',
+                gap: 2,
+                mb: 2,
+                pb: 1.5,
+                borderBottom: '2px solid',
+                borderColor: 'divider',
               }}
             >
-              <TableCell>{formatClock(play.clock)}</TableCell>
-              <TableCell>{play.team_tricode || '-'}</TableCell>
-              <TableCell sx={{ color: 'primary.light', fontWeight: 500 }}>
-                {play.score_home ?? '-'} - {play.score_away ?? '-'}
-              </TableCell>
-              <TableCell>{play.action_type}</TableCell>
-              <TableCell>{play.description}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </TableContainer>
+              <Chip
+                label={periodLabel}
+                size="small"
+                sx={{
+                  backgroundColor: 'primary.main',
+                  color: 'primary.contrastText',
+                  fontWeight: 700,
+                  fontSize: { xs: '0.75rem', sm: '0.8125rem' },
+                }}
+              />
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                {periodPlays.length} plays
+              </Typography>
+            </Box>
+
+            {/* Timeline of plays */}
+            <Box sx={{ position: 'relative', pl: { xs: 2, sm: 3 } }}>
+              {/* Timeline line */}
+              <Box
+                sx={{
+                  position: 'absolute',
+                  left: { xs: 6, sm: 10 },
+                  top: 0,
+                  bottom: 0,
+                  width: 2,
+                  backgroundColor: 'divider',
+                  opacity: 0.5,
+                }}
+              />
+
+              {periodPlays.map((play) => {
+                const isScore = play.action_type?.toLowerCase().includes('shot') || 
+                                play.action_type?.toLowerCase().includes('free throw');
+                const isImportant = isScore || play.action_type?.toLowerCase().includes('foul') ||
+                                    play.action_type?.toLowerCase().includes('timeout');
+
+                return (
+                  <Box
+                    key={play.action_number}
+                    sx={{
+                      position: 'relative',
+                      mb: { xs: 2, sm: 2.5 },
+                      pl: { xs: 3, sm: 4 },
+                    }}
+                  >
+                    {/* Timeline dot */}
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        left: { xs: 2, sm: 6 },
+                        top: 4,
+                        width: { xs: 8, sm: 10 },
+                        height: { xs: 8, sm: 10 },
+                        borderRadius: '50%',
+                        backgroundColor: isImportant ? 'primary.main' : 'divider',
+                        border: '2px solid',
+                        borderColor: 'background.default',
+                        zIndex: 1,
+                      }}
+                    />
+
+                    {/* Play card */}
+                    <Paper
+                      elevation={0}
+                      sx={{
+                        p: { xs: 1.5, sm: 2 },
+                        backgroundColor: isImportant ? 'rgba(25, 118, 210, 0.05)' : 'background.paper',
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        borderRadius: 2,
+                        transition: 'all 0.2s ease-in-out',
+                        '&:hover': {
+                          backgroundColor: isImportant ? 'rgba(25, 118, 210, 0.1)' : 'action.hover',
+                          transform: 'translateX(4px)',
+                          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+                        },
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                        {/* Header row */}
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 2 }}>
+                          <Box sx={{ flex: 1, minWidth: 0 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                              {play.team_tricode && (
+                                <Chip
+                                  label={play.team_tricode}
+                                  size="small"
+                                  sx={{
+                                    height: 20,
+                                    fontSize: '0.7rem',
+                                    fontWeight: 700,
+                                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                                  }}
+                                />
+                              )}
+                              <Typography
+                                variant="caption"
+                                sx={{
+                                  color: 'text.secondary',
+                                  fontWeight: 600,
+                                  fontSize: { xs: '0.7rem', sm: '0.75rem' },
+                                }}
+                              >
+                                {formatClock(play.clock)}
+                              </Typography>
+                            </Box>
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                fontWeight: isImportant ? 600 : 400,
+                                fontSize: { xs: '0.8125rem', sm: '0.875rem' },
+                                lineHeight: 1.4,
+                              }}
+                            >
+                              {play.description || play.action_type}
+                            </Typography>
+                          </Box>
+                          {/* Score */}
+                          {play.score_home !== null && play.score_away !== null && (
+                            <Box
+                              sx={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'flex-end',
+                                gap: 0.5,
+                                flexShrink: 0,
+                              }}
+                            >
+                              <Typography
+                                variant="caption"
+                                sx={{
+                                  color: 'primary.main',
+                                  fontWeight: 700,
+                                  fontSize: { xs: '0.75rem', sm: '0.8125rem' },
+                                }}
+                              >
+                                {play.score_away} - {play.score_home}
+                              </Typography>
+                              {isScore && (
+                                <FiberManualRecord
+                                  sx={{
+                                    fontSize: 6,
+                                    color: 'success.main',
+                                    animation: 'pulse 1s ease-in-out infinite',
+                                    '@keyframes pulse': {
+                                      '0%, 100%': { opacity: 1 },
+                                      '50%': { opacity: 0.5 },
+                                    },
+                                  }}
+                                />
+                              )}
+                            </Box>
+                          )}
+                        </Box>
+                      </Box>
+                    </Paper>
+                  </Box>
+                );
+              })}
+            </Box>
+
+            {/* Divider between periods */}
+            {periodIdx < periods.length - 1 && (
+              <Divider sx={{ my: { xs: 3, sm: 4 } }} />
+            )}
+          </Box>
+        );
+      })}
+    </Box>
   );
 };
 

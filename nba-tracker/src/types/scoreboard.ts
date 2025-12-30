@@ -93,6 +93,7 @@ export interface PlayerBoxScoreStats {
   player_id: number;
   name: string;
   position: string;
+  jerseyNum?: string;
   minutes?: string;
   points: number;
   rebounds: number;
