@@ -24,7 +24,7 @@ import { enUS } from 'date-fns/locale';
 import Navbar from '../components/Navbar';
 
 // Base URL for API calls
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 /**
  * Page that shows detailed information about a specific player.

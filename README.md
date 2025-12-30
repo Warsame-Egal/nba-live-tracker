@@ -114,6 +114,15 @@ ws.onmessage = (event) => {
 - Interactive docs: http://localhost:8000/docs
 - Full documentation: [API_DOCUMENTATION.md](nba-tracker-api/app/docs/API_DOCUMENTATION.md)
 
+## Deployment
+
+This app can be deployed for free:
+
+- **Frontend**: Deploy to [Vercel](https://vercel.com) (free, automatic HTTPS)
+- **Backend**: Deploy to [Oracle Cloud Free Tier](https://www.oracle.com/cloud/free/) (free VPS, works with NBA.com)
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed instructions or [QUICK_START_DEPLOYMENT.md](QUICK_START_DEPLOYMENT.md) for a quick setup guide.
+
 ## Project Structure
 
 ```

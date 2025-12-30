@@ -41,9 +41,9 @@ import { responsiveSpacing, borderRadius, typography, zIndex, transitions } from
 // WebSocket URL for live score updates
 const SCOREBOARD_WEBSOCKET_URL = `${
   window.location.protocol === 'https:' ? 'wss' : 'ws'
-}://${import.meta.env.VITE_WS_URL}/api/v1/ws`;
+}://${import.meta.env.VITE_WS_URL || 'localhost:8000'}/api/v1/ws`;
 // Base URL for API calls
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 /**
  * Get today's date in YYYY-MM-DD format, adjusted for local timezone.
