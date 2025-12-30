@@ -694,19 +694,25 @@ WebSocket connections may close unexpectedly. Recommended practices:
 
 ```javascript
 class WebSocketService {
-  constructor(url) {
-    this.url = url;
+  constructor() {
     this.socket = null;
+    this.url = null;
     this.shouldReconnect = true;
-    this.reconnectDelay = 5000;
   }
 
-  connect() {
+  connect(url) {
     if (this.socket && this.socket.readyState === WebSocket.OPEN) {
       return;
     }
 
-    this.socket = new WebSocket(this.url);
+    if (this.socket) {
+      this.socket.close();
+      this.socket = null;
+    }
+
+    this.shouldReconnect = true;
+    this.url = url;
+    this.socket = new WebSocket(url);
 
     this.socket.onopen = () => {
       console.log("WebSocket connected");
@@ -718,13 +724,19 @@ class WebSocketService {
     };
 
     this.socket.onerror = (error) => {
-      console.error("WebSocket error:", error);
+      console.error("WebSocket connection error:", error);
     };
 
     this.socket.onclose = (event) => {
-      console.log(`WebSocket closed (code: ${event.code})`);
-      if (this.shouldReconnect) {
-        setTimeout(() => this.connect(), this.reconnectDelay);
+      console.log(`WebSocket disconnected (code: ${event.code})`);
+      this.socket = null;
+
+      if (this.shouldReconnect && this.url) {
+        setTimeout(() => {
+          if (this.shouldReconnect && this.url) {
+            this.connect(this.url);
+          }
+        }, 5000);
       }
     };
   }
@@ -738,13 +750,15 @@ class WebSocketService {
     this.shouldReconnect = false;
     if (this.socket) {
       this.socket.close();
+      this.socket = null;
     }
+    this.url = null;
   }
 }
 
 // Usage
-const wsService = new WebSocketService("ws://localhost:8000/api/v1/ws");
-wsService.connect();
+const wsService = new WebSocketService();
+wsService.connect("ws://localhost:8000/api/v1/ws");
 ```
 
 **Example Reconnection Pattern (Python):**
@@ -824,32 +838,32 @@ GET /
 
 ## Best Practices
 
-### Request Handling
-
 1. **Use WebSockets for Real-Time Data**
-   - Connect to WebSocket endpoints for live scoreboard and play-by-play updates
-   - Avoid polling REST endpoints repeatedly for real-time data
-   - WebSocket connections are more efficient and reduce server load
+
+   - Use WebSocket endpoints for live scoreboard and play-by-play updates
+   - Don't poll REST endpoints repeatedly for real-time data
 
 2. **Error Handling**
-   - Always check HTTP status codes before processing responses
-   - Implement retry logic with exponential backoff for network errors
-   - Handle edge cases gracefully (empty responses, malformed data)
 
-3. **Caching**
-   - Cache static data like team rosters and player profiles
-   - Use appropriate cache expiration times (e.g., 1 hour for rosters)
+   - Check HTTP status codes before processing responses
+   - Handle errors and empty responses gracefully
+
+3. **Caching and Database**
+
+   - Cache static data like rosters and player profiles
+   - Build a database for non-live data (historical stats, past games, player career stats)
+   - This reduces API calls and improves performance
    - Don't cache live game data - use WebSockets instead
 
-4. **Rate Limiting Considerations**
-   - Space out API calls to avoid overwhelming the server
-   - Wait at least 1-2 seconds between consecutive requests
+4. **Rate Limiting**
+
+   - Wait x seconds between consecutive requests
    - Use WebSocket connections instead of frequent polling
+   - See the [`nba_api`](https://github.com/swar/nba_api) package docs for more details
 
 5. **Empty Responses**
-   - Some endpoints return empty arrays or null values (e.g., games that haven't started)
-   - Always check if data exists before accessing nested properties
-   - Provide fallback UI states for empty data
+   - Some endpoints return empty data (e.g., games that haven't started)
+   - Always check if data exists before using it
 
 **Example: Error Handling (JavaScript)**
 
@@ -864,17 +878,17 @@ async function fetchWithRetry(url, maxRetries = 3, delay = 1000) {
       return await response.json();
     } catch (error) {
       if (i === maxRetries - 1) throw error;
-      await new Promise(resolve => setTimeout(resolve, delay * (i + 1)));
+      await new Promise((resolve) => setTimeout(resolve, delay * (i + 1)));
     }
   }
 }
 
 // Usage
 try {
-  const data = await fetchWithRetry('http://localhost:8000/api/v1/player/2544');
+  const data = await fetchWithRetry("http://localhost:8000/api/v1/player/2544");
   console.log(data);
 } catch (error) {
-  console.error('Failed to fetch player:', error);
+  console.error("Failed to fetch player:", error);
 }
 ```
 
@@ -889,27 +903,28 @@ async function getCachedData(key, fetchFn) {
   if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
     return cached.data;
   }
-  
+
   const data = await fetchFn();
   cache.set(key, { data, timestamp: Date.now() });
   return data;
 }
 
 // Usage
-const player = await getCachedData(
-  'player-2544',
-  () => fetch('http://localhost:8000/api/v1/player/2544').then(r => r.json())
+const player = await getCachedData("player-2544", () =>
+  fetch("http://localhost:8000/api/v1/player/2544").then((r) => r.json())
 );
 ```
 
 ### WebSocket Best Practices
 
 1. **Connection State Management**
+
    - Track connection state (connecting, connected, disconnected)
    - Store the WebSocket URL for reconnection attempts
    - Properly clean up connections on component unmount
 
 2. **Connection State Handling**
+
    - Check `readyState` before sending messages
    - Wait for `OPEN` state before attempting to send data
    - Implement connection state listeners for UI updates
@@ -922,55 +937,55 @@ const player = await getCachedData(
 **Example: WebSocket Service (JavaScript)**
 
 ```javascript
-class ScoreboardWebSocketService {
-  constructor(url) {
-    this.url = url;
+class WebSocketService {
+  constructor() {
     this.socket = null;
+    this.url = null;
     this.listeners = new Set();
     this.shouldReconnect = true;
-    this.reconnectDelay = 5000;
-    this.maxReconnectDelay = 30000;
   }
 
-  connect() {
+  connect(url) {
     if (this.socket && this.socket.readyState === WebSocket.OPEN) {
       return;
     }
 
     if (this.socket) {
       this.socket.close();
+      this.socket = null;
     }
 
-    this.socket = new WebSocket(this.url);
+    this.shouldReconnect = true;
+    this.url = url;
+    this.socket = new WebSocket(url);
 
     this.socket.onopen = () => {
-      console.log("Scoreboard WebSocket connected");
-      this.reconnectDelay = 5000; // Reset delay on successful connection
+      console.log("WebSocket connected for scoreboard updates");
     };
 
     this.socket.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        this.listeners.forEach(callback => callback(data));
+        this.listeners.forEach((callback) => callback(data));
       } catch (error) {
         console.error("Error parsing WebSocket message:", error);
       }
     };
 
     this.socket.onerror = (error) => {
-      console.error("WebSocket error:", error);
+      console.error("WebSocket connection error:", error);
     };
 
     this.socket.onclose = (event) => {
-      console.log(`WebSocket closed (code: ${event.code})`);
+      console.log(`WebSocket disconnected (code: ${event.code})`);
       this.socket = null;
 
-      if (this.shouldReconnect) {
-        const delay = Math.min(this.reconnectDelay, this.maxReconnectDelay);
+      if (this.shouldReconnect && this.url) {
         setTimeout(() => {
-          this.reconnectDelay *= 1.5; // Exponential backoff
-          this.connect();
-        }, delay);
+          if (this.shouldReconnect && this.url) {
+            this.connect(this.url);
+          }
+        }, 5000);
       }
     };
   }
@@ -994,9 +1009,8 @@ class ScoreboardWebSocketService {
 }
 
 // Usage
-const wsService = new ScoreboardWebSocketService("ws://localhost:8000/api/v1/ws");
-wsService.connect();
-
+const wsService = new WebSocketService();
+wsService.connect("ws://localhost:8000/api/v1/ws");
 wsService.subscribe((data) => {
   console.log("Scoreboard update:", data);
   // Update your UI here
@@ -1007,81 +1021,29 @@ wsService.subscribe((data) => {
 
 ## Known Issues
 
-### Rate Limiting from NBA API
+### Cloud Provider Blocking
 
-**Issue:** Making rapid consecutive calls to the API may result in errors from the underlying `nba_api` package. The NBA's official API has rate limiting that can cause requests to fail if called too quickly.
+NBA.com blocks requests from cloud hosting providers. This API uses the [`nba_api`](https://github.com/swar/nba_api) package which calls NBA.com, so if you deploy to a cloud provider, requests will fail.
 
-**Workaround:**
-- Add delays between API calls (minimum 1-2 seconds)
-- Implement exponential backoff retry logic
-- Use WebSocket connections for real-time data instead of polling REST endpoints
-- Cache responses to reduce API calls
+**Does Not Work:**
 
-**Example:**
+- AWS
+- Render
+- Other cloud providers
 
-```javascript
-// Bad: Rapid consecutive calls
-for (const playerId of playerIds) {
-  await fetch(`/api/v1/player/${playerId}`); // May fail
-}
+**Works:**
 
-// Good: Add delays between calls
-for (const playerId of playerIds) {
-  await fetch(`/api/v1/player/${playerId}`);
-  await new Promise(resolve => setTimeout(resolve, 1500)); // 1.5 second delay
-}
-```
+- Local development
+- VPS with residential IP
+- Home servers
 
-### Cloud Deployment Blocking
-
-**Issue:** Cloud hosting services (AWS, Google Cloud, Azure, Heroku, etc.) are blocked from accessing `nba.com`. Since this API uses the `nba_api` Python package which makes requests to `nba.com`, the API will not work when deployed to these cloud platforms.
-
-**Affected Services:**
-- AWS (EC2, Lambda, ECS, etc.)
-- Google Cloud Platform
-- Microsoft Azure
-- Heroku
-- DigitalOcean
-- Any cloud hosting provider
-
-**Why This Happens:**
-- NBA.com blocks requests from known cloud provider IP ranges
-- The `nba_api` package makes direct requests to NBA's servers
-- This is a limitation of the underlying data source, not this API
-
-**Workarounds:**
-1. **Deploy to a VPS or Home Server**
-   - Use a Virtual Private Server (VPS) with a residential IP
-   - Deploy on a home server or local machine
-   - Use services that provide residential IP addresses
-
-2. **Use a Proxy Service**
-   - Route requests through a proxy with a residential IP
-   - Note: This requires modifying the `nba_api` package configuration
-
-3. **Local Development Only**
-   - Run the API locally for development
-   - Use tunneling services (ngrok, localtunnel) for temporary external access
-   - Note: Tunneling services may also be blocked
-
-**Current Status:**
-- ✅ Works: Local development, VPS with residential IP, home servers
-- ❌ Does Not Work: AWS, GCP, Azure, Heroku, DigitalOcean, other cloud providers
-
-**Note:** This is a known limitation of accessing NBA.com's data. The API wrapper itself works correctly, but the underlying data source (NBA.com) blocks cloud providers.
+**Note:** This is a limitation of NBA.com blocking cloud IPs, not this API. For more details about rate limiting and other issues, see the [`nba_api`](https://github.com/swar/nba_api) package documentation.
 
 ---
 
 ## Rate Limiting
 
-Currently, there are no rate limits on this API wrapper. However, please be respectful:
-
-- Don't make excessive requests
-- Use WebSocket connections for real-time data instead of polling
-- Cache responses when appropriate
-- Add delays between consecutive requests (1-2 seconds minimum)
-
-**Important:** The underlying NBA API has rate limiting. Making requests too quickly may result in errors. See [Known Issues](#known-issues) for details.
+The underlying NBA API has rate limiting. Wait few seconds between requests and use WebSocket connections for real-time data. For more details, see the [`nba_api`](https://github.com/swar/nba_api) package documentation.
 
 ---
 

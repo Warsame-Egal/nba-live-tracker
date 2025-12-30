@@ -70,6 +70,45 @@ npm run dev
 
 **Third-Party Package:** This project uses the [`nba_api`](https://github.com/swar/nba_api) Python package by [swar](https://github.com/swar) to access NBA.com data.
 
+## API Usage Examples
+
+### Get Player Details
+
+```bash
+curl http://localhost:8000/api/v1/player/2544
+```
+
+```python
+import requests
+
+response = requests.get("http://localhost:8000/api/v1/player/2544")
+player = response.json()
+print(player["PLAYER_FIRST_NAME"], player["PLAYER_LAST_NAME"])
+```
+
+### Get Live Scoreboard
+
+```bash
+curl http://localhost:8000/api/v1/scoreboard
+```
+
+### Get Games for Date
+
+```bash
+curl http://localhost:8000/api/v1/schedule/date/2025-01-15
+```
+
+### WebSocket for Live Updates
+
+```javascript
+const ws = new WebSocket("ws://localhost:8000/api/v1/ws");
+
+ws.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  console.log("Live scores:", data);
+};
+```
+
 ## API Documentation
 
 - Interactive docs: http://localhost:8000/docs
