@@ -36,6 +36,7 @@ def patch_http_file(http_file_path: Path, proxy_list: list):
             content = content[:insert_pos] + f'\nPROXY_LIST = {proxy_list_str}\n\n' + content[insert_pos:]
     
     # Patch the proxy logic: replace "if proxy is None: request_proxy = PROXY"
+    # Try flexible whitespace matching
     pattern = r'(if\s+proxy\s+is\s+None:\s*\n\s+request_proxy\s*=\s*PROXY)'
     replacement = '''if proxy is None:
             if PROXY_LIST:
@@ -47,8 +48,24 @@ def patch_http_file(http_file_path: Path, proxy_list: list):
         content = re.sub(pattern, replacement, content)
         print("   Successfully patched proxy logic")
     else:
-        print("Error: Could not find proxy pattern to patch")
-        sys.exit(1)
+        # Try line-by-line approach as fallback
+        lines = content.split('\n')
+        for i, line in enumerate(lines):
+            if 'if proxy is None:' in line and i + 1 < len(lines):
+                if 'request_proxy = PROXY' in lines[i + 1]:
+                    # Get indentation from the if line
+                    indent = len(line) - len(line.lstrip())
+                    # Replace the next line with our logic
+                    lines[i + 1] = ' ' * (indent + 4) + 'if PROXY_LIST:'
+                    lines.insert(i + 2, ' ' * (indent + 8) + 'request_proxy = random.choice(PROXY_LIST)')
+                    lines.insert(i + 3, ' ' * (indent + 4) + 'else:')
+                    lines.insert(i + 4, ' ' * (indent + 8) + 'request_proxy = PROXY')
+                    content = '\n'.join(lines)
+                    print("   Successfully patched proxy logic (line-by-line method)")
+                    break
+        else:
+            print("Error: Could not find proxy pattern to patch")
+            sys.exit(1)
     
     # Write patched content
     with open(http_file_path, 'w', encoding='utf-8') as f:
