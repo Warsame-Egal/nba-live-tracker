@@ -17,6 +17,7 @@ import {
 } from '@mui/material';
 import { TeamRoster } from '../types/team';
 import Navbar from '../components/Navbar';
+import { fetchJson } from '../utils/apiClient';
 
 // Base URL for API calls
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
@@ -58,22 +59,27 @@ const TeamPage = () => {
   useEffect(() => {
     const fetchTeamData = async () => {
       try {
-        // Get team details
-        const res = await fetch(`${API_BASE_URL}/api/v1/teams/${team_id}`);
-        if (!res.ok) throw new Error('Failed to fetch team details');
-        const data = await res.json();
+        // Get team details with retry
+        const data = await fetchJson<TeamDetails>(
+          `${API_BASE_URL}/api/v1/teams/${team_id}`,
+          {},
+          { maxRetries: 3, retryDelay: 1000, timeout: 30000 }
+        );
         setTeam(data);
 
-        // Get team roster for the 2024-25 season
-        const rosterRes = await fetch(
-          `${API_BASE_URL}/api/v1/scoreboard/team/${team_id}/roster/2024-25`,
-        );
-        if (rosterRes.ok) {
-          const rosterData = await rosterRes.json();
+        // Get team roster for the 2024-25 season (with retry)
+        try {
+          const rosterData = await fetchJson<TeamRoster>(
+            `${API_BASE_URL}/api/v1/scoreboard/team/${team_id}/roster/2024-25`,
+            {},
+            { maxRetries: 2, retryDelay: 1000, timeout: 30000 }
+          );
           setRoster(rosterData);
+        } catch {
+          // Roster is optional, continue without it
         }
       } catch (err) {
-        setError(`Failed to load team information. ${err}`);
+        setError(err instanceof Error ? err.message : 'Failed to load team information. Please try again.');
       } finally {
         setLoading(false);
       }

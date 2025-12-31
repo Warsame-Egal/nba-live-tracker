@@ -16,6 +16,7 @@ import { borderRadius, transitions, typography, spacing } from '../theme/designT
 import { BoxScoreResponse, PlayerBoxScoreStats } from '../types/scoreboard';
 import { PlayByPlayResponse, PlayByPlayEvent } from '../types/playbyplay';
 import PlayByPlayWebSocketService from '../services/PlayByPlayWebSocketService';
+import { fetchJson } from '../utils/apiClient';
 
 interface GameRowProps {
   game: Game | GameSummary;
@@ -151,21 +152,22 @@ const GameRow: React.FC<GameRowProps> = ({ game, onClick, isRecentlyUpdated = fa
     
     const fetchBoxScore = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/v1/scoreboard/game/${gameId}/boxscore`);
-        if (response.ok) {
-          const data: BoxScoreResponse = await response.json();
-          const homeTopScorer = data.home_team.players
-            .filter(p => p.points > 0)
-            .sort((a, b) => b.points - a.points)[0] || null;
-          
-          const awayTopScorer = data.away_team.players
-            .filter(p => p.points > 0)
-            .sort((a, b) => b.points - a.points)[0] || null;
-          
-          setTopPerformers({ home: homeTopScorer, away: awayTopScorer });
-        }
+        const data = await fetchJson<BoxScoreResponse>(
+          `${API_BASE_URL}/api/v1/scoreboard/game/${gameId}/boxscore`,
+          {},
+          { maxRetries: 2, retryDelay: 1000, timeout: 20000 }
+        );
+        const homeTopScorer = data.home_team.players
+          .filter(p => p.points > 0)
+          .sort((a, b) => b.points - a.points)[0] || null;
+        
+        const awayTopScorer = data.away_team.players
+          .filter(p => p.points > 0)
+          .sort((a, b) => b.points - a.points)[0] || null;
+        
+        setTopPerformers({ home: homeTopScorer, away: awayTopScorer });
       } catch {
-        // Silently fail
+        // Silently fail for background updates
       }
     };
 

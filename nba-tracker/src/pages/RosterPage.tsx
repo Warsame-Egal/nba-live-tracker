@@ -18,6 +18,7 @@ import {
 import { TeamRoster, Player } from '../types/team';
 import Navbar from '../components/Navbar';
 import { logger } from '../utils/logger';
+import { fetchJson } from '../utils/apiClient';
 
 // Base URL for API calls
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
@@ -42,18 +43,16 @@ const RosterPage = () => {
   useEffect(() => {
     async function fetchTeamRoster() {
       try {
-        // Get roster for the 2024-25 season
-        const response = await fetch(
+        // Get roster season with retry
+        const data = await fetchJson<TeamRoster>(
           `${API_BASE_URL}/api/v1/scoreboard/team/${team_id}/roster/2024-25`,
+          {},
+          { maxRetries: 3, retryDelay: 1000, timeout: 30000 }
         );
-
-        if (!response.ok) throw new Error('Failed to fetch roster');
-
-        const data = await response.json();
         setTeamRoster(data);
       } catch (error) {
         logger.error('Error fetching team roster', error);
-        setError('Failed to load team roster.');
+        setError('Failed to load team roster. Please try again.');
       } finally {
         setLoading(false);
       }

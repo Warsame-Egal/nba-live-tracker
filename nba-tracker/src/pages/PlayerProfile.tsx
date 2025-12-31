@@ -22,6 +22,7 @@ import { PlayerSummary } from '../types/player';
 import { format } from 'date-fns';
 import { enUS } from 'date-fns/locale';
 import Navbar from '../components/Navbar';
+import { fetchJson } from '../utils/apiClient';
 
 // Base URL for API calls
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
@@ -50,12 +51,14 @@ const PlayerProfile: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch(`${API_BASE_URL}/api/v1/player/${playerId}`);
-        if (!response.ok) throw new Error('Failed to fetch player');
-        const data: PlayerSummary = await response.json();
+        const data = await fetchJson<PlayerSummary>(
+          `${API_BASE_URL}/api/v1/player/${playerId}`,
+          {},
+          { maxRetries: 3, retryDelay: 1000, timeout: 30000 }
+        );
         setPlayer(data);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'An unexpected error occurred.');
+        setError(err instanceof Error ? err.message : 'Failed to load player. Please try again.');
       } finally {
         setLoading(false);
       }

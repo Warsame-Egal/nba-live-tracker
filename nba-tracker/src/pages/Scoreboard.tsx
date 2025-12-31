@@ -37,6 +37,7 @@ import { SearchResults } from '../types/search';
 import debounce from 'lodash/debounce';
 import { logger } from '../utils/logger';
 import { responsiveSpacing, borderRadius, typography, zIndex, transitions } from '../theme/designTokens';
+import { fetchJson } from '../utils/apiClient';
 
 // WebSocket URL for live score updates
 const SCOREBOARD_WEBSOCKET_URL = `${
@@ -189,23 +190,24 @@ const Scoreboard = () => {
     // Fetch box score for top performers
     const fetchBoxScore = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/v1/scoreboard/game/${gameId}/boxscore`);
-        if (response.ok) {
-          const data: BoxScoreResponse = await response.json();
-          
-          // Find top scorer from each team
-          const homeTopScorer = data.home_team.players
-            .filter(p => p.points > 0)
-            .sort((a, b) => b.points - a.points)[0] || null;
-          
-          const awayTopScorer = data.away_team.players
-            .filter(p => p.points > 0)
-            .sort((a, b) => b.points - a.points)[0] || null;
-          
-          setCurrentGameTopPerformers({ home: homeTopScorer, away: awayTopScorer });
-        }
+        const data = await fetchJson<BoxScoreResponse>(
+          `${API_BASE_URL}/api/v1/scoreboard/game/${gameId}/boxscore`,
+          {},
+          { maxRetries: 2, retryDelay: 1000, timeout: 20000 }
+        );
+        
+        // Find top scorer from each team
+        const homeTopScorer = data.home_team.players
+          .filter(p => p.points > 0)
+          .sort((a, b) => b.points - a.points)[0] || null;
+        
+        const awayTopScorer = data.away_team.players
+          .filter(p => p.points > 0)
+          .sort((a, b) => b.points - a.points)[0] || null;
+        
+        setCurrentGameTopPerformers({ home: homeTopScorer, away: awayTopScorer });
       } catch {
-        // Silently fail
+        // Silently fail for background updates
       }
     };
 
@@ -397,11 +399,11 @@ const Scoreboard = () => {
       setLoading(true);
       setShowSearchResults(true);
       try {
-        const response = await fetch(`${API_BASE_URL}/api/v1/search?q=${searchInput}`, {
-          signal: abortController.signal,
-        });
-        if (!response.ok) throw new Error('Failed to fetch search results.');
-        const data: SearchResults = await response.json();
+        const data = await fetchJson<SearchResults>(
+          `${API_BASE_URL}/api/v1/search?q=${searchInput}`,
+          { signal: abortController.signal },
+          { maxRetries: 2, retryDelay: 500, timeout: 15000 }
+        );
         setSearchResults(data);
       } catch (err) {
         // Don't log abort errors (they're normal when user types quickly)
@@ -435,8 +437,11 @@ const Scoreboard = () => {
     const fetchGamesByDate = async (date: string) => {
       setLoading(true);
       try {
-        const response = await fetch(`${API_BASE_URL}/api/v1/schedule/date/${date}`);
-        const data: GamesResponse = await response.json();
+        const data = await fetchJson<GamesResponse>(
+          `${API_BASE_URL}/api/v1/schedule/date/${date}`,
+          {},
+          { maxRetries: 3, retryDelay: 1000, timeout: 30000 }
+        );
         
         if (date === getLocalISODate()) {
           scheduleGameLeadersRef.current.clear();

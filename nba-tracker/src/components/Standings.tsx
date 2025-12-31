@@ -18,6 +18,7 @@ import { StandingRecord, StandingsResponse } from '../types/standings';
 import { Sports, TrendingUp, TrendingDown, EmojiEvents } from '@mui/icons-material';
 import Navbar from './Navbar';
 import { responsiveSpacing, borderRadius, transitions, typography } from '../theme/designTokens';
+import { fetchJson } from '../utils/apiClient';
 
 // Base URL for API calls
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
@@ -96,12 +97,14 @@ const Standings = () => {
     const fetchStandings = async () => {
       setLoading(true);
       try {
-        const res = await fetch(`${API_BASE_URL}/api/v1/standings/season/${seasonParam}`);
-        if (!res.ok) throw new Error('Failed to fetch standings.');
-        const data: StandingsResponse = await res.json();
+        const data = await fetchJson<StandingsResponse>(
+          `${API_BASE_URL}/api/v1/standings/season/${seasonParam}`,
+          {},
+          { maxRetries: 3, retryDelay: 1000, timeout: 30000 }
+        );
         setStandings(data.standings);
       } catch {
-        setError('Failed to fetch standings.');
+        setError('Failed to fetch standings. Please try again.');
       } finally {
         setLoading(false);
       }

@@ -15,6 +15,7 @@ import { Close, ArrowBack, Assessment, Timeline } from '@mui/icons-material';
 import { BoxScoreResponse, TeamBoxScoreStats, PlayerBoxScoreStats } from '../types/scoreboard';
 import PlayByPlay from './PlayByPlay';
 import { logger } from '../utils/logger';
+import { fetchJson } from '../utils/apiClient';
 
 // Base URL for API calls
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
@@ -62,14 +63,12 @@ const GameDetailsDrawer = ({ gameId, open, onClose, initialTab = 'box', gameInfo
     const fetchDetails = async () => {
       setLoading(true);
       try {
-        const res = await fetch(`${API_BASE_URL}/api/v1/scoreboard/game/${gameId}/boxscore`);
-        if (!res.ok) {
-          logger.warn(`Boxscore API returned ${res.status} for game ${gameId}`);
-          setBoxScore(null);
-        } else {
-          const boxRes = await res.json();
-          setBoxScore(boxRes);
-        }
+        const boxRes = await fetchJson<BoxScoreResponse>(
+          `${API_BASE_URL}/api/v1/scoreboard/game/${gameId}/boxscore`,
+          {},
+          { maxRetries: 3, retryDelay: 1000, timeout: 30000 }
+        );
+        setBoxScore(boxRes);
       } catch (err) {
         logger.error('Failed to fetch game details', err);
         setBoxScore(null);
