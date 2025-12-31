@@ -22,6 +22,7 @@ import { PlayerSummary } from '../types/player';
 import { format } from 'date-fns';
 import { enUS } from 'date-fns/locale';
 import Navbar from '../components/Navbar';
+import ShotChart from '../components/ShotChart';
 import { fetchJson } from '../utils/apiClient';
 
 // Base URL for API calls
@@ -273,6 +274,17 @@ const PlayerProfile: React.FC = () => {
                 </TableBody>
               </Table>
             </TableContainer>
+          </Box>
+        )}
+
+        {/* Shot Chart Section */}
+        {player.TEAM_ID && (
+          <Box sx={{ mt: { xs: 4, sm: 5 } }}>
+            <ShotChart
+              playerId={player.PERSON_ID.toString()}
+              teamId={player.TEAM_ID}
+              playerName={fullName}
+            />
           </Box>
         )}
       </Container>

@@ -51,33 +51,64 @@ async def getPlayer(player_id: str) -> PlayerSummary:
         roster_status = player_data.get("ROSTER_STATUS")
         if isinstance(roster_status, float):
             roster_status = str(roster_status)
+        elif roster_status is None:
+            roster_status = ""
 
         # Get the player's recent game performances
-        api_kwargs = get_api_kwargs()
-        game_log_data = await asyncio.to_thread(lambda: PlayerGameLog(player_id=player_id, **api_kwargs).get_dict())
-        game_log = game_log_data["resultSets"][0]["rowSet"]
-        game_headers = game_log_data["resultSets"][0]["headers"]
+        recent_games = []
+        try:
+            api_kwargs = get_api_kwargs()
+            game_log_data = await asyncio.to_thread(lambda: PlayerGameLog(player_id=player_id, **api_kwargs).get_dict())
+            
+            # Check if we got valid data
+            if not game_log_data.get("resultSets") or len(game_log_data["resultSets"]) == 0:
+                logger.warning(f"No game log data available for player {player_id}")
+            else:
+                game_log = game_log_data["resultSets"][0].get("rowSet", [])
+                game_headers = game_log_data["resultSets"][0].get("headers", [])
 
-        # Convert each game into our format (only last 5 games)
-        recent_games = [
-            PlayerGamePerformance(
-                game_id=row[game_headers.index("Game_ID")],
-                date=pd.to_datetime(row[game_headers.index("GAME_DATE")]).strftime("%Y-%m-%d"),
-                opponent_team_abbreviation=row[game_headers.index("MATCHUP")][-3:],
-                points=row[game_headers.index("PTS")],
-                rebounds=row[game_headers.index("REB")],
-                assists=row[game_headers.index("AST")],
-                steals=row[game_headers.index("STL")],
-                blocks=row[game_headers.index("BLK")],
-            )
-            for row in game_log[:5]  # Only get the last 5 games
-        ]
+                # Convert each game into our format (only last 5 games)
+                # Use safe indexing to avoid KeyError/IndexError
+                for row in game_log[:5]:
+                    try:
+                        game_id_idx = game_headers.index("Game_ID") if "Game_ID" in game_headers else None
+                        game_date_idx = game_headers.index("GAME_DATE") if "GAME_DATE" in game_headers else None
+                        matchup_idx = game_headers.index("MATCHUP") if "MATCHUP" in game_headers else None
+                        pts_idx = game_headers.index("PTS") if "PTS" in game_headers else None
+                        reb_idx = game_headers.index("REB") if "REB" in game_headers else None
+                        ast_idx = game_headers.index("AST") if "AST" in game_headers else None
+                        stl_idx = game_headers.index("STL") if "STL" in game_headers else None
+                        blk_idx = game_headers.index("BLK") if "BLK" in game_headers else None
+
+                        if None in [game_id_idx, game_date_idx, matchup_idx, pts_idx, reb_idx, ast_idx, stl_idx, blk_idx]:
+                            logger.warning(f"Missing required headers in game log for player {player_id}")
+                            continue
+
+                        recent_games.append(
+                            PlayerGamePerformance(
+                                game_id=row[game_id_idx],
+                                date=pd.to_datetime(row[game_date_idx]).strftime("%Y-%m-%d"),
+                                opponent_team_abbreviation=row[matchup_idx][-3:] if len(row[matchup_idx]) >= 3 else "",
+                                points=row[pts_idx] if pts_idx < len(row) else 0,
+                                rebounds=row[reb_idx] if reb_idx < len(row) else 0,
+                                assists=row[ast_idx] if ast_idx < len(row) else 0,
+                                steals=row[stl_idx] if stl_idx < len(row) else 0,
+                                blocks=row[blk_idx] if blk_idx < len(row) else 0,
+                            )
+                        )
+                    except (IndexError, ValueError, KeyError) as e:
+                        logger.warning(f"Error parsing game log row for player {player_id}: {e}")
+                        continue
+        except Exception as e:
+            # If game log fails, continue without recent games rather than failing the whole request
+            logger.warning(f"Error fetching game log for player {player_id}: {e}. Continuing without recent games.")
 
         # Build the player summary with all their info
+        # Use .get() with defaults to handle missing fields gracefully
         player_summary = PlayerSummary(
-            PERSON_ID=player_data["PERSON_ID"],
-            PLAYER_LAST_NAME=player_data["PLAYER_LAST_NAME"],
-            PLAYER_FIRST_NAME=player_data["PLAYER_FIRST_NAME"],
+            PERSON_ID=player_data.get("PERSON_ID", player_id_int),
+            PLAYER_LAST_NAME=player_data.get("PLAYER_LAST_NAME", ""),
+            PLAYER_FIRST_NAME=player_data.get("PLAYER_FIRST_NAME", ""),
             PLAYER_SLUG=player_data.get("PLAYER_SLUG"),
             TEAM_ID=player_data.get("TEAM_ID"),
             TEAM_SLUG=player_data.get("TEAM_SLUG"),
@@ -91,7 +122,7 @@ async def getPlayer(player_id: str) -> PlayerSummary:
             WEIGHT=player_data.get("WEIGHT"),
             COLLEGE=player_data.get("COLLEGE"),
             COUNTRY=player_data.get("COUNTRY"),
-            ROSTER_STATUS=roster_status,
+            ROSTER_STATUS=roster_status or "",
             PTS=player_data.get("PTS"),
             REB=player_data.get("REB"),
             AST=player_data.get("AST"),

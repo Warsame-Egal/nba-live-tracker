@@ -22,9 +22,14 @@ class PlayByPlayWebSocketService {
    * @param gameId - The ID of the game to get play-by-play updates for
    */
   connect(gameId: string) {
-    // Don't connect if we're already connected and the socket is open
-    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+    // Don't connect if we're already connected to the same game and the socket is open
+    if (this.socket && this.socket.readyState === WebSocket.OPEN && this.currentGameId === gameId) {
       return;
+    }
+
+    // If connecting to a different game, disconnect first
+    if (this.socket && this.currentGameId !== gameId) {
+      this.disconnect();
     }
 
     // Clean up existing connection if it exists but is not open
@@ -72,11 +77,12 @@ class PlayByPlayWebSocketService {
       // Clear the socket reference
       this.socket = null;
 
+      // Only reconnect if it wasn't a normal closure (code 1000) or intentional disconnect
       // Try to reconnect after 5 seconds if we should reconnect and have a game ID
-      if (this.shouldReconnect && this.currentGameId) {
+      if (this.shouldReconnect && this.currentGameId && event.code !== 1000) {
         logger.info('Reconnecting play-by-play in 5 seconds...');
         setTimeout(() => {
-          if (this.shouldReconnect && this.currentGameId) {
+          if (this.shouldReconnect && this.currentGameId && !this.socket) {
             this.connect(this.currentGameId);
           }
         }, 5000);

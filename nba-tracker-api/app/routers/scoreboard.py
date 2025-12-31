@@ -35,14 +35,30 @@ async def websocket_endpoint(websocket: WebSocket):
         # Send the latest scores to the newly connected client
         await scoreboard_websocket_manager.send_initial_scoreboard(websocket)
 
+        # Check if connection is still active after sending initial data
+        if websocket not in scoreboard_websocket_manager.active_connections:
+            return
+
         # Keep connection open and listen for messages from client
         while True:
-            data = await websocket.receive_text()  # Get message from client
-            logger.debug(f"Received message from client: {data}")
+            try:
+                data = await websocket.receive_text()  # Get message from client
+                logger.debug(f"Received message from client: {data}")
+            except RuntimeError as e:
+                # Connection was closed or not properly accepted
+                if "not connected" in str(e).lower() or "accept" in str(e).lower():
+                    logger.debug(f"WebSocket connection closed: {e}")
+                    break
+                raise
 
     except WebSocketDisconnect:
         # Client disconnected - clean up the connection
         logger.info(f"Client disconnected from scoreboard WebSocket")
+    except Exception as e:
+        # Log any other errors
+        logger.error(f"Error in scoreboard WebSocket: {e}", exc_info=True)
+    finally:
+        # Always clean up the connection
         await scoreboard_websocket_manager.disconnect(websocket)
 
 
@@ -112,11 +128,27 @@ async def playbyplay_websocket_endpoint(websocket: WebSocket, game_id: str):
     await playbyplay_websocket_manager.connect(websocket, game_id)
 
     try:
+        # Check if connection is still active after initial connection
+        if game_id not in playbyplay_websocket_manager.active_connections or websocket not in playbyplay_websocket_manager.active_connections[game_id]:
+            return
+
         # Keep connection open and listen for messages from client
         while True:
-            data = await websocket.receive_text()
-            logger.debug(f"Received message from client for game {game_id}: {data}")
+            try:
+                data = await websocket.receive_text()
+                logger.debug(f"Received message from client for game {game_id}: {data}")
+            except RuntimeError as e:
+                # Connection was closed or not properly accepted
+                if "not connected" in str(e).lower() or "accept" in str(e).lower():
+                    logger.debug(f"WebSocket connection closed: {e}")
+                    break
+                raise
     except WebSocketDisconnect:
         # Client disconnected - clean up the connection
         logger.info(f"Client disconnected from play-by-play WebSocket for game {game_id}")
+    except Exception as e:
+        # Log any other errors
+        logger.error(f"Error in play-by-play WebSocket: {e}", exc_info=True)
+    finally:
+        # Always clean up the connection
         await playbyplay_websocket_manager.disconnect(websocket, game_id)
