@@ -2,6 +2,10 @@
 
 A real-time NBA scoreboard and stats tracker built with React and FastAPI. Watch live games, track player stats, browse team rosters, and stay up-to-date with league standings.
 
+**Live Demo:** [nba-live-tracker.vercel.app](https://nba-live-tracker.vercel.app)
+
+The app is fully deployed and working. Frontend is on Vercel, backend API is running on Oracle Cloud Infrastructure.
+
 ## Screenshots
 
 <div align="center">
@@ -28,7 +32,9 @@ A real-time NBA scoreboard and stats tracker built with React and FastAPI. Watch
 
 ## Quick Start
 
-### Using Docker
+### Running Locally
+
+**Using Docker:**
 
 ```bash
 git clone https://github.com/Warsame-Egal/nba-live-tracker.git
@@ -42,14 +48,15 @@ Then open:
 - Backend API: http://localhost:8000
 - API Docs: http://localhost:8000/docs
 
-### Manual Setup
+**Manual Setup:**
 
 **Backend:**
 
 ```bash
 cd nba-tracker-api
 python -m venv venv
-venv\Scripts\activate
+venv\Scripts\activate  # On Windows
+# source venv/bin/activate  # On Mac/Linux
 pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
@@ -62,13 +69,35 @@ npm install
 npm run dev
 ```
 
+The frontend will run on http://localhost:3000 (or the next available port).
+
 ## Tech Stack
 
-**Frontend:** React, TypeScript, Material UI, Vite, React Router, WebSockets
+**Frontend:**
 
-**Backend:** FastAPI, Python, WebSockets, Uvicorn
+- React 19 with TypeScript
+- Material UI for components
+- Vite for building
+- React Router for navigation
+- WebSockets for real-time updates
 
-**Third-Party Package:** This project uses the [`nba_api`](https://github.com/swar/nba_api) Python package by [swar](https://github.com/swar) to access NBA.com data.
+**Backend:**
+
+- FastAPI with Python
+- WebSockets for live scoreboard and play-by-play
+- Uvicorn as the ASGI server
+- Docker for containerization
+
+**Data Source:**
+Uses the [`nba_api`](https://github.com/swar/nba_api) Python package by [swar](https://github.com/swar) to fetch data from NBA.com.
+
+**Deployment:**
+
+- Frontend: Vercel (automatic HTTPS, global CDN)
+- Backend: Oracle Cloud Infrastructure free tier (Ubuntu VM)
+- Tunnel: Cloudflare Tunnel for secure HTTPS access to backend
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for deployment details.
 
 ## API Usage Examples
 
@@ -113,6 +142,12 @@ ws.onmessage = (event) => {
 
 - Interactive docs: http://localhost:8000/docs
 - Full documentation: [API_DOCUMENTATION.md](nba-tracker-api/app/docs/API_DOCUMENTATION.md)
+
+## Deployment
+
+The app is currently deployed and running. I deployed the backend to Oracle Cloud's free tier and the frontend to Vercel. I set up a Cloudflare Tunnel to give the backend HTTPS access without exposing the VM's public IP.
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed setup instructions.
 
 ## Project Structure
 

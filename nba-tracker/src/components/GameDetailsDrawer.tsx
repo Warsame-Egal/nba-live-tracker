@@ -17,7 +17,7 @@ import PlayByPlay from './PlayByPlay';
 import { logger } from '../utils/logger';
 
 // Base URL for API calls
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 interface GameDetailsDrawerProps {
   gameId: string | null;

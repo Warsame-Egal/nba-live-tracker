@@ -1013,44 +1013,7 @@ const wsService = new WebSocketService();
 wsService.connect("ws://localhost:8000/api/v1/ws");
 wsService.subscribe((data) => {
   console.log("Scoreboard update:", data);
-  // Update your UI here
 });
 ```
 
 ---
-
-## Known Issues
-
-### Cloud Provider Blocking
-
-NBA.com blocks requests from cloud hosting providers. This API uses the [`nba_api`](https://github.com/swar/nba_api) package which calls NBA.com, so if you deploy to a cloud provider, requests will fail.
-
-**Does Not Work:**
-
-- AWS
-- Render
-- Other cloud providers
-
-**Works:**
-
-- Local development
-- VPS with residential IP
-- Home servers
-
-**Note:** This is a limitation of NBA.com blocking cloud IPs, not this API. For more details about rate limiting and other issues, see the [`nba_api`](https://github.com/swar/nba_api) package documentation.
-
----
-
-## Rate Limiting
-
-The underlying NBA API has rate limiting. Wait few seconds between requests and use WebSocket connections for real-time data. For more details, see the [`nba_api`](https://github.com/swar/nba_api) package documentation.
-
----
-
-## Support
-
-For issues or questions:
-
-- Check the [main README](../../README.md) for setup
-- Open an issue on GitHub
-- Check the interactive API docs at `/docs`

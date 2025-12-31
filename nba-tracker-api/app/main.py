@@ -71,11 +71,15 @@ app = FastAPI(
 
 # Allow frontend to make requests to this API
 # This is needed because frontend runs on a different port/domain
+# CORS configuration
+# In production, set FRONTEND_URL environment variable to your Vercel domain
+import os
+frontend_url = os.getenv("FRONTEND_URL", "*")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins (in production, specify your frontend URL)
+    allow_origins=[frontend_url] if frontend_url != "*" else ["*"],
     allow_credentials=True,
-    allow_methods=["*"],  # Allow all HTTP methods (GET, POST, etc.)
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 

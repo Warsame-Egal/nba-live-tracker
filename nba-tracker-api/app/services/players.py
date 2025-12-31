@@ -8,6 +8,7 @@ from nba_api.stats.endpoints import PlayerGameLog, playerindex
 from nba_api.stats.library.parameters import HistoricalNullable
 
 from app.schemas.player import PlayerGamePerformance, PlayerSummary
+from app.config import get_api_kwargs
 
 # Set up logger for this file
 logger = logging.getLogger(__name__)
@@ -29,8 +30,9 @@ async def getPlayer(player_id: str) -> PlayerSummary:
     """
     try:
         # Get the list of all players from NBA API
+        api_kwargs = get_api_kwargs()
         player_index_data = await asyncio.to_thread(
-            lambda: playerindex.PlayerIndex(historical_nullable=HistoricalNullable.all_time)
+            lambda: playerindex.PlayerIndex(historical_nullable=HistoricalNullable.all_time, **api_kwargs)
         )
         player_index_df = player_index_data.get_data_frames()[0]
 
@@ -51,7 +53,8 @@ async def getPlayer(player_id: str) -> PlayerSummary:
             roster_status = str(roster_status)
 
         # Get the player's recent game performances
-        game_log_data = await asyncio.to_thread(lambda: PlayerGameLog(player_id=player_id).get_dict())
+        api_kwargs = get_api_kwargs()
+        game_log_data = await asyncio.to_thread(lambda: PlayerGameLog(player_id=player_id, **api_kwargs).get_dict())
         game_log = game_log_data["resultSets"][0]["rowSet"]
         game_headers = game_log_data["resultSets"][0]["headers"]
 
@@ -124,8 +127,9 @@ async def search_players(search_term: str) -> List[PlayerSummary]:
 
     try:
         # Get all players from NBA API
+        api_kwargs = get_api_kwargs()
         player_index_data = await asyncio.to_thread(
-            lambda: playerindex.PlayerIndex(historical_nullable=HistoricalNullable.all_time)
+            lambda: playerindex.PlayerIndex(historical_nullable=HistoricalNullable.all_time, **api_kwargs)
         )
         player_index_df = player_index_data.get_data_frames()[0]
 

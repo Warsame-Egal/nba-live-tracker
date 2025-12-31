@@ -7,6 +7,7 @@ from nba_api.stats.static import teams
 from nba_api.stats.library.parameters import HistoricalNullable
 
 from app.schemas.schedule import GamesResponse, GameSummary, TeamSummary, TopScorer, GameLeaders, GameLeader
+from app.config import get_api_kwargs
 
 # Set up logger for this file
 logger = logging.getLogger(__name__)
@@ -29,8 +30,9 @@ async def get_player_season_averages(player_id: int) -> dict:
     
     try:
         # Get player index data
+        api_kwargs = get_api_kwargs()
         player_index_data = await asyncio.to_thread(
-            lambda: playerindex.PlayerIndex(historical_nullable=HistoricalNullable.all_time)
+            lambda: playerindex.PlayerIndex(historical_nullable=HistoricalNullable.all_time, **api_kwargs)
         )
         player_index_df = player_index_data.get_data_frames()[0]
         
@@ -125,8 +127,9 @@ async def get_top_players_for_upcoming_game(home_team_id: int, away_team_id: int
         from app.schemas.coach import Coach
         
         # Fetch home team roster
+        api_kwargs = get_api_kwargs()
         home_roster_data = await asyncio.to_thread(
-            lambda: commonteamroster.CommonTeamRoster(team_id=home_team_id, season=season).get_dict()
+            lambda: commonteamroster.CommonTeamRoster(team_id=home_team_id, season=season, **api_kwargs).get_dict()
         )
         home_players_data = home_roster_data["resultSets"][0]["rowSet"] if home_roster_data.get("resultSets") else []
         home_players = []
@@ -148,8 +151,9 @@ async def get_top_players_for_upcoming_game(home_team_id: int, away_team_id: int
                 ))
         
         # Fetch away team roster
+        api_kwargs = get_api_kwargs()
         away_roster_data = await asyncio.to_thread(
-            lambda: commonteamroster.CommonTeamRoster(team_id=away_team_id, season=season).get_dict()
+            lambda: commonteamroster.CommonTeamRoster(team_id=away_team_id, season=season, **api_kwargs).get_dict()
         )
         away_players_data = away_roster_data["resultSets"][0]["rowSet"] if away_roster_data.get("resultSets") else []
         away_players = []
@@ -245,7 +249,8 @@ async def getGamesForDate(date: str) -> GamesResponse:
     """
     try:
         # Get game data from NBA API for the specified date
-        games_data = await asyncio.to_thread(lambda: scoreboardv2.ScoreboardV2(game_date=date).get_dict())
+        api_kwargs = get_api_kwargs()
+        games_data = await asyncio.to_thread(lambda: scoreboardv2.ScoreboardV2(game_date=date, **api_kwargs).get_dict())
 
         # Check if we got valid data
         if "resultSets" not in games_data or not games_data["resultSets"]:
@@ -266,6 +271,14 @@ async def getGamesForDate(date: str) -> GamesResponse:
         # Get the column names and game data
         game_headers = game_header_data["headers"]
         games_list = game_header_data["rowSet"]
+        
+        # Log available headers for debugging (only log once, not for every request)
+        if games_list:
+            logger.info(f"GameHeader fields available ({len(game_headers)}): {', '.join(game_headers[:15])}{'...' if len(game_headers) > 15 else ''}")
+            # Log first game's structure to see actual data
+            if len(games_list) > 0 and len(game_headers) == len(games_list[0]):
+                first_game_dict = dict(zip(game_headers, games_list[0]))
+                logger.info(f"Sample game keys: {list(first_game_dict.keys())[:20]}")
 
         # Get headers and data for team leaders and scores (if available)
         team_leaders_headers = team_leaders_data["headers"] if team_leaders_data else []
@@ -286,11 +299,21 @@ async def getGamesForDate(date: str) -> GamesResponse:
                     continue
                 
                 # Convert the game data to a dictionary
-                game_dict = dict(zip(game_headers, game))
+                # Only include fields that exist in the data
+                game_dict = {}
+                for i, header in enumerate(game_headers):
+                    if i < len(game):
+                        game_dict[header] = game[i]
+                    # If header doesn't have corresponding data, skip it (don't add None)
+                    # This prevents KeyError when accessing optional fields
 
                 # Skip if game ID is missing
-                if "GAME_ID" not in game_dict:
+                if "GAME_ID" not in game_dict or game_dict.get("GAME_ID") is None:
                     continue
+                
+                # Log available keys for first game to help debug
+                if len(games) == 0:
+                    logger.debug(f"First game available keys: {list(game_dict.keys())}")
 
                 game_id = game_dict.get("GAME_ID")
                 
@@ -418,8 +441,14 @@ async def getGamesForDate(date: str) -> GamesResponse:
                             logger.warning(f"Error getting top players from rosters fallback for game {game_id}: {e}", exc_info=True)
                             # Keep game_leaders as None if fallback also fails
 
-                # Extract game time (GAME_TIME_UTC or START_TIME_UTC)
-                game_time_utc = game_dict.get("GAME_TIME_UTC") or game_dict.get("START_TIME_UTC") or game_dict.get("GAME_DATE_TIME_UTC")
+                # Extract game time - check all possible field names that NBA API might use
+                game_time_utc = (
+                    game_dict.get("GAME_TIME_UTC") or 
+                    game_dict.get("START_TIME_UTC") or 
+                    game_dict.get("GAME_DATE_TIME_UTC") or
+                    game_dict.get("GAME_ET") or
+                    None
+                )
 
                 # Create a GameSummary with all the game information
                 # Use the requested date, not the API's game_date (which might be different)
@@ -439,11 +468,11 @@ async def getGamesForDate(date: str) -> GamesResponse:
                 )
             except KeyError as e:
                 # If a key is missing, log and skip this game
-                logger.warning(f"Missing key in game data: {e}, skipping game")
+                logger.warning(f"Missing key in game data: {e}, skipping game. Available keys: {list(game_dict.keys())[:10]}")
                 continue
             except Exception as e:
                 # Catch any other errors and skip this game
-                logger.warning(f"Error processing game: {e}, skipping")
+                logger.warning(f"Error processing game: {e}, skipping. Game ID: {game_dict.get('GAME_ID', 'unknown')}")
                 continue
 
         return GamesResponse(games=games)
