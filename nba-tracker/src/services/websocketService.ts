@@ -21,9 +21,14 @@ class WebSocketService {
    * @param url - The WebSocket URL to connect to
    */
   connect(url: string) {
-    // Don't connect if we're already connected and the socket is open
-    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+    // Don't connect if we're already connected to the same URL and the socket is open
+    if (this.socket && this.socket.readyState === WebSocket.OPEN && this.url === url) {
       return;
+    }
+
+    // If connecting to a different URL, disconnect first
+    if (this.socket && this.url !== url) {
+      this.disconnect();
     }
 
     // Clean up existing connection if it exists but is not open
@@ -64,11 +69,12 @@ class WebSocketService {
       // Clear the socket reference
       this.socket = null;
 
+      // Only reconnect if it wasn't a normal closure (code 1000) or intentional disconnect
       // Try to reconnect after 5 seconds if we should reconnect and have a URL
-      if (this.shouldReconnect && this.url) {
+      if (this.shouldReconnect && this.url && event.code !== 1000) {
         logger.info('Reconnecting in 5 seconds...');
         setTimeout(() => {
-          if (this.shouldReconnect && this.url) {
+          if (this.shouldReconnect && this.url && !this.socket) {
             this.connect(this.url);
           }
         }, 5000);

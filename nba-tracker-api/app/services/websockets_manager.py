@@ -241,7 +241,9 @@ class PlayByPlayWebSocketManager:
             # If no one is watching this game anymore, clean up the data
             if not self.active_connections[game_id]:
                 del self.active_connections[game_id]
-                del self.current_playbyplay[game_id]
+                # Only delete if the key exists (might have been cleaned up already)
+                if game_id in self.current_playbyplay:
+                    del self.current_playbyplay[game_id]
 
     async def send_initial_playbyplay(self, websocket: WebSocket, game_id: str):
         """
