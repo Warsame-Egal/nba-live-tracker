@@ -2,9 +2,7 @@
 
 A real-time NBA scoreboard and stats tracker built with React and FastAPI. Watch live games, track player stats, browse team rosters, and stay up-to-date with league standings.
 
-**Live Demo:** [nba-live-tracker.vercel.app](https://nba-live-tracker.vercel.app)
-
-The app is fully deployed and working. Frontend is on Vercel, backend API is running on Oracle Cloud Infrastructure.
+**Live Demo:** [https://nba-live-tracker-one.vercel.app](https://nba-live-tracker-one.vercel.app)
 
 ## Screenshots
 
@@ -74,7 +72,6 @@ The frontend will run on http://localhost:3000 (or the next available port).
 ## Tech Stack
 
 **Frontend:**
-
 - React 19 with TypeScript
 - Material UI for components
 - Vite for building
@@ -82,7 +79,6 @@ The frontend will run on http://localhost:3000 (or the next available port).
 - WebSockets for real-time updates
 
 **Backend:**
-
 - FastAPI with Python
 - WebSockets for live scoreboard and play-by-play
 - Uvicorn as the ASGI server
@@ -90,14 +86,6 @@ The frontend will run on http://localhost:3000 (or the next available port).
 
 **Data Source:**
 Uses the [`nba_api`](https://github.com/swar/nba_api) Python package by [swar](https://github.com/swar) to fetch data from NBA.com.
-
-**Deployment:**
-
-- Frontend: Vercel (automatic HTTPS, global CDN)
-- Backend: Oracle Cloud Infrastructure free tier (Ubuntu VM)
-- Tunnel: Cloudflare Tunnel for secure HTTPS access to backend
-
-See [DEPLOYMENT.md](DEPLOYMENT.md) for deployment details.
 
 ## API Usage Examples
 
@@ -140,12 +128,15 @@ ws.onmessage = (event) => {
 
 ## API Documentation
 
-- Interactive docs: http://localhost:8000/docs
-- Full documentation: [API_DOCUMENTATION.md](nba-tracker-api/app/docs/API_DOCUMENTATION.md)
+- **Local development:** http://localhost:8000/docs
+- **Full documentation:** [API_DOCUMENTATION.md](nba-tracker-api/app/docs/API_DOCUMENTATION.md)
 
 ## Deployment
 
-The app is currently deployed and running. I deployed the backend to Oracle Cloud's free tier and the frontend to Vercel. I set up a Cloudflare Tunnel to give the backend HTTPS access without exposing the VM's public IP.
+The app is fully deployed and running:
+- **Frontend:** Vercel (automatic HTTPS, global CDN)
+- **Backend:** Oracle Cloud Infrastructure free tier (Ubuntu VM)
+- **Tunnel:** Cloudflare Tunnel for secure HTTPS access to backend
 
 See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed setup instructions.
 
