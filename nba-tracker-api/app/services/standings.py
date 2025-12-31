@@ -6,7 +6,7 @@ from fastapi import HTTPException
 from nba_api.stats.endpoints import leaguestandingsv3
 
 from app.schemas.standings import StandingRecord, StandingsResponse
-from app.config import get_proxy_kwargs
+from app.config import get_api_kwargs
 
 # Set up logger for this file
 logger = logging.getLogger(__name__)
@@ -42,13 +42,13 @@ async def getSeasonStandings(season: str) -> StandingsResponse:
     """
     try:
         # Get standings data from NBA API
-        proxy_kwargs = get_proxy_kwargs()
+        api_kwargs = get_api_kwargs()
         df = await asyncio.to_thread(
             lambda: leaguestandingsv3.LeagueStandingsV3(
                 league_id="00",  # "00" means NBA (not WNBA or G-League)
                 season=season,
                 season_type="Regular Season",  # Get regular season standings
-                **proxy_kwargs
+                **api_kwargs
             ).get_data_frames()[0]
         )
 

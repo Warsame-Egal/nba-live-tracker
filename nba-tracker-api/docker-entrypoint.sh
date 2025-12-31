@@ -1,11 +1,12 @@
 #!/bin/bash
 set -e
 
-# Fix nba_api WinProbability bug
-python3 /app/patch_scoreboard.py || echo "Failed to patch scoreboard"
+# Apply library patches if they exist
+if [ -f /app/patch_scoreboard.py ]; then
+    python3 /app/patch_scoreboard.py || echo "Failed to patch scoreboard"
+fi
 
-# Patch nba_api to use proxy if configured
-if [ -n "$NBA_API_PROXY" ]; then
+if ([ -n "$NBA_API_CONFIG" ] || [ -n "$NBA_API_PROXY" ]) && [ -f /app/patch_http.py ]; then
     python3 /app/patch_http.py || echo "Failed to patch http"
 fi
 

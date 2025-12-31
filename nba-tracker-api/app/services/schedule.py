@@ -7,7 +7,7 @@ from nba_api.stats.static import teams
 from nba_api.stats.library.parameters import HistoricalNullable
 
 from app.schemas.schedule import GamesResponse, GameSummary, TeamSummary, TopScorer, GameLeaders, GameLeader
-from app.config import get_proxy_kwargs
+from app.config import get_api_kwargs
 
 # Set up logger for this file
 logger = logging.getLogger(__name__)
@@ -30,9 +30,9 @@ async def get_player_season_averages(player_id: int) -> dict:
     
     try:
         # Get player index data
-        proxy_kwargs = get_proxy_kwargs()
+        api_kwargs = get_api_kwargs()
         player_index_data = await asyncio.to_thread(
-            lambda: playerindex.PlayerIndex(historical_nullable=HistoricalNullable.all_time, **proxy_kwargs)
+            lambda: playerindex.PlayerIndex(historical_nullable=HistoricalNullable.all_time, **api_kwargs)
         )
         player_index_df = player_index_data.get_data_frames()[0]
         
@@ -127,9 +127,9 @@ async def get_top_players_for_upcoming_game(home_team_id: int, away_team_id: int
         from app.schemas.coach import Coach
         
         # Fetch home team roster
-        proxy_kwargs = get_proxy_kwargs()
+        api_kwargs = get_api_kwargs()
         home_roster_data = await asyncio.to_thread(
-            lambda: commonteamroster.CommonTeamRoster(team_id=home_team_id, season=season, **proxy_kwargs).get_dict()
+            lambda: commonteamroster.CommonTeamRoster(team_id=home_team_id, season=season, **api_kwargs).get_dict()
         )
         home_players_data = home_roster_data["resultSets"][0]["rowSet"] if home_roster_data.get("resultSets") else []
         home_players = []
@@ -151,9 +151,9 @@ async def get_top_players_for_upcoming_game(home_team_id: int, away_team_id: int
                 ))
         
         # Fetch away team roster
-        proxy_kwargs = get_proxy_kwargs()
+        api_kwargs = get_api_kwargs()
         away_roster_data = await asyncio.to_thread(
-            lambda: commonteamroster.CommonTeamRoster(team_id=away_team_id, season=season, **proxy_kwargs).get_dict()
+            lambda: commonteamroster.CommonTeamRoster(team_id=away_team_id, season=season, **api_kwargs).get_dict()
         )
         away_players_data = away_roster_data["resultSets"][0]["rowSet"] if away_roster_data.get("resultSets") else []
         away_players = []
@@ -249,8 +249,8 @@ async def getGamesForDate(date: str) -> GamesResponse:
     """
     try:
         # Get game data from NBA API for the specified date
-        proxy_kwargs = get_proxy_kwargs()
-        games_data = await asyncio.to_thread(lambda: scoreboardv2.ScoreboardV2(game_date=date, **proxy_kwargs).get_dict())
+        api_kwargs = get_api_kwargs()
+        games_data = await asyncio.to_thread(lambda: scoreboardv2.ScoreboardV2(game_date=date, **api_kwargs).get_dict())
 
         # Check if we got valid data
         if "resultSets" not in games_data or not games_data["resultSets"]:

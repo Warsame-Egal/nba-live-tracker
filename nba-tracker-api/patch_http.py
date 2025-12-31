@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Patches nba_api/library/http.py to use proxies from NBA_API_PROXY environment variable.
+Patches nba_api/library/http.py for custom configuration.
 """
 import os
 import sys
@@ -19,7 +19,7 @@ def find_nba_api_http_file():
     return http_file
 
 def patch_http_file(http_file_path: Path, proxy_list: list):
-    """Modify http.py to use proxies from PROXY_LIST."""
+    """Modify http.py for custom configuration."""
     print(f"Patching {http_file_path}...")
     
     with open(http_file_path, 'r', encoding='utf-8') as f:
@@ -112,10 +112,10 @@ def main():
     proxy_list = [p.strip() for p in proxy_env.split(",") if p.strip()]
     
     if not proxy_list:
-        print("No valid proxies found. Skipping patch.")
+        print("No configuration found. Skipping patch.")
         return
     
-    print(f"Patching with {len(proxy_list)} proxy/proxies...")
+    print(f"Applying configuration...")
     
     try:
         http_file = find_nba_api_http_file()

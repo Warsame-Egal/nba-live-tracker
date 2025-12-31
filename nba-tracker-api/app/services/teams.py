@@ -5,7 +5,7 @@ from fastapi import HTTPException
 from nba_api.stats.endpoints import TeamDetails
 
 from app.schemas.team import TeamDetailsResponse
-from app.config import get_proxy_kwargs
+from app.config import get_api_kwargs
 
 # Set up logger for this file
 logger = logging.getLogger(__name__)
@@ -27,8 +27,8 @@ async def get_team(team_id: int) -> TeamDetailsResponse:
     """
     try:
         # Get team details from NBA API
-        proxy_kwargs = get_proxy_kwargs()
-        team_details_data = await asyncio.to_thread(lambda: TeamDetails(team_id=team_id, **proxy_kwargs).get_dict())
+        api_kwargs = get_api_kwargs()
+        team_details_data = await asyncio.to_thread(lambda: TeamDetails(team_id=team_id, **api_kwargs).get_dict())
 
         # Check if we got valid data back
         if not team_details_data or "resultSets" not in team_details_data or not team_details_data["resultSets"]:

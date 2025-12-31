@@ -9,7 +9,7 @@ from nba_api.stats.static import teams
 from nba_api.stats.library.parameters import HistoricalNullable
 
 from app.schemas.search import PlayerResult, TeamResult, SearchResults
-from app.config import get_proxy_kwargs
+from app.config import get_api_kwargs
 
 # Set up logger for this file
 logger = logging.getLogger(__name__)
@@ -37,9 +37,9 @@ async def search_entities(query: str) -> SearchResults:
         # Search for players
         try:
             # Get all players from NBA API
-            proxy_kwargs = get_proxy_kwargs()
+            api_kwargs = get_api_kwargs()
             player_index_data = await asyncio.to_thread(
-                lambda: playerindex.PlayerIndex(historical_nullable=HistoricalNullable.all_time, **proxy_kwargs)
+                lambda: playerindex.PlayerIndex(historical_nullable=HistoricalNullable.all_time, **api_kwargs)
             )
             player_index_df = player_index_data.get_data_frames()[0]
 

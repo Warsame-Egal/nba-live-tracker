@@ -23,7 +23,7 @@ from app.schemas.scoreboard import (
     Team,
     TeamBoxScoreStats,
 )
-from app.config import get_proxy_kwargs
+from app.config import get_api_kwargs
 
 # Set up logger for this file
 logger = logging.getLogger(__name__)
@@ -42,9 +42,9 @@ async def get_player_season_averages(player_id: int) -> dict:
     
     try:
         # Get player index data
-        proxy_kwargs = get_proxy_kwargs()
+        api_kwargs = get_api_kwargs()
         player_index_data = await asyncio.to_thread(
-            lambda: playerindex.PlayerIndex(historical_nullable=HistoricalNullable.all_time, **proxy_kwargs)
+            lambda: playerindex.PlayerIndex(historical_nullable=HistoricalNullable.all_time, **api_kwargs)
         )
         player_index_df = player_index_data.get_data_frames()[0]
         
@@ -77,8 +77,8 @@ async def fetch_nba_scoreboard():
     """
     try:
         # Call the NBA API to get current scores
-        proxy_kwargs = get_proxy_kwargs()
-        board = await asyncio.to_thread(lambda: scoreboard.ScoreBoard(**proxy_kwargs).get_dict())
+        api_kwargs = get_api_kwargs()
+        board = await asyncio.to_thread(lambda: scoreboard.ScoreBoard(**api_kwargs).get_dict())
         return board.get("scoreboard", {})
     except Exception as e:
         logger.error(f"Error fetching scoreboard from NBA API: {e}")
@@ -278,9 +278,9 @@ async def fetchTeamRoster(team_id: int, season: str) -> TeamRoster:
     """
     try:
         # Get roster data from NBA API
-        proxy_kwargs = get_proxy_kwargs()
+        api_kwargs = get_api_kwargs()
         raw_roster = await asyncio.to_thread(
-            lambda: commonteamroster.CommonTeamRoster(team_id=team_id, season=season, **proxy_kwargs).get_dict()
+            lambda: commonteamroster.CommonTeamRoster(team_id=team_id, season=season, **api_kwargs).get_dict()
         )
         player_data = raw_roster["resultSets"][0]["rowSet"]
 
@@ -399,8 +399,8 @@ async def getBoxScore(game_id: str) -> BoxScoreResponse:
     """
     try:
         # Get box score data from NBA API
-        proxy_kwargs = get_proxy_kwargs()
-        game_data = await asyncio.to_thread(lambda: boxscore.BoxScore(game_id, **proxy_kwargs).get_dict())
+        api_kwargs = get_api_kwargs()
+        game_data = await asyncio.to_thread(lambda: boxscore.BoxScore(game_id, **api_kwargs).get_dict())
 
         if "game" not in game_data:
             # Game hasn't started yet - get basic info from scoreboard and return empty boxscore
@@ -570,8 +570,8 @@ async def getPlayByPlay(game_id: str) -> PlayByPlayResponse:
     """
     try:
         # Get play-by-play data from NBA API
-        proxy_kwargs = get_proxy_kwargs()
-        play_by_play_data = await asyncio.to_thread(lambda: playbyplay.PlayByPlay(game_id, **proxy_kwargs).get_dict())
+        api_kwargs = get_api_kwargs()
+        play_by_play_data = await asyncio.to_thread(lambda: playbyplay.PlayByPlay(game_id, **api_kwargs).get_dict())
 
         if "game" not in play_by_play_data or "actions" not in play_by_play_data["game"]:
             # Game hasn't started yet - return empty play-by-play
