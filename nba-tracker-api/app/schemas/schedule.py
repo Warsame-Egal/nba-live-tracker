@@ -55,6 +55,7 @@ class GameSummary(BaseModel):
     away_team: TeamSummary
     top_scorer: Optional[TopScorer] = None
     gameLeaders: Optional[GameLeaders] = None
+    win_probability: Optional[float] = Field(None, description="NBA's official win probability (0-1) for home team")
 
 
 class GamesResponse(BaseModel):

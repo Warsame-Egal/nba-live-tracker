@@ -11,6 +11,7 @@ from app.routers.scoreboard import router as scoreboard_router
 from app.routers.standings import router as standings_router
 from app.routers.teams import router as team_router
 from app.routers.search import router as search_router
+from app.routers.predictions import router as predictions_router
 from app.services.websockets_manager import (
     playbyplay_websocket_manager,
     scoreboard_websocket_manager,
@@ -63,8 +64,8 @@ async def lifespan(app: FastAPI):
 
 # Create the FastAPI app - this is the main application
 app = FastAPI(
-    title="NBA Tracker API",
-    description="An API providing NBA live scoreboard, schedule, and game stats.",
+    title="NBA Live API",
+    description="Real-time NBA game data, player statistics, team information, and game predictions.",
     version="1.0.0",
     lifespan=lifespan,  # Use the lifespan function to manage WebSocket connections
 )
@@ -88,7 +89,7 @@ app.add_middleware(
 @app.get("/")
 def home():
     """Check if the API is running."""
-    return {"message": "NBA Live Tracker API is running"}
+    return {"message": "NBA Live API is running"}
 
 
 # Register all API routes
@@ -99,3 +100,4 @@ app.include_router(standings_router, prefix="/api/v1")
 app.include_router(player_router, prefix="/api/v1")
 app.include_router(team_router, prefix="/api/v1")
 app.include_router(search_router, prefix="/api/v1")
+app.include_router(predictions_router, prefix="/api/v1")

@@ -5,13 +5,11 @@ from fastapi import APIRouter, HTTPException
 from app.schemas.schedule import GamesResponse
 from app.services.schedule import getGamesForDate
 
-# Set up logger for this file
 logger = logging.getLogger(__name__)
-
 router = APIRouter()
 
 
-# Get games for a date endpoint
+# Get games for a specific date with full game details
 @router.get(
     "/schedule/date/{date}",
     response_model=GamesResponse,
@@ -29,7 +27,4 @@ async def get_games_for_date(date: str):
     Returns:
         GamesResponse: List of all games for that date
     """
-    try:
-        return await getGamesForDate(date)
-    except HTTPException as e:
-        raise e
+    return await getGamesForDate(date)
