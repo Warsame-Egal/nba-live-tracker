@@ -451,7 +451,7 @@ export const darkTheme = createTheme({
     MuiCard: {
       styleOverrides: {
         root: {
-          ...baseTheme.components?.MuiCard?.styleOverrides?.root,
+          ...(baseTheme.components?.MuiCard?.styleOverrides?.root as Record<string, unknown> ?? {}),
           backgroundColor: '#141B2D',
           borderColor: 'rgba(255, 255, 255, 0.12)',
           '&:hover': {
@@ -464,7 +464,7 @@ export const darkTheme = createTheme({
     MuiPaper: {
       styleOverrides: {
         root: {
-          ...baseTheme.components?.MuiPaper?.styleOverrides?.root,
+          ...(baseTheme.components?.MuiPaper?.styleOverrides?.root as Record<string, unknown> ?? {}),
           backgroundColor: '#141B2D',
           borderColor: 'rgba(255, 255, 255, 0.12)',
         },
@@ -473,7 +473,7 @@ export const darkTheme = createTheme({
     MuiTextField: {
       styleOverrides: {
         root: {
-          ...baseTheme.components?.MuiTextField?.styleOverrides?.root,
+          ...(baseTheme.components?.MuiTextField?.styleOverrides?.root as Record<string, unknown> ?? {}),
           '& .MuiOutlinedInput-root': {
             backgroundColor: 'rgba(255, 255, 255, 0.05)',
             '& fieldset': {
@@ -492,7 +492,7 @@ export const darkTheme = createTheme({
     MuiDialog: {
       styleOverrides: {
         paper: {
-          ...baseTheme.components?.MuiDialog?.styleOverrides?.paper,
+          ...(baseTheme.components?.MuiDialog?.styleOverrides?.paper as Record<string, unknown> ?? {}),
           backgroundColor: '#141B2D',
           borderColor: 'rgba(255, 255, 255, 0.12)',
         },
@@ -501,7 +501,7 @@ export const darkTheme = createTheme({
     MuiDrawer: {
       styleOverrides: {
         paper: {
-          ...baseTheme.components?.MuiDrawer?.styleOverrides?.paper,
+          ...(baseTheme.components?.MuiDrawer?.styleOverrides?.paper as Record<string, unknown> ?? {}),
           backgroundColor: '#141B2D',
           borderColor: 'rgba(255, 255, 255, 0.12)',
         },
@@ -510,7 +510,7 @@ export const darkTheme = createTheme({
     MuiTableHead: {
       styleOverrides: {
         root: {
-          ...baseTheme.components?.MuiTableHead?.styleOverrides?.root,
+          ...(baseTheme.components?.MuiTableHead?.styleOverrides?.root as Record<string, unknown> ?? {}),
           backgroundColor: 'rgba(255, 255, 255, 0.05)',
           '& .MuiTableCell-head': {
             color: 'rgba(255, 255, 255, 0.7)',
@@ -522,7 +522,7 @@ export const darkTheme = createTheme({
     MuiMenu: {
       styleOverrides: {
         paper: {
-          ...baseTheme.components?.MuiMenu?.styleOverrides?.paper,
+          ...(baseTheme.components?.MuiMenu?.styleOverrides?.paper as Record<string, unknown> ?? {}),
           backgroundColor: '#141B2D',
           borderColor: 'rgba(255, 255, 255, 0.12)',
         },
@@ -590,7 +590,7 @@ export const lightTheme = createTheme({
     MuiCard: {
       styleOverrides: {
         root: {
-          ...baseTheme.components?.MuiCard?.styleOverrides?.root,
+          ...(baseTheme.components?.MuiCard?.styleOverrides?.root as Record<string, unknown> ?? {}),
           backgroundColor: '#FFFFFF',
           borderColor: 'rgba(0, 0, 0, 0.12)',
           '&:hover': {
@@ -603,7 +603,7 @@ export const lightTheme = createTheme({
     MuiPaper: {
       styleOverrides: {
         root: {
-          ...baseTheme.components?.MuiPaper?.styleOverrides?.root,
+          ...(baseTheme.components?.MuiPaper?.styleOverrides?.root as Record<string, unknown> ?? {}),
           backgroundColor: '#FFFFFF',
           borderColor: 'rgba(0, 0, 0, 0.12)',
         },
@@ -612,7 +612,7 @@ export const lightTheme = createTheme({
     MuiTextField: {
       styleOverrides: {
         root: {
-          ...baseTheme.components?.MuiTextField?.styleOverrides?.root,
+          ...(baseTheme.components?.MuiTextField?.styleOverrides?.root as Record<string, unknown> ?? {}),
           '& .MuiOutlinedInput-root': {
             backgroundColor: 'rgba(0, 0, 0, 0.02)',
             '& fieldset': {
@@ -631,7 +631,7 @@ export const lightTheme = createTheme({
     MuiDialog: {
       styleOverrides: {
         paper: {
-          ...baseTheme.components?.MuiDialog?.styleOverrides?.paper,
+          ...(baseTheme.components?.MuiDialog?.styleOverrides?.paper as Record<string, unknown> ?? {}),
           backgroundColor: '#FFFFFF',
           borderColor: 'rgba(0, 0, 0, 0.12)',
         },
@@ -640,7 +640,7 @@ export const lightTheme = createTheme({
     MuiDrawer: {
       styleOverrides: {
         paper: {
-          ...baseTheme.components?.MuiDrawer?.styleOverrides?.paper,
+          ...(baseTheme.components?.MuiDrawer?.styleOverrides?.paper as Record<string, unknown> ?? {}),
           backgroundColor: '#FFFFFF',
           borderColor: 'rgba(0, 0, 0, 0.12)',
         },
@@ -649,7 +649,7 @@ export const lightTheme = createTheme({
     MuiTableHead: {
       styleOverrides: {
         root: {
-          ...baseTheme.components?.MuiTableHead?.styleOverrides?.root,
+          ...(baseTheme.components?.MuiTableHead?.styleOverrides?.root as Record<string, unknown> ?? {}),
           backgroundColor: 'rgba(0, 0, 0, 0.02)',
           '& .MuiTableCell-head': {
             color: 'rgba(0, 0, 0, 0.6)',
@@ -661,7 +661,7 @@ export const lightTheme = createTheme({
     MuiMenu: {
       styleOverrides: {
         paper: {
-          ...baseTheme.components?.MuiMenu?.styleOverrides?.paper,
+          ...(baseTheme.components?.MuiMenu?.styleOverrides?.paper as Record<string, unknown> ?? {}),
           backgroundColor: '#FFFFFF',
           borderColor: 'rgba(0, 0, 0, 0.12)',
         },

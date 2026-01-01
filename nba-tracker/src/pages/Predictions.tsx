@@ -36,7 +36,7 @@ import {
 } from 'recharts';
 import Navbar from '../components/Navbar';
 import UniversalSidebar from '../components/UniversalSidebar';
-import { responsiveSpacing, typography, borderRadius } from '../theme/designTokens';
+import { typography, borderRadius } from '../theme/designTokens';
 import { fetchJson } from '../utils/apiClient';
 import { getCurrentSeason } from '../utils/season';
 import { PredictionsResponse, GamePrediction } from '../types/predictions';
@@ -73,8 +73,6 @@ const getTeamAbbreviation = (teamName: string): string => {
 };
 
 const Predictions = () => {
-  const theme = useTheme();
-  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   
   const [predictions, setPredictions] = useState<PredictionsResponse | null>(null);
@@ -701,7 +699,7 @@ const PredictionCard: React.FC<{ prediction: GamePrediction }> = ({ prediction }
                   ))}
                 </Pie>
                 <Tooltip
-                  formatter={(value: number) => `${value.toFixed(1)}%`}
+                  formatter={(value?: number) => value !== undefined ? `${value.toFixed(1)}%` : ''}
                   contentStyle={{
                     backgroundColor: theme.palette.background.paper,
                     border: `1px solid ${theme.palette.divider}`,

@@ -5,7 +5,7 @@ import UniversalSidebar from '../components/UniversalSidebar';
 import SeasonLeaders from '../components/SeasonLeaders';
 import AllTimeLeaders from '../components/AllTimeLeaders';
 import Navbar from '../components/Navbar';
-import { responsiveSpacing, typography, borderRadius } from '../theme/designTokens';
+import { responsiveSpacing, typography } from '../theme/designTokens';
 import { fetchJson } from '../utils/apiClient';
 import { getCurrentSeason } from '../utils/season';
 import { SeasonLeadersResponse } from '../types/seasonleaders';

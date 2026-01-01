@@ -140,13 +140,6 @@ const GameCard: React.FC<GameCardProps> = ({ game, hideScore = false, onClick, i
           position: 'relative',
           overflow: 'hidden',
           borderRadius: 2,
-          '&:hover': {
-            transform: 'translateY(-2px)',
-            boxShadow: isLive 
-              ? '0 8px 24px rgba(239, 83, 80, 0.4)' 
-              : '0 8px 24px rgba(0, 0, 0, 0.12)',
-            borderColor: isLive ? 'error.main' : 'primary.light',
-          },
           // Animation for recently updated games
           ...(isRecentlyUpdated && {
             animation: 'scoreUpdateFlash 0.6s ease-out',
@@ -168,11 +161,17 @@ const GameCard: React.FC<GameCardProps> = ({ game, hideScore = false, onClick, i
           : {},
         '&:hover': onClick
           ? {
-              borderColor: isLive ? 'error.main' : 'primary.main',
               transform: 'translateY(-4px)',
+              borderColor: isLive ? 'error.main' : 'primary.main',
               boxShadow: isLive ? shadows.error.lg : shadows.lg,
             }
-          : {},
+          : {
+              transform: 'translateY(-2px)',
+              boxShadow: isLive 
+                ? '0 8px 24px rgba(239, 83, 80, 0.4)' 
+                : '0 8px 24px rgba(0, 0, 0, 0.12)',
+              borderColor: isLive ? 'error.main' : 'primary.light',
+            },
         '@keyframes pulse': {
           '0%, 100%': { opacity: 0.5 },
           '50%': { opacity: 1 },

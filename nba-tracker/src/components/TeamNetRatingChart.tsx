@@ -81,9 +81,6 @@ const TeamNetRatingChart: React.FC<TeamNetRatingChartProps> = ({ data }) => {
     );
   }
 
-  const maxValue = Math.max(...chartData.map(d => Math.abs(d.value)));
-  const neutralColor = theme.palette.mode === 'dark' ? '#666' : '#999';
-
   return (
     <Paper
       elevation={0}
@@ -216,9 +213,6 @@ const TeamNetRatingChart: React.FC<TeamNetRatingChartProps> = ({ data }) => {
           <Bar
             dataKey="value"
             radius={[0, 4, 4, 0]}
-            onClick={(data) => {
-              navigate(`/team/${data.team_id}`);
-            }}
             style={{ cursor: 'pointer' }}
           >
             {chartData.map((entry, index) => (
@@ -226,6 +220,7 @@ const TeamNetRatingChart: React.FC<TeamNetRatingChartProps> = ({ data }) => {
                 key={`cell-${index}`}
                 fill={entry.value >= 0 ? theme.palette.success.main : theme.palette.error.main}
                 opacity={0.8}
+                onClick={() => navigate(`/team/${entry.team_id}`)}
               />
             ))}
           </Bar>
