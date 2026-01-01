@@ -4,18 +4,18 @@ import pandas as pd
 from typing import List
 
 from fastapi import HTTPException
-from nba_api.stats.endpoints import PlayerGameLog, playerindex, leaguedashplayerstats, alltimeleadersgrids
+from nba_api.stats.endpoints import PlayerGameLog, playerindex, leaguedashplayerstats
 from nba_api.stats.library.parameters import HistoricalNullable, PerModeDetailed, SeasonTypeAllStar, PerModeSimple, SeasonType
 
 from app.schemas.player import PlayerGamePerformance, PlayerSummary
 from app.schemas.seasonleaders import SeasonLeadersResponse, SeasonLeadersCategory, SeasonLeader
 from app.schemas.playergamelog import PlayerGameLogResponse, PlayerGameLogEntry
-from app.schemas.alltimeleaders import AllTimeLeadersResponse, AllTimeLeaderCategory, AllTimeLeader
 from app.config import get_api_kwargs
 from app.utils.rate_limiter import rate_limit
 
 # Set up logger for this file
 logger = logging.getLogger(__name__)
+
 
 
 async def getPlayer(player_id: str) -> PlayerSummary:
@@ -547,95 +547,3 @@ async def get_player_game_log(player_id: str, season: str = "2024-25") -> Player
         raise HTTPException(status_code=500, detail=f"Error fetching game log: {str(e)}")
 
 
-async def get_all_time_leaders(top_n: int = 10) -> AllTimeLeadersResponse:
-    """
-    Get all-time leaders for major statistical categories.
-    Returns top N players for Points, Rebounds, Assists, Steals, and Blocks (career totals).
-    
-    Args:
-        top_n: The number of top players to return for each category (default 10)
-        
-    Returns:
-        AllTimeLeadersResponse: An object containing all-time leaders for each category.
-        
-    Raises:
-        HTTPException: If no leaders found or API error.
-    """
-    try:
-        api_kwargs = get_api_kwargs()
-        
-        # Fetch all-time leaders from NBA API
-        await rate_limit()
-        all_time_endpoint = await asyncio.wait_for(
-            asyncio.to_thread(
-                lambda: alltimeleadersgrids.AllTimeLeadersGrids(
-                    topx=top_n,
-                    per_mode_simple=PerModeSimple.totals,
-                    season_type=SeasonType.regular,
-                    **api_kwargs
-                ).get_data_frames()
-            ),
-            timeout=15.0
-        )
-        
-        categories: List[AllTimeLeaderCategory] = []
-        
-        # Map of attribute names to (stat column, rank column, category name)
-        category_map = [
-            ("pts_leaders", "PTS", "PTS_RANK", "Points"),
-            ("reb_leaders", "REB", "REB_RANK", "Rebounds"),
-            ("ast_leaders", "AST", "AST_RANK", "Assists"),
-            ("stl_leaders", "STL", "STL_RANK", "Steals"),
-            ("blk_leaders", "BLK", "BLK_RANK", "Blocks"),
-        ]
-        
-        # Extract leaders for each category
-        for attr_name, stat_col, rank_col, category_name in category_map:
-            try:
-                data_set = getattr(all_time_endpoint, attr_name, None)
-                if data_set is None:
-                    continue
-                    
-                df = data_set.get_data_frame()
-                
-                if df.empty:
-                    continue
-                
-                leaders: List[AllTimeLeader] = []
-                for _, row in df.iterrows():
-                    player_id = row.get("PLAYER_ID")
-                    player_name = row.get("PLAYER_NAME")
-                    rank = row.get(rank_col)
-                    value = row.get(stat_col)
-                    
-                    if player_id and player_name and value is not None and pd.notna(value):
-                        leaders.append(
-                            AllTimeLeader(
-                                player_id=int(player_id),
-                                player_name=str(player_name).strip(),
-                                value=float(value),
-                                rank=int(rank) if pd.notna(rank) else 0
-                            )
-                        )
-                
-                if leaders:
-                    categories.append(
-                        AllTimeLeaderCategory(
-                            category_name=category_name,
-                            leaders=leaders
-                        )
-                    )
-            except Exception as e:
-                logger.warning(f"Error processing all-time leaders for {category_name}: {e}")
-                continue
-        
-        if not categories:
-            raise HTTPException(status_code=404, detail="No all-time leaders found")
-        
-        return AllTimeLeadersResponse(categories=categories)
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error fetching all-time leaders: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Error fetching all-time leaders: {str(e)}")

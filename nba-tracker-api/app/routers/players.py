@@ -6,8 +6,7 @@ from fastapi import APIRouter, HTTPException, Query
 from app.schemas.player import PlayerSummary
 from app.schemas.seasonleaders import SeasonLeadersResponse
 from app.schemas.playergamelog import PlayerGameLogResponse
-from app.schemas.alltimeleaders import AllTimeLeadersResponse
-from app.services.players import getPlayer, search_players, get_season_leaders, get_top_players_by_stat, get_player_game_log, get_all_time_leaders
+from app.services.players import getPlayer, search_players, get_season_leaders, get_top_players_by_stat, get_player_game_log
 
 logger = logging.getLogger(__name__)
 
@@ -108,21 +107,3 @@ async def getPlayerGameLog(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get(
-    "/players/all-time-leaders",
-    response_model=AllTimeLeadersResponse,
-    summary="Get All-Time Leaders",
-    tags=["players"],
-    description="Get all-time career leaders for major statistical categories (Points, Rebounds, Assists, Steals, Blocks).",
-)
-async def getAllTimeLeaders(
-    top_n: int = Query(10, description="Number of top players to return for each category (max 50)", ge=1, le=50),
-):
-    """Get all-time career leaders for major statistical categories."""
-    try:
-        return await get_all_time_leaders(top_n)
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error fetching all-time leaders: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))

@@ -1,55 +1,92 @@
 import { useEffect, useState, useRef } from 'react';
-import { Box, Typography, Chip, Paper, Divider } from '@mui/material';
+import { Box, Typography, Chip, Paper, Divider, CircularProgress } from '@mui/material';
 import { Sports, FiberManualRecord } from '@mui/icons-material';
 import PlayByPlayWebSocketService from '../services/PlayByPlayWebSocketService';
 import { PlayByPlayResponse, PlayByPlayEvent } from '../types/playbyplay';
+import { fetchJson } from '../utils/apiClient';
+import { logger } from '../utils/logger';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 /**
  * Modern play-by-play component that displays game events in a timeline format.
- * Shows all the game events (shots, fouls, timeouts, etc.) in real-time.
- * Connects to WebSocket to get live updates.
+ * Uses WebSocket for live games and REST API for completed games.
  */
-const PlayByPlay = ({ gameId }: { gameId: string }) => {
-  // List of all plays/events
+const PlayByPlay = ({ gameId, isLiveGame = false }: { gameId: string; isLiveGame?: boolean }) => {
   const [actions, setActions] = useState<PlayByPlayEvent[]>([]);
-  // Whether we've received data at least once (to show empty state correctly)
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
-  // Reference to the WebSocket service
+  const [loading, setLoading] = useState(false);
   const socketRef = useRef<PlayByPlayWebSocketService | null>(null);
 
   /**
-   * Set up WebSocket connection when component loads or game ID changes.
+   * Fetch play-by-play data from REST API for completed games.
    */
   useEffect(() => {
-    if (!gameId) return;
+    if (!gameId || isLiveGame) return;
 
-    // Create a new WebSocket service for this game
+    const fetchPlayByPlay = async () => {
+      setLoading(true);
+      try {
+        const data = await fetchJson<PlayByPlayResponse>(
+          `${API_BASE_URL}/api/v1/scoreboard/game/${gameId}/play-by-play`,
+          {},
+          { maxRetries: 2, retryDelay: 1000, timeout: 30000 }
+        );
+        setHasLoadedOnce(true);
+        if (data?.plays && data.plays.length > 0) {
+          const sorted = [...data.plays].sort((a, b) => a.action_number - b.action_number);
+          setActions(sorted.reverse());
+        } else {
+          setActions([]);
+        }
+      } catch (err) {
+        logger.error('Failed to fetch play-by-play', err);
+        setHasLoadedOnce(true);
+        setActions([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPlayByPlay();
+  }, [gameId, isLiveGame]);
+
+  /**
+   * Set up WebSocket connection for live games.
+   */
+  useEffect(() => {
+    if (!gameId || !isLiveGame) return;
+
     const service = new PlayByPlayWebSocketService();
     socketRef.current = service;
 
-    // This function gets called whenever new play-by-play data arrives
     const handleUpdate = (data: PlayByPlayResponse) => {
       setHasLoadedOnce(true);
       if (data?.plays && data.plays.length > 0) {
-        // Sort plays by action number and reverse so newest is at top
         const sorted = [...data.plays].sort((a, b) => a.action_number - b.action_number);
         setActions(sorted.reverse());
       } else {
-        // Empty plays array - game hasn't started or no data available
         setActions([]);
       }
     };
 
-    // Connect to WebSocket and subscribe to updates
     service.connect(gameId);
     service.subscribe(handleUpdate);
 
-    // Cleanup: disconnect when component unmounts or game ID changes
     return () => {
       service.unsubscribe(handleUpdate);
       service.disconnect();
     };
-  }, [gameId]);
+  }, [gameId, isLiveGame]);
+
+  // Show loading state
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', py: { xs: 6, sm: 8 } }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   // Show message if no data available (but only after we've tried to load)
   if (!actions.length && hasLoadedOnce) {
@@ -173,8 +210,8 @@ const PlayByPlay = ({ gameId }: { gameId: string }) => {
               {periodPlays.map((play) => {
                 const isScore = play.action_type?.toLowerCase().includes('shot') || 
                                 play.action_type?.toLowerCase().includes('free throw');
-                const isImportant = isScore || play.action_type?.toLowerCase().includes('foul') ||
-                                    play.action_type?.toLowerCase().includes('timeout');
+                // Only highlight scoring plays, not fouls or timeouts
+                const isImportant = isScore;
 
                 return (
                   <Box

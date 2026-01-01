@@ -209,51 +209,6 @@ curl "http://localhost:8000/api/v1/players/top-by-stat?season=2024-25&stat=PTS&t
 
 ---
 
-#### Get All-Time Leaders
-
-Get all-time career leaders for major statistical categories (Points, Rebounds, Assists, Steals, Blocks totals).
-
-```http
-GET /api/v1/players/all-time-leaders?top_n={top_n}
-```
-
-**Parameters:**
-
-- `top_n` (integer, optional - Default: 10) - Number of top players to return (1-50)
-
-**Example Request:**
-
-```bash
-curl http://localhost:8000/api/v1/players/all-time-leaders?top_n=10
-```
-
-**Response:**
-
-```json
-{
-  "categories": [
-    {
-      "category": "Points",
-      "leaders": [
-        {
-          "PERSON_ID": 2544,
-          "PLAYER_FIRST_NAME": "LeBron",
-          "PLAYER_LAST_NAME": "James",
-          "value": 40000
-        }
-      ]
-    }
-  ]
-}
-```
-
-**Status Codes:**
-
-- `200 OK` - Success
-- `500 Internal Server Error` - Server error
-
----
-
 #### Get Player Game Log
 
 Get game log for a player for a specific season with detailed stats for each game.
@@ -709,6 +664,55 @@ curl http://localhost:8000/api/v1/scoreboard/game/0022400123/boxscore
 
 ---
 
+#### Get Play-by-Play
+
+Retrieve all play-by-play events for a specific game. Works for both live and completed games.
+
+```http
+GET /api/v1/scoreboard/game/{game_id}/play-by-play
+```
+
+**Parameters:**
+
+- `game_id` (string, required) - Game ID (e.g., "0022400123")
+
+**Example Request:**
+
+```bash
+curl http://localhost:8000/api/v1/scoreboard/game/0022400123/play-by-play
+```
+
+**Response:**
+
+```json
+{
+  "game_id": "0022400123",
+  "plays": [
+    {
+      "action_number": 1,
+      "clock": "PT12M00S",
+      "period": 1,
+      "team_tricode": "LAL",
+      "score_home": "0",
+      "score_away": "2",
+      "action_type": "2pt Shot",
+      "description": "Anthony Davis makes 2-pt shot from 8 ft",
+      "player_name": "Anthony Davis"
+    }
+  ]
+}
+```
+
+**Note:** For completed games, this returns all plays from the game. For live games, use the WebSocket endpoint for real-time updates.
+
+**Status Codes:**
+
+- `200 OK` - Success
+- `404 Not Found` - Game not found
+- `500 Internal Server Error` - Server error
+
+---
+
 ### Predictions
 
 #### Get Game Predictions for Date
@@ -837,6 +841,16 @@ curl "http://localhost:8000/api/v1/search?q=lakers"
 
 The API provides real-time updates via WebSocket connections for live game data.
 
+**How it works:**
+
+The backend uses a polling and caching system to efficiently serve WebSocket clients:
+
+- Background tasks poll the NBA API at fixed intervals (scoreboard every 8 seconds, play-by-play every 5 seconds)
+- Data is cached in memory
+- WebSocket connections read from the cache, not directly from the NBA API
+- This means multiple clients don't trigger multiple API calls - only one poller exists per data type
+- Rate limiting is applied to REST endpoints, not WebSocket data distribution
+
 ### Live Scoreboard Updates
 
 Real-time scoreboard updates broadcast to all connected clients. Updates are sent automatically when scores or game status changes.
@@ -931,8 +945,12 @@ ws.onclose = () => {
 
 **Update Frequency:**
 
-- Updates are sent every 30 seconds when changes are detected
+- Updates are sent every 8 seconds when changes are detected
 - Initial data is sent immediately upon connection
+
+**How it works:**
+
+The backend polls the NBA API in the background every 8 seconds and caches the latest scoreboard data. WebSocket connections read from this cache, so multiple clients don't trigger multiple API calls. This keeps the system efficient and prevents rate limiting issues.
 
 ---
 
@@ -996,8 +1014,12 @@ ws.onclose = () => {
 
 **Update Frequency:**
 
-- Updates are sent every 2 seconds when new plays are detected
+- Updates are sent every 5 seconds when new plays are detected
 - All historical plays are sent immediately upon connection
+
+**How it works:**
+
+The backend polls the NBA API in the background every 5 seconds for active games and caches the latest play-by-play data. WebSocket connections read from this cache, so multiple clients watching the same game don't trigger multiple API calls. This keeps the system efficient and prevents rate limiting issues.
 
 ---
 
@@ -1209,7 +1231,14 @@ GET /
 
 4. **Rate Limiting and Timeouts**
 
-   All API calls automatically wait 600ms between requests and have 10-15 second timeouts to prevent throttling and connection issues. The backend handles this automatically - no action needed from frontend developers.
+   The backend automatically handles rate limiting and timeouts for NBA API calls:
+
+   - **Rate Limiting:** All NBA API calls wait at least 600ms between requests to prevent throttling
+   - **Timeouts:** API calls have timeouts (10-30 seconds depending on the endpoint) to prevent hanging
+   - **Automatic Retries:** Some endpoints automatically retry on timeout
+   - **Background Polling:** WebSocket data comes from background polling tasks, not direct API calls from clients
+
+   Frontend developers don't need to worry about rate limiting - the backend handles it automatically.
 
 5. **Empty Responses**
    - Some endpoints return empty data (e.g., games that haven't started)

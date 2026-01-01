@@ -3,22 +3,18 @@ import { Box, Container, Typography } from '@mui/material';
 import { useSearchParams } from 'react-router-dom';
 import UniversalSidebar from '../components/UniversalSidebar';
 import SeasonLeaders from '../components/SeasonLeaders';
-import AllTimeLeaders from '../components/AllTimeLeaders';
 import Navbar from '../components/Navbar';
 import { responsiveSpacing, typography } from '../theme/designTokens';
 import { fetchJson } from '../utils/apiClient';
 import { getCurrentSeason } from '../utils/season';
 import { SeasonLeadersResponse } from '../types/seasonleaders';
-import { AllTimeLeadersResponse } from '../types/alltimeleaders';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 const Players = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [seasonLeaders, setSeasonLeaders] = useState<SeasonLeadersResponse | null>(null);
-  const [allTimeLeaders, setAllTimeLeaders] = useState<AllTimeLeadersResponse | null>(null);
   const [loading, setLoading] = useState(false);
-  const [allTimeLoading, setAllTimeLoading] = useState(false);
 
   const season = searchParams.get('season') || getCurrentSeason();
 
@@ -46,25 +42,6 @@ const Players = () => {
     fetchSeasonLeaders();
   }, [season]);
 
-  useEffect(() => {
-    const fetchAllTimeLeaders = async () => {
-      setAllTimeLoading(true);
-      try {
-        const data = await fetchJson<AllTimeLeadersResponse>(
-          `${API_BASE_URL}/api/v1/players/all-time-leaders?top_n=10`,
-          {},
-          { maxRetries: 3, retryDelay: 1000, timeout: 30000 }
-        );
-        setAllTimeLeaders(data);
-      } catch (err) {
-        console.error('Error fetching all-time leaders:', err);
-      } finally {
-        setAllTimeLoading(false);
-      }
-    };
-
-    fetchAllTimeLeaders();
-  }, []);
 
   return (
     <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default', display: 'flex', flexDirection: 'column' }}>
@@ -96,7 +73,7 @@ const Players = () => {
                   fontSize: { xs: '0.875rem', sm: '1rem' },
                 }}
               >
-                Season leaders and all-time records for the {season} season
+                Season leaders for the {season} season
               </Typography>
             </Box>
 
@@ -119,23 +96,6 @@ const Players = () => {
               )}
             </Box>
 
-            <Box>
-              <Typography
-                variant="h4"
-                sx={{
-                  fontWeight: typography.weight.bold,
-                  mb: responsiveSpacing.section,
-                  fontSize: { xs: typography.size.h5, sm: typography.size.h4 },
-                }}
-              >
-                All-Time Leaders
-              </Typography>
-              {allTimeLoading || !allTimeLeaders ? (
-                <Box>Loading...</Box>
-              ) : (
-                <AllTimeLeaders data={allTimeLeaders} />
-              )}
-            </Box>
           </Container>
         </Box>
 

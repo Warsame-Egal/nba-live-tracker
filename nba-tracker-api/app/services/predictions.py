@@ -250,11 +250,11 @@ async def predict_games_for_date(date: str, season: str) -> PredictionsResponse:
         PredictionsResponse: Predictions for all games
     """
     try:
-        # Get games for the date (with timeout, skip game leaders for performance)
+        # Get games for the date (with timeout)
         try:
             games_response = await asyncio.wait_for(
-                getGamesForDate(date, skip_game_leaders=True),
-                timeout=10.0
+                getGamesForDate(date),
+                timeout=30.0
             )
             games = games_response.games
             logger.info(f"Found {len(games)} games for date {date}")
