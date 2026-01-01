@@ -25,6 +25,14 @@ Pipfile.lock
 
 test.db
 
+# Node modules (should never be committed)
+node_modules/
+
+# Frontend build artifacts
+nba-tracker/dist/
+nba-tracker/dist-ssr/
+nba-tracker/.vite/
+
 # Local deployment file with credentials (DO NOT COMMIT)
 DEPLOYMENT.local.md
 *.local.md
@@ -38,4 +46,3 @@ DEPLOYMENT.detailed.md
 nba-tracker-api/patch_http.py
 nba-tracker-api/patch_scoreboard.py
 *patch*.py
-
