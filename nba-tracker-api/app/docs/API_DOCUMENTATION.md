@@ -428,7 +428,7 @@ curl http://localhost:8000/api/v1/teams/1610612747/game-log?season=2024-25
       "assists": 28,
       "field_goal_pct": 0.485,
       "three_point_pct": 0.375,
-      "free_throw_pct": 0.850
+      "free_throw_pct": 0.85
     }
   ]
 }

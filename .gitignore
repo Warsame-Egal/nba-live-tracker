@@ -46,3 +46,6 @@ DEPLOYMENT.detailed.md
 nba-tracker-api/patch_http.py
 nba-tracker-api/patch_scoreboard.py
 *patch*.py
+
+GROQ_SETUP_GUIDE.md
+RATE_LIMITING_CHANGES.md

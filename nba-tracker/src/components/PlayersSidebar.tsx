@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -66,11 +66,45 @@ const PlayersSidebar: React.FC<PlayersSidebarProps> = ({ selectedStat, onStatCha
 
   const seasonOptions = getSeasonOptions();
 
+  const fetchTopPlayersByStat = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await fetchJson<PlayerSummary[]>(
+        `${API_BASE_URL}/api/v1/players/top-by-stat?season=${encodeURIComponent(season)}&stat=${encodeURIComponent(selectedStat)}&top_n=10`,
+        {},
+        { maxRetries: 3, retryDelay: 1000, timeout: 30000 }
+      );
+      setPlayers(data || []);
+    } catch (err) {
+      console.error('Error fetching top players:', err);
+      setPlayers([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [season, selectedStat]);
+
+  const fetchPlayers = useCallback(async (query: string) => {
+    setLoading(true);
+    try {
+      const data = await fetchJson<PlayerSummary[]>(
+        `${API_BASE_URL}/api/v1/players/search/${encodeURIComponent(query)}`,
+        {},
+        { maxRetries: 3, retryDelay: 1000, timeout: 30000 }
+      );
+      setPlayers(data || []);
+    } catch (err) {
+      console.error('Error fetching players:', err);
+      setPlayers([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (!searchQuery || searchQuery.trim().length < 2) {
       fetchTopPlayersByStat();
     }
-  }, [selectedStat, season]);
+  }, [selectedStat, season, searchQuery, fetchTopPlayersByStat]);
 
   useEffect(() => {
     if (debounceTimerRef.current) {
@@ -92,41 +126,7 @@ const PlayersSidebar: React.FC<PlayersSidebarProps> = ({ selectedStat, onStatCha
         clearTimeout(debounceTimerRef.current);
       }
     };
-  }, [searchQuery]);
-
-  const fetchTopPlayersByStat = async () => {
-    setLoading(true);
-    try {
-      const data = await fetchJson<PlayerSummary[]>(
-        `${API_BASE_URL}/api/v1/players/top-by-stat?season=${encodeURIComponent(season)}&stat=${encodeURIComponent(selectedStat)}&top_n=10`,
-        {},
-        { maxRetries: 3, retryDelay: 1000, timeout: 30000 }
-      );
-      setPlayers(data || []);
-    } catch (err) {
-      console.error('Error fetching top players:', err);
-      setPlayers([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchPlayers = async (query: string) => {
-    setLoading(true);
-    try {
-      const data = await fetchJson<PlayerSummary[]>(
-        `${API_BASE_URL}/api/v1/players/search/${encodeURIComponent(query)}`,
-        {},
-        { maxRetries: 3, retryDelay: 1000, timeout: 30000 }
-      );
-      setPlayers(data || []);
-    } catch (err) {
-      console.error('Error fetching players:', err);
-      setPlayers([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [searchQuery, fetchPlayers, fetchTopPlayersByStat]);
 
   const getStatValue = (player: PlayerSummary, stat: string): number | undefined => {
     switch (stat) {

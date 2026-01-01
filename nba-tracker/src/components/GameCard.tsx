@@ -122,26 +122,34 @@ const GameCard: React.FC<GameCardProps> = ({ game, hideScore = false, onClick, i
   };
 
   return (
-    <Card
-      onClick={onClick}
-      sx={{
-        p: responsiveSpacing.card,
-        cursor: onClick ? 'pointer' : 'default',
-        backgroundColor: 'background.paper',
-        backgroundImage: isLive
-          ? 'linear-gradient(135deg, rgba(239, 83, 80, 0.05) 0%, rgba(239, 83, 80, 0.02) 100%)'
-          : 'none',
-        border: isLive ? '2px solid' : '1px solid',
-        borderColor: isLive ? 'error.main' : 'divider',
-        borderLeft: homeTeamColor && awayTeamColor ? `4px solid ${homeTeamColor}` : undefined,
-        borderRight: homeTeamColor && awayTeamColor ? `4px solid ${awayTeamColor}` : undefined,
-        transition: transitions.smooth,
-        boxShadow: isLive ? shadows.error.md : shadows.sm,
-        position: 'relative',
-        overflow: 'hidden',
-        // Animation for recently updated games
-        ...(isRecentlyUpdated && {
-          animation: 'scoreUpdateFlash 0.6s ease-out',
+      <Card
+        onClick={onClick}
+        sx={{
+          p: { xs: 2, sm: 2.5, md: 3 },
+          cursor: onClick ? 'pointer' : 'default',
+          backgroundColor: 'background.paper',
+          backgroundImage: isLive
+            ? 'linear-gradient(135deg, rgba(239, 83, 80, 0.05) 0%, rgba(239, 83, 80, 0.02) 100%)'
+            : 'none',
+          border: isLive ? '2px solid' : '1px solid',
+          borderColor: isLive ? 'error.main' : 'divider',
+          borderLeft: homeTeamColor && awayTeamColor ? `4px solid ${homeTeamColor}` : undefined,
+          borderRight: homeTeamColor && awayTeamColor ? `4px solid ${awayTeamColor}` : undefined,
+          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+          boxShadow: isLive ? '0 4px 12px rgba(239, 83, 80, 0.3)' : 'none',
+          position: 'relative',
+          overflow: 'hidden',
+          borderRadius: 2,
+          '&:hover': {
+            transform: 'translateY(-2px)',
+            boxShadow: isLive 
+              ? '0 8px 24px rgba(239, 83, 80, 0.4)' 
+              : '0 8px 24px rgba(0, 0, 0, 0.12)',
+            borderColor: isLive ? 'error.main' : 'primary.light',
+          },
+          // Animation for recently updated games
+          ...(isRecentlyUpdated && {
+            animation: 'scoreUpdateFlash 0.6s ease-out',
           boxShadow: isLive
             ? `${shadows.error.md}, 0 0 0 2px rgba(25, 118, 210, 0.2)`
             : `${shadows.sm}, 0 0 0 2px rgba(25, 118, 210, 0.2)`,

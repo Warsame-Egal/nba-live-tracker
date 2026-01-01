@@ -32,6 +32,7 @@ import GameRow from '../components/GameRow';
 import Navbar from '../components/Navbar';
 import WeeklyCalendar from '../components/WeeklyCalendar';
 import GameDetailsDrawer from '../components/GameDetailsDrawer';
+import UniversalSidebar from '../components/UniversalSidebar';
 import { useSearchParams, Link } from 'react-router-dom';
 import { SearchResults } from '../types/search';
 import debounce from 'lodash/debounce';
@@ -632,9 +633,17 @@ const Scoreboard = () => {
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
+    <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default', display: 'flex', flexDirection: 'column' }}>
       <Navbar />
-      <Container maxWidth={false} sx={{ py: responsiveSpacing.containerVertical, px: { xs: 2, sm: 3, md: 4, lg: 6 } }}>
+      <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+        <Box
+          sx={{
+            flex: 1,
+            overflowY: 'auto',
+            backgroundColor: 'background.default',
+          }}
+        >
+          <Container maxWidth={false} sx={{ py: responsiveSpacing.containerVertical, px: { xs: 2, sm: 3, md: 4, lg: 6 } }}>
         {/* Header: Search bar and Calendar */}
         <Box
           sx={{
@@ -1244,7 +1253,24 @@ const Scoreboard = () => {
             {toast?.message}
           </Alert>
         </Snackbar>
-      </Container>
+          </Container>
+        </Box>
+
+        <Box
+          sx={{
+            width: 320,
+            flexShrink: 0,
+            display: { xs: 'none', md: 'flex' },
+            flexDirection: 'column',
+            borderLeft: '1px solid',
+            borderColor: 'divider',
+            backgroundColor: 'background.paper',
+            overflowY: 'auto',
+          }}
+        >
+          <UniversalSidebar />
+        </Box>
+      </Box>
     </Box>
   );
 };
