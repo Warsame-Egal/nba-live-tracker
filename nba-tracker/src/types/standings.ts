@@ -17,6 +17,9 @@ export interface StandingRecord {
   current_streak: number;
   current_streak_str: string;
   games_back: string;
+  ppg?: number | null;
+  opp_ppg?: number | null;
+  diff?: number | null;
 }
 
 export interface StandingsResponse {

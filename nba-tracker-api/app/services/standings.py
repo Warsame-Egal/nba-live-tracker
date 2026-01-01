@@ -61,6 +61,7 @@ async def getSeasonStandings(season: str, max_retries: int = 3) -> StandingsResp
 
             # If no data, return 404 error
             if df.empty:
+                logger.warning(f"No standings data returned from NBA API for season {season}")
                 raise HTTPException(status_code=404, detail=f"No standings found for season {season}")
 
             # Replace NaN (not a number) values with None so they become null in JSON
@@ -69,27 +70,67 @@ async def getSeasonStandings(season: str, max_retries: int = 3) -> StandingsResp
             # Convert each team's data to our StandingRecord format
             standings_list = []
             for team in df.to_dict(orient="records"):
-                standing_record = StandingRecord(
-                    season_id=team["SeasonID"],
-                    team_id=int(team["TeamID"]),
-                    team_city=team["TeamCity"],
-                    team_name=team["TeamName"],
-                    conference=team["Conference"],
-                    division=team["Division"],
-                    conference_record=team["ConferenceRecord"],
-                    division_record=team["DivisionRecord"],
-                    playoff_rank=int(team["PlayoffRank"]),
-                    wins=int(team["WINS"]),
-                    losses=int(team["LOSSES"]),
-                    win_pct=float(team["WinPCT"]),
-                    home_record=team["HOME"],
-                    road_record=team["ROAD"],
-                    l10_record=team["L10"],  # Last 10 games record
-                    current_streak=int(team["CurrentStreak"]),
-                    current_streak_str=team["strCurrentStreak"],  # Like "W4" or "L2"
-                    games_back=safe_str(team.get("ConferenceGamesBack")),  # Games behind conference leader
-                )
-                standings_list.append(standing_record)
+                # Get PPG, OPP PPG, and DIFF if available (may not exist in all seasons)
+                ppg = None
+                opp_ppg = None
+                diff = None
+                
+                try:
+                    # Try to get PPG and OPP PPG from various possible column names
+                    ppg_raw = team.get("PointsPG") or team.get("PTS") or team.get("Points")
+                    opp_ppg_raw = team.get("OppPointsPG") or team.get("OPP_PTS") or team.get("OppPoints")
+                    
+                    # Convert to float if not None and not NaN
+                    if ppg_raw is not None:
+                        try:
+                            ppg_val = float(ppg_raw)
+                            if not (np.isnan(ppg_val) or np.isinf(ppg_val)):
+                                ppg = ppg_val
+                        except (ValueError, TypeError):
+                            pass
+                    
+                    if opp_ppg_raw is not None:
+                        try:
+                            opp_ppg_val = float(opp_ppg_raw)
+                            if not (np.isnan(opp_ppg_val) or np.isinf(opp_ppg_val)):
+                                opp_ppg = opp_ppg_val
+                        except (ValueError, TypeError):
+                            pass
+                    
+                    # Calculate diff if both values are available
+                    if ppg is not None and opp_ppg is not None:
+                        diff = ppg - opp_ppg
+                except Exception as e:
+                    logger.debug(f"Could not extract PPG/OPP PPG for team {team.get('TeamID')}: {e}")
+                
+                try:
+                    standing_record = StandingRecord(
+                        season_id=team["SeasonID"],
+                        team_id=int(team["TeamID"]),
+                        team_city=team["TeamCity"],
+                        team_name=team["TeamName"],
+                        conference=team["Conference"],
+                        division=team["Division"],
+                        conference_record=team["ConferenceRecord"],
+                        division_record=team["DivisionRecord"],
+                        playoff_rank=int(team["PlayoffRank"]),
+                        wins=int(team["WINS"]),
+                        losses=int(team["LOSSES"]),
+                        win_pct=float(team["WinPCT"]),
+                        home_record=team["HOME"],
+                        road_record=team["ROAD"],
+                        l10_record=team["L10"],
+                        current_streak=int(team["CurrentStreak"]),
+                        current_streak_str=team["strCurrentStreak"],
+                        games_back=safe_str(team.get("ConferenceGamesBack")),
+                        ppg=ppg,
+                        opp_ppg=opp_ppg,
+                        diff=diff,
+                    )
+                    standings_list.append(standing_record)
+                except Exception as e:
+                    logger.error(f"Error creating StandingRecord for team {team.get('TeamID', 'unknown')}: {e}")
+                    raise
 
             return StandingsResponse(standings=standings_list)
             

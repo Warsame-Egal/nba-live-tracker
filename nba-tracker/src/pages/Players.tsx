@@ -66,15 +66,6 @@ const Players = () => {
               >
                 Players
               </Typography>
-              <Typography
-                variant="body1"
-                sx={{
-                  color: 'text.secondary',
-                  fontSize: { xs: '0.875rem', sm: '1rem' },
-                }}
-              >
-                Season leaders for the {season} season
-              </Typography>
             </Box>
 
             {/* Season Leaders Section */}

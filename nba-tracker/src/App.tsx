@@ -46,6 +46,7 @@ export default function App() {
             {/* Roster page - shows team roster */}
             <Route path="/team/:team_id/roster" element={<RosterPage />} />
             {/* Standings page - shows league standings */}
+            <Route path="/standings/:season" element={<Standings />} />
             <Route path="/standings" element={<Standings />} />
             {/* Players page - shows season leaders and player search */}
             <Route path="/players" element={<Players />} />
