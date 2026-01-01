@@ -73,15 +73,6 @@ const Teams = () => {
               >
                 Teams
               </Typography>
-              <Typography
-                variant="body1"
-                sx={{
-                  color: 'text.secondary',
-                  fontSize: { xs: '0.875rem', sm: '1rem' },
-                }}
-              >
-                Team statistics and performance metrics for the {season} season
-              </Typography>
             </Box>
 
             {loading ? (

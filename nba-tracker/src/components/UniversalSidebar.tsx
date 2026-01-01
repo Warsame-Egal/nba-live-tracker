@@ -72,10 +72,17 @@ const UniversalSidebar: React.FC<UniversalSidebarProps> = ({ season, onSeasonCha
 
   const seasonOptions = getSeasonOptions();
 
-  // Update tab when route changes
+  // Update tab when route changes, but preserve tab if we're on a page that uses the sidebar (like standings)
   useEffect(() => {
-    const newTab = getInitialTab(location.pathname);
-    setActiveTab(newTab);
+    const pathname = location.pathname;
+    // Only update tab if navigating to a different page type (players or teams pages)
+    // Don't reset tab when just changing season on standings page
+    if (pathname.startsWith('/players')) {
+      setActiveTab('players');
+    } else if (pathname.startsWith('/teams')) {
+      setActiveTab('teams');
+    }
+    // If on standings or other pages, keep the current tab selection
   }, [location.pathname]);
 
   useEffect(() => {

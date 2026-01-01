@@ -7,26 +7,31 @@ import {
   Avatar,
   CircularProgress,
   Alert,
-  ToggleButton,
-  ToggleButtonGroup,
+  Tabs,
+  Tab,
   Chip,
-  Grid,
-  Card,
-  CardContent,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material';
 import { StandingRecord, StandingsResponse } from '../types/standings';
-import { Sports, TrendingUp, TrendingDown, EmojiEvents } from '@mui/icons-material';
+import { TrendingUp, TrendingDown } from '@mui/icons-material';
 import Navbar from './Navbar';
 import UniversalSidebar from './UniversalSidebar';
 import { responsiveSpacing, borderRadius, transitions, typography } from '../theme/designTokens';
 import { fetchJson } from '../utils/apiClient';
+import { getCurrentSeason } from '../utils/season';
 
-// Base URL for API calls
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 /**
  * Map of team names to their abbreviations and logo paths.
- * Used to display team logos in the standings table.
  */
 const teamMappings: { [key: string]: { abbreviation: string; logo: string } } = {
   'Atlanta Hawks': { abbreviation: 'ATL', logo: '/logos/ATL.svg' },
@@ -61,51 +66,49 @@ const teamMappings: { [key: string]: { abbreviation: string; logo: string } } = 
   'Washington Wizards': { abbreviation: 'WAS', logo: '/logos/WAS.svg' },
 };
 
+type ViewType = 'league' | 'conference' | 'division';
+
 /**
- * Modern standings page that displays NBA standings with card-based design.
- * Shows teams ranked by their playoff position with enhanced visuals.
+ * Standings page with polished table design and multiple view options.
+ * Displays teams in a professional table format with clear hierarchy.
  */
 const Standings = () => {
-  // Get season from URL if provided
   const { season } = useParams<{ season?: string }>();
   const navigate = useNavigate();
-  // Default to current season if not provided
-  const getCurrentSeason = () => {
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth() + 1;
-    
-    if (currentMonth >= 10) {
-      return `${currentYear}-${(currentYear + 1).toString().slice(2)}`;
-    } else {
-      return `${currentYear - 1}-${currentYear.toString().slice(2)}`;
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
+  const seasonParam = season || getCurrentSeason();
+  const [standings, setStandings] = useState<StandingRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [viewType, setViewType] = useState<ViewType>('league');
+  const [selectedConference, setSelectedConference] = useState<'East' | 'West'>('East');
+
+  // Handle season change from sidebar
+  const handleSeasonChange = (newSeason: string) => {
+    if (newSeason !== seasonParam) {
+      navigate(`/standings/${newSeason}`);
     }
   };
-  const seasonParam = season || getCurrentSeason();
-  // List of all team standings
-  const [standings, setStandings] = useState<StandingRecord[]>([]);
-  // Whether we're loading the standings
-  const [loading, setLoading] = useState(true);
-  // Error message if something goes wrong
-  const [error, setError] = useState('');
-  // Which conference to show (East or West)
-  const [conference, setConference] = useState<'East' | 'West'>('East');
 
-  /**
-   * Fetch standings when component loads or season changes.
-   */
   useEffect(() => {
     const fetchStandings = async () => {
       setLoading(true);
+      setError('');
+      setStandings([]);
       try {
         const data = await fetchJson<StandingsResponse>(
           `${API_BASE_URL}/api/v1/standings/season/${seasonParam}`,
           {},
           { maxRetries: 3, retryDelay: 1000, timeout: 30000 }
         );
-        setStandings(data.standings);
-      } catch {
-        setError('Failed to fetch standings. Please try again.');
+        setStandings(data.standings || []);
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to fetch standings. Please try again.';
+        setError(errorMessage);
+        setStandings([]);
+        console.error('Error fetching standings:', err);
       } finally {
         setLoading(false);
       }
@@ -113,14 +116,504 @@ const Standings = () => {
     fetchStandings();
   }, [seasonParam]);
 
-  /**
-   * Filter standings by selected conference and sort by playoff rank.
-   */
-  const filteredStandings = useMemo(() => {
+  // League view: all teams sorted by overall rank
+  const leagueStandings = useMemo(() => {
+    return [...standings].sort((a, b) => {
+      // Sort by conference first, then by playoff rank
+      if (a.conference !== b.conference) {
+        return a.conference === 'East' ? -1 : 1;
+      }
+      return a.playoff_rank - b.playoff_rank;
+    });
+  }, [standings]);
+
+  // Conference view: teams grouped by conference
+  const conferenceStandings = useMemo(() => {
     return standings
-      .filter(team => team.conference === conference)
+      .filter(team => team.conference === selectedConference)
       .sort((a, b) => a.playoff_rank - b.playoff_rank);
-  }, [standings, conference]);
+  }, [standings, selectedConference]);
+
+  // Division view: teams grouped by division within conference
+  const divisionStandings = useMemo(() => {
+    const grouped: { [conference: string]: { [division: string]: StandingRecord[] } } = {
+      East: {},
+      West: {},
+    };
+
+    standings.forEach(team => {
+      if (!grouped[team.conference][team.division]) {
+        grouped[team.conference][team.division] = [];
+      }
+      grouped[team.conference][team.division].push(team);
+    });
+
+    // Sort each division by playoff rank
+    Object.keys(grouped).forEach(conf => {
+      Object.keys(grouped[conf]).forEach(div => {
+        grouped[conf][div].sort((a, b) => a.playoff_rank - b.playoff_rank);
+      });
+    });
+
+    return grouped;
+  }, [standings]);
+
+  const formatGamesBack = (gb: string) => {
+    if (!gb || gb === '0.0' || gb === '0') return '—';
+    return gb;
+  };
+
+  const formatPercentage = (pct: number) => {
+    return (pct * 100).toFixed(1);
+  };
+
+  const formatDiff = (diff: number | null | undefined) => {
+    if (diff === null || diff === undefined) return '—';
+    const sign = diff >= 0 ? '+' : '';
+    return `${sign}${diff.toFixed(1)}`;
+  };
+
+
+  const renderTableRow = (team: StandingRecord, showRank: boolean = true) => {
+    const fullTeamName = `${team.team_city} ${team.team_name}`;
+    const logo = teamMappings[fullTeamName]?.logo || '/logos/default.svg';
+    const abbreviation = teamMappings[fullTeamName]?.abbreviation || '';
+    const isPlayoffTeam = team.playoff_rank <= 8;
+    const isTopSeed = team.playoff_rank <= 3;
+    const streakColor = team.current_streak_str.startsWith('W') ? 'success.main' : 'error.main';
+    const gamesBack = formatGamesBack(team.games_back);
+    const hasPPG = team.ppg !== null && team.ppg !== undefined;
+
+    return (
+      <TableRow
+        key={team.team_id}
+        onClick={() => navigate(`/team/${team.team_id}`)}
+        sx={{
+          cursor: 'pointer',
+          transition: transitions.normal,
+          '&:hover': {
+            backgroundColor: 'action.hover',
+          },
+          borderLeft: isTopSeed ? '3px solid' : 'none',
+          borderLeftColor: isTopSeed ? 'primary.main' : 'transparent',
+        }}
+      >
+        {showRank && (
+          <TableCell sx={{ py: 2 }}>
+            <Chip
+              label={team.playoff_rank}
+              size="small"
+              sx={{
+                height: 28,
+                minWidth: 28,
+                fontWeight: typography.weight.bold,
+                fontSize: typography.size.bodySmall,
+                backgroundColor: isTopSeed
+                  ? 'primary.main'
+                  : isPlayoffTeam
+                    ? 'rgba(25, 118, 210, 0.1)'
+                    : 'transparent',
+                color: isTopSeed ? 'primary.contrastText' : 'text.primary',
+                border: isPlayoffTeam && !isTopSeed ? '1px solid' : 'none',
+                borderColor: isPlayoffTeam && !isTopSeed ? 'primary.main' : 'transparent',
+              }}
+            />
+          </TableCell>
+        )}
+        <TableCell sx={{ py: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <Avatar
+              src={logo}
+              alt={fullTeamName}
+              sx={{
+                width: 32,
+                height: 32,
+                backgroundColor: 'transparent',
+                border: '1px solid',
+                borderColor: 'divider',
+              }}
+            />
+            <Box>
+              <Typography
+                variant="body2"
+                sx={{
+                  fontWeight: typography.weight.bold,
+                  fontSize: typography.size.bodySmall,
+                }}
+              >
+                {abbreviation || team.team_city}
+                {!showRank && (
+                  <Typography component="span" sx={{ color: 'text.secondary', ml: 0.5, fontSize: typography.size.caption }}>
+                    ({team.playoff_rank})
+                  </Typography>
+                )}
+              </Typography>
+              <Typography
+                variant="caption"
+                sx={{
+                  color: 'text.secondary',
+                  fontSize: typography.size.caption,
+                }}
+              >
+                {team.team_city} {team.team_name}
+              </Typography>
+            </Box>
+          </Box>
+        </TableCell>
+        <TableCell align="center" sx={{ py: 2 }}>
+          <Typography
+            variant="body2"
+            sx={{
+              fontWeight: typography.weight.bold,
+              fontSize: typography.size.bodySmall,
+            }}
+          >
+            {team.wins}
+          </Typography>
+        </TableCell>
+        <TableCell align="center" sx={{ py: 2 }}>
+          <Typography
+            variant="body2"
+            sx={{
+              fontWeight: typography.weight.bold,
+              fontSize: typography.size.bodySmall,
+            }}
+          >
+            {team.losses}
+          </Typography>
+        </TableCell>
+        <TableCell align="center" sx={{ py: 2 }}>
+          <Chip
+            label={formatPercentage(team.win_pct)}
+            size="small"
+            sx={{
+              height: 24,
+              fontWeight: typography.weight.semibold,
+              fontSize: typography.size.caption,
+              backgroundColor: 'rgba(25, 118, 210, 0.1)',
+              color: 'primary.main',
+            }}
+          />
+        </TableCell>
+        <TableCell align="center" sx={{ py: 2 }}>
+          <Typography
+            variant="body2"
+            sx={{
+              fontSize: typography.size.bodySmall,
+              color: 'text.secondary',
+            }}
+          >
+            {gamesBack}
+          </Typography>
+        </TableCell>
+        <TableCell align="center" sx={{ py: 2 }}>
+          <Typography
+            variant="body2"
+            sx={{
+              fontSize: typography.size.bodySmall,
+            }}
+          >
+            {team.home_record}
+          </Typography>
+        </TableCell>
+        <TableCell align="center" sx={{ py: 2 }}>
+          <Typography
+            variant="body2"
+            sx={{
+              fontSize: typography.size.bodySmall,
+            }}
+          >
+            {team.road_record}
+          </Typography>
+        </TableCell>
+        <TableCell align="center" sx={{ py: 2 }}>
+          <Typography
+            variant="body2"
+            sx={{
+              fontSize: typography.size.bodySmall,
+            }}
+          >
+            {team.division_record}
+          </Typography>
+        </TableCell>
+        <TableCell align="center" sx={{ py: 2 }}>
+          <Typography
+            variant="body2"
+            sx={{
+              fontSize: typography.size.bodySmall,
+            }}
+          >
+            {team.conference_record}
+          </Typography>
+        </TableCell>
+        {hasPPG && (
+          <>
+            <TableCell align="center" sx={{ py: 2 }}>
+              <Typography
+                variant="body2"
+                sx={{
+                  fontSize: typography.size.bodySmall,
+                }}
+              >
+                {team.ppg?.toFixed(1) || '—'}
+              </Typography>
+            </TableCell>
+            <TableCell align="center" sx={{ py: 2 }}>
+              <Typography
+                variant="body2"
+                sx={{
+                  fontSize: typography.size.bodySmall,
+                }}
+              >
+                {team.opp_ppg?.toFixed(1) || '—'}
+              </Typography>
+            </TableCell>
+            <TableCell align="center" sx={{ py: 2 }}>
+              <Typography
+                variant="body2"
+                sx={{
+                  fontSize: typography.size.bodySmall,
+                  color: team.diff && team.diff >= 0 ? 'success.main' : team.diff && team.diff < 0 ? 'error.main' : 'text.secondary',
+                  fontWeight: typography.weight.semibold,
+                }}
+              >
+                {formatDiff(team.diff)}
+              </Typography>
+            </TableCell>
+          </>
+        )}
+        {!isMobile && (
+          <>
+            <TableCell align="center" sx={{ py: 2 }}>
+              <Chip
+                label={team.current_streak_str}
+                size="small"
+                icon={team.current_streak_str.startsWith('W') ? (
+                  <TrendingUp sx={{ fontSize: 14 }} />
+                ) : (
+                  <TrendingDown sx={{ fontSize: 14 }} />
+                )}
+                sx={{
+                  height: 24,
+                  fontWeight: typography.weight.semibold,
+                  fontSize: typography.size.caption,
+                  backgroundColor: team.current_streak_str.startsWith('W')
+                    ? 'rgba(76, 175, 80, 0.1)'
+                    : 'rgba(239, 83, 80, 0.1)',
+                  color: streakColor,
+                }}
+              />
+            </TableCell>
+            <TableCell align="center" sx={{ py: 2 }}>
+              <Typography
+                variant="body2"
+                sx={{
+                  fontSize: typography.size.bodySmall,
+                }}
+              >
+                {team.l10_record}
+              </Typography>
+            </TableCell>
+          </>
+        )}
+      </TableRow>
+    );
+  };
+
+  const renderTable = (teams: StandingRecord[], showRank: boolean = true) => {
+    const hasPPG = teams.length > 0 && teams[0].ppg !== null && teams[0].ppg !== undefined;
+
+    return (
+      <TableContainer
+        component={Paper}
+        elevation={0}
+        sx={{
+          border: '1px solid',
+          borderColor: 'divider',
+          borderRadius: borderRadius.md,
+          overflowX: 'auto',
+          '&::-webkit-scrollbar': {
+            height: 8,
+          },
+          '&::-webkit-scrollbar-track': {
+            backgroundColor: 'background.default',
+          },
+          '&::-webkit-scrollbar-thumb': {
+            backgroundColor: 'divider',
+            borderRadius: borderRadius.xs,
+            '&:hover': {
+              backgroundColor: 'text.secondary',
+            },
+          },
+        }}
+      >
+        <Table sx={{ minWidth: isMobile ? 600 : 800 }}>
+          <TableHead>
+            <TableRow sx={{ backgroundColor: 'background.default' }}>
+              {showRank && (
+                <TableCell sx={{ fontWeight: typography.weight.bold, fontSize: typography.size.bodySmall, py: 2 }}>
+                  Rank
+                </TableCell>
+              )}
+              <TableCell sx={{ fontWeight: typography.weight.bold, fontSize: typography.size.bodySmall, py: 2 }}>
+                Team
+              </TableCell>
+              <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: typography.size.bodySmall, py: 2 }}>
+                W
+              </TableCell>
+              <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: typography.size.bodySmall, py: 2 }}>
+                L
+              </TableCell>
+              <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: typography.size.bodySmall, py: 2 }}>
+                PCT
+              </TableCell>
+              <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: typography.size.bodySmall, py: 2 }}>
+                GB
+              </TableCell>
+              <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: typography.size.bodySmall, py: 2 }}>
+                HOME
+              </TableCell>
+              <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: typography.size.bodySmall, py: 2 }}>
+                AWAY
+              </TableCell>
+              <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: typography.size.bodySmall, py: 2 }}>
+                DIV
+              </TableCell>
+              <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: typography.size.bodySmall, py: 2 }}>
+                CONF
+              </TableCell>
+              {hasPPG && (
+                <>
+                  <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: typography.size.bodySmall, py: 2 }}>
+                    PPG
+                  </TableCell>
+                  <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: typography.size.bodySmall, py: 2 }}>
+                    OPP PPG
+                  </TableCell>
+                  <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: typography.size.bodySmall, py: 2 }}>
+                    DIFF
+                  </TableCell>
+                </>
+              )}
+              {!isMobile && (
+                <>
+                  <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: typography.size.bodySmall, py: 2 }}>
+                    STRK
+                  </TableCell>
+                  <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: typography.size.bodySmall, py: 2 }}>
+                    L10
+                  </TableCell>
+                </>
+              )}
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {teams.map(team => renderTableRow(team, showRank))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    );
+  };
+
+  const renderLeagueView = () => {
+    return renderTable(leagueStandings, true);
+  };
+
+  const renderConferenceView = () => {
+    return (
+      <Box>
+        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Chip
+              label="Eastern Conference"
+              onClick={() => setSelectedConference('East')}
+              sx={{
+                px: 2,
+                py: 1,
+                fontWeight: typography.weight.semibold,
+                backgroundColor: selectedConference === 'East' ? 'primary.main' : 'transparent',
+                color: selectedConference === 'East' ? 'primary.contrastText' : 'text.secondary',
+                border: '1px solid',
+                borderColor: selectedConference === 'East' ? 'primary.main' : 'divider',
+                cursor: 'pointer',
+                '&:hover': {
+                  backgroundColor: selectedConference === 'East' ? 'primary.dark' : 'action.hover',
+                },
+              }}
+            />
+            <Chip
+              label="Western Conference"
+              onClick={() => setSelectedConference('West')}
+              sx={{
+                px: 2,
+                py: 1,
+                fontWeight: typography.weight.semibold,
+                backgroundColor: selectedConference === 'West' ? 'primary.main' : 'transparent',
+                color: selectedConference === 'West' ? 'primary.contrastText' : 'text.secondary',
+                border: '1px solid',
+                borderColor: selectedConference === 'West' ? 'primary.main' : 'divider',
+                cursor: 'pointer',
+                '&:hover': {
+                  backgroundColor: selectedConference === 'West' ? 'primary.dark' : 'action.hover',
+                },
+              }}
+            />
+          </Box>
+        </Box>
+        {renderTable(conferenceStandings, true)}
+      </Box>
+    );
+  };
+
+  const renderDivisionView = () => {
+    const conferences = ['East', 'West'] as const;
+    const eastDivisions = ['Atlantic', 'Central', 'Southeast'];
+    const westDivisions = ['Northwest', 'Pacific', 'Southwest'];
+
+    return (
+      <Box>
+        {conferences.map(conf => {
+          const confDivisions = conf === 'East' ? eastDivisions : westDivisions;
+          return (
+            <Box key={conf} sx={{ mb: 4 }}>
+              <Typography
+                variant="h6"
+                sx={{
+                  fontWeight: typography.weight.bold,
+                  mb: 2,
+                  fontSize: typography.size.h6,
+                  color: 'text.primary',
+                }}
+              >
+                {conf === 'East' ? 'Eastern Conference' : 'Western Conference'}
+              </Typography>
+              {confDivisions.map(div => {
+                const teams = divisionStandings[conf][div] || [];
+                if (teams.length === 0) return null;
+
+                return (
+                  <Box key={div} sx={{ mb: 3 }}>
+                    <Typography
+                      variant="subtitle1"
+                      sx={{
+                        fontWeight: typography.weight.semibold,
+                        mb: 1.5,
+                        fontSize: typography.size.bodyLarge,
+                        color: 'text.secondary',
+                      }}
+                    >
+                      {div}
+                    </Typography>
+                    {renderTable(teams, false)}
+                  </Box>
+                );
+              })}
+            </Box>
+          );
+        })}
+      </Box>
+    );
+  };
 
   return (
     <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default', display: 'flex', flexDirection: 'column' }}>
@@ -134,294 +627,101 @@ const Standings = () => {
           }}
         >
           <Container maxWidth="xl" sx={{ py: responsiveSpacing.containerVertical, px: responsiveSpacing.container }}>
-        {/* Page title */}
-        <Box sx={{ textAlign: 'center', mb: responsiveSpacing.section }}>
-          <Typography
-            variant="h4"
-            sx={{
-              fontWeight: typography.weight.bold,
-              mb: 0.5,
-              fontSize: typography.size.h4,
-              color: 'text.primary',
-            }}
-          >
-            Standings
-          </Typography>
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            sx={{ 
-              fontSize: { xs: '0.75rem', sm: '0.8125rem' },
-              fontWeight: typography.weight.regular,
-            }}
-          >
-            {seasonParam}
-          </Typography>
-        </Box>
-
-        {/* Conference selector buttons */}
-        <Box sx={{ display: 'flex', justifyContent: 'center', mb: responsiveSpacing.section }}>
-          <ToggleButtonGroup
-            value={conference}
-            exclusive
-            onChange={(_, newValue) => newValue && setConference(newValue)}
-            sx={{
-              '& .MuiToggleButton-root': {
-                px: { xs: 3, sm: 4 },
-                py: { xs: 1, sm: 1.5 },
-                fontWeight: typography.weight.semibold,
-                fontSize: typography.size.button,
-                textTransform: 'none',
-                borderColor: 'divider',
-                color: 'text.secondary',
-                transition: transitions.normal,
-                '&.Mui-selected': {
-                  backgroundColor: 'primary.main',
-                  color: 'primary.contrastText',
-                  borderColor: 'primary.main',
-                  '&:hover': {
-                    backgroundColor: 'primary.dark',
-                  },
-                },
-                '&:hover': {
-                  backgroundColor: 'action.hover',
-                },
-              },
-            }}
-          >
-            <ToggleButton value="East">Eastern Conference</ToggleButton>
-            <ToggleButton value="West">Western Conference</ToggleButton>
-          </ToggleButtonGroup>
-        </Box>
-
-        {/* Loading spinner */}
-        {loading && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: { xs: 6, sm: 8 } }}>
-            <CircularProgress />
-          </Box>
-        )}
-        {/* Error message */}
-        {error && (
-          <Alert severity="error" sx={{ mb: { xs: 3, sm: 4 } }}>
-            {error}
-          </Alert>
-        )}
-        {/* Empty state */}
-        {!loading && !error && filteredStandings.length === 0 && (
-          <Box
-            sx={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              py: { xs: 8, sm: 12 },
-              px: 3,
-              minHeight: '40vh',
-            }}
-          >
-            <Box
-              sx={{
-                position: 'relative',
-                mb: 4,
-                animation: 'float 3s ease-in-out infinite',
-                '@keyframes float': {
-                  '0%, 100%': { transform: 'translateY(0px)' },
-                  '50%': { transform: 'translateY(-10px)' },
-                },
-              }}
-            >
-              <Sports
+            {/* Page header */}
+            <Box sx={{ mb: responsiveSpacing.section }}>
+              <Typography
+                variant="h4"
                 sx={{
-                  fontSize: { xs: 100, sm: 120 },
-                  color: 'primary.main',
-                  opacity: 0.3,
+                  fontWeight: typography.weight.bold,
+                  mb: 0.5,
+                  fontSize: typography.size.h4,
+                  color: 'text.primary',
                 }}
-              />
+              >
+                Standings
+              </Typography>
             </Box>
-            <Typography
-              variant="h5"
-              sx={{
-                fontWeight: typography.weight.bold,
-                mb: 1,
-                textAlign: 'center',
-                color: 'text.primary',
-              }}
-            >
-              No Standings Data Available
-            </Typography>
-            <Typography
-              variant="body1"
-              color="text.secondary"
-              sx={{
-                textAlign: 'center',
-                maxWidth: 500,
-                lineHeight: 1.6,
-              }}
-            >
-              Unable to load standings data for the selected season. Please try again later or select a different season.
-            </Typography>
-          </Box>
-        )}
 
-        {/* Standings cards */}
-        {!loading && !error && filteredStandings.length > 0 && (
-          <Grid container spacing={{ xs: 2, sm: 3 }}>
-            {filteredStandings.map((team) => {
-              const teamName = `${team.team_city} ${team.team_name}`;
-              const logo = teamMappings[teamName]?.logo || '/logos/default.svg';
-              const isPlayoffTeam = team.playoff_rank <= 8;
-              const isTopSeed = team.playoff_rank <= 3;
-              const streakColor = team.current_streak_str.startsWith('W') ? 'success.main' : 'error.main';
+            {/* View tabs */}
+            <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+              <Tabs
+                value={viewType}
+                onChange={(_, newValue) => setViewType(newValue)}
+                sx={{
+                  '& .MuiTab-root': {
+                    textTransform: 'none',
+                    fontWeight: typography.weight.semibold,
+                    fontSize: typography.size.body,
+                    minHeight: 48,
+                  },
+                }}
+              >
+                <Tab label="League" value="league" />
+                <Tab label="Conference" value="conference" />
+                <Tab label="Division" value="division" />
+              </Tabs>
+            </Box>
 
-              return (
-                <Grid item xs={12} sm={6} md={4} lg={3} key={team.team_id}>
-                  <Card
-                    elevation={0}
-                    onClick={() => navigate(`/team/${team.team_id}`)}
-                    sx={{
-                      height: '100%',
-                      cursor: 'pointer',
-                      backgroundColor: 'background.paper',
-                      border: '1px solid',
-                      borderColor: isTopSeed ? 'primary.main' : 'divider',
-                      borderLeft: isTopSeed ? '4px solid' : '1px solid',
-                      borderLeftColor: isTopSeed ? 'primary.main' : 'divider',
-                      borderRadius: borderRadius.sm,
-                      transition: transitions.normal,
-                      '&:hover': {
-                        transform: 'translateY(-4px)',
-                        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
-                        borderColor: 'primary.main',
-                      },
-                    }}
-                  >
-                    <CardContent sx={{ p: responsiveSpacing.cardCompact }}>
-                      {/* Header with rank and team */}
-                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flex: 1, minWidth: 0 }}>
-                          {/* Playoff rank badge */}
-                          <Chip
-                            label={team.playoff_rank}
-                            size="small"
-                            icon={isPlayoffTeam ? <EmojiEvents sx={{ fontSize: 14 }} /> : undefined}
-                            sx={{
-                              height: 28,
-                              minWidth: 28,
-                              fontWeight: typography.weight.bold,
-                              fontSize: typography.size.body.sm,
-                              backgroundColor: isTopSeed
-                                ? 'primary.main'
-                                : isPlayoffTeam
-                                  ? 'rgba(25, 118, 210, 0.15)'
-                                  : 'transparent',
-                              color: isTopSeed ? 'primary.contrastText' : 'text.primary',
-                              border: isPlayoffTeam && !isTopSeed ? '1px solid' : 'none',
-                              borderColor: isPlayoffTeam && !isTopSeed ? 'primary.main' : 'transparent',
-                            }}
-                          />
-                          {/* Team logo */}
-                          <Avatar
-                            src={logo}
-                            alt={teamName}
-                            sx={{
-                              width: { xs: 36, sm: 40 },
-                              height: { xs: 36, sm: 40 },
-                              backgroundColor: 'transparent',
-                              border: '1px solid',
-                              borderColor: 'divider',
-                            }}
-                          />
-                          {/* Team name */}
-                          <Box sx={{ flex: 1, minWidth: 0 }}>
-                            <Typography
-                              variant="body2"
-                              sx={{
-                                fontWeight: 700,
-                                fontSize: { xs: '0.8125rem', sm: '0.875rem' },
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap',
-                              }}
-                            >
-                              {team.team_city}
-                            </Typography>
-                            <Typography
-                              variant="caption"
-                              sx={{
-                                color: 'text.secondary',
-                                fontSize: { xs: '0.7rem', sm: '0.75rem' },
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap',
-                                display: 'block',
-                              }}
-                            >
-                              {team.team_name}
-                            </Typography>
-                          </Box>
-                        </Box>
-                      </Box>
+            {/* Loading state */}
+            {loading && (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: { xs: 6, sm: 8 } }}>
+                <CircularProgress />
+              </Box>
+            )}
 
-                      {/* Main stats */}
-                      <Box sx={{ mb: 2 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-                          <Typography variant="h5" sx={{ fontWeight: typography.weight.extrabold, fontSize: typography.size.h5 }}>
-                            {team.wins} - {team.losses}
-                          </Typography>
-                          <Chip
-                            label={team.win_pct.toFixed(3)}
-                            size="small"
-                            sx={{
-                              height: 24,
-                              fontWeight: typography.weight.semibold,
-                              fontSize: typography.size.caption.sm,
-                              backgroundColor: 'rgba(25, 118, 210, 0.1)',
-                              color: 'primary.main',
-                            }}
-                          />
-                        </Box>
-                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: typography.size.caption }}>
-                          {team.games_back === '0.0' ? '—' : `${team.games_back} GB`}
-                        </Typography>
-                      </Box>
+            {/* Error state */}
+            {error && (
+              <Alert severity="error" sx={{ mb: { xs: 3, sm: 4 } }}>
+                {error}
+              </Alert>
+            )}
 
-                      {/* Divider */}
-                      <Box
-                        sx={{
-                          height: 1,
-                          backgroundColor: 'divider',
-                          mb: 2,
-                          mx: -2.5,
-                        }}
-                      />
+            {/* Content based on view type */}
+            {!loading && !error && standings.length > 0 && (
+              <>
+                {viewType === 'league' && renderLeagueView()}
+                {viewType === 'conference' && renderConferenceView()}
+                {viewType === 'division' && renderDivisionView()}
+              </>
+            )}
 
-                      {/* Secondary stats grid */}
-                      <Grid container spacing={1} sx={{ mb: 1.5 }}>
-                        <Grid item xs={6}>
-                          <StatItem label="Home" value={team.home_record} />
-                        </Grid>
-                        <Grid item xs={6}>
-                          <StatItem label="Away" value={team.road_record} />
-                        </Grid>
-                        <Grid item xs={6}>
-                          <StatItem label="L10" value={team.l10_record} />
-                        </Grid>
-                        <Grid item xs={6}>
-                          <StatItem
-                            label="Streak"
-                            value={team.current_streak_str}
-                            color={streakColor}
-                            icon={team.current_streak_str.startsWith('W') ? <TrendingUp sx={{ fontSize: 12 }} /> : <TrendingDown sx={{ fontSize: 12 }} />}
-                          />
-                        </Grid>
-                      </Grid>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              );
-            })}
-          </Grid>
-        )}
+            {/* Empty state */}
+            {!loading && !error && standings.length === 0 && (
+              <Box
+                sx={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  py: { xs: 8, sm: 12 },
+                  px: 3,
+                  minHeight: '40vh',
+                }}
+              >
+                <Typography
+                  variant="h5"
+                  sx={{
+                    fontWeight: typography.weight.bold,
+                    mb: 1,
+                    textAlign: 'center',
+                    color: 'text.primary',
+                  }}
+                >
+                  No Standings Data Available
+                </Typography>
+                <Typography
+                  variant="body1"
+                  color="text.secondary"
+                  sx={{
+                    textAlign: 'center',
+                    maxWidth: 500,
+                    lineHeight: 1.6,
+                  }}
+                >
+                  Unable to load standings data for the selected season. Please try again later or select a different season.
+                </Typography>
+              </Box>
+            )}
           </Container>
         </Box>
 
@@ -437,55 +737,11 @@ const Standings = () => {
             overflowY: 'auto',
           }}
         >
-          <UniversalSidebar />
+          <UniversalSidebar season={seasonParam} onSeasonChange={handleSeasonChange} />
         </Box>
       </Box>
     </Box>
   );
 };
-
-/**
- * Helper component for displaying a stat item.
- */
-const StatItem = ({
-  label,
-  value,
-  color,
-  icon,
-}: {
-  label: string;
-  value: string;
-  color?: string;
-  icon?: React.ReactNode;
-}) => (
-  <Box>
-    <Typography
-      variant="caption"
-      sx={{
-        color: 'text.secondary',
-        fontSize: typography.size.captionSmall,
-        fontWeight: typography.weight.semibold,
-        textTransform: 'uppercase',
-        display: 'block',
-        mb: 0.25,
-      }}
-    >
-      {label}
-    </Typography>
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-      {icon}
-      <Typography
-        variant="body2"
-        sx={{
-          fontWeight: typography.weight.bold,
-          fontSize: typography.size.bodySmall,
-          color: color || 'text.primary',
-        }}
-      >
-        {value}
-      </Typography>
-    </Box>
-  </Box>
-);
 
 export default Standings;
