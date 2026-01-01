@@ -58,6 +58,8 @@ class PlayerSummary(BaseModel):
     PTS: Optional[float] = None
     REB: Optional[float] = None
     AST: Optional[float] = None
+    STL: Optional[float] = None
+    BLK: Optional[float] = None
     STATS_TIMEFRAME: Optional[str] = None
     FROM_YEAR: Optional[int] = None
     TO_YEAR: Optional[int] = None

@@ -9,6 +9,7 @@ const TeamPage = lazy(() => import('./pages/TeamPage'));
 const RosterPage = lazy(() => import('./pages/RosterPage'));
 const PlayerProfile = lazy(() => import('./pages/PlayerProfile'));
 const Standings = lazy(() => import('./components/Standings'));
+const Players = lazy(() => import('./pages/Players'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
 /**
@@ -44,6 +45,8 @@ export default function App() {
             <Route path="/team/:team_id/roster" element={<RosterPage />} />
             {/* Standings page - shows league standings */}
             <Route path="/standings" element={<Standings />} />
+            {/* Players page - shows season leaders and player search */}
+            <Route path="/players" element={<Players />} />
             {/* Player profile page - shows player details */}
             <Route path="/players/:playerId" element={<PlayerProfile />} />
             {/* 404 page - shows when user goes to a page that doesn't exist */}
