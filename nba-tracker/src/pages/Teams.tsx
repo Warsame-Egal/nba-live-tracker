@@ -47,7 +47,7 @@ const Teams = () => {
   return (
     <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default', display: 'flex', flexDirection: 'column' }}>
       <Navbar />
-      <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+      <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden', flexDirection: { xs: 'column', md: 'row' } }}>
         <Box
           sx={{
             flex: 1,
@@ -100,14 +100,16 @@ const Teams = () => {
 
         <Box
           sx={{
-            width: 320,
+            width: { xs: '100%', md: 320 },
             flexShrink: 0,
-            display: { xs: 'none', md: 'flex' },
+            display: 'flex',
             flexDirection: 'column',
-            borderLeft: '1px solid',
+            borderLeft: { xs: 'none', md: '1px solid' },
+            borderTop: { xs: '1px solid', md: 'none' },
             borderColor: 'divider',
             backgroundColor: 'background.paper',
             overflowY: 'auto',
+            order: { xs: 2, md: 0 },
           }}
         >
           <UniversalSidebar season={season} onSeasonChange={handleSeasonChange} />

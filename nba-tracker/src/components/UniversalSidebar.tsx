@@ -51,7 +51,7 @@ const UniversalSidebar: React.FC<UniversalSidebarProps> = ({ season, onSeasonCha
   };
   
   const [activeTab, setActiveTab] = useState<TabValue>(() => getInitialTab(location.pathname));
-  const [currentSeason, setCurrentSeason] = useState(season || getCurrentSeason());
+  const [currentSeason, setCurrentSeason] = useState(() => season || getCurrentSeason());
   
   // Players tab state
   const [players, setPlayers] = useState<PlayerSummary[]>([]);
@@ -79,16 +79,10 @@ const UniversalSidebar: React.FC<UniversalSidebarProps> = ({ season, onSeasonCha
   }, [location.pathname]);
 
   useEffect(() => {
-    if (season) {
+    if (season && season !== currentSeason) {
       setCurrentSeason(season);
     }
   }, [season]);
-
-  useEffect(() => {
-    if (onSeasonChange) {
-      onSeasonChange(currentSeason);
-    }
-  }, [currentSeason, onSeasonChange]);
 
 
   // Fetch top players by stat
@@ -306,7 +300,13 @@ const UniversalSidebar: React.FC<UniversalSidebarProps> = ({ season, onSeasonCha
           <Select
             value={currentSeason}
             label="Season"
-            onChange={e => setCurrentSeason(e.target.value)}
+            onChange={e => {
+              const newSeason = e.target.value;
+              setCurrentSeason(newSeason);
+              if (onSeasonChange) {
+                onSeasonChange(newSeason);
+              }
+            }}
             sx={{
               borderRadius: borderRadius.sm,
             }}
@@ -455,7 +455,13 @@ const UniversalSidebar: React.FC<UniversalSidebarProps> = ({ season, onSeasonCha
           <Select
             value={currentSeason}
             label="Season"
-            onChange={e => setCurrentSeason(e.target.value)}
+            onChange={e => {
+              const newSeason = e.target.value;
+              setCurrentSeason(newSeason);
+              if (onSeasonChange) {
+                onSeasonChange(newSeason);
+              }
+            }}
             sx={{
               borderRadius: borderRadius.sm,
             }}

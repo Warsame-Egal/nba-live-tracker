@@ -1,32 +1,20 @@
 # NBA Live
 
-A real-time NBA scoreboard and stats tracker built with React and FastAPI. Watch live games, track player stats, browse team rosters, and stay up-to-date with league standings.
+A real-time NBA scoreboard and stats tracker built with React and FastAPI. Watch live games, track player and team stats, browse rosters, and get game predictions.
 
 **Live Demo:** [https://nba-live-tracker-one.vercel.app](https://nba-live-tracker-one.vercel.app)
 
-## Screenshots
-
-<div align="center">
-  <img src="nba-tracker/public/screenshots/Scoreboard.png" alt="Scoreboard" width="240" style="margin: 8px; border-radius: 8px;">
-  <img src="nba-tracker/public/screenshots/BoxScore.png" alt="Box Score" width="240" style="margin: 8px; border-radius: 8px;">
-  <img src="nba-tracker/public/screenshots/PlayByPlay.png" alt="Play-by-Play" width="240" style="margin: 8px; border-radius: 8px;">
-  <br>
-  <img src="nba-tracker/public/screenshots/Standings.png" alt="Standings" width="240" style="margin: 8px; border-radius: 8px;">
-  <img src="nba-tracker/public/screenshots/Player.png" alt="Player Profile" width="240" style="margin: 8px; border-radius: 8px;">
-  <img src="nba-tracker/public/screenshots/Team.png" alt="Team Page" width="240" style="margin: 8px; border-radius: 8px;">
-  <br>
-  <img src="nba-tracker/public/screenshots/Search.png" alt="Search" width="240" style="margin: 8px; border-radius: 8px;">
-</div>
-
 ## Features
 
-- **Live Scoreboard** - Real-time score updates as games happen
+- **Live Scoreboard** - Real-time score updates with WebSocket connections
 - **Play-by-Play** - See every shot, foul, and timeout as it happens
-- **Player Profiles** - View player stats and recent game performances
-- **Team Rosters** - Browse full team lineups with player details
+- **Players Page** - Browse season leaders, all-time leaders, and player stats
+- **Teams Page** - View team statistics, net ratings, and performance charts
+- **Player Profiles** - Detailed stats, game logs, and performance charts
+- **Team Profiles** - Team details, rosters, and game logs
+- **Game Predictions** - Statistical win probability and score predictions
 - **League Standings** - Track playoff races and conference rankings
-- **Smart Search** - Find players and teams instantly
-- **Game Leaders** - See top performers with season averages for upcoming games and live stats for active games
+- **Universal Sidebar** - Quick access to search players and teams across all pages
 
 ## Quick Start
 
@@ -73,19 +61,21 @@ The frontend will run on http://localhost:3000 (or the next available port).
 
 **Frontend:**
 - React 19 with TypeScript
-- Material UI for components
+- Material UI (Material Design 3)
 - Vite for building
 - React Router for navigation
+- Recharts for data visualization
 - WebSockets for real-time updates
 
 **Backend:**
 - FastAPI with Python
 - WebSockets for live scoreboard and play-by-play
+- Rate limiting and timeout handling for NBA API calls
 - Uvicorn as the ASGI server
 - Docker for containerization
 
 **Data Source:**
-Uses the [`nba_api`](https://github.com/swar/nba_api) Python package by [swar](https://github.com/swar) to fetch data from NBA.com.
+Uses the [`nba_api`](https://github.com/swar/nba_api) Python package to fetch data from NBA.com.
 
 ## API Usage Examples
 
@@ -133,12 +123,11 @@ ws.onmessage = (event) => {
 
 ## Deployment
 
-The app is fully deployed and running:
 - **Frontend:** Vercel (automatic HTTPS, global CDN)
 - **Backend:** Oracle Cloud Infrastructure free tier (Ubuntu VM)
 - **Tunnel:** Cloudflare Tunnel for secure HTTPS access to backend
 
-See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed setup instructions.
+See [DEPLOYMENT.local.md](DEPLOYMENT.local.md) for detailed setup instructions.
 
 ## Project Structure
 
@@ -160,11 +149,7 @@ nba-live-tracker/
 
 ## Credits
 
-This project uses the [`nba_api`](https://github.com/swar/nba_api) Python package by [swar](https://github.com/swar) to access NBA.com data. The `nba_api` package is open source with an MIT License.
-
-## License
-
-This project is open source. See the [LICENSE](LICENSE) file for details.
+Uses the [`nba_api`](https://github.com/swar/nba_api) Python package to access NBA.com data.
 
 ---
 
