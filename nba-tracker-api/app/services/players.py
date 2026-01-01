@@ -4,10 +4,13 @@ import pandas as pd
 from typing import List
 
 from fastapi import HTTPException
-from nba_api.stats.endpoints import PlayerGameLog, playerindex
-from nba_api.stats.library.parameters import HistoricalNullable
+from nba_api.stats.endpoints import PlayerGameLog, playerindex, leaguedashplayerstats, alltimeleadersgrids
+from nba_api.stats.library.parameters import HistoricalNullable, PerModeDetailed, SeasonTypeAllStar, PerModeSimple, SeasonType
 
 from app.schemas.player import PlayerGamePerformance, PlayerSummary
+from app.schemas.seasonleaders import SeasonLeadersResponse, SeasonLeadersCategory, SeasonLeader
+from app.schemas.playergamelog import PlayerGameLogResponse, PlayerGameLogEntry
+from app.schemas.alltimeleaders import AllTimeLeadersResponse, AllTimeLeaderCategory, AllTimeLeader
 from app.config import get_api_kwargs
 
 # Set up logger for this file
@@ -15,60 +18,39 @@ logger = logging.getLogger(__name__)
 
 
 async def getPlayer(player_id: str) -> PlayerSummary:
-    """
-    Get detailed information about a specific player.
-    Includes their stats and their last 5 games.
-    
-    Args:
-        player_id: The NBA player ID
-        
-    Returns:
-        PlayerSummary: All player information and recent games
-        
-    Raises:
-        HTTPException: If player not found or API error
-    """
+    """Get player information including stats and recent games."""
     try:
-        # Get the list of all players from NBA API
         api_kwargs = get_api_kwargs()
         player_index_data = await asyncio.to_thread(
             lambda: playerindex.PlayerIndex(historical_nullable=HistoricalNullable.all_time, **api_kwargs)
         )
         player_index_df = player_index_data.get_data_frames()[0]
 
-        # Find the player we're looking for
         player_id_int = int(player_id)
         player_row = player_index_df[player_index_df["PERSON_ID"] == player_id_int]
 
-        # If player doesn't exist, return 404 error
         if player_row.empty:
             raise HTTPException(status_code=404, detail=f"Player not found with ID: {player_id}")
 
-        # Convert the player data to a dictionary
         player_data = player_row.iloc[0].to_dict()
 
-        # Handle roster status (sometimes it's a number, sometimes a string)
         roster_status = player_data.get("ROSTER_STATUS")
         if isinstance(roster_status, float):
             roster_status = str(roster_status)
         elif roster_status is None:
             roster_status = ""
 
-        # Get the player's recent game performances
         recent_games = []
         try:
             api_kwargs = get_api_kwargs()
             game_log_data = await asyncio.to_thread(lambda: PlayerGameLog(player_id=player_id, **api_kwargs).get_dict())
-            
-            # Check if we got valid data
+
             if not game_log_data.get("resultSets") or len(game_log_data["resultSets"]) == 0:
                 logger.warning(f"No game log data available for player {player_id}")
             else:
                 game_log = game_log_data["resultSets"][0].get("rowSet", [])
                 game_headers = game_log_data["resultSets"][0].get("headers", [])
 
-                # Convert each game into our format (only last 5 games)
-                # Use safe indexing to avoid KeyError/IndexError
                 for row in game_log[:5]:
                     try:
                         game_id_idx = game_headers.index("Game_ID") if "Game_ID" in game_headers else None
@@ -211,7 +193,7 @@ async def search_players(search_term: str) -> List[PlayerSummary]:
                     STATS_TIMEFRAME=player_data.get("STATS_TIMEFRAME"),
                     FROM_YEAR=player_data.get("FROM_YEAR"),
                     TO_YEAR=player_data.get("TO_YEAR"),
-                    recent_games=[],  # Don't include recent games in search results
+                    recent_games=[],
                 )
             )
 
@@ -222,3 +204,409 @@ async def search_players(search_term: str) -> List[PlayerSummary]:
     except Exception as e:
         logger.error(f"Error searching players with term '{search_term}': {e}")
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
+
+
+async def get_top_players_by_stat(season: str, stat: str, top_n: int = 10) -> List[PlayerSummary]:
+    """
+    Get top N players for a specific stat category for a season.
+    
+    Args:
+        season: The season year like "2024-25"
+        stat: The stat to sort by (PTS, REB, AST, STL, BLK)
+        top_n: Number of top players to return
+        
+    Returns:
+        List[PlayerSummary]: List of top players sorted by the specified stat
+        
+    Raises:
+        HTTPException: If API error
+    """
+    try:
+        api_kwargs = get_api_kwargs()
+        
+        stat_map = {
+            "PTS": "PTS",
+            "REB": "REB",
+            "AST": "AST",
+            "STL": "STL",
+            "BLK": "BLK",
+        }
+        
+        stat_col = stat_map.get(stat.upper(), "PTS")
+        
+        stats_data = await asyncio.to_thread(
+            lambda: leaguedashplayerstats.LeagueDashPlayerStats(
+                season=season,
+                per_mode_detailed=PerModeDetailed.per_game,
+                season_type_all_star=SeasonTypeAllStar.regular,
+                **api_kwargs
+            ).get_data_frames()[0]
+        )
+        
+        if stats_data.empty:
+            return []
+        
+        stats_data = stats_data[stats_data.get("GP", 0) > 0].copy()
+        
+        if stat_col not in stats_data.columns:
+            return []
+        
+        stats_data[stat_col] = pd.to_numeric(stats_data[stat_col], errors='coerce').fillna(0)
+        sorted_df = stats_data.nlargest(top_n, stat_col)
+        
+        player_index_data = await asyncio.to_thread(
+            lambda: playerindex.PlayerIndex(historical_nullable=HistoricalNullable.all_time, **api_kwargs)
+        )
+        player_index_df = player_index_data.get_data_frames()[0]
+        
+        player_summaries: List[PlayerSummary] = []
+        for _, row in sorted_df.iterrows():
+            player_id = int(row.get("PLAYER_ID", 0))
+            player_name = str(row.get("PLAYER_NAME", "")).strip()
+            
+            if not player_id or not player_name:
+                continue
+            
+            # Try to get additional info from player index
+            player_row = player_index_df[player_index_df["PERSON_ID"] == player_id]
+            
+            if not player_row.empty:
+                player_data = player_row.iloc[0].to_dict()
+                roster_status = player_data.get("ROSTER_STATUS")
+                if isinstance(roster_status, float):
+                    roster_status = str(roster_status)
+                
+                # Get all stat values from the stats data (use row data which has current season stats)
+                player_summary = PlayerSummary(
+                    PERSON_ID=player_id,
+                    PLAYER_LAST_NAME=player_data.get("PLAYER_LAST_NAME", ""),
+                    PLAYER_FIRST_NAME=player_data.get("PLAYER_FIRST_NAME", ""),
+                    PLAYER_SLUG=player_data.get("PLAYER_SLUG"),
+                    TEAM_ID=player_data.get("TEAM_ID"),
+                    TEAM_SLUG=player_data.get("TEAM_SLUG"),
+                    IS_DEFUNCT=player_data.get("IS_DEFUNCT"),
+                    TEAM_CITY=player_data.get("TEAM_CITY"),
+                    TEAM_NAME=player_data.get("TEAM_NAME"),
+                    TEAM_ABBREVIATION=row.get("TEAM_ABBREVIATION") or player_data.get("TEAM_ABBREVIATION"),
+                    JERSEY_NUMBER=player_data.get("JERSEY_NUMBER"),
+                    POSITION=player_data.get("POSITION"),
+                    HEIGHT=player_data.get("HEIGHT"),
+                    WEIGHT=player_data.get("WEIGHT"),
+                    COLLEGE=player_data.get("COLLEGE"),
+                    COUNTRY=player_data.get("COUNTRY"),
+                    ROSTER_STATUS=roster_status or "",
+                    PTS=float(row.get("PTS", 0)) if pd.notna(row.get("PTS")) else None,
+                    REB=float(row.get("REB", 0)) if pd.notna(row.get("REB")) else None,
+                    AST=float(row.get("AST", 0)) if pd.notna(row.get("AST")) else None,
+                    STL=float(row.get("STL", 0)) if pd.notna(row.get("STL")) else None,
+                    BLK=float(row.get("BLK", 0)) if pd.notna(row.get("BLK")) else None,
+                    STATS_TIMEFRAME=season,
+                    FROM_YEAR=player_data.get("FROM_YEAR"),
+                    TO_YEAR=player_data.get("TO_YEAR"),
+                    recent_games=[],
+                )
+            else:
+                # Fallback if player not found in index
+                stat_value = float(row.get(stat_col, 0)) if pd.notna(row.get(stat_col)) else 0.0
+                name_parts = player_name.split(" ", 1)
+                player_summary = PlayerSummary(
+                    PERSON_ID=player_id,
+                    PLAYER_LAST_NAME=name_parts[-1] if len(name_parts) > 1 else "",
+                    PLAYER_FIRST_NAME=name_parts[0] if len(name_parts) > 0 else "",
+                    TEAM_ABBREVIATION=row.get("TEAM_ABBREVIATION"),
+                    PTS=float(row.get("PTS", 0)) if pd.notna(row.get("PTS")) else None,
+                    REB=float(row.get("REB", 0)) if pd.notna(row.get("REB")) else None,
+                    AST=float(row.get("AST", 0)) if pd.notna(row.get("AST")) else None,
+                    STL=float(row.get("STL", 0)) if pd.notna(row.get("STL")) else None,
+                    BLK=float(row.get("BLK", 0)) if pd.notna(row.get("BLK")) else None,
+                    recent_games=[],
+                )
+            
+            player_summaries.append(player_summary)
+        
+        return player_summaries
+        
+    except Exception as e:
+        logger.error(f"Error fetching top players by stat {stat} for season {season}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error fetching top players: {str(e)}")
+
+
+async def get_season_leaders(season: str = "2024-25") -> SeasonLeadersResponse:
+    """
+    Get season leaders for various stat categories.
+    Returns top 5 players for Points, Rebounds, Assists, Steals, and Blocks per game.
+    
+    Args:
+        season: The season year like "2024-25"
+        
+    Returns:
+        SeasonLeadersResponse: Season leaders for multiple stat categories
+        
+    Raises:
+        HTTPException: If API error
+    """
+    try:
+        api_kwargs = get_api_kwargs()
+        
+        # Use LeagueDashPlayerStats to get season-specific player stats
+        stats_data = await asyncio.to_thread(
+            lambda: leaguedashplayerstats.LeagueDashPlayerStats(
+                season=season,
+                per_mode_detailed=PerModeDetailed.per_game,
+                season_type_all_star=SeasonTypeAllStar.regular,
+                **api_kwargs
+            ).get_data_frames()[0]
+        )
+        
+        if stats_data.empty:
+            logger.warning(f"No player stats found for season {season}")
+            return SeasonLeadersResponse(
+                season=season,
+                categories=[
+                    SeasonLeadersCategory(category="Points Per Game", leaders=[]),
+                    SeasonLeadersCategory(category="Rebounds Per Game", leaders=[]),
+                    SeasonLeadersCategory(category="Assists Per Game", leaders=[]),
+                    SeasonLeadersCategory(category="Steals Per Game", leaders=[]),
+                    SeasonLeadersCategory(category="Blocks Per Game", leaders=[]),
+                ]
+            )
+        
+        # Replace NaN values with 0 for numeric columns
+        for col in ["PTS", "REB", "AST", "STL", "BLK"]:
+            if col in stats_data.columns:
+                stats_data[col] = pd.to_numeric(stats_data[col], errors='coerce').fillna(0)
+        
+        # Helper function to create leaders for a stat
+        def create_leaders(df: pd.DataFrame, stat_col: str, category_name: str, top_n: int = 5) -> SeasonLeadersCategory:
+            if stat_col not in df.columns:
+                return SeasonLeadersCategory(category=category_name, leaders=[])
+            
+            df_filtered = df[df.get("GP", 0) > 0].copy()
+            
+            if df_filtered.empty:
+                return SeasonLeadersCategory(category=category_name, leaders=[])
+            
+            sorted_df = df_filtered.nlargest(top_n, stat_col)
+            
+            leaders = []
+            for _, row in sorted_df.iterrows():
+                player_name = str(row.get("PLAYER_NAME", "")).strip()
+                value = float(row.get(stat_col, 0)) if pd.notna(row.get(stat_col)) else 0.0
+                
+                if value >= 0 and player_name:
+                    leaders.append(SeasonLeader(
+                        player_id=int(row.get("PLAYER_ID", 0)),
+                        player_name=player_name,
+                        team_abbreviation=row.get("TEAM_ABBREVIATION"),
+                        position=None,  # Not available in this endpoint
+                        value=round(value, 1)
+                    ))
+            
+            return SeasonLeadersCategory(category=category_name, leaders=leaders)
+        
+        categories = []
+        categories.append(create_leaders(stats_data, "PTS", "Points Per Game"))
+        categories.append(create_leaders(stats_data, "REB", "Rebounds Per Game"))
+        categories.append(create_leaders(stats_data, "AST", "Assists Per Game"))
+        categories.append(create_leaders(stats_data, "STL", "Steals Per Game"))
+        categories.append(create_leaders(stats_data, "BLK", "Blocks Per Game"))
+        
+        return SeasonLeadersResponse(season=season, categories=categories)
+        
+    except Exception as e:
+        logger.error(f"Error fetching season leaders for season {season}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error fetching season leaders: {str(e)}")
+
+
+async def get_player_game_log(player_id: str, season: str = "2024-25") -> PlayerGameLogResponse:
+    """
+    Get game log for a player for a specific season.
+    Returns all games with detailed stats for charting.
+    
+    Args:
+        player_id: The NBA player ID
+        season: The season year like "2024-25"
+        
+    Returns:
+        PlayerGameLogResponse: Game log entries for the player
+        
+    Raises:
+        HTTPException: If player not found or API error
+    """
+    try:
+        api_kwargs = get_api_kwargs()
+        player_id_int = int(player_id)
+        
+        # Get game log data from NBA API
+        game_log_data = await asyncio.to_thread(
+            lambda: PlayerGameLog(player_id=player_id, season=season, **api_kwargs).get_dict()
+        )
+        
+        if not game_log_data.get("resultSets") or len(game_log_data["resultSets"]) == 0:
+            return PlayerGameLogResponse(player_id=player_id_int, season=season, games=[])
+        
+        game_log = game_log_data["resultSets"][0].get("rowSet", [])
+        game_headers = game_log_data["resultSets"][0].get("headers", [])
+        
+        games = []
+        # Map headers to indices
+        header_map = {header: idx for idx, header in enumerate(game_headers)}
+        
+        for row in game_log:
+            try:
+                def get_value(key: str, default=None, type_func=None):
+                    idx = header_map.get(key)
+                    if idx is None or idx >= len(row):
+                        return default
+                    value = row[idx]
+                    if pd.isna(value):
+                        return default
+                    if type_func:
+                        try:
+                            return type_func(value)
+                        except (ValueError, TypeError):
+                            return default
+                    return value
+                
+                # Helper to get int value (defaults to 0)
+                def get_int(key: str) -> int:
+                    val = get_value(key, 0, float)
+                    return int(val) if val is not None else 0
+                
+                # Helper to get optional int value
+                def get_optional_int(key: str):
+                    val = get_value(key, None, float)
+                    return int(val) if val is not None else None
+                
+                # Helper to get optional float value
+                def get_optional_float(key: str):
+                    return get_value(key, None, float)
+                
+                game_entry = PlayerGameLogEntry(
+                    game_id=str(get_value("Game_ID", "")),
+                    game_date=pd.to_datetime(get_value("GAME_DATE", "")).strftime("%Y-%m-%d"),
+                    matchup=str(get_value("MATCHUP", "")),
+                    win_loss=str(val) if (val := get_value("WL", None)) is not None else None,
+                    minutes=str(val) if (val := get_value("MIN", None)) is not None else None,
+                    points=get_int("PTS"),
+                    rebounds=get_int("REB"),
+                    assists=get_int("AST"),
+                    steals=get_int("STL"),
+                    blocks=get_int("BLK"),
+                    turnovers=get_int("TOV"),
+                    field_goals_made=get_optional_int("FGM"),
+                    field_goals_attempted=get_optional_int("FGA"),
+                    field_goal_pct=get_optional_float("FG_PCT"),
+                    three_pointers_made=get_optional_int("FG3M"),
+                    three_pointers_attempted=get_optional_int("FG3A"),
+                    three_point_pct=get_optional_float("FG3_PCT"),
+                    free_throws_made=get_optional_int("FTM"),
+                    free_throws_attempted=get_optional_int("FTA"),
+                    free_throw_pct=get_optional_float("FT_PCT"),
+                    plus_minus=get_optional_int("PLUS_MINUS"),
+                )
+                games.append(game_entry)
+            except (IndexError, ValueError, KeyError, TypeError) as e:
+                logger.warning(f"Error parsing game log row for player {player_id}: {e}")
+                continue
+        
+        # Sort by date (most recent first)
+        games.sort(key=lambda x: x.game_date, reverse=True)
+        
+        return PlayerGameLogResponse(player_id=player_id_int, season=season, games=games)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching game log for player {player_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error fetching game log: {str(e)}")
+
+
+async def get_all_time_leaders(top_n: int = 10) -> AllTimeLeadersResponse:
+    """
+    Get all-time leaders for major statistical categories.
+    Returns top N players for Points, Rebounds, Assists, Steals, and Blocks (career totals).
+    
+    Args:
+        top_n: The number of top players to return for each category (default 10)
+        
+    Returns:
+        AllTimeLeadersResponse: An object containing all-time leaders for each category.
+        
+    Raises:
+        HTTPException: If no leaders found or API error.
+    """
+    try:
+        api_kwargs = get_api_kwargs()
+        
+        # Fetch all-time leaders from NBA API
+        all_time_endpoint = await asyncio.to_thread(
+            lambda: alltimeleadersgrids.AllTimeLeadersGrids(
+                topx=top_n,
+                per_mode_simple=PerModeSimple.totals,
+                season_type=SeasonType.regular,
+                **api_kwargs
+            )
+        )
+        
+        categories: List[AllTimeLeaderCategory] = []
+        
+        # Map of attribute names to (stat column, rank column, category name)
+        category_map = [
+            ("pts_leaders", "PTS", "PTS_RANK", "Points"),
+            ("reb_leaders", "REB", "REB_RANK", "Rebounds"),
+            ("ast_leaders", "AST", "AST_RANK", "Assists"),
+            ("stl_leaders", "STL", "STL_RANK", "Steals"),
+            ("blk_leaders", "BLK", "BLK_RANK", "Blocks"),
+        ]
+        
+        # Extract leaders for each category
+        for attr_name, stat_col, rank_col, category_name in category_map:
+            try:
+                data_set = getattr(all_time_endpoint, attr_name, None)
+                if data_set is None:
+                    continue
+                    
+                df = data_set.get_data_frame()
+                
+                if df.empty:
+                    continue
+                
+                leaders: List[AllTimeLeader] = []
+                for _, row in df.iterrows():
+                    player_id = row.get("PLAYER_ID")
+                    player_name = row.get("PLAYER_NAME")
+                    rank = row.get(rank_col)
+                    value = row.get(stat_col)
+                    
+                    if player_id and player_name and value is not None and pd.notna(value):
+                        leaders.append(
+                            AllTimeLeader(
+                                player_id=int(player_id),
+                                player_name=str(player_name).strip(),
+                                value=float(value),
+                                rank=int(rank) if pd.notna(rank) else 0
+                            )
+                        )
+                
+                if leaders:
+                    categories.append(
+                        AllTimeLeaderCategory(
+                            category_name=category_name,
+                            leaders=leaders
+                        )
+                    )
+            except Exception as e:
+                logger.warning(f"Error processing all-time leaders for {category_name}: {e}")
+                continue
+        
+        if not categories:
+            raise HTTPException(status_code=404, detail="No all-time leaders found")
+        
+        return AllTimeLeadersResponse(categories=categories)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching all-time leaders: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error fetching all-time leaders: {str(e)}")
