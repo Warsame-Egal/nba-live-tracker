@@ -17,6 +17,7 @@ const Navbar = () => {
   const navItems = [
     { label: 'Scoreboard', path: '/' },
     { label: 'Standings', path: '/standings' },
+    { label: 'Players', path: '/players' },
   ];
 
   /**

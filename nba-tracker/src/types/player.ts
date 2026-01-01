@@ -19,6 +19,8 @@ export interface PlayerSummary {
   PTS?: number;
   REB?: number;
   AST?: number;
+  STL?: number;
+  BLK?: number;
   STATS_TIMEFRAME?: string;
   FROM_YEAR?: number;
   TO_YEAR?: number;
