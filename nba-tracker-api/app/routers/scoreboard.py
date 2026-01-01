@@ -3,8 +3,8 @@ import logging
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 
 from app.schemas.player import TeamRoster
-from app.schemas.scoreboard import BoxScoreResponse
-from app.services.scoreboard import fetchTeamRoster, getBoxScore
+from app.schemas.scoreboard import BoxScoreResponse, PlayByPlayResponse
+from app.services.scoreboard import fetchTeamRoster, getBoxScore, getPlayByPlay
 from app.services.websockets_manager import (
     playbyplay_websocket_manager,
     scoreboard_websocket_manager,
@@ -107,6 +107,31 @@ async def get_game_boxscore(game_id: str):
     """
     try:
         return await getBoxScore(game_id)
+    except HTTPException as e:
+        raise e
+
+
+# Get play-by-play endpoint
+@router.get(
+    "/scoreboard/game/{game_id}/play-by-play",
+    response_model=PlayByPlayResponse,
+    tags=["play-by-play"],
+    summary="Get Play-by-Play for a Game",
+    description="Get all play-by-play events for a specific game. Works for both live and completed games.",
+)
+async def get_game_playbyplay(game_id: str):
+    """
+    Get the play-by-play (all game events) for a specific game.
+    Works for both live and completed games.
+    
+    Args:
+        game_id: The unique game ID from NBA
+        
+    Returns:
+        PlayByPlayResponse: List of all plays/events that happened in the game
+    """
+    try:
+        return await getPlayByPlay(game_id)
     except HTTPException as e:
         raise e
 

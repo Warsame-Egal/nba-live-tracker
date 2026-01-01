@@ -601,8 +601,29 @@ const Scoreboard = () => {
             const isRecentlyUpdated = recentlyUpdatedGames.has(gameId);
             const gameStatus = getGameStatus(game);
             const isLive = gameStatus === 'live';
-            const canClick = isLive;
+            const status = 'homeTeam' in game ? game.gameStatusText : game.game_status || '';
+            const isCompleted = status.toLowerCase().includes('final');
+            const canClick = isLive || isCompleted;
             const isSelected = canClick && selectedGame ? (('gameId' in selectedGame ? selectedGame.gameId : selectedGame.game_id) === gameId) : false;
+            
+            // Handler for opening boxscore (works for both live and completed games)
+            const handleOpenBoxScore = (id: string) => {
+              const gameToOpen = games.find(g => ('gameId' in g ? g.gameId : g.game_id) === id);
+              if (gameToOpen) {
+                setSelectedGame(gameToOpen);
+                setDrawerTab('box');
+              }
+            };
+            
+            // Handler for opening play-by-play (works for both live and completed games)
+            const handleOpenPlayByPlay = (id: string) => {
+              const gameToOpen = games.find(g => ('gameId' in g ? g.gameId : g.game_id) === id);
+              if (gameToOpen) {
+                setSelectedGame(gameToOpen);
+                setDrawerTab('play');
+              }
+            };
+            
             return (
               <GameRow
                 key={gameId}
@@ -610,20 +631,8 @@ const Scoreboard = () => {
                 onClick={canClick ? () => setSelectedGame(game) : undefined}
                 isRecentlyUpdated={isRecentlyUpdated}
                 isSelected={isSelected}
-                onOpenBoxScore={isLive ? (id) => {
-                  const gameToOpen = games.find(g => ('gameId' in g ? g.gameId : g.game_id) === id);
-                  if (gameToOpen) {
-                    setSelectedGame(gameToOpen);
-                    setDrawerTab('box');
-                  }
-                } : undefined}
-                onOpenPlayByPlay={isLive ? (id) => {
-                  const gameToOpen = games.find(g => ('gameId' in g ? g.gameId : g.game_id) === id);
-                  if (gameToOpen) {
-                    setSelectedGame(gameToOpen);
-                    setDrawerTab('play');
-                  }
-                } : undefined}
+                onOpenBoxScore={(isLive || isCompleted) ? handleOpenBoxScore : undefined}
+                onOpenPlayByPlay={(isLive || isCompleted) ? handleOpenPlayByPlay : undefined}
               />
             );
           })}

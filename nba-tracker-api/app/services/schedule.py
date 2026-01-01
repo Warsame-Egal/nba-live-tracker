@@ -63,7 +63,8 @@ async def get_player_season_averages(player_id: int) -> dict:
 
 async def extract_game_leaders(team_leaders_list, team_leaders_headers, game_id, home_team_id, away_team_id):
     """
-    Extract game leaders for both teams and fetch their season averages.
+    Extract game leaders for both teams using game stats from TeamLeaders data.
+    Uses game stats directly instead of fetching season averages to avoid timeouts.
     """
     if not team_leaders_list or not team_leaders_headers:
         return None
@@ -72,7 +73,6 @@ async def extract_game_leaders(team_leaders_list, team_leaders_headers, game_id,
     away_leader = None
 
     # Find leaders for this game
-    # Convert game_id to string for consistent comparison
     game_id_str = str(game_id)
     for leader_row in team_leaders_list:
         if len(team_leaders_headers) != len(leader_row):
@@ -88,18 +88,16 @@ async def extract_game_leaders(team_leaders_list, team_leaders_headers, game_id,
         if not player_id or player_id == 0:
             continue
 
-        # Get season averages for this player
-        season_stats = await get_player_season_averages(player_id)
-
+        # Use game stats directly from TeamLeaders (faster, no API call needed)
         leader_data = {
             "personId": player_id,
             "name": player_name,
-            "jerseyNum": str(season_stats.get("JERSEY_NUMBER", "")) if season_stats.get("JERSEY_NUMBER") else None,
-            "position": season_stats.get("POSITION"),
+            "jerseyNum": str(leader_dict.get("PTS_PLAYER_JERSEY_NUM", "")) if leader_dict.get("PTS_PLAYER_JERSEY_NUM") else None,
+            "position": leader_dict.get("PTS_PLAYER_POSITION"),
             "teamTricode": NBA_TEAMS.get(team_id, ""),
-            "points": float(season_stats.get("PTS", 0.0)),
-            "rebounds": float(season_stats.get("REB", 0.0)),
-            "assists": float(season_stats.get("AST", 0.0)),
+            "points": float(leader_dict.get("PTS", 0.0)),
+            "rebounds": float(leader_dict.get("REB", 0.0)),
+            "assists": float(leader_dict.get("AST", 0.0)),
         }
 
         if team_id == home_team_id:
@@ -266,7 +264,7 @@ async def getGamesForDate(date: str) -> GamesResponse:
         await rate_limit()
         games_data = await asyncio.wait_for(
             asyncio.to_thread(lambda: scoreboardv2.ScoreboardV2(game_date=date, **api_kwargs).get_dict()),
-            timeout=10.0
+            timeout=30.0
         )
 
         # Check if we got valid data
@@ -420,57 +418,16 @@ async def getGamesForDate(date: str) -> GamesResponse:
                 game_status_text = game_dict.get("GAME_STATUS_TEXT", "Unknown")
                 is_upcoming = "final" not in game_status_text.lower() and "live" not in game_status_text.lower() and home_score == 0 and away_score == 0
 
-                # For upcoming games, always try to get leaders from rosters first (faster and more reliable)
-                # For completed games, try to get from TeamLeaders data first
-                if is_upcoming:
-                    # For upcoming games, try roster-based approach with timeout (don't block if it fails)
-                    try:
-                        logger.debug(f"Getting top players from rosters for upcoming game {game_id} (home: {home_team_id}, away: {away_team_id})")
-                        # Add timeout to prevent hanging
-                        game_leaders = await asyncio.wait_for(
-                            get_top_players_for_upcoming_game(home_team_id, away_team_id),
-                            timeout=5.0
-                        )
-                        if game_leaders:
-                            logger.debug(f"Successfully got game leaders from rosters for upcoming game {game_id}")
-                        else:
-                            logger.debug(f"No game leaders returned from rosters for upcoming game {game_id}")
-                    except asyncio.TimeoutError:
-                        logger.warning(f"Timeout getting top players from rosters for upcoming game {game_id}, skipping game leaders")
-                        game_leaders = None
-                    except Exception as e:
-                        logger.warning(f"Error getting top players from rosters for upcoming game {game_id}: {e}")
-                        game_leaders = None
-                else:
-                    # For completed/live games, try TeamLeaders data first
+                # For completed/live games, get leaders from TeamLeaders data (already in API response)
+                # Skip expensive roster fetching to avoid timeouts
+                if not is_upcoming:
                     try:
                         game_leaders = await extract_game_leaders(
                             team_leaders_list, team_leaders_headers, game_id, home_team_id, away_team_id
                         )
                     except Exception as e:
-                        logger.warning(f"Error extracting game leaders for game {game_id}: {e}")
+                        logger.debug(f"Error extracting game leaders for game {game_id}: {e}")
                         game_leaders = None
-
-                    # If TeamLeaders didn't work, fallback to rosters (with timeout)
-                    if not game_leaders or (not game_leaders.homeLeaders and not game_leaders.awayLeaders):
-                        try:
-                            logger.debug(f"Falling back to rosters for game {game_id} (home: {home_team_id}, away: {away_team_id})")
-                            # Add timeout to prevent hanging
-                            roster_leaders = await asyncio.wait_for(
-                                get_top_players_for_upcoming_game(home_team_id, away_team_id),
-                                timeout=5.0
-                            )
-                            if roster_leaders:
-                                logger.debug(f"Successfully got game leaders from rosters fallback for game {game_id}")
-                                game_leaders = roster_leaders
-                            else:
-                                logger.debug(f"No game leaders returned from rosters fallback for game {game_id}")
-                        except asyncio.TimeoutError:
-                            logger.warning(f"Timeout getting top players from rosters fallback for game {game_id}, skipping game leaders")
-                            # Keep game_leaders as None if fallback also fails
-                        except Exception as e:
-                            logger.warning(f"Error getting top players from rosters fallback for game {game_id}: {e}")
-                            # Keep game_leaders as None if fallback also fails
 
                 # Extract game time - check all possible field names that NBA API might use
                 game_time_utc = (

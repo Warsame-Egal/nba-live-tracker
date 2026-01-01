@@ -391,7 +391,16 @@ const GameDetailsDrawer = ({ gameId, open, onClose, initialTab = 'box', gameInfo
             </>
           ) : tab === 'play' ? (
             // Show play-by-play component
-            <PlayByPlay gameId={gameId!} />
+            // Determine if game is live based on status
+            <PlayByPlay 
+              gameId={gameId!} 
+              isLiveGame={gameInfo?.status ? 
+                (gameInfo.status.toLowerCase().includes('live') || 
+                 gameInfo.status.toLowerCase().includes('in progress') ||
+                 (/\b[1-4]q\b/i.test(gameInfo.status) && !gameInfo.status.toLowerCase().includes('final'))) 
+                : false
+              }
+            />
           ) : (
             // No data available
             <Box sx={{ textAlign: 'center', py: { xs: 6, sm: 8 } }}>
