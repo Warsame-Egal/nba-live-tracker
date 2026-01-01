@@ -26,13 +26,14 @@ def safe_str(value) -> str:
     return str(value) if value is not None else ""
 
 
-async def getSeasonStandings(season: str) -> StandingsResponse:
+async def getSeasonStandings(season: str, max_retries: int = 3) -> StandingsResponse:
     """
     Get the NBA standings (win/loss records) for all teams in a season.
     Shows which teams are in the playoffs and their records.
     
     Args:
         season: The season year like "2023-24"
+        max_retries: Maximum number of retry attempts for API calls
         
     Returns:
         StandingsResponse: Standings for all teams
@@ -40,53 +41,68 @@ async def getSeasonStandings(season: str) -> StandingsResponse:
     Raises:
         HTTPException: If no standings found or API error
     """
-    try:
-        # Get standings data from NBA API
-        api_kwargs = get_api_kwargs()
-        df = await asyncio.to_thread(
-            lambda: leaguestandingsv3.LeagueStandingsV3(
-                league_id="00",  # "00" means NBA (not WNBA or G-League)
-                season=season,
-                season_type="Regular Season",  # Get regular season standings
-                **api_kwargs
-            ).get_data_frames()[0]
-        )
-
-        # If no data, return 404 error
-        if df.empty:
-            raise HTTPException(status_code=404, detail=f"No standings found for season {season}")
-
-        # Replace NaN (not a number) values with None so they become null in JSON
-        df.replace({np.nan: None}, inplace=True)
-
-        # Convert each team's data to our StandingRecord format
-        standings_list = []
-        for team in df.to_dict(orient="records"):
-            standing_record = StandingRecord(
-                season_id=team["SeasonID"],
-                team_id=int(team["TeamID"]),
-                team_city=team["TeamCity"],
-                team_name=team["TeamName"],
-                conference=team["Conference"],
-                division=team["Division"],
-                conference_record=team["ConferenceRecord"],
-                division_record=team["DivisionRecord"],
-                playoff_rank=int(team["PlayoffRank"]),
-                wins=int(team["WINS"]),
-                losses=int(team["LOSSES"]),
-                win_pct=float(team["WinPCT"]),
-                home_record=team["HOME"],
-                road_record=team["ROAD"],
-                l10_record=team["L10"],  # Last 10 games record
-                current_streak=int(team["CurrentStreak"]),
-                current_streak_str=team["strCurrentStreak"],  # Like "W4" or "L2"
-                games_back=safe_str(team.get("ConferenceGamesBack")),  # Games behind conference leader
+    from requests.exceptions import ConnectionError, Timeout
+    
+    for attempt in range(max_retries):
+        try:
+            # Get standings data from NBA API
+            api_kwargs = get_api_kwargs()
+            df = await asyncio.wait_for(
+                asyncio.to_thread(
+                    lambda: leaguestandingsv3.LeagueStandingsV3(
+                        league_id="00",  # "00" means NBA (not WNBA or G-League)
+                        season=season,
+                        season_type="Regular Season",  # Get regular season standings
+                        **api_kwargs
+                    ).get_data_frames()[0]
+                ),
+                timeout=15.0  # 15 second timeout
             )
-            standings_list.append(standing_record)
 
-        return StandingsResponse(standings=standings_list)
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error fetching season standings for {season}: {e}")
-        raise HTTPException(status_code=500, detail=f"Error fetching season standings: {e}")
+            # If no data, return 404 error
+            if df.empty:
+                raise HTTPException(status_code=404, detail=f"No standings found for season {season}")
+
+            # Replace NaN (not a number) values with None so they become null in JSON
+            df.replace({np.nan: None}, inplace=True)
+
+            # Convert each team's data to our StandingRecord format
+            standings_list = []
+            for team in df.to_dict(orient="records"):
+                standing_record = StandingRecord(
+                    season_id=team["SeasonID"],
+                    team_id=int(team["TeamID"]),
+                    team_city=team["TeamCity"],
+                    team_name=team["TeamName"],
+                    conference=team["Conference"],
+                    division=team["Division"],
+                    conference_record=team["ConferenceRecord"],
+                    division_record=team["DivisionRecord"],
+                    playoff_rank=int(team["PlayoffRank"]),
+                    wins=int(team["WINS"]),
+                    losses=int(team["LOSSES"]),
+                    win_pct=float(team["WinPCT"]),
+                    home_record=team["HOME"],
+                    road_record=team["ROAD"],
+                    l10_record=team["L10"],  # Last 10 games record
+                    current_streak=int(team["CurrentStreak"]),
+                    current_streak_str=team["strCurrentStreak"],  # Like "W4" or "L2"
+                    games_back=safe_str(team.get("ConferenceGamesBack")),  # Games behind conference leader
+                )
+                standings_list.append(standing_record)
+
+            return StandingsResponse(standings=standings_list)
+            
+        except (ConnectionError, Timeout, asyncio.TimeoutError) as e:
+            if attempt < max_retries - 1:
+                wait_time = 2 ** attempt  # Exponential backoff: 1s, 2s, 4s
+                logger.warning(f"Connection error fetching standings for {season} (attempt {attempt + 1}/{max_retries}): {e}. Retrying in {wait_time}s...")
+                await asyncio.sleep(wait_time)
+            else:
+                logger.error(f"Failed to fetch standings for {season} after {max_retries} attempts: {e}")
+                raise HTTPException(status_code=503, detail=f"NBA API unavailable. Please try again later.")
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error fetching season standings for {season}: {e}")
+            raise HTTPException(status_code=500, detail=f"Error fetching season standings: {e}")
