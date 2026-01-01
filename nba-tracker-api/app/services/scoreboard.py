@@ -24,6 +24,7 @@ from app.schemas.scoreboard import (
     TeamBoxScoreStats,
 )
 from app.config import get_api_kwargs
+from app.utils.rate_limiter import rate_limit
 
 # Set up logger for this file
 logger = logging.getLogger(__name__)
@@ -43,8 +44,12 @@ async def get_player_season_averages(player_id: int) -> dict:
     try:
         # Get player index data
         api_kwargs = get_api_kwargs()
-        player_index_data = await asyncio.to_thread(
-            lambda: playerindex.PlayerIndex(historical_nullable=HistoricalNullable.all_time, **api_kwargs)
+        await rate_limit()
+        player_index_data = await asyncio.wait_for(
+            asyncio.to_thread(
+                lambda: playerindex.PlayerIndex(historical_nullable=HistoricalNullable.all_time, **api_kwargs)
+            ),
+            timeout=15.0
         )
         player_index_df = player_index_data.get_data_frames()[0]
         
@@ -76,10 +81,16 @@ async def fetch_nba_scoreboard():
         dict: Raw scoreboard data with all game information
     """
     try:
-        # Call the NBA API to get current scores
+        # Call the NBA API to get current scores (with timeout to prevent hanging)
         api_kwargs = get_api_kwargs()
-        board = await asyncio.to_thread(lambda: scoreboard.ScoreBoard(**api_kwargs).get_dict())
+        board = await asyncio.wait_for(
+            asyncio.to_thread(lambda: scoreboard.ScoreBoard(**api_kwargs).get_dict()),
+            timeout=10.0
+        )
         return board.get("scoreboard", {})
+    except asyncio.TimeoutError:
+        logger.warning("Timeout fetching scoreboard from NBA API")
+        return {}
     except Exception as e:
         logger.error(f"Error fetching scoreboard from NBA API: {e}")
         return {}
@@ -279,8 +290,12 @@ async def fetchTeamRoster(team_id: int, season: str) -> TeamRoster:
     try:
         # Get roster data from NBA API
         api_kwargs = get_api_kwargs()
-        raw_roster = await asyncio.to_thread(
-            lambda: commonteamroster.CommonTeamRoster(team_id=team_id, season=season, **api_kwargs).get_dict()
+        await rate_limit()
+        raw_roster = await asyncio.wait_for(
+            asyncio.to_thread(
+                lambda: commonteamroster.CommonTeamRoster(team_id=team_id, season=season, **api_kwargs).get_dict()
+            ),
+            timeout=10.0
         )
         player_data = raw_roster["resultSets"][0]["rowSet"]
 
@@ -400,7 +415,11 @@ async def getBoxScore(game_id: str) -> BoxScoreResponse:
     try:
         # Get box score data from NBA API
         api_kwargs = get_api_kwargs()
-        game_data = await asyncio.to_thread(lambda: boxscore.BoxScore(game_id, **api_kwargs).get_dict())
+        await rate_limit()
+        game_data = await asyncio.wait_for(
+            asyncio.to_thread(lambda: boxscore.BoxScore(game_id, **api_kwargs).get_dict()),
+            timeout=10.0
+        )
 
         if "game" not in game_data:
             # Game hasn't started yet - get basic info from scoreboard and return empty boxscore
@@ -569,9 +588,12 @@ async def getPlayByPlay(game_id: str) -> PlayByPlayResponse:
         HTTPException: If game not found or API error
     """
     try:
-        # Get play-by-play data from NBA API
+        # Get play-by-play data from NBA API (with timeout to prevent hanging)
         api_kwargs = get_api_kwargs()
-        play_by_play_data = await asyncio.to_thread(lambda: playbyplay.PlayByPlay(game_id, **api_kwargs).get_dict())
+        play_by_play_data = await asyncio.wait_for(
+            asyncio.to_thread(lambda: playbyplay.PlayByPlay(game_id, **api_kwargs).get_dict()),
+            timeout=10.0
+        )
 
         if "game" not in play_by_play_data or "actions" not in play_by_play_data["game"]:
             # Game hasn't started yet - return empty play-by-play

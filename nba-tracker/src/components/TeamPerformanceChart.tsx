@@ -12,15 +12,15 @@ import {
   ResponsiveContainer,
   ReferenceLine,
 } from 'recharts';
-import { PlayerGameLogResponse } from '../types/playergamelog';
+import { TeamGameLogResponse } from '../types/teamgamelog';
 import { format, parseISO } from 'date-fns';
 import { typography, borderRadius } from '../theme/designTokens';
 
-interface PlayerPerformanceChartProps {
-  data: PlayerGameLogResponse;
+interface TeamPerformanceChartProps {
+  data: TeamGameLogResponse;
 }
 
-const PlayerPerformanceChart: React.FC<PlayerPerformanceChartProps> = ({ data }) => {
+const TeamPerformanceChart: React.FC<TeamPerformanceChartProps> = ({ data }) => {
   const theme = useTheme();
 
   const chartData = useMemo(() => {
@@ -28,12 +28,11 @@ const PlayerPerformanceChart: React.FC<PlayerPerformanceChartProps> = ({ data })
 
     const recentGames = [...data.games].slice(0, 20).reverse();
 
-    return recentGames.map((game, index) => {
+    return recentGames.map(game => {
       const date = parseISO(game.game_date);
       // Calculate EPI: Points + Rebounds + Assists + Steals + Blocks - Turnovers
       const epi = game.points + game.rebounds + game.assists + game.steals + game.blocks - game.turnovers;
       return {
-        index: index,
         date: format(date, 'MMM d'),
         fullDate: game.game_date,
         Points: game.points,
@@ -114,7 +113,7 @@ const PlayerPerformanceChart: React.FC<PlayerPerformanceChartProps> = ({ data })
           margin={{ top: 20, right: 50, left: 30, bottom: 40 }}
         >
           <defs>
-            <linearGradient id="pointsGradient" x1="0" y1="0" x2="0" y2="1">
+            <linearGradient id="teamPointsGradient" x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%" stopColor={pointsColor} stopOpacity={0.3} />
               <stop offset="95%" stopColor={pointsColor} stopOpacity={0} />
             </linearGradient>
@@ -126,7 +125,7 @@ const PlayerPerformanceChart: React.FC<PlayerPerformanceChartProps> = ({ data })
             vertical={false}
           />
           <XAxis
-            dataKey="index"
+            dataKey="date"
             stroke={theme.palette.text.secondary}
             style={{
               fill: theme.palette.text.secondary,
@@ -138,20 +137,6 @@ const PlayerPerformanceChart: React.FC<PlayerPerformanceChartProps> = ({ data })
             angle={0}
             textAnchor="middle"
             height={50}
-            tickFormatter={(value) => {
-              // Show date for this index
-              const dataPoint = chartData[value];
-              return dataPoint?.date || '';
-            }}
-            interval={(() => {
-              // Calculate interval to show 6-8 evenly spaced dates
-              // For 20 games, show every 3rd game (interval = 2)
-              // For 15 games, show every 2nd game (interval = 1)
-              // For 10 games, show every game (interval = 0)
-              if (chartData.length > 15) return 2;
-              if (chartData.length > 10) return 1;
-              return 0;
-            })()}
           />
           <YAxis
             yAxisId="left"
@@ -285,7 +270,7 @@ const PlayerPerformanceChart: React.FC<PlayerPerformanceChartProps> = ({ data })
             type="monotone"
             dataKey="Points"
             stroke={pointsColor}
-            fill="url(#pointsGradient)"
+            fill="url(#teamPointsGradient)"
             strokeWidth={2}
             dot={{ r: 4, fill: pointsColor, strokeWidth: 1, stroke: theme.palette.background.paper }}
             activeDot={{ r: 6, fill: pointsColor, strokeWidth: 1, stroke: theme.palette.background.paper }}
@@ -325,5 +310,5 @@ const PlayerPerformanceChart: React.FC<PlayerPerformanceChartProps> = ({ data })
   );
 };
 
-export default PlayerPerformanceChart;
+export default TeamPerformanceChart;
 

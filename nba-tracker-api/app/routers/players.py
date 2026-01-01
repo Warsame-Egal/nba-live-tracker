@@ -9,7 +9,6 @@ from app.schemas.playergamelog import PlayerGameLogResponse
 from app.schemas.alltimeleaders import AllTimeLeadersResponse
 from app.services.players import getPlayer, search_players, get_season_leaders, get_top_players_by_stat, get_player_game_log, get_all_time_leaders
 
-# Set up logger for this file
 logger = logging.getLogger(__name__)
 
 router = APIRouter()

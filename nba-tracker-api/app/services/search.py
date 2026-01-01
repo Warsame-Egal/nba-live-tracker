@@ -10,6 +10,7 @@ from nba_api.stats.library.parameters import HistoricalNullable
 
 from app.schemas.search import PlayerResult, TeamResult, SearchResults
 from app.config import get_api_kwargs
+from app.utils.rate_limiter import rate_limit
 
 # Set up logger for this file
 logger = logging.getLogger(__name__)
@@ -38,8 +39,12 @@ async def search_entities(query: str) -> SearchResults:
         try:
             # Get all players from NBA API
             api_kwargs = get_api_kwargs()
-            player_index_data = await asyncio.to_thread(
-                lambda: playerindex.PlayerIndex(historical_nullable=HistoricalNullable.all_time, **api_kwargs)
+            await rate_limit()
+            player_index_data = await asyncio.wait_for(
+                asyncio.to_thread(
+                    lambda: playerindex.PlayerIndex(historical_nullable=HistoricalNullable.all_time, **api_kwargs)
+                ),
+                timeout=15.0
             )
             player_index_df = player_index_data.get_data_frames()[0]
 

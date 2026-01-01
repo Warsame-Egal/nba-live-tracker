@@ -10,6 +10,8 @@ const RosterPage = lazy(() => import('./pages/RosterPage'));
 const PlayerProfile = lazy(() => import('./pages/PlayerProfile'));
 const Standings = lazy(() => import('./components/Standings'));
 const Players = lazy(() => import('./pages/Players'));
+const Teams = lazy(() => import('./pages/Teams'));
+const Predictions = lazy(() => import('./pages/Predictions'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
 /**
@@ -49,6 +51,10 @@ export default function App() {
             <Route path="/players" element={<Players />} />
             {/* Player profile page - shows player details */}
             <Route path="/players/:playerId" element={<PlayerProfile />} />
+            {/* Teams page - shows team statistics */}
+            <Route path="/teams" element={<Teams />} />
+            {/* Predictions page - shows AI-powered game predictions */}
+            <Route path="/predictions" element={<Predictions />} />
             {/* 404 page - shows when user goes to a page that doesn't exist */}
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -277,9 +277,10 @@ const GameDetailsDrawer = ({ gameId, open, onClose, initialTab = 'box', gameInfo
       PaperProps={{
         sx: {
           width: { xs: '100%', sm: '90%', md: '85%', lg: 900 },
-          backgroundColor: 'background.default',
+          backgroundColor: 'background.paper',
           borderLeft: '1px solid',
           borderColor: 'divider',
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
         },
       }}
     >
@@ -287,13 +288,14 @@ const GameDetailsDrawer = ({ gameId, open, onClose, initialTab = 'box', gameInfo
         {/* Header */}
         <Box
           sx={{
-            p: { xs: 2, sm: 3 },
+            p: { xs: 2.5, sm: 3 },
             borderBottom: '1px solid',
             borderColor: 'divider',
             backgroundColor: 'background.paper',
             position: 'sticky',
             top: 0,
             zIndex: 1,
+            backdropFilter: 'blur(10px)',
           }}
         >
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>

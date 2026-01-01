@@ -104,16 +104,16 @@ const WeeklyCalendar = ({ selectedDate, setSelectedDate }: WeeklyCalendarProps) 
       <Paper
         elevation={0}
         sx={{
-          p: responsiveSpacing.elementCompact,
+          p: { xs: 1.5, sm: 2 },
           width: '100%',
           backgroundColor: 'background.paper',
           border: '1px solid',
           borderColor: 'divider',
-          borderRadius: borderRadius.sm,
-          transition: transitions.normal,
+          borderRadius: 2,
+          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
           '&:hover': {
             borderColor: 'primary.light',
-            boxShadow: shadows.sm,
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
           },
         }}
       >

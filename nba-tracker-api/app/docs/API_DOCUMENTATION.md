@@ -1,6 +1,6 @@
-# NBA Tracker API Documentation
+# NBA Live API Documentation
 
-REST API and WebSocket service for real-time NBA game data, player statistics, and team information.
+REST API and WebSocket service for real-time NBA game data, player statistics, team information, and game predictions.
 
 **Base URL:** `http://localhost:8000`  
 **API Version:** `v1`  
@@ -120,6 +120,188 @@ curl http://localhost:8000/api/v1/players/search/lebron
 
 ---
 
+#### Get Season Leaders
+
+Get season leaders for various stat categories (Points, Rebounds, Assists, Steals, Blocks per game).
+
+```http
+GET /api/v1/players/season-leaders?season={season}
+```
+
+**Parameters:**
+
+- `season` (string, optional - Default: current season) - Season format "YYYY-YY" (e.g., "2024-25")
+
+**Example Request:**
+
+```bash
+curl http://localhost:8000/api/v1/players/season-leaders?season=2024-25
+```
+
+**Response:**
+
+```json
+{
+  "season": "2024-25",
+  "categories": [
+    {
+      "category": "Points Per Game",
+      "leaders": [
+        {
+          "PERSON_ID": 2544,
+          "PLAYER_FIRST_NAME": "LeBron",
+          "PLAYER_LAST_NAME": "James",
+          "PTS": 25.5
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Status Codes:**
+
+- `200 OK` - Success
+- `500 Internal Server Error` - Server error
+
+---
+
+#### Get Top Players By Stat
+
+Get top N players for a specific stat category for a season.
+
+```http
+GET /api/v1/players/top-by-stat?season={season}&stat={stat}&top_n={top_n}
+```
+
+**Parameters:**
+
+- `season` (string, optional - Default: current season) - Season format "YYYY-YY"
+- `stat` (string, optional - Default: "PTS") - Stat to sort by: PTS, REB, AST, STL, BLK
+- `top_n` (integer, optional - Default: 10) - Number of top players to return (1-50)
+
+**Example Request:**
+
+```bash
+curl "http://localhost:8000/api/v1/players/top-by-stat?season=2024-25&stat=PTS&top_n=10"
+```
+
+**Response:**
+
+```json
+[
+  {
+    "PERSON_ID": 2544,
+    "PLAYER_FIRST_NAME": "LeBron",
+    "PLAYER_LAST_NAME": "James",
+    "TEAM_NAME": "Los Angeles Lakers",
+    "PTS": 25.5,
+    "REB": 7.2,
+    "AST": 8.1
+  }
+]
+```
+
+**Status Codes:**
+
+- `200 OK` - Success
+- `500 Internal Server Error` - Server error
+
+---
+
+#### Get All-Time Leaders
+
+Get all-time career leaders for major statistical categories (Points, Rebounds, Assists, Steals, Blocks totals).
+
+```http
+GET /api/v1/players/all-time-leaders?top_n={top_n}
+```
+
+**Parameters:**
+
+- `top_n` (integer, optional - Default: 10) - Number of top players to return (1-50)
+
+**Example Request:**
+
+```bash
+curl http://localhost:8000/api/v1/players/all-time-leaders?top_n=10
+```
+
+**Response:**
+
+```json
+{
+  "categories": [
+    {
+      "category": "Points",
+      "leaders": [
+        {
+          "PERSON_ID": 2544,
+          "PLAYER_FIRST_NAME": "LeBron",
+          "PLAYER_LAST_NAME": "James",
+          "value": 40000
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Status Codes:**
+
+- `200 OK` - Success
+- `500 Internal Server Error` - Server error
+
+---
+
+#### Get Player Game Log
+
+Get game log for a player for a specific season with detailed stats for each game.
+
+```http
+GET /api/v1/player/{player_id}/game-log?season={season}
+```
+
+**Parameters:**
+
+- `player_id` (string, required) - NBA player ID
+- `season` (string, optional - Default: current season) - Season format "YYYY-YY"
+
+**Example Request:**
+
+```bash
+curl http://localhost:8000/api/v1/player/2544/game-log?season=2024-25
+```
+
+**Response:**
+
+```json
+{
+  "player_id": "2544",
+  "season": "2024-25",
+  "games": [
+    {
+      "game_id": "0022400123",
+      "game_date": "2024-01-15",
+      "opponent_team_abbreviation": "GSW",
+      "points": 32,
+      "rebounds": 8,
+      "assists": 9,
+      "steals": 2,
+      "blocks": 1
+    }
+  ]
+}
+```
+
+**Status Codes:**
+
+- `200 OK` - Success
+- `404 Not Found` - Player not found
+- `500 Internal Server Error` - Server error
+
+---
+
 ### Teams
 
 #### Get Team Details
@@ -159,6 +341,103 @@ curl http://localhost:8000/api/v1/teams/1610612747
 
 - `200 OK` - Success
 - `404 Not Found` - Team not found
+- `500 Internal Server Error` - Server error
+
+---
+
+#### Get Team Statistics
+
+Get team statistics for various categories sorted by performance (net rating, etc.).
+
+```http
+GET /api/v1/teams/stats?season={season}
+```
+
+**Parameters:**
+
+- `season` (string, optional - Default: current season) - Season format "YYYY-YY" (e.g., "2024-25")
+
+**Example Request:**
+
+```bash
+curl http://localhost:8000/api/v1/teams/stats?season=2024-25
+```
+
+**Response:**
+
+```json
+{
+  "season": "2024-25",
+  "categories": [
+    {
+      "category_name": "Net Rating",
+      "teams": [
+        {
+          "team_id": 1610612737,
+          "team_name": "Atlanta Hawks",
+          "team_abbreviation": "ATL",
+          "value": 5.2
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Status Codes:**
+
+- `200 OK` - Success
+- `404 Not Found` - Season not found
+- `500 Internal Server Error` - Server error
+
+---
+
+#### Get Team Game Log
+
+Get game log for a team for a specific season with detailed stats for each game.
+
+```http
+GET /api/v1/teams/{team_id}/game-log?season={season}
+```
+
+**Parameters:**
+
+- `team_id` (integer, required) - NBA team ID
+- `season` (string, optional - Default: current season) - Season format "YYYY-YY"
+
+**Example Request:**
+
+```bash
+curl http://localhost:8000/api/v1/teams/1610612747/game-log?season=2024-25
+```
+
+**Response:**
+
+```json
+{
+  "team_id": 1610612747,
+  "season": "2024-25",
+  "games": [
+    {
+      "game_id": "0022400123",
+      "game_date": "2024-01-15",
+      "matchup": "LAL @ GSW",
+      "win_loss": "W",
+      "points": 128,
+      "rebounds": 45,
+      "assists": 28,
+      "field_goal_pct": 0.485,
+      "three_point_pct": 0.375,
+      "free_throw_pct": 0.85
+    }
+  ]
+}
+```
+
+**Status Codes:**
+
+- `200 OK` - Success
+- `404 Not Found` - Team or season not found
 - `500 Internal Server Error` - Server error
 
 ---
@@ -426,6 +705,79 @@ curl http://localhost:8000/api/v1/scoreboard/game/0022400123/boxscore
 
 - `200 OK` - Success (may be empty if game hasn't started)
 - `404 Not Found` - Game not found
+- `500 Internal Server Error` - Server error
+
+---
+
+### Predictions
+
+#### Get Game Predictions for Date
+
+Get statistical predictions for all games on a specific date. Uses a simple model based on team win percentages, net ratings, and home court advantage.
+
+```http
+GET /api/v1/predictions/date/{date}?season={season}
+```
+
+**Parameters:**
+
+- `date` (string, required) - Date format `YYYY-MM-DD` (e.g., "2024-01-15")
+- `season` (string, optional - Default: current season) - Season format "YYYY-YY"
+
+**Example Request:**
+
+```bash
+curl http://localhost:8000/api/v1/predictions/date/2024-01-15?season=2024-25
+```
+
+**Response:**
+
+```json
+{
+  "date": "2024-01-15",
+  "season": "2024-25",
+  "predictions": [
+    {
+      "game_id": "0022400123",
+      "home_team_id": 1610612744,
+      "home_team_name": "Golden State Warriors",
+      "away_team_id": 1610612747,
+      "away_team_name": "Los Angeles Lakers",
+      "game_date": "2024-01-15",
+      "home_win_probability": 0.55,
+      "away_win_probability": 0.45,
+      "predicted_home_score": 115,
+      "predicted_away_score": 110,
+      "confidence": 0.75,
+      "insights": [
+        {
+          "title": "Home Court Advantage",
+          "description": "Golden State Warriors playing at home",
+          "impact": "Slight advantage to home team"
+        }
+      ],
+      "home_team_win_pct": 0.6,
+      "away_team_win_pct": 0.5,
+      "home_team_net_rating": 5.2,
+      "away_team_net_rating": 2.1
+    }
+  ]
+}
+```
+
+**Response Fields:**
+
+- `home_win_probability` / `away_win_probability` - Win probability (0-1)
+- `predicted_home_score` / `predicted_away_score` - Predicted final scores
+- `confidence` - Model confidence (0-1)
+- `insights` - Key factors affecting the prediction
+- `home_team_win_pct` / `away_team_win_pct` - Team win percentages
+- `home_team_net_rating` / `away_team_net_rating` - Team net ratings
+
+**Status Codes:**
+
+- `200 OK` - Success (may return empty array if no games scheduled)
+- `400 Bad Request` - Invalid date format or date too far in future
 - `500 Internal Server Error` - Server error
 
 ---
@@ -855,11 +1207,9 @@ GET /
    - This reduces API calls and improves performance
    - Don't cache live game data - use WebSockets instead
 
-4. **Rate Limiting**
+4. **Rate Limiting and Timeouts**
 
-   - Wait x seconds between consecutive requests
-   - Use WebSocket connections instead of frequent polling
-   - See the [`nba_api`](https://github.com/swar/nba_api) package docs for more details
+   All API calls automatically wait 600ms between requests and have 10-15 second timeouts to prevent throttling and connection issues. The backend handles this automatically - no action needed from frontend developers.
 
 5. **Empty Responses**
    - Some endpoints return empty data (e.g., games that haven't started)

@@ -23,27 +23,33 @@ export const spacing = {
 } as const;
 
 /**
- * Responsive spacing patterns
+ * Responsive spacing patterns (2025 Material Design 3)
  * Use these for consistent responsive spacing across components
+ * All values are in theme spacing units (8px base)
  */
 export const responsiveSpacing = {
   // Container padding
   container: { xs: 2, sm: 3, md: 4 },
-  containerVertical: { xs: 4, sm: 5, md: 6 },
+  containerVertical: { xs: 3, sm: 4, md: 5 },
   
   // Section spacing
-  section: { xs: 4, sm: 5 },
-  sectionLarge: { xs: 5, sm: 6, md: 8 },
+  section: { xs: 3, sm: 4, md: 5 },
+  sectionLarge: { xs: 4, sm: 5, md: 6 },
   
   // Component padding
-  card: { xs: 2.5, sm: 3 },
-  cardCompact: { xs: 2, sm: 2.5 },
-  cardLarge: { xs: 3, sm: 3.5, md: 4 },
+  card: { xs: 2, sm: 2.5, md: 3 },
+  cardCompact: { xs: 1.5, sm: 2 },
+  cardLarge: { xs: 2.5, sm: 3, md: 3.5 },
   
   // Element spacing
-  element: { xs: 2, sm: 2.5 },
-  elementCompact: { xs: 1.5, sm: 2 },
-  elementLarge: { xs: 3, sm: 4 },
+  element: { xs: 1.5, sm: 2 },
+  elementCompact: { xs: 1, sm: 1.5 },
+  elementLarge: { xs: 2.5, sm: 3 },
+  
+  // Gap spacing
+  gap: { xs: 1.5, sm: 2 },
+  gapCompact: { xs: 1, sm: 1.5 },
+  gapLarge: { xs: 2.5, sm: 3, md: 4 },
 } as const;
 
 /**
@@ -102,15 +108,16 @@ export const typography = {
 } as const;
 
 /**
- * Border radius scale
+ * Border radius scale (2025 Material Design 3)
  * Use these for consistent rounded corners
  */
 export const borderRadius = {
   none: 0,
-  xs: 1,      // 4px - small badges, chips
-  sm: 2,      // 8px - cards, containers (most common)
-  md: 3,      // 12px - larger cards
-  lg: 4,      // 16px - modals, drawers
+  xs: 0.5,    // 4px - small badges, chips
+  sm: 1,      // 8px - buttons, inputs
+  md: 1.5,    // 12px - cards, containers (most common)
+  lg: 2,      // 16px - larger cards
+  xl: 2.5,    // 20px - modals, dialogs
   full: '50%', // circular
 } as const;
 

@@ -1,4 +1,4 @@
-# NBA Live Tracker
+# NBA Live
 
 A real-time NBA scoreboard and stats tracker built with React and FastAPI. Watch live games, track player stats, browse team rosters, and stay up-to-date with league standings.
 

@@ -28,12 +28,13 @@ const ScoringLeaders = ({ selectedGame }: ScoringLeadersProps) => {
     <Paper
       elevation={0}
       sx={{
-        p: { xs: 2, sm: 2.5 },
+        p: { xs: 2.5, sm: 3 },
         backgroundColor: 'background.paper',
         border: '1px solid',
         borderColor: 'divider',
         borderRadius: 2,
         backgroundImage: 'linear-gradient(135deg, rgba(25, 118, 210, 0.03) 0%, rgba(25, 118, 210, 0.01) 100%)',
+        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
       }}
     >
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: { xs: 2, sm: 2.5 } }}>

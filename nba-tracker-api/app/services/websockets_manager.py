@@ -49,8 +49,16 @@ class ScoreboardWebSocketManager:
         Args:
             websocket: The WebSocket connection to remove
         """
-        self.active_connections.discard(websocket)
-        logger.info(f"Client disconnected from scoreboard updates: {websocket.client}")
+        try:
+            # Try to close the connection gracefully if it's still open
+            if websocket.client_state.name != "DISCONNECTED":
+                await websocket.close()
+        except Exception:
+            # Connection might already be closed, ignore
+            pass
+        finally:
+            self.active_connections.discard(websocket)
+            logger.info(f"Client disconnected from scoreboard updates: {websocket.client}")
 
     async def send_initial_scoreboard(self, websocket: WebSocket):
         """
@@ -66,11 +74,16 @@ class ScoreboardWebSocketManager:
                 logger.debug("Client disconnected before initial scoreboard could be sent")
                 return
             
-            # Get the latest scores from the NBA API
-            current_games = await getScoreboard()
-            games_data = current_games.model_dump()
-            logger.debug(f"Sending initial scoreboard data to new client")
-            await websocket.send_json(games_data)
+            # Get the latest scores from the NBA API (with timeout to prevent hanging)
+            try:
+                current_games = await asyncio.wait_for(getScoreboard(), timeout=10.0)
+                games_data = current_games.model_dump()
+                logger.debug(f"Sending initial scoreboard data to new client")
+                await websocket.send_json(games_data)
+            except asyncio.TimeoutError:
+                logger.warning("Timeout fetching initial scoreboard data")
+                # Send empty scoreboard if timeout
+                await websocket.send_json({"scoreboard": {"gameDate": "", "games": []}})
         except Exception as e:
             # This is usually harmless - client may have disconnected quickly
             # Log as warning instead of error since it's expected behavior
@@ -147,12 +160,27 @@ class ScoreboardWebSocketManager:
                 # If no clients are connected, wait longer before checking again
                 # This saves API calls and prevents rate limiting
                 if not self.active_connections:
-                    await asyncio.sleep(30)
+                    # Use shorter sleep intervals that can be cancelled faster
+                    for _ in range(30):
+                        await asyncio.sleep(1)
                     continue
 
-                # Get the latest scores from NBA API
-                scoreboard_data = await getScoreboard()
-                standardized_data = scoreboard_data.model_dump()
+                # Get the latest scores from NBA API (with timeout to prevent hanging)
+                try:
+                    scoreboard_data = await asyncio.wait_for(getScoreboard(), timeout=10.0)
+                    standardized_data = scoreboard_data.model_dump()
+                except asyncio.TimeoutError:
+                    logger.warning("Timeout fetching scoreboard data, skipping this update")
+                    # Wait before retrying
+                    for _ in range(30):
+                        await asyncio.sleep(1)
+                    continue
+                except Exception as e:
+                    logger.warning(f"Error fetching scoreboard data: {e}, skipping this update")
+                    # Wait before retrying
+                    for _ in range(30):
+                        await asyncio.sleep(1)
+                    continue
 
                 # Save the current games and compare with previous
                 async with self._lock:
@@ -161,7 +189,9 @@ class ScoreboardWebSocketManager:
 
                 # Only send updates if something actually changed
                 if not self.has_game_data_changed(self.current_games, previous_games):
-                    await asyncio.sleep(30)
+                    # Use shorter sleep intervals that can be cancelled faster
+                    for _ in range(30):
+                        await asyncio.sleep(1)
                     continue
 
                 logger.info(f"Broadcasting score updates for {len(self.current_games)} games")
@@ -181,12 +211,20 @@ class ScoreboardWebSocketManager:
                     await self.disconnect(connection)
 
                 # Wait 30 seconds before checking for updates again
-                await asyncio.sleep(30)
+                # Use shorter sleep intervals that can be cancelled faster
+                for _ in range(30):
+                    await asyncio.sleep(1)
 
+            except asyncio.CancelledError:
+                # Task was cancelled, exit cleanly
+                logger.info("Scoreboard broadcast task cancelled")
+                raise
             except Exception as e:
                 # If something goes wrong, log it and wait a bit before trying again
                 logger.error(f"Error in scoreboard broadcast loop: {e}")
-                await asyncio.sleep(5)
+                # Use shorter sleep intervals that can be cancelled faster
+                for _ in range(5):
+                    await asyncio.sleep(1)
 
 
 class PlayByPlayWebSocketManager:
@@ -234,16 +272,24 @@ class PlayByPlayWebSocketManager:
             websocket: The WebSocket connection to remove
             game_id: The game they were watching
         """
-        if game_id in self.active_connections:
-            self.active_connections[game_id].discard(websocket)
-            logger.info(f"Client disconnected from play-by-play updates: game {game_id}, client {websocket.client}")
+        try:
+            # Try to close the connection gracefully if it's still open
+            if websocket.client_state.name != "DISCONNECTED":
+                await websocket.close()
+        except Exception:
+            # Connection might already be closed, ignore
+            pass
+        finally:
+            if game_id in self.active_connections:
+                self.active_connections[game_id].discard(websocket)
+                logger.info(f"Client disconnected from play-by-play updates: game {game_id}, client {websocket.client}")
 
-            # If no one is watching this game anymore, clean up the data
-            if not self.active_connections[game_id]:
-                del self.active_connections[game_id]
-                # Only delete if the key exists (might have been cleaned up already)
-                if game_id in self.current_playbyplay:
-                    del self.current_playbyplay[game_id]
+                # If no one is watching this game anymore, clean up the data
+                if not self.active_connections[game_id]:
+                    del self.active_connections[game_id]
+                    # Only delete if the key exists (might have been cleaned up already)
+                    if game_id in self.current_playbyplay:
+                        del self.current_playbyplay[game_id]
 
     async def send_initial_playbyplay(self, websocket: WebSocket, game_id: str):
         """
@@ -260,12 +306,16 @@ class PlayByPlayWebSocketManager:
                 logger.debug(f"Client disconnected before initial play-by-play could be sent for game {game_id}")
                 return
             
-            # Get the latest play-by-play data from NBA API
-            playbyplay_data = await getPlayByPlay(game_id)
-            plays_data = playbyplay_data.model_dump()
-            logger.debug(f"Sending initial play-by-play data for game {game_id}")
-
-            await websocket.send_json(plays_data)
+            # Get the latest play-by-play data from NBA API (with timeout to prevent hanging)
+            try:
+                playbyplay_data = await asyncio.wait_for(getPlayByPlay(game_id), timeout=10.0)
+                plays_data = playbyplay_data.model_dump()
+                logger.debug(f"Sending initial play-by-play data for game {game_id}")
+                await websocket.send_json(plays_data)
+            except asyncio.TimeoutError:
+                logger.warning(f"Timeout fetching initial play-by-play data for game {game_id}")
+                # Send empty play-by-play if timeout
+                await websocket.send_json({"game_id": game_id, "plays": []})
         except Exception as e:
             # This is usually harmless - client may have disconnected quickly
             # Log as warning instead of error since it's expected behavior
@@ -315,8 +365,22 @@ class PlayByPlayWebSocketManager:
                 async with self._lock:
                     # Check each game that has clients watching it
                     for game_id in list(self.active_connections.keys()):
-                        # Get the latest play-by-play data from NBA API
-                        playbyplay_data = await getPlayByPlay(game_id)
+                        # Skip if no clients are watching this game anymore
+                        if game_id not in self.active_connections or not self.active_connections[game_id]:
+                            continue
+                        
+                        # Get the latest play-by-play data from NBA API (with timeout to prevent hanging)
+                        try:
+                            playbyplay_data = await asyncio.wait_for(getPlayByPlay(game_id), timeout=10.0)
+                        except asyncio.CancelledError:
+                            raise
+                        except asyncio.TimeoutError:
+                            logger.warning(f"Timeout fetching play-by-play for game {game_id}, skipping this update")
+                            continue
+                        except Exception as e:
+                            logger.warning(f"Error fetching play-by-play for game {game_id}: {e}")
+                            continue
+                        
                         standardized_data = playbyplay_data.model_dump()
 
                         # Save current plays and compare with previous
@@ -344,12 +408,20 @@ class PlayByPlayWebSocketManager:
                             await self.disconnect(connection, game_id)
 
                 # Wait 2 seconds before checking for new plays again
-                await asyncio.sleep(2)
+                # Use shorter sleep intervals that can be cancelled faster
+                for _ in range(2):
+                    await asyncio.sleep(1)
 
+            except asyncio.CancelledError:
+                # Task was cancelled, exit cleanly
+                logger.info("Play-by-play broadcast task cancelled")
+                raise
             except Exception as e:
                 # If something goes wrong, log it and wait a bit before trying again
                 logger.error(f"Error in play-by-play broadcast loop: {e}")
-                await asyncio.sleep(5)
+                # Use shorter sleep intervals that can be cancelled faster
+                for _ in range(5):
+                    await asyncio.sleep(1)
 
 
 # Create single instances that the whole app uses

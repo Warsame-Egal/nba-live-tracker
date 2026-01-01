@@ -17,6 +17,7 @@ import {
 import { StandingRecord, StandingsResponse } from '../types/standings';
 import { Sports, TrendingUp, TrendingDown, EmojiEvents } from '@mui/icons-material';
 import Navbar from './Navbar';
+import UniversalSidebar from './UniversalSidebar';
 import { responsiveSpacing, borderRadius, transitions, typography } from '../theme/designTokens';
 import { fetchJson } from '../utils/apiClient';
 
@@ -122,9 +123,17 @@ const Standings = () => {
   }, [standings, conference]);
 
   return (
-    <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
+    <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default', display: 'flex', flexDirection: 'column' }}>
       <Navbar />
-      <Container maxWidth="xl" sx={{ py: responsiveSpacing.containerVertical, px: responsiveSpacing.container }}>
+      <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+        <Box
+          sx={{
+            flex: 1,
+            overflowY: 'auto',
+            backgroundColor: 'background.default',
+          }}
+        >
+          <Container maxWidth="xl" sx={{ py: responsiveSpacing.containerVertical, px: responsiveSpacing.container }}>
         {/* Page title */}
         <Box sx={{ textAlign: 'center', mb: responsiveSpacing.section }}>
           <Typography
@@ -413,7 +422,24 @@ const Standings = () => {
             })}
           </Grid>
         )}
-      </Container>
+          </Container>
+        </Box>
+
+        <Box
+          sx={{
+            width: 320,
+            flexShrink: 0,
+            display: { xs: 'none', md: 'flex' },
+            flexDirection: 'column',
+            borderLeft: '1px solid',
+            borderColor: 'divider',
+            backgroundColor: 'background.paper',
+            overflowY: 'auto',
+          }}
+        >
+          <UniversalSidebar />
+        </Box>
+      </Box>
     </Box>
   );
 };

@@ -1,6 +1,6 @@
-# NBA Live Tracker - Frontend
+# NBA Live - Frontend
 
-The frontend application for the NBA Live Tracker, built with React, TypeScript, and Material UI.
+The frontend application for NBA Live, built with React, TypeScript, and Material UI.
 
 ## Quick Start
 

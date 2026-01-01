@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Box, Container, Typography } from '@mui/material';
 import { useSearchParams } from 'react-router-dom';
-import PlayersSidebar from '../components/PlayersSidebar';
+import UniversalSidebar from '../components/UniversalSidebar';
 import SeasonLeaders from '../components/SeasonLeaders';
 import AllTimeLeaders from '../components/AllTimeLeaders';
 import Navbar from '../components/Navbar';
@@ -19,7 +19,6 @@ const Players = () => {
   const [allTimeLeaders, setAllTimeLeaders] = useState<AllTimeLeadersResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [allTimeLoading, setAllTimeLoading] = useState(false);
-  const [selectedStat, setSelectedStat] = useState<string>('PTS');
 
   const season = searchParams.get('season') || getCurrentSeason();
 
@@ -79,14 +78,36 @@ const Players = () => {
           }}
         >
           <Container maxWidth={false} sx={{ py: responsiveSpacing.containerVertical, px: { xs: 2, sm: 3, md: 4, lg: 6 } }}>
-            {/* Season Leaders Section */}
-            <Box sx={{ mb: { xs: 6, sm: 8 } }}>
+            <Box sx={{ mb: { xs: 3, sm: 4 } }}>
               <Typography
                 variant="h4"
                 sx={{
                   fontWeight: typography.weight.bold,
-                  mb: responsiveSpacing.section,
                   fontSize: { xs: typography.size.h5, sm: typography.size.h4 },
+                  mb: 1,
+                }}
+              >
+                Players
+              </Typography>
+              <Typography
+                variant="body1"
+                sx={{
+                  color: 'text.secondary',
+                  fontSize: { xs: '0.875rem', sm: '1rem' },
+                }}
+              >
+                Season leaders and all-time records for the {season} season
+              </Typography>
+            </Box>
+
+            {/* Season Leaders Section */}
+            <Box sx={{ mb: { xs: 6, sm: 8 } }}>
+              <Typography
+                variant="h5"
+                sx={{
+                  fontWeight: typography.weight.bold,
+                  mb: responsiveSpacing.section,
+                  fontSize: { xs: typography.size.h6, sm: typography.size.h5 },
                 }}
               >
                 Season Leaders
@@ -130,12 +151,7 @@ const Players = () => {
             overflowY: 'auto',
           }}
         >
-          <PlayersSidebar 
-            selectedStat={selectedStat} 
-            onStatChange={setSelectedStat}
-            season={season}
-            onSeasonChange={handleSeasonChange}
-          />
+          <UniversalSidebar season={season} onSeasonChange={handleSeasonChange} />
         </Box>
       </Box>
     </Box>

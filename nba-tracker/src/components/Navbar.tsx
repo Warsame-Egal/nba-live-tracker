@@ -18,6 +18,8 @@ const Navbar = () => {
     { label: 'Scoreboard', path: '/' },
     { label: 'Standings', path: '/standings' },
     { label: 'Players', path: '/players' },
+    { label: 'Teams', path: '/teams' },
+    { label: 'Predictions', path: '/predictions' },
   ];
 
   /**
@@ -26,16 +28,24 @@ const Navbar = () => {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <AppBar position="sticky" elevation={0}>
+    <AppBar 
+      position="sticky" 
+      elevation={0}
+      sx={{
+        backdropFilter: 'blur(10px)',
+        backgroundColor: 'background.paper',
+      }}
+    >
       <Toolbar
         sx={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           px: { xs: 2, sm: 3, md: 4 },
-          py: { xs: 1, sm: 1.5 },
+          py: { xs: 1.5, sm: 2 },
           minHeight: { xs: 64, sm: 72 },
           gap: 2,
+          maxWidth: '100%',
         }}
       >
         {/* App title */}
@@ -51,18 +61,19 @@ const Navbar = () => {
             component={RouterLink}
             to="/"
             sx={{
-              fontWeight: 800,
+              fontWeight: 700,
               fontSize: { xs: '1.125rem', sm: '1.25rem', md: '1.375rem' },
               color: 'text.primary',
               textDecoration: 'none',
               letterSpacing: '-0.01em',
-              transition: 'color 0.2s ease-in-out',
+              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
               '&:hover': {
                 color: 'primary.main',
+                transform: 'scale(1.02)',
               },
             }}
           >
-            NBA Live Tracker
+            NBA Live
           </Typography>
         </Box>
 
@@ -77,15 +88,16 @@ const Navbar = () => {
                 to={item.path}
                 sx={{
                   color: isActive(item.path) ? 'primary.main' : 'text.secondary',
-                  fontWeight: isActive(item.path) ? 700 : 500,
+                  fontWeight: isActive(item.path) ? 600 : 500,
                   fontSize: { xs: '0.875rem', sm: '0.9375rem' },
                   px: { xs: 2, sm: 2.5 },
-                  py: { xs: 0.75, sm: 1 },
+                  py: { xs: 1, sm: 1.25 },
                   position: 'relative',
-                  transition: 'all 0.2s ease-in-out',
-                  borderRadius: 1,
+                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                  borderRadius: 2,
                   // Show underline for active link
                   ...(isActive(item.path) && {
+                    backgroundColor: 'action.selected',
                     '&::after': {
                       content: '""',
                       position: 'absolute',
@@ -93,14 +105,14 @@ const Navbar = () => {
                       left: '50%',
                       transform: 'translateX(-50%)',
                       width: '60%',
-                      height: 2,
+                      height: 3,
                       backgroundColor: 'primary.main',
-                      borderRadius: '2px 2px 0 0',
+                      borderRadius: '3px 3px 0 0',
                     },
                   }),
                   '&:hover': {
                     backgroundColor: 'action.hover',
-                    color: isActive(item.path) ? 'primary.main' : 'text.primary',
+                    color: 'primary.main',
                     transform: 'translateY(-1px)',
                   },
                 }}

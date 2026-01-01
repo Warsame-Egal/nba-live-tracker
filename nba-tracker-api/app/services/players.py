@@ -12,6 +12,7 @@ from app.schemas.seasonleaders import SeasonLeadersResponse, SeasonLeadersCatego
 from app.schemas.playergamelog import PlayerGameLogResponse, PlayerGameLogEntry
 from app.schemas.alltimeleaders import AllTimeLeadersResponse, AllTimeLeaderCategory, AllTimeLeader
 from app.config import get_api_kwargs
+from app.utils.rate_limiter import rate_limit
 
 # Set up logger for this file
 logger = logging.getLogger(__name__)
@@ -21,8 +22,12 @@ async def getPlayer(player_id: str) -> PlayerSummary:
     """Get player information including stats and recent games."""
     try:
         api_kwargs = get_api_kwargs()
-        player_index_data = await asyncio.to_thread(
-            lambda: playerindex.PlayerIndex(historical_nullable=HistoricalNullable.all_time, **api_kwargs)
+        await rate_limit()
+        player_index_data = await asyncio.wait_for(
+            asyncio.to_thread(
+                lambda: playerindex.PlayerIndex(historical_nullable=HistoricalNullable.all_time, **api_kwargs)
+            ),
+            timeout=15.0
         )
         player_index_df = player_index_data.get_data_frames()[0]
 
@@ -43,7 +48,11 @@ async def getPlayer(player_id: str) -> PlayerSummary:
         recent_games = []
         try:
             api_kwargs = get_api_kwargs()
-            game_log_data = await asyncio.to_thread(lambda: PlayerGameLog(player_id=player_id, **api_kwargs).get_dict())
+            await rate_limit()
+            game_log_data = await asyncio.wait_for(
+                asyncio.to_thread(lambda: PlayerGameLog(player_id=player_id, **api_kwargs).get_dict()),
+                timeout=10.0
+            )
 
             if not game_log_data.get("resultSets") or len(game_log_data["resultSets"]) == 0:
                 logger.warning(f"No game log data available for player {player_id}")
@@ -141,8 +150,12 @@ async def search_players(search_term: str) -> List[PlayerSummary]:
     try:
         # Get all players from NBA API
         api_kwargs = get_api_kwargs()
-        player_index_data = await asyncio.to_thread(
-            lambda: playerindex.PlayerIndex(historical_nullable=HistoricalNullable.all_time, **api_kwargs)
+        await rate_limit()
+        player_index_data = await asyncio.wait_for(
+            asyncio.to_thread(
+                lambda: playerindex.PlayerIndex(historical_nullable=HistoricalNullable.all_time, **api_kwargs)
+            ),
+            timeout=15.0
         )
         player_index_df = player_index_data.get_data_frames()[0]
 
@@ -234,13 +247,17 @@ async def get_top_players_by_stat(season: str, stat: str, top_n: int = 10) -> Li
         
         stat_col = stat_map.get(stat.upper(), "PTS")
         
-        stats_data = await asyncio.to_thread(
-            lambda: leaguedashplayerstats.LeagueDashPlayerStats(
-                season=season,
-                per_mode_detailed=PerModeDetailed.per_game,
-                season_type_all_star=SeasonTypeAllStar.regular,
-                **api_kwargs
-            ).get_data_frames()[0]
+        await rate_limit()
+        stats_data = await asyncio.wait_for(
+            asyncio.to_thread(
+                lambda: leaguedashplayerstats.LeagueDashPlayerStats(
+                    season=season,
+                    per_mode_detailed=PerModeDetailed.per_game,
+                    season_type_all_star=SeasonTypeAllStar.regular,
+                    **api_kwargs
+                ).get_data_frames()[0]
+            ),
+            timeout=15.0
         )
         
         if stats_data.empty:
@@ -254,8 +271,12 @@ async def get_top_players_by_stat(season: str, stat: str, top_n: int = 10) -> Li
         stats_data[stat_col] = pd.to_numeric(stats_data[stat_col], errors='coerce').fillna(0)
         sorted_df = stats_data.nlargest(top_n, stat_col)
         
-        player_index_data = await asyncio.to_thread(
-            lambda: playerindex.PlayerIndex(historical_nullable=HistoricalNullable.all_time, **api_kwargs)
+        await rate_limit()
+        player_index_data = await asyncio.wait_for(
+            asyncio.to_thread(
+                lambda: playerindex.PlayerIndex(historical_nullable=HistoricalNullable.all_time, **api_kwargs)
+            ),
+            timeout=15.0
         )
         player_index_df = player_index_data.get_data_frames()[0]
         
@@ -349,13 +370,17 @@ async def get_season_leaders(season: str = "2024-25") -> SeasonLeadersResponse:
         api_kwargs = get_api_kwargs()
         
         # Use LeagueDashPlayerStats to get season-specific player stats
-        stats_data = await asyncio.to_thread(
-            lambda: leaguedashplayerstats.LeagueDashPlayerStats(
-                season=season,
-                per_mode_detailed=PerModeDetailed.per_game,
+        await rate_limit()
+        stats_data = await asyncio.wait_for(
+            asyncio.to_thread(
+                lambda: leaguedashplayerstats.LeagueDashPlayerStats(
+                    season=season,
+                    per_mode_detailed=PerModeDetailed.per_game,
                 season_type_all_star=SeasonTypeAllStar.regular,
                 **api_kwargs
             ).get_data_frames()[0]
+            ),
+            timeout=15.0
         )
         
         if stats_data.empty:
@@ -540,13 +565,17 @@ async def get_all_time_leaders(top_n: int = 10) -> AllTimeLeadersResponse:
         api_kwargs = get_api_kwargs()
         
         # Fetch all-time leaders from NBA API
-        all_time_endpoint = await asyncio.to_thread(
-            lambda: alltimeleadersgrids.AllTimeLeadersGrids(
-                topx=top_n,
-                per_mode_simple=PerModeSimple.totals,
-                season_type=SeasonType.regular,
-                **api_kwargs
-            )
+        await rate_limit()
+        all_time_endpoint = await asyncio.wait_for(
+            asyncio.to_thread(
+                lambda: alltimeleadersgrids.AllTimeLeadersGrids(
+                    topx=top_n,
+                    per_mode_simple=PerModeSimple.totals,
+                    season_type=SeasonType.regular,
+                    **api_kwargs
+                ).get_data_frames()
+            ),
+            timeout=15.0
         )
         
         categories: List[AllTimeLeaderCategory] = []
