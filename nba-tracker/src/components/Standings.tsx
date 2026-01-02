@@ -19,6 +19,10 @@ import {
   Paper,
   useTheme,
   useMediaQuery,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material';
 import { StandingRecord, StandingsResponse } from '../types/standings';
 import { TrendingUp, TrendingDown } from '@mui/icons-material';
@@ -26,52 +30,15 @@ import Navbar from './Navbar';
 import UniversalSidebar from './UniversalSidebar';
 import { responsiveSpacing, borderRadius, transitions, typography } from '../theme/designTokens';
 import { fetchJson } from '../utils/apiClient';
-import { getCurrentSeason } from '../utils/season';
+import { getCurrentSeason, getSeasonOptions } from '../utils/season';
+import { getTeamInfo } from '../utils/teamMappings';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
-/**
- * Map of team names to their abbreviations and logo paths.
- */
-const teamMappings: { [key: string]: { abbreviation: string; logo: string } } = {
-  'Atlanta Hawks': { abbreviation: 'ATL', logo: '/logos/ATL.svg' },
-  'Boston Celtics': { abbreviation: 'BOS', logo: '/logos/BOS.svg' },
-  'Brooklyn Nets': { abbreviation: 'BKN', logo: '/logos/BKN.svg' },
-  'Charlotte Hornets': { abbreviation: 'CHA', logo: '/logos/CHA.svg' },
-  'Chicago Bulls': { abbreviation: 'CHI', logo: '/logos/CHI.svg' },
-  'Cleveland Cavaliers': { abbreviation: 'CLE', logo: '/logos/CLE.svg' },
-  'Dallas Mavericks': { abbreviation: 'DAL', logo: '/logos/DAL.svg' },
-  'Denver Nuggets': { abbreviation: 'DEN', logo: '/logos/DEN.svg' },
-  'Detroit Pistons': { abbreviation: 'DET', logo: '/logos/DET.svg' },
-  'Golden State Warriors': { abbreviation: 'GSW', logo: '/logos/GSW.svg' },
-  'Houston Rockets': { abbreviation: 'HOU', logo: '/logos/HOU.svg' },
-  'Indiana Pacers': { abbreviation: 'IND', logo: '/logos/IND.svg' },
-  'LA Clippers': { abbreviation: 'LAC', logo: '/logos/LAC.svg' },
-  'Los Angeles Lakers': { abbreviation: 'LAL', logo: '/logos/LAL.svg' },
-  'Memphis Grizzlies': { abbreviation: 'MEM', logo: '/logos/MEM.svg' },
-  'Miami Heat': { abbreviation: 'MIA', logo: '/logos/MIA.svg' },
-  'Milwaukee Bucks': { abbreviation: 'MIL', logo: '/logos/MIL.svg' },
-  'Minnesota Timberwolves': { abbreviation: 'MIN', logo: '/logos/MIN.svg' },
-  'New Orleans Pelicans': { abbreviation: 'NOP', logo: '/logos/NOP.svg' },
-  'New York Knicks': { abbreviation: 'NYK', logo: '/logos/NYK.svg' },
-  'Oklahoma City Thunder': { abbreviation: 'OKC', logo: '/logos/OKC.svg' },
-  'Orlando Magic': { abbreviation: 'ORL', logo: '/logos/ORL.svg' },
-  'Philadelphia 76ers': { abbreviation: 'PHI', logo: '/logos/PHI.svg' },
-  'Phoenix Suns': { abbreviation: 'PHX', logo: '/logos/PHX.svg' },
-  'Portland Trail Blazers': { abbreviation: 'POR', logo: '/logos/POR.svg' },
-  'Sacramento Kings': { abbreviation: 'SAC', logo: '/logos/SAC.svg' },
-  'San Antonio Spurs': { abbreviation: 'SAS', logo: '/logos/SAS.svg' },
-  'Toronto Raptors': { abbreviation: 'TOR', logo: '/logos/TOR.svg' },
-  'Utah Jazz': { abbreviation: 'UTA', logo: '/logos/UTA.svg' },
-  'Washington Wizards': { abbreviation: 'WAS', logo: '/logos/WAS.svg' },
-};
 
 type ViewType = 'league' | 'conference' | 'division';
 
-/**
- * Standings page with polished table design and multiple view options.
- * Displays teams in a professional table format with clear hierarchy.
- */
+// Standings page with league/conference/division views
 const Standings = () => {
   const { season } = useParams<{ season?: string }>();
   const navigate = useNavigate();
@@ -79,13 +46,14 @@ const Standings = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const seasonParam = season || getCurrentSeason();
+  const seasonOptions = getSeasonOptions(5);
   const [standings, setStandings] = useState<StandingRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [viewType, setViewType] = useState<ViewType>('league');
   const [selectedConference, setSelectedConference] = useState<'East' | 'West'>('East');
 
-  // Handle season change from sidebar
+  // Handle season change
   const handleSeasonChange = (newSeason: string) => {
     if (newSeason !== seasonParam) {
       navigate(`/standings/${newSeason}`);
@@ -176,8 +144,9 @@ const Standings = () => {
 
   const renderTableRow = (team: StandingRecord, showRank: boolean = true) => {
     const fullTeamName = `${team.team_city} ${team.team_name}`;
-    const logo = teamMappings[fullTeamName]?.logo || '/logos/default.svg';
-    const abbreviation = teamMappings[fullTeamName]?.abbreviation || '';
+    const teamInfo = getTeamInfo(fullTeamName);
+    const logo = teamInfo.logo;
+    const abbreviation = teamInfo.abbreviation;
     const isPlayoffTeam = team.playoff_rank <= 8;
     const isTopSeed = team.playoff_rank <= 3;
     const streakColor = team.current_streak_str.startsWith('W') ? 'success.main' : 'error.main';
@@ -628,18 +597,32 @@ const Standings = () => {
         >
           <Container maxWidth="xl" sx={{ py: responsiveSpacing.containerVertical, px: responsiveSpacing.container }}>
             {/* Page header */}
-            <Box sx={{ mb: responsiveSpacing.section }}>
+            <Box sx={{ mb: responsiveSpacing.section, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
               <Typography
                 variant="h4"
                 sx={{
                   fontWeight: typography.weight.bold,
-                  mb: 0.5,
                   fontSize: typography.size.h4,
                   color: 'text.primary',
                 }}
               >
                 Standings
               </Typography>
+              <FormControl size="small" sx={{ minWidth: 180 }}>
+                <InputLabel>Season</InputLabel>
+                <Select
+                  value={seasonParam}
+                  label="Season"
+                  onChange={(e) => handleSeasonChange(e.target.value)}
+                  sx={{ borderRadius: borderRadius.sm }}
+                >
+                  {seasonOptions.map(seasonOption => (
+                    <MenuItem key={seasonOption} value={seasonOption}>
+                      {seasonOption} Regular Season
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
             </Box>
 
             {/* View tabs */}
@@ -737,7 +720,7 @@ const Standings = () => {
             overflowY: 'auto',
           }}
         >
-          <UniversalSidebar season={seasonParam} onSeasonChange={handleSeasonChange} />
+          <UniversalSidebar />
         </Box>
       </Box>
     </Box>

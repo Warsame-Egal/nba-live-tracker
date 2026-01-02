@@ -25,12 +25,12 @@ import { fetchJson } from '../utils/apiClient';
 import { PlayerSummary } from '../types/player';
 import { StandingsResponse } from '../types/standings';
 import { getCurrentSeason, getSeasonOptions } from '../utils/season';
+import { getTeamAbbreviation } from '../utils/teamMappings';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 interface UniversalSidebarProps {
-  season?: string;
-  onSeasonChange?: (season: string) => void;
+  // No props needed - sidebar is isolated and manages its own state
 }
 
 type TabValue = 'teams' | 'players';
@@ -39,7 +39,7 @@ type TabValue = 'teams' | 'players';
  * Universal sidebar component with Teams and Players tabs.
  * Provides search and filtering for teams and players across the app.
  */
-const UniversalSidebar: React.FC<UniversalSidebarProps> = ({ season, onSeasonChange }) => {
+const UniversalSidebar: React.FC<UniversalSidebarProps> = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -51,7 +51,8 @@ const UniversalSidebar: React.FC<UniversalSidebarProps> = ({ season, onSeasonCha
   };
   
   const [activeTab, setActiveTab] = useState<TabValue>(() => getInitialTab(location.pathname));
-  const [currentSeason, setCurrentSeason] = useState(() => season || getCurrentSeason());
+  // Sidebar manages its own season state - isolated from main pages
+  const [currentSeason, setCurrentSeason] = useState(() => getCurrentSeason());
   
   // Players tab state
   const [players, setPlayers] = useState<PlayerSummary[]>([]);
@@ -85,11 +86,16 @@ const UniversalSidebar: React.FC<UniversalSidebarProps> = ({ season, onSeasonCha
     // If on standings or other pages, keep the current tab selection
   }, [location.pathname]);
 
-  useEffect(() => {
-    if (season && season !== currentSeason) {
-      setCurrentSeason(season);
+  // Handle season change in sidebar (only affects sidebar data, not main pages)
+  const handleSidebarSeasonChange = useCallback((newSeason: string) => {
+    setCurrentSeason(newSeason);
+    // Refresh sidebar data with new season
+    if (activeTab === 'players') {
+      // fetchTopPlayersByStat will be called via useEffect when currentSeason changes
+    } else if (activeTab === 'teams') {
+      // Teams data doesn't depend on season, so no refresh needed
     }
-  }, [season]);
+  }, [activeTab]);
 
 
   // Fetch top players by stat
@@ -134,21 +140,9 @@ const UniversalSidebar: React.FC<UniversalSidebarProps> = ({ season, onSeasonCha
     }
   }, []);
 
-  const getTeamAbbreviation = useCallback((teamCity: string, teamName: string): string => {
-    const teamMappings: { [key: string]: string } = {
-      'Atlanta Hawks': 'ATL', 'Boston Celtics': 'BOS', 'Brooklyn Nets': 'BKN',
-      'Charlotte Hornets': 'CHA', 'Chicago Bulls': 'CHI', 'Cleveland Cavaliers': 'CLE',
-      'Dallas Mavericks': 'DAL', 'Denver Nuggets': 'DEN', 'Detroit Pistons': 'DET',
-      'Golden State Warriors': 'GSW', 'Houston Rockets': 'HOU', 'Indiana Pacers': 'IND',
-      'LA Clippers': 'LAC', 'Los Angeles Lakers': 'LAL', 'Memphis Grizzlies': 'MEM',
-      'Miami Heat': 'MIA', 'Milwaukee Bucks': 'MIL', 'Minnesota Timberwolves': 'MIN',
-      'New Orleans Pelicans': 'NOP', 'New York Knicks': 'NYK', 'Oklahoma City Thunder': 'OKC',
-      'Orlando Magic': 'ORL', 'Philadelphia 76ers': 'PHI', 'Phoenix Suns': 'PHX',
-      'Portland Trail Blazers': 'POR', 'Sacramento Kings': 'SAC', 'San Antonio Spurs': 'SAS',
-      'Toronto Raptors': 'TOR', 'Utah Jazz': 'UTA', 'Washington Wizards': 'WAS',
-    };
+  const getTeamAbbrev = useCallback((teamCity: string, teamName: string): string => {
     const fullName = `${teamCity} ${teamName}`;
-    return teamMappings[fullName] || teamName.substring(0, 3).toUpperCase();
+    return getTeamAbbreviation(fullName);
   }, []);
 
   // Fetch all teams
@@ -166,7 +160,7 @@ const UniversalSidebar: React.FC<UniversalSidebarProps> = ({ season, onSeasonCha
       const teamsList = data.standings.map(standing => ({
         id: standing.team_id,
         name: `${standing.team_city} ${standing.team_name}`,
-        abbreviation: getTeamAbbreviation(standing.team_city, standing.team_name),
+        abbreviation: getTeamAbbrev(standing.team_city, standing.team_name),
       }));
 
       setAllTeams(teamsList);
@@ -179,7 +173,7 @@ const UniversalSidebar: React.FC<UniversalSidebarProps> = ({ season, onSeasonCha
       setTeamsLoading(false);
       teamsFetchingRef.current = false;
     }
-  }, [currentSeason, getTeamAbbreviation]);
+  }, [currentSeason, getTeamAbbrev]);
 
   // Reset refs when switching tabs to allow fresh fetches
   useEffect(() => {
@@ -308,11 +302,7 @@ const UniversalSidebar: React.FC<UniversalSidebarProps> = ({ season, onSeasonCha
             value={currentSeason}
             label="Season"
             onChange={e => {
-              const newSeason = e.target.value;
-              setCurrentSeason(newSeason);
-              if (onSeasonChange) {
-                onSeasonChange(newSeason);
-              }
+              handleSidebarSeasonChange(e.target.value);
             }}
             sx={{
               borderRadius: borderRadius.sm,
@@ -387,7 +377,7 @@ const UniversalSidebar: React.FC<UniversalSidebarProps> = ({ season, onSeasonCha
               return (
                 <ListItem key={player.PERSON_ID} disablePadding>
                   <ListItemButton
-                    onClick={() => navigate(`/players/${player.PERSON_ID}`)}
+                    onClick={() => navigate(`/player/${player.PERSON_ID}`)}
                     sx={{
                       py: 1.5,
                       px: responsiveSpacing.container,
@@ -463,11 +453,7 @@ const UniversalSidebar: React.FC<UniversalSidebarProps> = ({ season, onSeasonCha
             value={currentSeason}
             label="Season"
             onChange={e => {
-              const newSeason = e.target.value;
-              setCurrentSeason(newSeason);
-              if (onSeasonChange) {
-                onSeasonChange(newSeason);
-              }
+              handleSidebarSeasonChange(e.target.value);
             }}
             sx={{
               borderRadius: borderRadius.sm,

@@ -47,17 +47,13 @@ const SCOREBOARD_WEBSOCKET_URL = `${
 // Base URL for API calls
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
-/**
- * Get today's date in YYYY-MM-DD format, adjusted for local timezone.
- */
+// Get today's date in YYYY-MM-DD format (local timezone)
 const getLocalISODate = (): string => {
   const tzoffset = new Date().getTimezoneOffset() * 60000;
   return new Date(Date.now() - tzoffset).toISOString().slice(0, 10);
 };
 
-/**
- * Figure out if a game is live, upcoming, or completed based on its status.
- */
+// Determine if game is live, upcoming, or completed
 const getGameStatus = (game: Game | GameSummary): 'live' | 'upcoming' | 'completed' => {
   // Check if it's a live game (has homeTeam property)
   if ('homeTeam' in game) {
@@ -76,11 +72,7 @@ const getGameStatus = (game: Game | GameSummary): 'live' | 'upcoming' | 'complet
   return 'upcoming';
 };
 
-/**
- * Main scoreboard page that shows all NBA games.
- * Displays live games, upcoming games, and completed games.
- * Also has search functionality and a date picker.
- */
+// Main scoreboard page showing all NBA games with search and date picker
 const Scoreboard = () => {
   // List of all games to display
   const [games, setGames] = useState<(Game | GameSummary)[]>([]);
@@ -747,7 +739,7 @@ const Scoreboard = () => {
                           <ListItem
                             key={`p${player.id}`}
                             component={MuiLink}
-                            href={`/players/${player.id}`}
+                            href={`/player/${player.id}`}
                             onClick={() => setShowSearchResults(false)}
                             sx={{
                               cursor: 'pointer',
@@ -1307,7 +1299,7 @@ const CompactTopPerformer: React.FC<CompactTopPerformerProps> = ({ player, teamT
   return (
     <Box
       component={isValidPlayerId ? Link : Box}
-      to={isValidPlayerId ? `/players/${player.player_id}` : undefined}
+      to={isValidPlayerId ? `/player/${player.player_id}` : undefined}
       sx={{
         display: 'flex',
         alignItems: 'center',

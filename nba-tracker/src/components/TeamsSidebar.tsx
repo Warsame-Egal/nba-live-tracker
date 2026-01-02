@@ -21,6 +21,7 @@ import { Search } from '@mui/icons-material';
 import { responsiveSpacing, typography, borderRadius } from '../theme/designTokens';
 import { fetchJson } from '../utils/apiClient';
 import { StandingsResponse } from '../types/standings';
+import { getSeasonOptions } from '../utils/season';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
@@ -43,58 +44,8 @@ const TeamsSidebar: React.FC<TeamsSidebarProps> = ({ season, onSeasonChange }) =
   const [loading, setLoading] = useState(false);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const getSeasonOptions = (): string[] => {
-    const seasons: string[] = [];
-    const currentYear = new Date().getFullYear();
-    const currentMonth = new Date().getMonth() + 1;
-    const currentSeasonStartYear = currentMonth >= 10 ? currentYear : currentYear - 1;
+  const seasonOptions = getSeasonOptions(5);
 
-    for (let i = 0; i < 5; i++) {
-      const year = currentSeasonStartYear - i;
-      const seasonStr = `${year}-${(year + 1).toString().slice(2)}`;
-      seasons.push(seasonStr);
-    }
-    return seasons;
-  };
-
-  const seasonOptions = getSeasonOptions();
-
-  const getTeamAbbreviation = (teamCity: string, teamName: string): string => {
-    const teamMappings: { [key: string]: string } = {
-      'Atlanta Hawks': 'ATL',
-      'Boston Celtics': 'BOS',
-      'Brooklyn Nets': 'BKN',
-      'Charlotte Hornets': 'CHA',
-      'Chicago Bulls': 'CHI',
-      'Cleveland Cavaliers': 'CLE',
-      'Dallas Mavericks': 'DAL',
-      'Denver Nuggets': 'DEN',
-      'Detroit Pistons': 'DET',
-      'Golden State Warriors': 'GSW',
-      'Houston Rockets': 'HOU',
-      'Indiana Pacers': 'IND',
-      'LA Clippers': 'LAC',
-      'Los Angeles Lakers': 'LAL',
-      'Memphis Grizzlies': 'MEM',
-      'Miami Heat': 'MIA',
-      'Milwaukee Bucks': 'MIL',
-      'Minnesota Timberwolves': 'MIN',
-      'New Orleans Pelicans': 'NOP',
-      'New York Knicks': 'NYK',
-      'Oklahoma City Thunder': 'OKC',
-      'Orlando Magic': 'ORL',
-      'Philadelphia 76ers': 'PHI',
-      'Phoenix Suns': 'PHX',
-      'Portland Trail Blazers': 'POR',
-      'Sacramento Kings': 'SAC',
-      'San Antonio Spurs': 'SAS',
-      'Toronto Raptors': 'TOR',
-      'Utah Jazz': 'UTA',
-      'Washington Wizards': 'WAS',
-    };
-    const fullName = `${teamCity} ${teamName}`;
-    return teamMappings[fullName] || teamName.substring(0, 3).toUpperCase();
-  };
 
   const fetchAllTeams = useCallback(async (seasonParam: string) => {
     setLoading(true);
@@ -108,7 +59,7 @@ const TeamsSidebar: React.FC<TeamsSidebarProps> = ({ season, onSeasonChange }) =
       const teamsList: TeamListItem[] = data.standings.map(standing => ({
         id: standing.team_id,
         name: `${standing.team_city} ${standing.team_name}`,
-        abbreviation: getTeamAbbreviation(standing.team_city, standing.team_name),
+        abbreviation: getTeamAbbreviation(`${standing.team_city} ${standing.team_name}`),
       }));
 
       setAllTeams(teamsList);

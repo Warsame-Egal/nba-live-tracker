@@ -1,10 +1,7 @@
 import { Box, Typography, Button } from '@mui/material';
 import { Link } from 'react-router-dom';
 
-/**
- * 404 error page that shows when user navigates to a page that doesn't exist.
- * Provides a button to go back to the home page.
- */
+// 404 page for invalid routes
 const NotFound = () => (
   <Box
     sx={{

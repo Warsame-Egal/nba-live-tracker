@@ -704,7 +704,7 @@ const LeaderPreview: React.FC<LeaderPreviewProps> = ({ leader, teamTricode, navi
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (isValidPlayerId) navigate(`/players/${leader.personId}`);
+    if (isValidPlayerId) navigate(`/player/${leader.personId}`);
   };
 
   const nameParts = leader.name ? leader.name.split(' ') : [];
@@ -725,7 +725,7 @@ const LeaderPreview: React.FC<LeaderPreviewProps> = ({ leader, teamTricode, navi
       }}
     >
       {isValidPlayerId ? (
-        <MuiLink component={Link} to={`/players/${leader.personId}`} sx={{ textDecoration: 'none' }}>
+        <MuiLink component={Link} to={`/player/${leader.personId}`} sx={{ textDecoration: 'none' }}>
           <Avatar
             src={avatarUrl}
             alt={leader.name || 'Player'}
@@ -759,7 +759,7 @@ const LeaderPreview: React.FC<LeaderPreviewProps> = ({ leader, teamTricode, navi
           {isValidPlayerId ? (
             <MuiLink
               component={Link}
-              to={`/players/${leader.personId}`}
+              to={`/player/${leader.personId}`}
               sx={{
                 color: 'text.primary',
                 fontWeight: typography.weight.semibold,
@@ -840,7 +840,7 @@ const TopPerformerPreview: React.FC<TopPerformerPreviewProps> = ({ player, teamT
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (isValidPlayerId) navigate(`/players/${player.player_id}`);
+    if (isValidPlayerId) navigate(`/player/${player.player_id}`);
   };
 
   const nameParts = player.name ? player.name.split(' ') : [];
@@ -861,7 +861,7 @@ const TopPerformerPreview: React.FC<TopPerformerPreviewProps> = ({ player, teamT
       }}
     >
       {isValidPlayerId ? (
-        <MuiLink component={Link} to={`/players/${player.player_id}`} sx={{ textDecoration: 'none' }}>
+        <MuiLink component={Link} to={`/player/${player.player_id}`} sx={{ textDecoration: 'none' }}>
           <Avatar
             src={avatarUrl}
             alt={player.name || 'Player'}
@@ -895,7 +895,7 @@ const TopPerformerPreview: React.FC<TopPerformerPreviewProps> = ({ player, teamT
           {isValidPlayerId ? (
             <MuiLink
               component={Link}
-              to={`/players/${player.player_id}`}
+              to={`/player/${player.player_id}`}
               sx={{
                 color: 'text.primary',
                 fontWeight: typography.weight.semibold,

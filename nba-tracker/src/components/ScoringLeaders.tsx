@@ -103,7 +103,7 @@ const LeaderCard = ({ leader, teamName, teamTricode, isHome }: LeaderCardProps) 
 
   // Avatar component (clickable only if valid player ID)
   const AvatarComponent = isValidPlayerId ? (
-    <MuiLink component={Link} to={`/players/${leader.personId}`} sx={{ textDecoration: 'none' }}>
+    <MuiLink component={Link} to={`/player/${leader.personId}`} sx={{ textDecoration: 'none' }}>
       <Avatar
         src={avatarUrl}
         alt={leader.name}
@@ -144,7 +144,7 @@ const LeaderCard = ({ leader, teamName, teamTricode, isHome }: LeaderCardProps) 
   const NameComponent = isValidPlayerId ? (
     <MuiLink
       component={Link}
-      to={`/players/${leader.personId}`}
+      to={`/player/${leader.personId}`}
       sx={{
         color: 'text.primary',
         fontWeight: 700,

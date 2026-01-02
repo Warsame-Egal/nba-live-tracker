@@ -8,19 +8,14 @@ import { logger } from '../utils/logger';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
-/**
- * Modern play-by-play component that displays game events in a timeline format.
- * Uses WebSocket for live games and REST API for completed games.
- */
+// Play-by-play timeline for game events
+// Uses WebSocket for live games, REST API for completed games
 const PlayByPlay = ({ gameId, isLiveGame = false }: { gameId: string; isLiveGame?: boolean }) => {
   const [actions, setActions] = useState<PlayByPlayEvent[]>([]);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [loading, setLoading] = useState(false);
   const socketRef = useRef<PlayByPlayWebSocketService | null>(null);
 
-  /**
-   * Fetch play-by-play data from REST API for completed games.
-   */
   useEffect(() => {
     if (!gameId || isLiveGame) return;
 
@@ -51,9 +46,6 @@ const PlayByPlay = ({ gameId, isLiveGame = false }: { gameId: string; isLiveGame
     fetchPlayByPlay();
   }, [gameId, isLiveGame]);
 
-  /**
-   * Set up WebSocket connection for live games.
-   */
   useEffect(() => {
     if (!gameId || !isLiveGame) return;
 

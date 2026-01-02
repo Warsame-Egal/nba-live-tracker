@@ -397,12 +397,13 @@ async def get_season_leaders(season: str = "2024-25") -> SeasonLeadersResponse:
             )
         
         # Replace NaN values with 0 for numeric columns
-        for col in ["PTS", "REB", "AST", "STL", "BLK"]:
+        numeric_cols = ["PTS", "REB", "AST", "STL", "BLK", "FG_PCT", "FG3M", "FG3_PCT"]
+        for col in numeric_cols:
             if col in stats_data.columns:
                 stats_data[col] = pd.to_numeric(stats_data[col], errors='coerce').fillna(0)
         
         # Helper function to create leaders for a stat
-        def create_leaders(df: pd.DataFrame, stat_col: str, category_name: str, top_n: int = 5) -> SeasonLeadersCategory:
+        def create_leaders(df: pd.DataFrame, stat_col: str, category_name: str, top_n: int = 5, is_percentage: bool = False, is_whole_number: bool = False) -> SeasonLeadersCategory:
             if stat_col not in df.columns:
                 return SeasonLeadersCategory(category=category_name, leaders=[])
             
@@ -419,12 +420,20 @@ async def get_season_leaders(season: str = "2024-25") -> SeasonLeadersResponse:
                 value = float(row.get(stat_col, 0)) if pd.notna(row.get(stat_col)) else 0.0
                 
                 if value >= 0 and player_name:
+                    # Format value based on type
+                    if is_percentage:
+                        formatted_value = round(value * 100, 1) if value <= 1 else round(value, 1)
+                    elif is_whole_number:
+                        formatted_value = int(round(value))
+                    else:
+                        formatted_value = round(value, 1)
+                    
                     leaders.append(SeasonLeader(
                         player_id=int(row.get("PLAYER_ID", 0)),
                         player_name=player_name,
                         team_abbreviation=row.get("TEAM_ABBREVIATION"),
                         position=None,  # Not available in this endpoint
-                        value=round(value, 1)
+                        value=formatted_value
                     ))
             
             return SeasonLeadersCategory(category=category_name, leaders=leaders)
@@ -435,12 +444,164 @@ async def get_season_leaders(season: str = "2024-25") -> SeasonLeadersResponse:
         categories.append(create_leaders(stats_data, "AST", "Assists Per Game"))
         categories.append(create_leaders(stats_data, "STL", "Steals Per Game"))
         categories.append(create_leaders(stats_data, "BLK", "Blocks Per Game"))
+        categories.append(create_leaders(stats_data, "FG_PCT", "Field Goal Percentage", is_percentage=True))
+        categories.append(create_leaders(stats_data, "FG3M", "Three Pointers Made", is_whole_number=True))
+        categories.append(create_leaders(stats_data, "FG3_PCT", "Three Point Percentage", is_percentage=True))
         
         return SeasonLeadersResponse(season=season, categories=categories)
         
     except Exception as e:
         logger.error(f"Error fetching season leaders for season {season}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Error fetching season leaders: {str(e)}")
+
+
+async def get_league_roster() -> List[PlayerSummary]:
+    """
+    Get all active players in the league (roster).
+    Returns players with their team, position, height, weight, college, and country.
+    
+    Returns:
+        List[PlayerSummary]: List of all active players
+    """
+    try:
+        api_kwargs = get_api_kwargs()
+        await rate_limit()
+        player_index_data = await asyncio.wait_for(
+            asyncio.to_thread(
+                lambda: playerindex.PlayerIndex(historical_nullable=HistoricalNullable.all_time, **api_kwargs)
+            ),
+            timeout=30.0
+        )
+        player_index_df = player_index_data.get_data_frames()[0]
+        
+        logger.info(f"Total players in index: {len(player_index_df)}")
+        
+        # Check what ROSTER_STATUS values exist
+        if "ROSTER_STATUS" in player_index_df.columns:
+            unique_statuses = player_index_df["ROSTER_STATUS"].unique()
+            logger.info(f"Unique ROSTER_STATUS values: {unique_statuses}")
+        
+        # Filter for active players - ROSTER_STATUS can be numeric (1.0 = active) or string ("Active")
+        if "ROSTER_STATUS" in player_index_df.columns:
+            try:
+                # Check if column is numeric by trying to convert
+                # ROSTER_STATUS values are typically [nan, 1.0] where 1.0 = active
+                # Filter for non-null values that equal 1.0 or 1
+                mask = player_index_df["ROSTER_STATUS"].notna()
+                numeric_mask = pd.to_numeric(player_index_df["ROSTER_STATUS"], errors='coerce').notna()
+                
+                if numeric_mask.any():
+                    # It's numeric - filter for 1.0 or 1
+                    active_players = player_index_df[
+                        mask & 
+                        ((pd.to_numeric(player_index_df["ROSTER_STATUS"], errors='coerce') == 1.0) |
+                         (pd.to_numeric(player_index_df["ROSTER_STATUS"], errors='coerce') == 1))
+                    ]
+                else:
+                    # Try string matching (case-insensitive)
+                    player_index_df["ROSTER_STATUS"] = player_index_df["ROSTER_STATUS"].fillna("")
+                    active_players = player_index_df[
+                        player_index_df["ROSTER_STATUS"].astype(str).str.upper().str.strip() == "ACTIVE"
+                    ]
+                
+                logger.info(f"Active players found: {len(active_players)}")
+                
+                # If no active players found, return all players
+                if active_players.empty:
+                    logger.warning("No players with ROSTER_STATUS='Active' found. Returning all players.")
+                    active_players = player_index_df
+            except Exception as e:
+                logger.warning(f"Error filtering by ROSTER_STATUS: {e}. Returning all players.")
+                active_players = player_index_df
+        else:
+            logger.warning("ROSTER_STATUS column not found. Returning all players.")
+            active_players = player_index_df
+        
+        # Helper function to safely parse integer fields
+        def safe_int(value, default=None):
+            if value is None or pd.isna(value):
+                return default
+            if isinstance(value, (int, float)):
+                return int(value) if not pd.isna(value) else default
+            value_str = str(value).strip()
+            if not value_str or value_str == '':
+                return default
+            try:
+                return int(float(value_str))
+            except (ValueError, TypeError):
+                return default
+        
+        # Helper function to safely parse string fields
+        def safe_str(value, default=None):
+            if value is None or pd.isna(value):
+                return default
+            value_str = str(value).strip()
+            return value_str if value_str else default
+        
+        # Helper function to safely parse float fields
+        def safe_float(value, default=None):
+            if value is None or pd.isna(value):
+                return default
+            if isinstance(value, (int, float)):
+                return float(value) if not pd.isna(value) else default
+            value_str = str(value).strip()
+            if not value_str or value_str == '':
+                return default
+            try:
+                return float(value_str)
+            except (ValueError, TypeError):
+                return default
+        
+        # Convert to PlayerSummary list
+        player_summaries: List[PlayerSummary] = []
+        for _, row in active_players.iterrows():
+            try:
+                player_data = row.to_dict()
+                roster_status = player_data.get("ROSTER_STATUS")
+                if isinstance(roster_status, float):
+                    roster_status = str(roster_status)
+                elif roster_status is None:
+                    roster_status = ""
+                
+                player_summaries.append(
+                    PlayerSummary(
+                        PERSON_ID=int(player_data.get("PERSON_ID", 0)) if pd.notna(player_data.get("PERSON_ID")) else 0,
+                        PLAYER_LAST_NAME=safe_str(player_data.get("PLAYER_LAST_NAME"), ""),
+                        PLAYER_FIRST_NAME=safe_str(player_data.get("PLAYER_FIRST_NAME"), ""),
+                        PLAYER_SLUG=safe_str(player_data.get("PLAYER_SLUG")),
+                        TEAM_ID=safe_int(player_data.get("TEAM_ID")),
+                        TEAM_SLUG=safe_str(player_data.get("TEAM_SLUG")),
+                        IS_DEFUNCT=safe_int(player_data.get("IS_DEFUNCT")),
+                        TEAM_CITY=safe_str(player_data.get("TEAM_CITY")),
+                        TEAM_NAME=safe_str(player_data.get("TEAM_NAME")),
+                        TEAM_ABBREVIATION=safe_str(player_data.get("TEAM_ABBREVIATION")),
+                        JERSEY_NUMBER=safe_str(player_data.get("JERSEY_NUMBER")),
+                        POSITION=safe_str(player_data.get("POSITION")),
+                        HEIGHT=safe_str(player_data.get("HEIGHT")),
+                        WEIGHT=safe_int(player_data.get("WEIGHT")),  # This was causing the error - space string
+                        COLLEGE=safe_str(player_data.get("COLLEGE")),
+                        COUNTRY=safe_str(player_data.get("COUNTRY")),
+                        ROSTER_STATUS=roster_status or "",
+                        PTS=safe_float(player_data.get("PTS")),
+                        REB=safe_float(player_data.get("REB")),
+                        AST=safe_float(player_data.get("AST")),
+                        STL=safe_float(player_data.get("STL")),
+                        BLK=safe_float(player_data.get("BLK")),
+                        STATS_TIMEFRAME=safe_str(player_data.get("STATS_TIMEFRAME")),
+                        FROM_YEAR=safe_int(player_data.get("FROM_YEAR")),
+                        TO_YEAR=safe_int(player_data.get("TO_YEAR")),
+                        recent_games=[],
+                    )
+                )
+            except Exception as e:
+                logger.warning(f"Error parsing player row (ID: {player_data.get('PERSON_ID', 'unknown')}): {e}. Skipping player.")
+                continue
+        
+        return player_summaries
+        
+    except Exception as e:
+        logger.error(f"Error fetching league roster: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error fetching league roster: {str(e)}")
 
 
 async def get_player_game_log(player_id: str, season: str = "2024-25") -> PlayerGameLogResponse:

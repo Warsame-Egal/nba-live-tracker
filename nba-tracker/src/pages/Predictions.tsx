@@ -42,35 +42,10 @@ import { getCurrentSeason } from '../utils/season';
 import { PredictionsResponse, GamePrediction } from '../types/predictions';
 import { useTheme, alpha } from '@mui/material/styles';
 import { format, parseISO, addDays, subDays } from 'date-fns';
+import { getTeamAbbreviation, getTeamLogo } from '../utils/teamMappings';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
-const teamLogos: Record<string, string> = {
-  ATL: '/logos/ATL.svg', BOS: '/logos/BOS.svg', BKN: '/logos/BKN.svg', CHA: '/logos/CHA.svg',
-  CHI: '/logos/CHI.svg', CLE: '/logos/CLE.svg', DAL: '/logos/DAL.svg', DEN: '/logos/DEN.svg',
-  DET: '/logos/DET.svg', GSW: '/logos/GSW.svg', HOU: '/logos/HOU.svg', IND: '/logos/IND.svg',
-  LAC: '/logos/LAC.svg', LAL: '/logos/LAL.svg', MEM: '/logos/MEM.svg', MIA: '/logos/MIA.svg',
-  MIL: '/logos/MIL.svg', MIN: '/logos/MIN.svg', NOP: '/logos/NOP.svg', NYK: '/logos/NYK.svg',
-  OKC: '/logos/OKC.svg', ORL: '/logos/ORL.svg', PHI: '/logos/PHI.svg', PHX: '/logos/PHX.svg',
-  POR: '/logos/POR.svg', SAC: '/logos/SAC.svg', SAS: '/logos/SAS.svg', TOR: '/logos/TOR.svg',
-  UTA: '/logos/UTA.svg', WAS: '/logos/WAS.svg',
-};
-
-const getTeamAbbreviation = (teamName: string): string => {
-  const mapping: Record<string, string> = {
-    'Atlanta Hawks': 'ATL', 'Boston Celtics': 'BOS', 'Brooklyn Nets': 'BKN',
-    'Charlotte Hornets': 'CHA', 'Chicago Bulls': 'CHI', 'Cleveland Cavaliers': 'CLE',
-    'Dallas Mavericks': 'DAL', 'Denver Nuggets': 'DEN', 'Detroit Pistons': 'DET',
-    'Golden State Warriors': 'GSW', 'Houston Rockets': 'HOU', 'Indiana Pacers': 'IND',
-    'LA Clippers': 'LAC', 'Los Angeles Lakers': 'LAL', 'Memphis Grizzlies': 'MEM',
-    'Miami Heat': 'MIA', 'Milwaukee Bucks': 'MIL', 'Minnesota Timberwolves': 'MIN',
-    'New Orleans Pelicans': 'NOP', 'New York Knicks': 'NYK', 'Oklahoma City Thunder': 'OKC',
-    'Orlando Magic': 'ORL', 'Philadelphia 76ers': 'PHI', 'Phoenix Suns': 'PHX',
-    'Portland Trail Blazers': 'POR', 'Sacramento Kings': 'SAC', 'San Antonio Spurs': 'SAS',
-    'Toronto Raptors': 'TOR', 'Utah Jazz': 'UTA', 'Washington Wizards': 'WAS',
-  };
-  return mapping[teamName] || 'NBA';
-};
 
 const Predictions = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -314,7 +289,7 @@ const Predictions = () => {
             overflowY: 'auto',
           }}
         >
-          <UniversalSidebar season={season} onSeasonChange={() => {}} />
+          <UniversalSidebar />
         </Box>
       </Box>
     </Box>
@@ -327,8 +302,8 @@ const PredictionCard: React.FC<{ prediction: GamePrediction }> = ({ prediction }
   
   const homeAbbr = getTeamAbbreviation(prediction.home_team_name);
   const awayAbbr = getTeamAbbreviation(prediction.away_team_name);
-  const homeLogo = teamLogos[homeAbbr] || '/logos/default.svg';
-  const awayLogo = teamLogos[awayAbbr] || '/logos/default.svg';
+  const homeLogo = getTeamLogo(prediction.home_team_name);
+  const awayLogo = getTeamLogo(prediction.away_team_name);
   
   const homeWinProb = prediction.home_win_probability * 100;
   const awayWinProb = prediction.away_win_probability * 100;

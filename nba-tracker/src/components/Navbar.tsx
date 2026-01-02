@@ -3,17 +3,11 @@ import { AppBar, Toolbar, Button, Box, Typography, IconButton, Tooltip } from '@
 import { LightMode, DarkMode } from '@mui/icons-material';
 import { useThemeMode } from '../contexts/ThemeContext';
 
-/**
- * Navigation bar component that appears at the top of every page.
- * Shows the app logo and navigation links.
- */
+// Top navigation bar with app logo and links
 const Navbar = () => {
-  // Get current page location to highlight active link
   const location = useLocation();
-  // Get theme mode and toggle function
   const { mode, toggleColorMode } = useThemeMode();
 
-  // Navigation items to display
   const navItems = [
     { label: 'Scoreboard', path: '/' },
     { label: 'Standings', path: '/standings' },
@@ -22,9 +16,6 @@ const Navbar = () => {
     { label: 'Predictions', path: '/predictions' },
   ];
 
-  /**
-   * Check if a navigation item is currently active (on that page).
-   */
   const isActive = (path: string) => location.pathname === path;
 
   return (

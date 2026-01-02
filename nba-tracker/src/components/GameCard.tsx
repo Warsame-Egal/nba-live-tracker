@@ -534,7 +534,7 @@ const LeaderPreview: React.FC<LeaderPreviewProps> = ({ leader }) => {
       <Box
         onClick={e => {
           e.stopPropagation();
-          navigate(`/players/${leader.personId}`);
+          navigate(`/player/${leader.personId}`);
         }}
         sx={{
           display: 'flex',

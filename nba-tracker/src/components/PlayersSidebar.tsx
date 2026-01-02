@@ -21,6 +21,7 @@ import { Search } from '@mui/icons-material';
 import { responsiveSpacing, typography, borderRadius } from '../theme/designTokens';
 import { fetchJson } from '../utils/apiClient';
 import { PlayerSummary } from '../types/player';
+import { getSeasonOptions } from '../utils/season';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
@@ -46,25 +47,7 @@ const PlayersSidebar: React.FC<PlayersSidebarProps> = ({ selectedStat, onStatCha
     { value: 'BLK', label: 'Blocks' },
   ];
 
-  // Generate season options (current season and 4 previous seasons)
-  const getSeasonOptions = () => {
-    const seasons = [];
-    const currentYear = new Date().getFullYear();
-    const currentMonth = new Date().getMonth() + 1;
-    
-    // Determine current season start year
-    const currentSeasonStartYear = currentMonth >= 10 ? currentYear : currentYear - 1;
-    
-    // Generate seasons going backwards from current season
-    for (let i = 0; i < 5; i++) {
-      const year = currentSeasonStartYear - i;
-      const seasonStr = `${year}-${(year + 1).toString().slice(2)}`;
-      seasons.push(seasonStr);
-    }
-    return seasons;
-  };
-
-  const seasonOptions = getSeasonOptions();
+  const seasonOptions = getSeasonOptions(5);
 
   const fetchTopPlayersByStat = useCallback(async () => {
     setLoading(true);
@@ -146,7 +129,7 @@ const PlayersSidebar: React.FC<PlayersSidebarProps> = ({ selectedStat, onStatCha
   };
 
   const handlePlayerClick = (playerId: number) => {
-    navigate(`/players/${playerId}`);
+    navigate(`/player/${playerId}`);
   };
 
   const formatStatValue = (player: PlayerSummary, stat: string): string => {

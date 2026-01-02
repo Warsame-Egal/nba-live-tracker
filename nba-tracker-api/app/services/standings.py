@@ -41,7 +41,7 @@ async def getSeasonStandings(season: str, max_retries: int = 3) -> StandingsResp
     Raises:
         HTTPException: If no standings found or API error
     """
-    from requests.exceptions import ConnectionError, Timeout
+    from requests.exceptions import ConnectionError, Timeout, RequestException, RequestException
     
     for attempt in range(max_retries):
         try:
@@ -134,14 +134,26 @@ async def getSeasonStandings(season: str, max_retries: int = 3) -> StandingsResp
 
             return StandingsResponse(standings=standings_list)
             
-        except (ConnectionError, Timeout, asyncio.TimeoutError) as e:
+        except (ConnectionError, Timeout, RequestException, asyncio.TimeoutError) as e:
             if attempt < max_retries - 1:
                 wait_time = 2 ** attempt  # Exponential backoff: 1s, 2s, 4s
                 logger.warning(f"Connection error fetching standings for {season} (attempt {attempt + 1}/{max_retries}): {e}. Retrying in {wait_time}s...")
                 await asyncio.sleep(wait_time)
             else:
                 logger.error(f"Failed to fetch standings for {season} after {max_retries} attempts: {e}")
-                raise HTTPException(status_code=503, detail=f"NBA API unavailable. Please try again later.")
+                # Check if this might be a future season that doesn't exist yet
+                from datetime import datetime
+                current_year = datetime.now().year
+                season_start_year = int(season.split('-')[0])
+                if season_start_year > current_year or (season_start_year == current_year and datetime.now().month < 10):
+                    raise HTTPException(
+                        status_code=404,
+                        detail=f"Standings not available for season {season}. The season may not have started yet or data is not available."
+                    )
+                raise HTTPException(
+                    status_code=503,
+                    detail=f"Unable to connect to NBA API. The service may be temporarily unavailable. Please try again later."
+                )
         except HTTPException:
             raise
         except Exception as e:

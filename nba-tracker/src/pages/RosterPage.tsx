@@ -23,27 +23,16 @@ import { fetchJson } from '../utils/apiClient';
 // Base URL for API calls
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
-/**
- * Page that shows the full roster (all players) for a team.
- * Displays player information like name, position, height, weight, etc.
- */
+// Team roster page showing all players with their info
 const RosterPage = () => {
-  // Get the team ID from the URL
   const { team_id } = useParams<{ team_id: string }>();
-  // The team roster data
   const [teamRoster, setTeamRoster] = useState<TeamRoster | null>(null);
-  // Whether we're loading the roster
   const [loading, setLoading] = useState(true);
-  // Error message if something goes wrong
   const [error, setError] = useState<string | null>(null);
 
-  /**
-   * Fetch the team roster when the component loads or team ID changes.
-   */
   useEffect(() => {
     async function fetchTeamRoster() {
       try {
-        // Get roster season with retry
         const data = await fetchJson<TeamRoster>(
           `${API_BASE_URL}/api/v1/scoreboard/team/${team_id}/roster/2024-25`,
           {},
@@ -61,7 +50,6 @@ const RosterPage = () => {
     fetchTeamRoster();
   }, [team_id]);
 
-  // Show loading spinner while fetching data
   if (loading) {
     return (
       <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>

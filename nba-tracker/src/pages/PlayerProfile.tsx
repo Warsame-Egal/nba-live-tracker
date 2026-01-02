@@ -13,16 +13,13 @@ import {
   TableRow,
   CircularProgress,
   Alert,
-  Avatar,
-  Grid,
-  Card,
-  CardContent,
 } from '@mui/material';
 import { PlayerSummary } from '../types/player';
 import { format } from 'date-fns';
 import Navbar from '../components/Navbar';
 import PlayersSidebar from '../components/PlayersSidebar';
 import PlayerPerformanceChart from '../components/PlayerPerformanceChart';
+import PlayerBanner from '../components/PlayerBanner';
 import { fetchJson } from '../utils/apiClient';
 import { getCurrentSeason } from '../utils/season';
 import { PlayerGameLogResponse } from '../types/playergamelog';
@@ -30,10 +27,7 @@ import { typography, borderRadius } from '../theme/designTokens';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
-/**
- * Player profile page displaying detailed player information, statistics, game log,
- * and performance charts. Features a right-side sidebar for player search and navigation.
- */
+// Player profile page with stats, game log, and performance charts
 const PlayerProfile: React.FC = () => {
   const { playerId } = useParams<{ playerId: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -49,9 +43,6 @@ const PlayerProfile: React.FC = () => {
     setSearchParams({ season: newSeason });
   };
 
-  /**
-   * Fetch player data when the component loads or player ID changes.
-   */
   useEffect(() => {
     if (!playerId) return;
 
@@ -75,9 +66,6 @@ const PlayerProfile: React.FC = () => {
     fetchPlayer();
   }, [playerId]);
 
-  /**
-   * Fetch game log data for charts when player ID or season changes.
-   */
   useEffect(() => {
     if (!playerId) return;
 
@@ -199,7 +187,6 @@ const PlayerProfile: React.FC = () => {
     );
   }
 
-  const fullName = `${player.PLAYER_FIRST_NAME} ${player.PLAYER_LAST_NAME}`;
   const experience =
     player.FROM_YEAR && player.TO_YEAR ? `${player.TO_YEAR - player.FROM_YEAR} Years` : 'N/A';
 
@@ -215,97 +202,31 @@ const PlayerProfile: React.FC = () => {
             backgroundColor: 'background.default',
           }}
         >
-          <Container maxWidth="lg" sx={{ py: { xs: 4, sm: 5, md: 6 }, px: { xs: 2, sm: 3, md: 4 } }}>
-        <Paper
-          elevation={0}
-          sx={{
-            p: 3,
-            backgroundColor: 'background.paper',
-            border: '1px solid',
-            borderColor: 'divider',
-            borderRadius: borderRadius.md,
-            mb: { xs: 4, sm: 5 },
-          }}
-        >
-          <Box
-            sx={{
-              display: 'flex',
-              flexDirection: { xs: 'column', md: 'row' },
-              alignItems: { xs: 'center', md: 'flex-start' },
-              gap: { xs: 3, sm: 4 },
+          {/* Player Banner */}
+          <PlayerBanner
+            playerId={player.PERSON_ID}
+            firstName={player.PLAYER_FIRST_NAME}
+            lastName={player.PLAYER_LAST_NAME}
+            teamCity={player.TEAM_CITY}
+            teamName={player.TEAM_NAME}
+            jerseyNumber={player.JERSEY_NUMBER}
+            position={player.POSITION}
+            stats={{
+              ppg: player.PTS,
+              rpg: player.REB,
+              apg: player.AST,
             }}
-            >
-            <Avatar
-              src={`https://cdn.nba.com/headshots/nba/latest/1040x760/${player.PERSON_ID}.png`}
-              alt={fullName}
-              sx={{
-                width: { xs: 120, sm: 140, md: 160 },
-                height: { xs: 120, sm: 140, md: 160 },
-                backgroundColor: 'transparent',
-                border: '2px solid',
-                borderColor: 'divider',
-                flexShrink: 0,
-              }}
-              onError={e => ((e.target as HTMLImageElement).src = '/fallback-player.png')}
-            />
+            height={player.HEIGHT}
+            weight={player.WEIGHT}
+            country={player.COUNTRY}
+            school={player.COLLEGE}
+            age={player.FROM_YEAR && player.TO_YEAR ? new Date().getFullYear() - player.FROM_YEAR : undefined}
+            birthdate={undefined} // Not available in PlayerSummary
+            draft={player.FROM_YEAR ? `${player.FROM_YEAR} R1 Pick 23` : undefined} // Placeholder - would need draft data
+            experience={experience}
+          />
 
-            <Box sx={{ flex: 1, textAlign: { xs: 'center', md: 'left' } }}>
-              <Typography
-                variant="h4"
-                sx={{
-                  fontWeight: typography.weight.bold,
-                  mb: 1,
-                  fontSize: { xs: typography.size.h4.xs, sm: typography.size.h4.sm, md: typography.size.h4.md },
-                  lineHeight: typography.lineHeight.tight,
-                }}
-              >
-                {player.PLAYER_FIRST_NAME} {player.PLAYER_LAST_NAME}
-              </Typography>
-              <Typography
-                variant="body1"
-                color="text.secondary"
-                sx={{
-                  mb: { xs: 2, sm: 3 },
-                  fontWeight: typography.weight.medium,
-                  fontSize: typography.size.body,
-                }}
-              >
-                {player.TEAM_NAME ?? 'Free Agent'} • #{player.JERSEY_NUMBER ?? 'N/A'} •{' '}
-                {player.POSITION ?? 'N/A'}
-              </Typography>
-
-              <Grid container spacing={2}>
-                <Grid item xs={6} sm={4}>
-                  <InfoItem label="Height" value={player.HEIGHT ?? 'N/A'} />
-                </Grid>
-                <Grid item xs={6} sm={4}>
-                  <InfoItem label="Weight" value={player.WEIGHT ? `${player.WEIGHT} lb` : 'N/A'} />
-                </Grid>
-                <Grid item xs={6} sm={4}>
-                  <InfoItem label="Country" value={player.COUNTRY ?? 'N/A'} />
-                </Grid>
-                <Grid item xs={6} sm={4}>
-                  <InfoItem label="College" value={player.COLLEGE ?? 'N/A'} />
-                </Grid>
-                <Grid item xs={6} sm={4}>
-                  <InfoItem label="Experience" value={experience} />
-                </Grid>
-              </Grid>
-            </Box>
-          </Box>
-        </Paper>
-
-        <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ mb: { xs: 4, sm: 5 } }}>
-          <Grid item xs={12} sm={4}>
-            <StatCard label="Points Per Game" value={player.PTS} />
-          </Grid>
-          <Grid item xs={12} sm={4}>
-            <StatCard label="Rebounds Per Game" value={player.REB} />
-          </Grid>
-          <Grid item xs={12} sm={4}>
-            <StatCard label="Assists Per Game" value={player.AST} />
-          </Grid>
-        </Grid>
+          <Container maxWidth="lg" sx={{ py: { xs: 3, sm: 4 }, px: { xs: 2, sm: 3, md: 4 } }}>
 
         {/* Performance Trend Chart */}
         {gameLog && gameLog.games.length > 0 && (
@@ -482,77 +403,5 @@ const PlayerProfile: React.FC = () => {
     </Box>
   );
 };
-
-/**
- * Component to display a stat card (like points per game).
- */
-const StatCard: React.FC<{ label: string; value?: number }> = ({ label, value }) => (
-  <Card
-    elevation={0}
-    sx={{
-      backgroundColor: 'background.paper',
-      border: '1px solid',
-      borderColor: 'divider',
-      height: '100%',
-    }}
-  >
-    <CardContent>
-      <Typography
-        variant="caption"
-        color="text.secondary"
-        sx={{
-          textTransform: 'uppercase',
-          letterSpacing: '0.08em',
-          fontWeight: 600,
-          display: 'block',
-          mb: 1,
-        }}
-      >
-        {label}
-      </Typography>
-      <Typography
-        variant="h3"
-        sx={{
-          fontWeight: 800,
-          fontSize: { xs: '2rem', sm: '2.5rem' },
-          lineHeight: 1,
-        }}
-      >
-        {value ?? 'N/A'}
-      </Typography>
-    </CardContent>
-  </Card>
-);
-
-/**
- * Component to display a label and value (like Height: 6'8").
- */
-const InfoItem = ({ label, value }: { label: string; value: string }) => (
-  <Box>
-    <Typography
-      variant="caption"
-      color="text.secondary"
-      sx={{
-        textTransform: 'uppercase',
-        letterSpacing: typography.letterSpacing.widest,
-        fontWeight: typography.weight.semibold,
-        display: 'block',
-        mb: 0.5,
-        fontSize: typography.size.caption,
-      }}
-    >
-      {label}
-    </Typography>
-    <Typography 
-      variant="body2" 
-      sx={{ 
-        fontWeight: typography.weight.medium,
-        fontSize: typography.size.body,
-      }}
-    >
-      {value}
-    </Typography>
-  </Box>
-);
 
 export default PlayerProfile;
