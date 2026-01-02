@@ -13,7 +13,6 @@ import {
 } from '@mui/material';
 import { FiberManualRecord, Person, Assessment, Timeline } from '@mui/icons-material';
 import { borderRadius, transitions, typography, spacing } from '../theme/designTokens';
-import { BoxScoreResponse, PlayerBoxScoreStats } from '../types/scoreboard';
 import { PlayByPlayResponse, PlayByPlayEvent } from '../types/playbyplay';
 import PlayByPlayWebSocketService from '../services/PlayByPlayWebSocketService';
 import { fetchJson } from '../utils/apiClient';
