@@ -86,3 +86,17 @@ export async function fetchJson<T>(
   return response.json();
 }
 
+// Fetch league leaders for a specific stat category
+export async function fetchLeagueLeaders(
+  statCategory: string,
+  season?: string
+): Promise<any> {
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+  const params = new URLSearchParams({ stat_category: statCategory });
+  if (season) {
+    params.append('season', season);
+  }
+  const url = `${API_BASE_URL}/api/v1/league/leaders?${params.toString()}`;
+  return fetchJson(url, {}, { maxRetries: 3, retryDelay: 1000, timeout: 30000 });
+}
+

@@ -60,6 +60,12 @@ http://localhost:8000/api/v1
 | ------ | ------------------------------------------ | ------------------------------- |
 | `GET`  | `/predictions/date/{date}?season={season}` | Get game predictions for a date |
 
+### League
+
+| Method | Endpoint                                                      | Description                          |
+| ------ | ------------------------------------------------------------- | ------------------------------------ |
+| `GET`  | `/league/leaders?stat_category={category}&season={season}` | Get top 5 league leaders by stat     |
+
 ### Search
 
 | Method | Endpoint            | Description              |
@@ -108,6 +114,9 @@ curl http://localhost:8000/api/v1/scoreboard/game/0022400123/key-moments
 
 # Get win probability for a game
 curl http://localhost:8000/api/v1/scoreboard/game/0022400123/win-probability
+
+# Get league leaders
+curl "http://localhost:8000/api/v1/league/leaders?stat_category=PTS&season=2024-25"
 
 # Get predictions
 curl http://localhost:8000/api/v1/predictions/date/2024-01-15?season=2024-25

@@ -20,6 +20,7 @@ This API is designed for the NBA Live Tracker frontend but can be used independe
   - [Scoreboard](#scoreboard)
   - [Search](#search)
   - [Predictions](#predictions)
+  - [League](#league)
 - [WebSocket Endpoints](#websocket-endpoints)
   - [Live Scoreboard](#live-scoreboard-updates)
   - [Play-by-Play](#live-play-by-play-updates)
@@ -544,6 +545,58 @@ curl "http://localhost:8000/api/v1/search?q=lakers"
 {
   "players": [...],
   "teams": [...]
+}
+```
+
+---
+
+### League
+
+#### Get League Leaders
+
+Get top 5 players for a specific stat category (Points, Rebounds, Assists, Steals, or Blocks per game).
+
+```http
+GET /api/v1/league/leaders?stat_category={category}&season={season}
+```
+
+**Parameters:**
+- `stat_category` (string, optional) - Stat category: `PTS`, `REB`, `AST`, `STL`, or `BLK` (default: `PTS`)
+- `season` (string, optional) - Season format "YYYY-YY" (default: current season)
+
+**When it's used:**
+- Called to display top players in the League Leaders dashboard
+- Returns top 5 players sorted by the specified stat category
+- Results are cached for 5 minutes to reduce API calls
+
+**Example:**
+```bash
+curl "http://localhost:8000/api/v1/league/leaders?stat_category=PTS&season=2024-25"
+```
+
+**Response:**
+```json
+{
+  "category": "PTS",
+  "season": "2024-25",
+  "leaders": [
+    {
+      "player_id": 2544,
+      "name": "LeBron James",
+      "team": "LAL",
+      "stat_value": 28.5,
+      "rank": 1,
+      "games_played": 65
+    },
+    {
+      "player_id": 201939,
+      "name": "Stephen Curry",
+      "team": "GSW",
+      "stat_value": 27.2,
+      "rank": 2,
+      "games_played": 68
+    }
+  ]
 }
 ```
 
