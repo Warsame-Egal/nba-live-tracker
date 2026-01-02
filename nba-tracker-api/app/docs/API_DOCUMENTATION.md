@@ -474,6 +474,53 @@ curl http://localhost:8000/api/v1/scoreboard/game/0022400123/key-moments
 
 ---
 
+#### Get Win Probability
+
+Get real-time win probability for a live game. Shows the likelihood of each team winning based on current game state.
+
+```http
+GET /api/v1/scoreboard/game/{game_id}/win-probability
+```
+
+**Parameters:**
+- `game_id` (string, required) - Game ID
+
+**When it's used:**
+- Called to get current win probability for a specific live game
+- Returns probability data with optional history for visualization
+- Win probability updates automatically via WebSocket every 8 seconds
+
+**Example:**
+```bash
+curl http://localhost:8000/api/v1/scoreboard/game/0022400123/win-probability
+```
+
+**Response:**
+```json
+{
+  "game_id": "0022400123",
+  "win_probability": {
+    "home_win_prob": 0.65,
+    "away_win_prob": 0.35,
+    "timestamp": "2025-01-15T20:45:30Z",
+    "probability_history": [
+      {
+        "home_win_prob": 0.62,
+        "away_win_prob": 0.38
+      },
+      {
+        "home_win_prob": 0.64,
+        "away_win_prob": 0.36
+      }
+    ]
+  }
+}
+```
+
+**Note:** Win probability is calculated by the NBA API based on play-by-play events. Returns `null` if the game hasn't started or data is not available. Probability values range from 0.0 to 1.0 (0% to 100%).
+
+---
+
 ### Search
 
 #### Search Players and Teams
@@ -624,6 +671,28 @@ Key moments (sent separately when detected):
 }
 ```
 
+Win probability (sent every 8 seconds for live games):
+```json
+{
+  "type": "win_probability",
+  "data": {
+    "probabilities_by_game": {
+      "0022400123": {
+        "home_win_prob": 0.65,
+        "away_win_prob": 0.35,
+        "timestamp": "2025-01-15T20:45:30Z",
+        "probability_history": [
+          {
+            "home_win_prob": 0.62,
+            "away_win_prob": 0.38
+          }
+        ]
+      }
+    }
+  }
+}
+```
+
 **Update Frequency:**
 - Scoreboard updates sent at fixed intervals (e.g., ~8 seconds for live scoreboard) when changes are detected
 - AI insights generated and sent when meaningful game changes occur
@@ -635,6 +704,8 @@ The backend polls the NBA API at fixed intervals (e.g., ~8 seconds for live scor
 When live games are detected, the backend generates batched AI insights for all games in one Groq API call. These insights are sent as separate messages with `type: "insights"` so the frontend can handle them differently from scoreboard updates.
 
 The backend also automatically detects key moments by analyzing play-by-play events. When a key moment is detected (like a game-tying shot or lead change), it's sent as a separate message with `type: "key_moments"`. Each moment includes AI-generated context explaining why it matters.
+
+Win probability updates are sent every 8 seconds for all live games as separate messages with `type: "win_probability"`. This provides real-time probability shifts as games progress.
 
 ---
 

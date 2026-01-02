@@ -6,61 +6,20 @@ Real-time NBA scoreboard and stats tracker. Watch live games with play-by-play u
 
 ## What It Does
 
-A web app that shows live NBA game scores, player stats, team information, and game predictions. Built with React and FastAPI. Uses the `nba_api` library to fetch data from NBA.com.
+A web app that shows live NBA game scores, player stats, team information, and game predictions. Built with React and FastAPI.
 
-**Live Scoreboard:**
-
-- Real-time score updates via WebSocket
-- Play-by-play updates as they happen
-- AI insights powered by Groq that explain what's happening in games
-- Lead change explanations that break down why the score changed
-- Momentum visualization showing score differential over time with lead changes and scoring runs
-
-**Predictions:**
-
-- Stat-based win probability calculations
-- Score predictions using team performance data
-- AI explains results
+- **Live Scoreboard** - Real-time score updates, play-by-play, AI insights, and win probability
+- **Key Moments Detection** - Automatically highlights game-tying shots, lead changes, and scoring runs
+- **Momentum Visualization** - Visual timeline showing score differential and momentum shifts
+- **Game Predictions** - Stat-based win probability and score predictions with AI explanations
+- **Player & Team Stats** - Season leaders, team performance, and detailed profiles
+- **League Standings** - Playoff races and conference rankings
 
 ## Tech Stack
 
-**Frontend:**
-
-- React 19 with TypeScript
-- Material UI (Material Design 3)
-- Vite
-- React Router
-- Recharts (charts)
-- WebSockets (live updates)
-
-**Backend:**
-
-- FastAPI with Python
-- WebSockets (live scoreboard, play-by-play, and AI insights)
-- Data caching (`data_cache.py` - WebSockets read from cache, don't call API directly)
-- Rate limiting:
-  - NBA API: 600ms minimum between calls
-  - Groq: 28 requests/minute, 5800 tokens/minute
-- Groq AI (for insights and predictions)
-- Uvicorn
-
-**Data Source:**
-
-- [`nba_api`](https://github.com/swar/nba_api) Python package
-
-## Features
-
-- **Live Scoreboard** - Real-time score updates via WebSocket
-- **Play-by-Play** - Every shot, foul, and timeout as it happens
-- **AI Insights** - Short, real-time insights about what's happening in games (powered by Groq)
-- **Lead Change Explanations** - On-demand explanations for why the lead changed
-- **Momentum Visualization** - Visual timeline chart showing score differential, lead changes, and scoring runs
-- **Players Page** - Season leaders and all active players
-- **Teams Page** - Team stats and performance charts
-- **Player Profiles** - Stats, game logs, and performance charts
-- **Team Profiles** - Team details, rosters, and game logs
-- **Game Predictions** - Win probability and score predictions with AI explanations
-- **League Standings** - Playoff races and conference rankings
+**Frontend:** React 19, TypeScript, Material UI, Vite, Recharts, WebSockets  
+**Backend:** FastAPI, Python, WebSockets, Groq AI  
+**Data Source:** [`nba_api`](https://github.com/swar/nba_api) Python package
 
 ## Screenshots
 
@@ -110,104 +69,13 @@ npm run dev
 
 The frontend will run on http://localhost:3000 (or the next available port).
 
-## API Usage Examples
-
-### Get Player Details
-
-```bash
-curl http://localhost:8000/api/v1/player/2544
-```
-
-### Get Live Scoreboard
-
-```bash
-curl http://localhost:8000/api/v1/schedule/date/2025-01-15
-```
-
-### Get AI Insights
-
-```bash
-curl http://localhost:8000/api/v1/scoreboard/insights
-```
-
-### Get Lead Change Explanation
-
-```bash
-curl http://localhost:8000/api/v1/scoreboard/game/0022400123/lead-change
-```
-
-### Rate Limiting
-
-**NBA API:**
-- All NBA API calls wait 600ms between requests
-- Prevents throttling from NBA.com
-- Applied automatically to all endpoints
-
-**Groq AI:**
-- Tracks requests and tokens in rolling 60-second windows
-- Limits: 28 requests/minute, 5800 tokens/minute
-- Automatically waits if approaching limits
-- Used for insights, predictions, and lead change explanations
-
-### WebSocket for Live Updates
-
-The WebSocket sends two types of messages: scoreboard updates and AI insights.
-
-```javascript
-const ws = new WebSocket("ws://localhost:8000/api/v1/ws");
-
-ws.onmessage = (event) => {
-  const data = JSON.parse(event.data);
-  
-  // Handle scoreboard updates
-  if (data.scoreboard) {
-    console.log("Live scores:", data.scoreboard);
-  }
-  
-  // Handle AI insights
-  if (data.type === 'insights') {
-    console.log("AI insights:", data.data.insights);
-  }
-};
-```
-
-**How it works:**
-The backend periodically polls the NBA API and caches the data in `data_cache.py`. WebSocket clients read from this cache, so multiple clients don't trigger multiple API calls. When live games are detected, the backend generates AI insights using Groq and sends them via WebSocket.
-
-**Important:** WebSockets never call the NBA API directly. They read from the cache. This means 100 people watching = 1 API call, not 100.
-
 ## Documentation
 
 - **API Docs:** http://localhost:8000/docs
 - **Full API Documentation:** [API_DOCUMENTATION.md](nba-tracker-api/app/docs/API_DOCUMENTATION.md)
 - **Architecture:** [docs/architecture.md](docs/architecture.md)
 - **Groq AI:** [docs/groq-ai.md](docs/groq-ai.md)
-
-## Project Structure
-
-```
-nba-live-tracker/
-├── nba-tracker/          # Frontend React app
-│   ├── src/
-│   │   ├── components/   # UI components
-│   │   ├── pages/        # Page components
-│   │   ├── services/     # API services & WebSockets
-│   │   └── types/        # TypeScript types
-│   └── public/           # Static assets
-└── nba-tracker-api/      # Backend FastAPI app
-    └── app/
-        ├── routers/      # API routes
-        ├── services/     # Business logic
-        │   ├── batched_insights.py    # Batched AI insights (one call for all games)
-        │   ├── groq_client.py         # Groq API client & rate limiter
-        │   ├── groq_prompts.py        # AI prompt templates
-        │   ├── predictions.py         # Game predictions with AI
-        │   ├── websockets_manager.py  # WebSocket broadcasting (reads from cache)
-        │   └── data_cache.py          # Data caching (WebSockets don't call API directly)
-        └── schemas/      # Data models
-```
-
-**Key point:** WebSockets don't call the NBA API directly. They read from `data_cache.py`, which polls the API in the background. This means 100 people watching the scoreboard = 1 API call, not 100.
+- **Technical Details:** [docs/technical-details.md](docs/technical-details.md) - API examples, rate limiting, WebSocket behavior
 
 ## Deployment
 

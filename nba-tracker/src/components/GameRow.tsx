@@ -22,9 +22,11 @@ import { GameInsightData } from './GameInsight';
 import LiveAIInsight from './LiveAIInsight';
 import LeadChangeDialog, { LeadChangeExplanation } from './LeadChangeDialog';
 import KeyMomentBadge from './KeyMomentBadge';
-import { KeyMoment } from '../types/scoreboard';
+import { KeyMoment, WinProbability } from '../types/scoreboard';
 import MomentumChart from './MomentumChart';
 import { TrendingUp, TrendingDown } from '@mui/icons-material';
+import { alpha, useTheme } from '@mui/material/styles';
+import { Fade } from '@mui/material';
 
 interface GameRowProps {
   game: Game | GameSummary;
@@ -35,6 +37,7 @@ interface GameRowProps {
   onOpenPlayByPlay?: (gameId: string) => void;
   insight?: GameInsightData | null;
   keyMoment?: KeyMoment | null;
+  winProbability?: WinProbability | null;
 }
 
 /**
@@ -49,7 +52,9 @@ const GameRow: React.FC<GameRowProps> = ({
   onOpenPlayByPlay,
   insight,
   keyMoment,
+  winProbability,
 }) => {
+  const theme = useTheme();
   const [leadChangeDialogOpen, setLeadChangeDialogOpen] = React.useState(false);
   const [leadChangeExplanation, setLeadChangeExplanation] = React.useState<LeadChangeExplanation | null>(null);
   const navigate = useNavigate();
@@ -598,19 +603,86 @@ const GameRow: React.FC<GameRowProps> = ({
             </Box>
           )}
 
-          {/* Center Zone: Key Moment Badge */}
-          {/* Show a badge when a key moment is detected (game-tying shot, lead change, etc.) */}
-          {/* The badge appears in the status bar between play-by-play text and action buttons */}
-          {keyMoment && (
+          {/* Center Zone: Key Moment Badge and Win Probability */}
+          {/* Show badges when key moments are detected or win probability is available */}
+          {(keyMoment || winProbability) && (
             <Box
               sx={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
+                gap: 1,
                 flexShrink: 0,
               }}
             >
-              <KeyMomentBadge moment={keyMoment} />
+              {/* Win Probability Indicator - Compact chip style matching KeyMomentBadge */}
+              {winProbability && (
+                <Fade in={true} timeout={300}>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 0.75,
+                      px: 1.25,
+                      py: 0.5,
+                      borderRadius: borderRadius.xs,
+                      backgroundColor: alpha(theme.palette.primary.main, 0.1),
+                      border: `1px solid ${alpha(theme.palette.primary.main, 0.3)}`,
+                      height: 24,
+                      transition: transitions.normal,
+                    }}
+                  >
+                    {/* Compact progress bar */}
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        width: 32,
+                        height: 4,
+                        borderRadius: borderRadius.xs,
+                        overflow: 'hidden',
+                        backgroundColor: alpha(theme.palette.primary.main, 0.15),
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          flex: winProbability.away_win_prob,
+                          backgroundColor: winProbability.away_win_prob > winProbability.home_win_prob
+                            ? theme.palette.primary.main
+                            : alpha(theme.palette.primary.main, 0.4),
+                          transition: transitions.smooth,
+                        }}
+                      />
+                      <Box
+                        sx={{
+                          flex: winProbability.home_win_prob,
+                          backgroundColor: winProbability.home_win_prob > winProbability.away_win_prob
+                            ? theme.palette.primary.main
+                            : alpha(theme.palette.primary.main, 0.4),
+                          transition: transitions.smooth,
+                        }}
+                      />
+                    </Box>
+                    {/* Percentage text */}
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        fontSize: typography.size.captionSmall,
+                        fontWeight: typography.weight.semibold,
+                        color: alpha(theme.palette.primary.main, 0.9),
+                        whiteSpace: 'nowrap',
+                        minWidth: 28,
+                      }}
+                    >
+                      {winProbability.home_win_prob > winProbability.away_win_prob
+                        ? `${(winProbability.home_win_prob * 100).toFixed(0)}%`
+                        : `${(winProbability.away_win_prob * 100).toFixed(0)}%`}
+                    </Typography>
+                  </Box>
+                </Fade>
+              )}
+              
+              {/* Key Moment Badge */}
+              {keyMoment && <KeyMomentBadge moment={keyMoment} />}
             </Box>
           )}
 

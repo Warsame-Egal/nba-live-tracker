@@ -26,20 +26,23 @@ import { PlayerSummary } from '../types/player';
 import { StandingsResponse } from '../types/standings';
 import { getCurrentSeason, getSeasonOptions } from '../utils/season';
 import { getTeamAbbreviation } from '../utils/teamMappings';
+import { Game, WinProbability } from '../types/scoreboard';
+import WinProbabilityTracker from './WinProbabilityTracker';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 interface UniversalSidebarProps {
-  // No props needed - sidebar is isolated and manages its own state
+  games?: Game[]; // Games for win probability tracker
+  winProbabilities?: Map<string, WinProbability>; // Win probability data for live games
 }
 
-type TabValue = 'teams' | 'players';
+type TabValue = 'teams' | 'players' | 'win-probability';
 
 /**
  * Universal sidebar component with Teams and Players tabs.
  * Provides search and filtering for teams and players across the app.
  */
-const UniversalSidebar: React.FC<UniversalSidebarProps> = () => {
+const UniversalSidebar: React.FC<UniversalSidebarProps> = ({ games = [], winProbabilities = new Map() }) => {
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -634,11 +637,18 @@ const UniversalSidebar: React.FC<UniversalSidebarProps> = () => {
         >
           <Tab label="Teams" value="teams" />
           <Tab label="Players" value="players" />
+          {/* Show win probability tab only when there are live games */}
+          {games.filter(game => game.gameStatus === 2).length > 0 && (
+            <Tab label="Win Probability" value="win-probability" />
+          )}
         </Tabs>
       </Box>
 
       {activeTab === 'teams' && renderTeamsTab()}
       {activeTab === 'players' && renderPlayersTab()}
+      {activeTab === 'win-probability' && (
+        <WinProbabilityTracker games={games} winProbabilities={winProbabilities} />
+      )}
     </Box>
   );
 };

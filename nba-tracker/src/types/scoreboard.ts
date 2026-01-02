@@ -124,3 +124,18 @@ export interface KeyMomentsResponse {
   game_id: string;
   moments: KeyMoment[];
 }
+
+export interface WinProbability {
+  home_win_prob: number; // 0.0-1.0
+  away_win_prob: number; // 0.0-1.0
+  timestamp: string;
+  probability_history?: Array<{
+    home_win_prob: number;
+    away_win_prob: number;
+  }>;
+}
+
+export interface WinProbabilityResponse {
+  game_id: string;
+  win_probability: WinProbability | null;
+}

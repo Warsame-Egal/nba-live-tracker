@@ -17,6 +17,7 @@ from fastapi import WebSocket
 from app.services.data_cache import data_cache
 from app.services.batched_insights import generate_batched_insights
 from app.services.key_moments import process_live_games, get_key_moments_for_game
+from app.services.win_probability import get_win_probability_for_multiple_games
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +30,7 @@ class ScoreboardWebSocketManager:
         self.current_games: List[Dict] = []
         self._lock = asyncio.Lock()
         self.last_update_timestamp: Dict[str, float] = {}
+        self.last_win_prob_update: float = 0.0  # Track when we last sent win probability updates
     
     async def connect(self, websocket: WebSocket):
         """Add a new client connection."""
@@ -246,6 +248,33 @@ class ScoreboardWebSocketManager:
                                 }
                             }
                             await connection.send_json(key_moments_message)
+                        
+                        # Fetch and send win probability for live games
+                        # Updates every 8 seconds to show real-time probability shifts
+                        # (slightly less frequent than scoreboard updates to reduce API calls)
+                        current_time = time.time()
+                        if live_games and (current_time - self.last_win_prob_update) >= 8.0:
+                            try:
+                                game_ids = [game.get("gameId", "") for game in live_games if game.get("gameId")]
+                                if game_ids:
+                                    win_prob_data = await get_win_probability_for_multiple_games(game_ids)
+                                    # Filter out None values (games without probability data)
+                                    win_prob_by_game = {
+                                        game_id: prob_data
+                                        for game_id, prob_data in win_prob_data.items()
+                                        if prob_data is not None
+                                    }
+                                    if win_prob_by_game:
+                                        win_prob_message = {
+                                            "type": "win_probability",
+                                            "data": {
+                                                "probabilities_by_game": win_prob_by_game
+                                            }
+                                        }
+                                        await connection.send_json(win_prob_message)
+                                        self.last_win_prob_update = current_time
+                            except Exception as e:
+                                logger.debug(f"Error fetching win probability: {e}")
                     except Exception as e:
                         logger.warning(f"Error sending update to client: {e}")
                         disconnected_clients.append(connection)

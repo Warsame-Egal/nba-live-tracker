@@ -70,6 +70,15 @@ class WebSocketService {
           return;
         }
         
+        // Check if this is a win probability message
+        // Win probability shows the likelihood of each team winning at any given moment
+        if (data.type === 'win_probability') {
+          console.log('[WebSocket] Received win probability message:', data);
+          // Dispatch as custom event so the Scoreboard component can handle it
+          window.dispatchEvent(new CustomEvent('websocket-win-probability', { detail: data }));
+          return;
+        }
+        
         // Otherwise, treat as scoreboard data
         const scoreboardData: ScoreboardResponse = data;
         this.listeners.forEach(callback => callback(scoreboardData));

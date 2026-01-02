@@ -287,13 +287,9 @@ async def getGamesForDate(date: str) -> GamesResponse:
         game_headers = game_header_data["headers"]
         games_list = game_header_data["rowSet"]
 
-        # Log available headers for debugging (only log once, not for every request)
+        # Log number of games found
         if games_list:
-            logger.info(f"GameHeader fields available ({len(game_headers)}): {', '.join(game_headers[:15])}{'...' if len(game_headers) > 15 else ''}")
-            # Log first game's structure to see actual data
-            if len(games_list) > 0 and len(game_headers) == len(games_list[0]):
-                first_game_dict = dict(zip(game_headers, games_list[0]))
-                logger.info(f"Sample game keys: {list(first_game_dict.keys())[:20]}")
+            logger.info(f"Found {len(games_list)} games for date {date}")
 
         # Get headers and data for team leaders and scores (if available)
         team_leaders_headers = team_leaders_data["headers"] if team_leaders_data else []

@@ -21,7 +21,7 @@ import {
   Button,
 } from '@mui/material';
 import { Search, Close, Event, Notifications, CalendarToday, FilterList, Refresh, Schedule } from '@mui/icons-material';
-import { ScoreboardResponse, Game, KeyMoment } from '../types/scoreboard';
+import { ScoreboardResponse, Game, KeyMoment, WinProbability } from '../types/scoreboard';
 import { GamesResponse, GameSummary, GameLeaders } from '../types/schedule';
 import WebSocketService from '../services/websocketService';
 import GameRow from '../components/GameRow';
@@ -119,6 +119,9 @@ const Scoreboard = () => {
   // Key moments are automatically detected important plays (game-tying shots, lead changes, etc.)
   // We only keep the most recent one per game to avoid cluttering the UI
   const [gameKeyMoments, setGameKeyMoments] = useState<Map<string, KeyMoment>>(new Map());
+  // State for win probability - stores current win probability for each live game
+  // Win probability shows the likelihood of each team winning at any given moment
+  const [gameWinProbabilities, setGameWinProbabilities] = useState<Map<string, WinProbability>>(new Map());
 
   // Split games into live, upcoming, and completed categories
   // This is memoized so it only recalculates when games or date changes
@@ -269,10 +272,42 @@ const Scoreboard = () => {
         }
       };
       
+      // Handle win probability messages from WebSocket
+      // When the backend calculates win probability for live games, it sends updates via WebSocket.
+      // We update our state so the win probability tracker can display the data.
+      const handleWinProbabilityEvent = (event: CustomEvent) => {
+        try {
+          const data = event.detail;
+          console.log('[Scoreboard] Received win probability event:', data);
+          if (data && data.type === 'win_probability' && data.data && data.data.probabilities_by_game) {
+            const probabilitiesByGame = data.data.probabilities_by_game;
+            console.log('[Scoreboard] Processing win probabilities for games:', Object.keys(probabilitiesByGame));
+            
+            setGameWinProbabilities(prev => {
+              const merged = new Map(prev);
+              // Update win probability for each game
+              Object.entries(probabilitiesByGame).forEach(([gameId, winProb]: [string, any]) => {
+                if (winProb) {
+                  merged.set(gameId, winProb);
+                  console.log(`[Scoreboard] Updated win probability for game ${gameId}:`, 
+                    `Home ${(winProb.home_win_prob * 100).toFixed(1)}%`);
+                }
+              });
+              return merged;
+            });
+          }
+        } catch (error) {
+          console.error('[Scoreboard] Error parsing win probability message', error);
+          logger.error('Error parsing win probability message', error);
+        }
+      };
+      
       // Listen for insights events
       window.addEventListener('websocket-insights', handleInsightsEvent as EventListener);
       // Listen for key moments events
       window.addEventListener('websocket-key-moments', handleKeyMomentsEvent as EventListener);
+      // Listen for win probability events
+      window.addEventListener('websocket-win-probability', handleWinProbabilityEvent as EventListener);
       
       // Connect to WebSocket for live updates
       WebSocketService.connect(SCOREBOARD_WEBSOCKET_URL);
@@ -407,6 +442,7 @@ const Scoreboard = () => {
         WebSocketService.disconnect();
         window.removeEventListener('websocket-insights', handleInsightsEvent as EventListener);
         window.removeEventListener('websocket-key-moments', handleKeyMomentsEvent as EventListener);
+        window.removeEventListener('websocket-win-probability', handleWinProbabilityEvent as EventListener);
       };
     }
     return () => {};
@@ -678,6 +714,7 @@ const Scoreboard = () => {
                 onOpenPlayByPlay={(isLive || isCompleted) ? handleOpenPlayByPlay : undefined}
                 insight={insight}
                 keyMoment={keyMoment}
+                winProbability={isLive && 'gameId' in game ? gameWinProbabilities.get(game.gameId) || null : null}
               />
             );
           })}
@@ -689,7 +726,7 @@ const Scoreboard = () => {
   return (
     <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default', display: 'flex', flexDirection: 'column' }}>
       <Navbar />
-      <PageLayout sidebar={<UniversalSidebar />}>
+      <PageLayout sidebar={<UniversalSidebar games={games.filter((g): g is Game => 'gameId' in g)} winProbabilities={gameWinProbabilities} />}>
         {/* Scoreboard Page Header: Title, Calendar, and Search */}
         <Box
           sx={{
