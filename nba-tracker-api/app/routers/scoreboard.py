@@ -5,9 +5,10 @@ from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 from typing import List, Dict, Any, Optional
 
 from app.schemas.player import TeamRoster
-from app.schemas.scoreboard import BoxScoreResponse, PlayByPlayResponse, KeyMomentsResponse
+from app.schemas.scoreboard import BoxScoreResponse, PlayByPlayResponse, KeyMomentsResponse, WinProbabilityResponse
 from app.services.scoreboard import fetchTeamRoster, getBoxScore, getPlayByPlay
 from app.services.key_moments import get_key_moments_for_game
+from app.services.win_probability import get_win_probability
 from app.services.websockets_manager import (
     playbyplay_websocket_manager,
     scoreboard_websocket_manager,
@@ -402,3 +403,42 @@ async def get_game_key_moments(game_id: str):
     except Exception as e:
         logger.error(f"Error getting key moments for game {game_id}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Error getting key moments: {str(e)}")
+
+
+# Get win probability for a specific game
+@router.get(
+    "/scoreboard/game/{game_id}/win-probability",
+    response_model=WinProbabilityResponse,
+    tags=["scoreboard"],
+    summary="Get Win Probability",
+    description="Get real-time win probability for a live game. Returns current probability and history.",
+)
+async def get_game_win_probability(game_id: str):
+    """
+    Get real-time win probability for a game.
+    
+    This endpoint fetches win probability data from the NBA API, which calculates
+    the likelihood of each team winning based on the current game state (score,
+    time remaining, etc.). Win probability updates as the game progresses.
+    
+    The response includes:
+    - Current win probability for home and away teams (0.0-1.0)
+    - Timestamp when probability was calculated
+    - Optional probability history for visualization
+    
+    Args:
+        game_id: The unique game ID from NBA (10-digit string)
+        
+    Returns:
+        WinProbabilityResponse: Win probability data, or None if game hasn't started or data unavailable
+    """
+    try:
+        win_prob_data = await get_win_probability(game_id)
+        
+        return WinProbabilityResponse(
+            game_id=game_id,
+            win_probability=win_prob_data
+        )
+    except Exception as e:
+        logger.error(f"Error getting win probability for game {game_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error getting win probability: {str(e)}")

@@ -196,6 +196,26 @@ class KeyMomentsResponse(BaseModel):
     moments: List[KeyMoment] = Field(..., description="List of recent key moments")
 
 
+class WinProbability(BaseModel):
+    """Represents win probability data for a game at a specific point in time."""
+
+    home_win_prob: float = Field(..., ge=0.0, le=1.0, description="Home team win probability (0.0-1.0)")
+    away_win_prob: float = Field(..., ge=0.0, le=1.0, description="Away team win probability (0.0-1.0)")
+    timestamp: str = Field(..., description="ISO timestamp when probability was calculated")
+    probability_history: Optional[List[dict]] = Field(
+        None, description="History of probability changes (last N plays)"
+    )
+
+
+class WinProbabilityResponse(BaseModel):
+    """Response schema for win probability data."""
+
+    game_id: str = Field(..., description="Game ID")
+    win_probability: Optional[WinProbability] = Field(
+        None, description="Current win probability data, or None if not available"
+    )
+
+
 class ScoreboardResponse(BaseModel):
     """Response schema for retrieving live NBA scores."""
 
