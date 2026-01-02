@@ -19,6 +19,7 @@ from app.routers.standings import router as standings_router
 from app.routers.teams import router as team_router
 from app.routers.search import router as search_router
 from app.routers.predictions import router as predictions_router
+from app.routers.league import router as league_router
 from app.services.data_cache import data_cache
 from app.services.websockets_manager import (
     playbyplay_websocket_manager,
@@ -116,3 +117,4 @@ app.include_router(player_router, prefix="/api/v1")
 app.include_router(team_router, prefix="/api/v1")
 app.include_router(search_router, prefix="/api/v1")
 app.include_router(predictions_router, prefix="/api/v1")
+app.include_router(league_router, prefix="/api/v1")

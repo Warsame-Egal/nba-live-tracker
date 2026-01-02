@@ -28,6 +28,7 @@ import { getCurrentSeason, getSeasonOptions } from '../utils/season';
 import { getTeamAbbreviation } from '../utils/teamMappings';
 import { Game, WinProbability } from '../types/scoreboard';
 import WinProbabilityTracker from './WinProbabilityTracker';
+import LeagueLeadersDashboard from './LeagueLeadersDashboard';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
@@ -36,7 +37,7 @@ interface UniversalSidebarProps {
   winProbabilities?: Map<string, WinProbability>; // Win probability data for live games
 }
 
-type TabValue = 'teams' | 'players' | 'win-probability';
+type TabValue = 'teams' | 'players' | 'win-probability' | 'leaders';
 
 /**
  * Universal sidebar component with Teams and Players tabs.
@@ -637,6 +638,7 @@ const UniversalSidebar: React.FC<UniversalSidebarProps> = ({ games = [], winProb
         >
           <Tab label="Teams" value="teams" />
           <Tab label="Players" value="players" />
+          <Tab label="Leaders" value="leaders" />
           {/* Show win probability tab only when there are live games */}
           {games.filter(game => game.gameStatus === 2).length > 0 && (
             <Tab label="Win Probability" value="win-probability" />
@@ -646,6 +648,7 @@ const UniversalSidebar: React.FC<UniversalSidebarProps> = ({ games = [], winProb
 
       {activeTab === 'teams' && renderTeamsTab()}
       {activeTab === 'players' && renderPlayersTab()}
+      {activeTab === 'leaders' && <LeagueLeadersDashboard season={currentSeason} />}
       {activeTab === 'win-probability' && (
         <WinProbabilityTracker games={games} winProbabilities={winProbabilities} />
       )}
