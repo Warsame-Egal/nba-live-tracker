@@ -2,6 +2,8 @@
 
 REST API and WebSocket service for real-time NBA game data, player statistics, team information, and game predictions.
 
+This API is designed for the NBA Live Tracker frontend but can be used independently.
+
 **Base URL:** `http://localhost:8000`  
 **API Version:** `v1`  
 **API Prefix:** `/api/v1`
@@ -329,6 +331,74 @@ curl http://localhost:8000/api/v1/scoreboard/game/0022400123/play-by-play
 
 ---
 
+#### Get AI Insights
+
+Get AI-generated insights for all currently live games. Returns short insights about what's happening in each game.
+
+```http
+GET /api/v1/scoreboard/insights
+```
+
+**When it's used:**
+- Called periodically to get insights for all live games
+- Returns insights only for games with meaningful changes
+- Cached for 60 seconds
+
+**Example:**
+```bash
+curl http://localhost:8000/api/v1/scoreboard/insights
+```
+
+**Response:**
+```json
+{
+  "timestamp": "2025-01-15T20:30:00Z",
+  "insights": [
+    {
+      "game_id": "0022400123",
+      "type": "lead_change",
+      "text": "The Lakers have taken the lead with a 8-0 run in the 3rd quarter."
+    }
+  ]
+}
+```
+
+---
+
+#### Get Lead Change Explanation
+
+Get an on-demand explanation for why the lead changed in a specific game. Uses the last 5 plays to explain the change.
+
+```http
+GET /api/v1/scoreboard/game/{game_id}/lead-change
+```
+
+**Parameters:**
+- `game_id` (string, required) - Game ID
+
+**When it's used:**
+- Called when user clicks "Why?" on a lead change insight
+- Cached for 60 seconds per game
+
+**Example:**
+```bash
+curl http://localhost:8000/api/v1/scoreboard/game/0022400123/lead-change
+```
+
+**Response:**
+```json
+{
+  "summary": "The Lakers took the lead through consecutive scoring plays and a defensive stop.",
+  "key_factors": [
+    "Anthony Davis made a 2-point shot",
+    "LeBron James converted a fast break layup",
+    "Lakers forced a turnover"
+  ]
+}
+```
+
+---
+
 ### Search
 
 #### Search Players and Teams
@@ -402,7 +472,9 @@ ws.onmessage = (event) => {
 };
 ```
 
-**Message Format:**
+**Message Formats:**
+
+Scoreboard updates (standard game data):
 ```json
 {
   "scoreboard": {
@@ -431,12 +503,32 @@ ws.onmessage = (event) => {
 }
 ```
 
+AI insights (sent separately when available):
+```json
+{
+  "type": "insights",
+  "data": {
+    "timestamp": "2025-01-15T20:30:00Z",
+    "insights": [
+      {
+        "game_id": "0022400123",
+        "type": "lead_change",
+        "text": "The Lakers have taken the lead with an 8-0 run."
+      }
+    ]
+  }
+}
+```
+
 **Update Frequency:**
-- Updates sent every 8 seconds when changes are detected
+- Scoreboard updates sent at fixed intervals (e.g., ~8 seconds for live scoreboard) when changes are detected
+- AI insights generated and sent when meaningful game changes occur
 - Initial data sent immediately upon connection
 
 **How it works:**
-The backend polls the NBA API every 8 seconds and caches the latest scoreboard data. WebSocket connections read from this cache, so multiple clients don't trigger multiple API calls.
+The backend polls the NBA API at fixed intervals (e.g., ~8 seconds for live scoreboard) and caches the latest scoreboard data. WebSocket connections read from this cache, so multiple clients don't trigger multiple API calls.
+
+When live games are detected, the backend generates batched AI insights for all games in one Groq API call. These insights are sent as separate messages with `type: "insights"` so the frontend can handle them differently from scoreboard updates.
 
 ---
 
@@ -483,17 +575,19 @@ ws.onmessage = (event) => {
 ```
 
 **Update Frequency:**
-- Updates sent every 5 seconds when new plays are detected
+- Updates sent at fixed intervals (e.g., ~5 seconds for play-by-play) when new plays are detected
 - All historical plays sent immediately upon connection
 
 **How it works:**
-The backend polls the NBA API every 5 seconds for active games and caches the latest play-by-play data. WebSocket connections read from this cache, so multiple clients watching the same game don't trigger multiple API calls.
+The backend polls the NBA API at fixed intervals (e.g., ~5 seconds for play-by-play) for active games and caches the latest play-by-play data. WebSocket connections read from this cache, so multiple clients watching the same game don't trigger multiple API calls.
 
 ---
 
 ## Rate Limiting
 
-The API automatically handles rate limiting for NBA API calls to prevent throttling.
+The API handles rate limiting for two different services: NBA API calls and Groq AI calls.
+
+### NBA API Rate Limiting
 
 **Why it exists:**
 The NBA API can throttle or block requests if too many calls are made too quickly. Our backend waits at least 600ms between each NBA API call to stay within limits.
@@ -509,6 +603,24 @@ await rate_limit()
 
 All REST endpoints that call the NBA API automatically use rate limiting. You don't need to do anything - it's handled automatically.
 
+### Groq AI Rate Limiting
+
+**Why it exists:**
+Groq has strict rate limits: 28 requests per minute (RPM) and 5800 tokens per minute (TPM). We track both and wait before making calls if we're approaching limits.
+
+**How it works:**
+- Tracks requests and tokens in rolling 60-second windows
+- Automatically waits if approaching limits
+- Uses batching to reduce total calls (one call for all games)
+- Caches results to avoid repeated calls
+
+**Where it applies:**
+- Batched insights endpoint (`/scoreboard/insights`)
+- Lead change explanations (`/scoreboard/game/{game_id}/lead-change`)
+- Predictions page AI explanations
+
+All Groq calls go through the same rate limiter. If a limit is hit, the system waits and retries automatically.
+
 ---
 
 ## Data Cache Service
@@ -516,23 +628,29 @@ All REST endpoints that call the NBA API automatically use rate limiting. You do
 The data cache service reduces NBA API calls by polling in the background and caching results.
 
 **What it does:**
-- Polls NBA API at fixed intervals (scoreboard every 8 seconds, play-by-play every 5 seconds)
+- Polls NBA API at fixed intervals (e.g., ~8 seconds for live scoreboard, ~5 seconds for play-by-play)
 - Caches the latest data in memory
 - WebSocket connections read from cache instead of making API calls
 
 **Why it exists:**
-Multiple clients watching the same game would trigger multiple API calls. The cache ensures only one poller exists per data type, and all WebSocket clients read from the same cached data.
+If 100 people are watching the scoreboard, we don't want 100 API calls. The cache ensures only one poller exists per data type, and all WebSocket clients read from the same cached data.
+
+**How WebSockets use it:**
+WebSocket managers (`websockets_manager.py`) never call the NBA API directly. They call `data_cache.get_scoreboard()` or `data_cache.get_playbyplay()`, which returns cached data. The cache service handles all the polling and rate limiting in the background.
 
 **Example:**
 ```python
 from app.services.data_cache import data_cache
 
-# Get latest cached scoreboard (no API call)
+# Get latest cached scoreboard (no API call, reads from cache)
 scoreboard = await data_cache.get_scoreboard()
 
-# Get latest cached play-by-play for a game (no API call)
+# Get latest cached play-by-play for a game (no API call, reads from cache)
 playbyplay = await data_cache.get_playbyplay(game_id)
 ```
+
+**Result:**
+Multiple WebSocket clients = one API poller. Much more efficient.
 
 The cache is automatically started when the app starts and stopped when the app shuts down.
 

@@ -1,6 +1,5 @@
 import { Box, Typography, Avatar } from '@mui/material';
 import { getTeamColors } from '../utils/teamColors';
-import { typography } from '../theme/designTokens';
 
 interface TeamBannerProps {
   teamId: number;
@@ -18,6 +17,10 @@ interface TeamBannerProps {
   };
 }
 
+/**
+ * Material 3 flat, compact team header banner.
+ * Lives inside the main content surface, uses team primary color.
+ */
 const TeamBanner: React.FC<TeamBannerProps> = ({
   teamId,
   teamCity,
@@ -45,82 +48,28 @@ const TeamBanner: React.FC<TeamBannerProps> = ({
         width: '100%',
         backgroundColor: colors.primary,
         color: colors.text,
-        position: 'relative',
-        overflow: 'hidden',
-        py: { xs: 4, sm: 5, md: 6 },
-        px: { xs: 3, sm: 4, md: 6 },
-        mb: 0,
+        borderRadius: 0,
+        py: 3,
+        px: 3,
+        mb: 3,
       }}
     >
-      {/* Background pattern/text overlay */}
       <Box
         sx={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          opacity: 0.1,
-          display: { xs: 'none', md: 'block' },
-        }}
-      >
-        <Typography
-          variant="h1"
-          sx={{
-            position: 'absolute',
-            left: { md: -20, lg: 0 },
-            top: '50%',
-            transform: 'translateY(-50%)',
-            fontWeight: 900,
-            fontSize: { md: '8rem', lg: '10rem' },
-            color: colors.text,
-            opacity: 0.15,
-            whiteSpace: 'nowrap',
-            textTransform: 'uppercase',
-            letterSpacing: '0.02em',
-          }}
-        >
-          {teamCity}
-        </Typography>
-        <Typography
-          variant="h1"
-          sx={{
-            position: 'absolute',
-            right: { md: -20, lg: 0 },
-            top: '50%',
-            transform: 'translateY(-50%)',
-            fontWeight: 900,
-            fontSize: { md: '8rem', lg: '10rem' },
-            color: colors.text,
-            opacity: 0.15,
-            whiteSpace: 'nowrap',
-            textTransform: 'uppercase',
-            letterSpacing: '0.02em',
-          }}
-        >
-          {teamName.toUpperCase()}
-        </Typography>
-      </Box>
-
-      <Box
-        sx={{
-          position: 'relative',
-          zIndex: 1,
           display: 'flex',
-          flexDirection: { xs: 'column', md: 'row' },
-          alignItems: { xs: 'flex-start', md: 'center' },
-          gap: { xs: 3, md: 4 },
+          flexDirection: { xs: 'column', sm: 'row' },
+          alignItems: { xs: 'flex-start', sm: 'center' },
+          gap: 3,
         }}
       >
-        {/* Team Logo */}
         <Avatar
           src={`/logos/${abbreviation}.svg`}
           alt={`${teamCity} ${teamName}`}
           sx={{
-            width: { xs: 80, sm: 100, md: 120 },
-            height: { xs: 80, sm: 100, md: 120 },
+            width: { xs: 64, sm: 80 },
+            height: { xs: 64, sm: 80 },
             backgroundColor: 'transparent',
-            border: `3px solid ${colors.text}`,
+            border: `2px solid ${colors.text}`,
             flexShrink: 0,
           }}
           onError={e => {
@@ -130,200 +79,86 @@ const TeamBanner: React.FC<TeamBannerProps> = ({
           }}
         />
 
-        {/* Team Info */}
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1, flexWrap: 'wrap' }}>
-            <Typography
-              variant="h3"
-              sx={{
-                fontWeight: typography.weight.bold,
-                fontSize: { xs: typography.size.h4, sm: typography.size.h3, md: typography.size.h2 },
-                color: colors.text,
-                textTransform: 'uppercase',
-                letterSpacing: '0.02em',
-              }}
-            >
-              {teamCity} {teamName}
-            </Typography>
-          </Box>
+          <Typography
+            variant="h4"
+            sx={{
+              fontWeight: 600,
+              fontSize: { xs: '1.25rem', sm: '1.5rem', md: '1.75rem' },
+              color: colors.text,
+              mb: 0.5,
+            }}
+          >
+            {teamCity} {teamName}
+          </Typography>
 
-          {/* Record and Rank */}
           {(record || conferenceRank) && (
             <Typography
-              variant="body1"
+              variant="body2"
               sx={{
-                mb: 2,
-                fontSize: { xs: typography.size.body, sm: typography.size.bodyLarge },
+                fontSize: '0.875rem',
                 color: colors.text,
-                opacity: 0.95,
-                fontWeight: typography.weight.medium,
+                opacity: 0.9,
+                fontWeight: 500,
+                mb: teamStats ? 2 : 0,
               }}
             >
               {record}
               {conferenceRank && conference && (
-                <span> | {conferenceRank}{getOrdinalSuffix(conferenceRank)} in {conference}</span>
+                <span> • {conferenceRank}{getOrdinalSuffix(conferenceRank)} in {conference}</span>
               )}
             </Typography>
           )}
 
-          {/* Team Stats Grid */}
           {teamStats && (
             <Box
               sx={{
                 display: 'grid',
                 gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(4, 1fr)' },
-                gap: { xs: 2, sm: 3 },
+                gap: 2,
                 mt: 2,
               }}
             >
               {teamStats.ppg && (
                 <Box>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      display: 'block',
-                      mb: 0.5,
-                      fontSize: typography.size.caption,
-                      opacity: 0.8,
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.05em',
-                    }}
-                  >
+                  <Typography variant="caption" sx={{ display: 'block', mb: 0.5, opacity: 0.8, fontSize: '0.75rem' }}>
                     PPG
                   </Typography>
-                  <Typography
-                    variant="h6"
-                    sx={{
-                      fontWeight: typography.weight.bold,
-                      fontSize: { xs: typography.size.bodyLarge, sm: typography.size.h6 },
-                      color: colors.text,
-                    }}
-                  >
-                    {teamStats.ppg.rank}{getOrdinalSuffix(teamStats.ppg.rank)}
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      fontSize: typography.size.body,
-                      color: colors.text,
-                      opacity: 0.9,
-                    }}
-                  >
-                    {teamStats.ppg.value.toFixed(1)}
+                  <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.875rem' }}>
+                    {teamStats.ppg.rank}{getOrdinalSuffix(teamStats.ppg.rank)} • {teamStats.ppg.value.toFixed(1)}
                   </Typography>
                 </Box>
               )}
 
               {teamStats.rpg && (
                 <Box>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      display: 'block',
-                      mb: 0.5,
-                      fontSize: typography.size.caption,
-                      opacity: 0.8,
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.05em',
-                    }}
-                  >
+                  <Typography variant="caption" sx={{ display: 'block', mb: 0.5, opacity: 0.8, fontSize: '0.75rem' }}>
                     RPG
                   </Typography>
-                  <Typography
-                    variant="h6"
-                    sx={{
-                      fontWeight: typography.weight.bold,
-                      fontSize: { xs: typography.size.bodyLarge, sm: typography.size.h6 },
-                      color: colors.text,
-                    }}
-                  >
-                    {teamStats.rpg.rank}{getOrdinalSuffix(teamStats.rpg.rank)}
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      fontSize: typography.size.body,
-                      color: colors.text,
-                      opacity: 0.9,
-                    }}
-                  >
-                    {teamStats.rpg.value.toFixed(1)}
+                  <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.875rem' }}>
+                    {teamStats.rpg.rank}{getOrdinalSuffix(teamStats.rpg.rank)} • {teamStats.rpg.value.toFixed(1)}
                   </Typography>
                 </Box>
               )}
 
               {teamStats.apg && (
                 <Box>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      display: 'block',
-                      mb: 0.5,
-                      fontSize: typography.size.caption,
-                      opacity: 0.8,
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.05em',
-                    }}
-                  >
+                  <Typography variant="caption" sx={{ display: 'block', mb: 0.5, opacity: 0.8, fontSize: '0.75rem' }}>
                     APG
                   </Typography>
-                  <Typography
-                    variant="h6"
-                    sx={{
-                      fontWeight: typography.weight.bold,
-                      fontSize: { xs: typography.size.bodyLarge, sm: typography.size.h6 },
-                      color: colors.text,
-                    }}
-                  >
-                    {teamStats.apg.rank}{getOrdinalSuffix(teamStats.apg.rank)}
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      fontSize: typography.size.body,
-                      color: colors.text,
-                      opacity: 0.9,
-                    }}
-                  >
-                    {teamStats.apg.value.toFixed(1)}
+                  <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.875rem' }}>
+                    {teamStats.apg.rank}{getOrdinalSuffix(teamStats.apg.rank)} • {teamStats.apg.value.toFixed(1)}
                   </Typography>
                 </Box>
               )}
 
               {teamStats.oppg && (
                 <Box>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      display: 'block',
-                      mb: 0.5,
-                      fontSize: typography.size.caption,
-                      opacity: 0.8,
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.05em',
-                    }}
-                  >
+                  <Typography variant="caption" sx={{ display: 'block', mb: 0.5, opacity: 0.8, fontSize: '0.75rem' }}>
                     OPPG
                   </Typography>
-                  <Typography
-                    variant="h6"
-                    sx={{
-                      fontWeight: typography.weight.bold,
-                      fontSize: { xs: typography.size.bodyLarge, sm: typography.size.h6 },
-                      color: colors.text,
-                    }}
-                  >
-                    {teamStats.oppg.rank}{getOrdinalSuffix(teamStats.oppg.rank)}
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      fontSize: typography.size.body,
-                      color: colors.text,
-                      opacity: 0.9,
-                    }}
-                  >
-                    {teamStats.oppg.value.toFixed(1)}
+                  <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.875rem' }}>
+                    {teamStats.oppg.rank}{getOrdinalSuffix(teamStats.oppg.rank)} • {teamStats.oppg.value.toFixed(1)}
                   </Typography>
                 </Box>
               )}
@@ -336,4 +171,3 @@ const TeamBanner: React.FC<TeamBannerProps> = ({
 };
 
 export default TeamBanner;
-

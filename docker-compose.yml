@@ -8,6 +8,11 @@ services:
       - "8000:8000"
     volumes:
       - ./nba-tracker-api:/app
+    environment:
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - NBA_API_CONFIG=${NBA_API_CONFIG}
+      - NBA_API_PROXY=${NBA_API_PROXY}
+      - FRONTEND_URL=${FRONTEND_URL:-*}
     networks:
       - nba-network
 

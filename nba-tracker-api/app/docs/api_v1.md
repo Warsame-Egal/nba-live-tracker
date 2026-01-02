@@ -49,6 +49,8 @@ http://localhost:8000/api/v1
 | ------ | -------- | ----------- |
 | `GET` | `/scoreboard/game/{game_id}/boxscore` | Get game box score |
 | `GET` | `/scoreboard/game/{game_id}/play-by-play` | Get play-by-play for a game |
+| `GET` | `/scoreboard/insights` | Get AI insights for all live games |
+| `GET` | `/scoreboard/game/{game_id}/lead-change` | Get explanation for why lead changed |
 
 ### Predictions
 
@@ -92,6 +94,12 @@ curl http://localhost:8000/api/v1/scoreboard/game/0022400123/boxscore
 
 # Get play-by-play
 curl http://localhost:8000/api/v1/scoreboard/game/0022400123/play-by-play
+
+# Get AI insights for live games
+curl http://localhost:8000/api/v1/scoreboard/insights
+
+# Get lead change explanation
+curl http://localhost:8000/api/v1/scoreboard/game/0022400123/lead-change
 
 # Get predictions
 curl http://localhost:8000/api/v1/predictions/date/2024-01-15?season=2024-25

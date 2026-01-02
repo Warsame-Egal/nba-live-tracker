@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
-  Container,
   TextField,
   Typography,
   Box,
@@ -20,24 +19,23 @@ import {
   Snackbar,
   Alert,
   Button,
-  Avatar,
 } from '@mui/material';
 import { Search, Close, Event, Notifications, CalendarToday, FilterList, Refresh, Schedule } from '@mui/icons-material';
-import { ScoreboardResponse, Game, BoxScoreResponse, PlayerBoxScoreStats } from '../types/scoreboard';
+import { ScoreboardResponse, Game } from '../types/scoreboard';
 import { GamesResponse, GameSummary, GameLeaders } from '../types/schedule';
-import { PlayByPlayResponse, PlayByPlayEvent } from '../types/playbyplay';
 import WebSocketService from '../services/websocketService';
-import PlayByPlayWebSocketService from '../services/PlayByPlayWebSocketService';
 import GameRow from '../components/GameRow';
+import { GameInsightData } from '../components/GameInsight';
 import Navbar from '../components/Navbar';
+import PageLayout from '../components/PageLayout';
 import WeeklyCalendar from '../components/WeeklyCalendar';
 import GameDetailsDrawer from '../components/GameDetailsDrawer';
 import UniversalSidebar from '../components/UniversalSidebar';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { SearchResults } from '../types/search';
 import debounce from 'lodash/debounce';
 import { logger } from '../utils/logger';
-import { responsiveSpacing, borderRadius, typography, zIndex, transitions } from '../theme/designTokens';
+import { responsiveSpacing, borderRadius, typography, zIndex } from '../theme/designTokens';
 import { fetchJson } from '../utils/apiClient';
 
 // WebSocket URL for live score updates
@@ -113,10 +111,10 @@ const Scoreboard = () => {
   // Reference to store game leaders from schedule endpoint (for merging with WebSocket updates)
   const scheduleGameLeadersRef = useRef<Map<string, GameLeaders>>(new Map());
   
-  // State for current game's last play and top performers (for main scoreboard display)
-  const [currentGameLastPlay, setCurrentGameLastPlay] = useState<PlayByPlayEvent | null>(null);
-  const [currentGameTopPerformers, setCurrentGameTopPerformers] = useState<{ home: PlayerBoxScoreStats | null; away: PlayerBoxScoreStats | null }>({ home: null, away: null });
-  const pbpServiceRef = useRef<PlayByPlayWebSocketService | null>(null);
+  
+  // State for AI insights (game_id -> insight)
+  const [gameInsights, setGameInsights] = useState<Map<string, GameInsightData>>(new Map());
+  const [dismissedInsights, setDismissedInsights] = useState<Set<string>>(new Set());
 
   // Split games into live, upcoming, and completed categories
   // This is memoized so it only recalculates when games or date changes
@@ -159,76 +157,7 @@ const Scoreboard = () => {
     }
   }, [games, searchQuery, selectedDate]);
 
-  // Get selected game or first live game for current game info display
-  const currentGameForDisplay = useMemo(() => {
-    if (selectedGame) return selectedGame;
-    return liveGames.length > 0 ? liveGames[0] : null;
-  }, [selectedGame, liveGames]);
 
-  // Fetch box score and play-by-play for selected game (or first live game)
-  useEffect(() => {
-    const isToday = selectedDate === getLocalISODate();
-    if (!currentGameForDisplay || !isToday) {
-      setCurrentGameLastPlay(null);
-      setCurrentGameTopPerformers({ home: null, away: null });
-      if (pbpServiceRef.current) {
-        pbpServiceRef.current.disconnect();
-        pbpServiceRef.current = null;
-      }
-      return;
-    }
-
-    const gameId = 'gameId' in currentGameForDisplay ? currentGameForDisplay.gameId : currentGameForDisplay.game_id;
-
-    // Fetch box score for top performers
-    const fetchBoxScore = async () => {
-      try {
-        const data = await fetchJson<BoxScoreResponse>(
-          `${API_BASE_URL}/api/v1/scoreboard/game/${gameId}/boxscore`,
-          {},
-          { maxRetries: 2, retryDelay: 1000, timeout: 20000 }
-        );
-        
-        // Find top scorer from each team
-        const homeTopScorer = data.home_team.players
-          .filter(p => p.points > 0)
-          .sort((a, b) => b.points - a.points)[0] || null;
-        
-        const awayTopScorer = data.away_team.players
-          .filter(p => p.points > 0)
-          .sort((a, b) => b.points - a.points)[0] || null;
-        
-        setCurrentGameTopPerformers({ home: homeTopScorer, away: awayTopScorer });
-      } catch {
-        // Silently fail for background updates
-      }
-    };
-
-    fetchBoxScore();
-    const interval = setInterval(fetchBoxScore, 30000);
-
-    // Connect to play-by-play WebSocket
-    const service = new PlayByPlayWebSocketService();
-    pbpServiceRef.current = service;
-
-    const handleUpdate = (data: PlayByPlayResponse) => {
-      if (data?.plays && data.plays.length > 0) {
-        // Get the most recent play (highest action_number)
-        const sorted = [...data.plays].sort((a, b) => b.action_number - a.action_number);
-        setCurrentGameLastPlay(sorted[0]);
-      }
-    };
-
-    service.connect(gameId);
-    service.subscribe(handleUpdate);
-
-    return () => {
-      clearInterval(interval);
-      service.unsubscribe(handleUpdate);
-      service.disconnect();
-      pbpServiceRef.current = null;
-    };
-  }, [currentGameForDisplay, selectedDate]);
 
   /**
    * Set up WebSocket connection for live score updates.
@@ -241,11 +170,79 @@ const Scoreboard = () => {
       previousScoresRef.current.clear();
       previousGameStatesRef.current.clear();
       setRecentlyUpdatedGames(new Set());
+      setGameInsights(new Map());
+      setDismissedInsights(new Set());
+      
+      // Handle insights messages from WebSocket
+      const handleInsightsEvent = (event: CustomEvent) => {
+        try {
+          const data = event.detail;
+          console.log('[Scoreboard] Received insights event:', data);
+          if (data && data.type === 'insights') {
+            console.log('[Scoreboard] Insights message structure:', {
+              hasData: !!data.data,
+              hasInsights: !!(data.data && data.data.insights),
+              insightsLength: data.data?.insights?.length || 0
+            });
+            
+            if (data.data && data.data.insights && Array.isArray(data.data.insights)) {
+              console.log('[Scoreboard] Processing insights array:', data.data.insights);
+              const newInsights = new Map<string, GameInsightData>();
+              data.data.insights.forEach((insight: GameInsightData, index: number) => {
+                console.log(`[Scoreboard] Processing insight ${index}:`, insight);
+                if (insight && insight.game_id && insight.type && insight.type !== 'none' && insight.text) {
+                  console.log(`[Scoreboard] ✓ Adding insight for game ${insight.game_id}:`, insight);
+                  newInsights.set(insight.game_id, insight);
+                } else {
+                  console.log(`[Scoreboard] ✗ Skipping insight ${index} - missing/invalid fields:`, {
+                    hasInsight: !!insight,
+                    hasGameId: !!insight?.game_id,
+                    gameId: insight?.game_id,
+                    type: insight?.type,
+                    hasText: !!insight?.text,
+                    text: insight?.text
+                  });
+                }
+              });
+              
+              if (newInsights.size > 0) {
+                setGameInsights(prev => {
+                  const merged = new Map(prev);
+                  newInsights.forEach((insight, gameId) => {
+                    merged.set(gameId, insight);
+                  });
+                  console.log('[Scoreboard] Updated game insights map. Total insights:', merged.size);
+                  console.log('[Scoreboard] Insight keys:', Array.from(merged.keys()));
+                  return merged;
+                });
+              } else {
+                console.log('[Scoreboard] No valid insights to add after filtering');
+              }
+            } else {
+              console.log('[Scoreboard] No insights array found in data:', data);
+            }
+          } else {
+            console.log('[Scoreboard] Not an insights message or missing data:', data);
+          }
+        } catch (error) {
+          console.error('[Scoreboard] Error parsing insights message', error);
+          logger.error('Error parsing insights message', error);
+        }
+      };
+      
+      // Listen for insights events
+      window.addEventListener('websocket-insights', handleInsightsEvent as EventListener);
       
       // Connect to WebSocket for live updates
       WebSocketService.connect(SCOREBOARD_WEBSOCKET_URL);
       // This function gets called whenever new score data arrives
       const handleScoreboardUpdate = (data: ScoreboardResponse) => {
+        // Check if data has scoreboard structure
+        if (!data || !data.scoreboard || !data.scoreboard.games) {
+          logger.warn('Invalid scoreboard data received from WebSocket', data);
+          return;
+        }
+        
         // Track which games had score changes for animation
         const updatedGameIds = new Set<string>();
 
@@ -367,6 +364,7 @@ const Scoreboard = () => {
       return () => {
         WebSocketService.unsubscribe(handleScoreboardUpdate);
         WebSocketService.disconnect();
+        window.removeEventListener('websocket-insights', handleInsightsEvent as EventListener);
       };
     }
     return () => {};
@@ -616,6 +614,16 @@ const Scoreboard = () => {
               }
             };
             
+            const insight = dismissedInsights.has(gameId) ? null : (gameInsights.get(gameId) || null);
+            if (isLive) {
+              console.log(`[Scoreboard] Game ${gameId} - isLive: ${isLive}, insight:`, insight);
+              if (insight) {
+                console.log(`[Scoreboard] Insight details - type: ${insight.type}, text: ${insight.text}, game_id: ${insight.game_id}`);
+              } else {
+                console.log(`[Scoreboard] No insight for game ${gameId}. Available insights:`, Array.from(gameInsights.keys()));
+              }
+            }
+            
             return (
               <GameRow
                 key={gameId}
@@ -625,6 +633,10 @@ const Scoreboard = () => {
                 isSelected={isSelected}
                 onOpenBoxScore={(isLive || isCompleted) ? handleOpenBoxScore : undefined}
                 onOpenPlayByPlay={(isLive || isCompleted) ? handleOpenPlayByPlay : undefined}
+                insight={insight}
+                onDismissInsight={() => {
+                  setDismissedInsights(prev => new Set(prev).add(gameId));
+                }}
               />
             );
           })}
@@ -636,34 +648,63 @@ const Scoreboard = () => {
   return (
     <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default', display: 'flex', flexDirection: 'column' }}>
       <Navbar />
-      <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-        <Box
-          sx={{
-            flex: 1,
-            overflowY: 'auto',
-            backgroundColor: 'background.default',
-          }}
-        >
-          <Container maxWidth={false} sx={{ py: responsiveSpacing.containerVertical, px: { xs: 2, sm: 3, md: 4, lg: 6 } }}>
-        {/* Header: Search bar and Calendar */}
+      <PageLayout sidebar={<UniversalSidebar />}>
+        {/* Scoreboard Page Header: Title, Calendar, and Search */}
         <Box
           sx={{
             display: 'flex',
             flexDirection: { xs: 'column', md: 'row' },
-            alignItems: { xs: 'stretch', md: 'center' },
+            alignItems: { xs: 'flex-start', md: 'center' },
             justifyContent: 'space-between',
             gap: { xs: 2, sm: 3 },
-            mb: responsiveSpacing.section,
+            mb: { xs: 3, sm: 4 },
+            flexWrap: 'wrap',
           }}
         >
-          {/* Search bar - Compact, top right */}
+          {/* Left: Page Title */}
+          <Box sx={{ flex: { xs: '1 1 100%', md: '0 0 auto' }, minWidth: 0 }}>
+            <Typography
+              variant="h4"
+              sx={{
+                fontWeight: typography.weight.bold,
+                fontSize: { xs: typography.size.h5, sm: typography.size.h4 },
+                color: 'text.primary',
+                mb: 0.5,
+                letterSpacing: '-0.02em',
+              }}
+            >
+              Live Scoreboard
+            </Typography>
+            <Typography 
+              variant="body2" 
+              color="text.secondary"
+              sx={{ fontSize: { xs: '0.875rem', sm: '0.9375rem' } }}
+            >
+              Real-time NBA game scores and updates
+            </Typography>
+          </Box>
+
+          {/* Center: Calendar - Compact */}
+          <Box
+            sx={{
+              flex: { xs: '1 1 100%', md: '0 0 auto' },
+              order: { xs: 3, md: 2 },
+              width: { xs: '100%', md: 'auto' },
+              maxWidth: { xs: '100%', md: 400 },
+            }}
+          >
+            <WeeklyCalendar selectedDate={selectedDate} setSelectedDate={setSelectedDate} />
+          </Box>
+
+          {/* Right: Search input */}
           <Box
             ref={searchContainerRef}
             sx={{
               position: 'relative',
+              flex: { xs: '1 1 100%', md: '0 0 auto' },
               width: { xs: '100%', md: 'auto' },
               maxWidth: { xs: '100%', md: 320 },
-              order: { xs: 1, md: 2 },
+              order: { xs: 2, md: 3 },
             }}
           >
             <TextField
@@ -705,7 +746,7 @@ const Scoreboard = () => {
             {/* Search results dropdown */}
             {showSearchResults && (searchResults.players.length > 0 || searchResults.teams.length > 0) && (
               <Paper
-                elevation={8}
+                elevation={3} // Material 3: max elevation for dropdowns
                 sx={{
                   position: 'absolute',
                   top: '100%',
@@ -715,7 +756,10 @@ const Scoreboard = () => {
                   maxHeight: 400,
                   overflow: 'auto',
                   zIndex: zIndex.dropdown,
-                  backgroundColor: 'background.paper',
+                  backgroundColor: 'background.paper', // Material 3: surface
+                  borderRadius: 1.5, // Material 3: 12dp
+                  border: '1px solid',
+                  borderColor: 'divider', // Material 3: outline
                 }}
               >
                 <List dense>
@@ -792,17 +836,6 @@ const Scoreboard = () => {
               </Paper>
             )}
           </Box>
-
-          {/* Calendar - Modern, compact */}
-          <Box
-            sx={{
-              display: 'flex',
-              justifyContent: { xs: 'center', md: 'flex-start' },
-              order: { xs: 2, md: 1 },
-            }}
-          >
-            <WeeklyCalendar selectedDate={selectedDate} setSelectedDate={setSelectedDate} />
-          </Box>
         </Box>
 
         {/* Game Statistics Summary Bar */}
@@ -869,126 +902,6 @@ const Scoreboard = () => {
           )
         )}
 
-        {/* Current Game Info: Last Play & Top Performers - For selected game or first live game */}
-        {currentGameForDisplay && !loading && (() => {
-          const isLiveGame = 'homeTeam' in currentGameForDisplay;
-          const homeTeam = isLiveGame ? currentGameForDisplay.homeTeam?.teamTricode : currentGameForDisplay.home_team?.team_abbreviation;
-          const awayTeam = isLiveGame ? currentGameForDisplay.awayTeam?.teamTricode : currentGameForDisplay.away_team?.team_abbreviation;
-          
-          // Team logos mapping
-          const teamLogos: Record<string, string> = {
-            ATL: '/logos/ATL.svg', BOS: '/logos/BOS.svg', BKN: '/logos/BKN.svg', CHA: '/logos/CHA.svg',
-            CHI: '/logos/CHI.svg', CLE: '/logos/CLE.svg', DAL: '/logos/DAL.svg', DEN: '/logos/DEN.svg',
-            DET: '/logos/DET.svg', GSW: '/logos/GSW.svg', HOU: '/logos/HOU.svg', IND: '/logos/IND.svg',
-            LAC: '/logos/LAC.svg', LAL: '/logos/LAL.svg', MEM: '/logos/MEM.svg', MIA: '/logos/MIA.svg',
-            MIL: '/logos/MIL.svg', MIN: '/logos/MIN.svg', NOP: '/logos/NOP.svg', NYK: '/logos/NYK.svg',
-            OKC: '/logos/OKC.svg', ORL: '/logos/ORL.svg', PHI: '/logos/PHI.svg', PHX: '/logos/PHX.svg',
-            POR: '/logos/POR.svg', SAC: '/logos/SAC.svg', SAS: '/logos/SAS.svg', TOR: '/logos/TOR.svg',
-            UTA: '/logos/UTA.svg', WAS: '/logos/WAS.svg', NBA: '/logos/NBA.svg',
-          };
-          
-          const formatPeriod = (period: number) => {
-            if (period <= 4) {
-              const suffixes = ['', 'st', 'nd', 'rd', 'th'];
-              return `${period}${suffixes[period] || 'th'}`;
-            }
-            return `OT${period - 4}`;
-          };
-          
-          const formatClock = (clock: string) => {
-            if (!clock) return '';
-            // Handle formats like PT10M15.00S or PT10M15S
-            const match = clock.match(/PT(\d+)M(\d+)(?:\.\d+)?S/);
-            if (match) {
-              const minutes = match[1];
-              const seconds = Math.floor(parseFloat(match[2])).toString().padStart(2, '0');
-              return `${minutes}:${seconds}`;
-            }
-            return clock;
-          };
-          
-          return (currentGameLastPlay || currentGameTopPerformers.home || currentGameTopPerformers.away) ? (
-            <Box
-              sx={{
-                display: 'flex',
-                flexDirection: { xs: 'column', md: 'row' },
-                gap: { xs: 2, md: 3 },
-                mb: responsiveSpacing.section,
-                p: { xs: 1.5, sm: 2 },
-                backgroundColor: 'background.paper',
-                border: '1px solid',
-                borderColor: 'divider',
-                borderRadius: borderRadius.sm,
-              }}
-            >
-              {/* Last Play Section */}
-              {currentGameLastPlay && (
-                <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      fontSize: typography.size.captionSmall,
-                      fontWeight: typography.weight.semibold,
-                      color: 'text.secondary',
-                      mb: 0.5,
-                      display: 'block',
-                    }}
-                  >
-                    Last Play {formatClock(currentGameLastPlay.clock)} - {formatPeriod(currentGameLastPlay.period)}
-                  </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    {currentGameLastPlay.team_tricode && (
-                      <Avatar
-                        src={teamLogos[currentGameLastPlay.team_tricode] || teamLogos['NBA']}
-                        alt={`${currentGameLastPlay.team_tricode} logo`}
-                        sx={{
-                          width: 20,
-                          height: 20,
-                        }}
-                      />
-                    )}
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        fontSize: typography.size.bodySmall,
-                        color: 'text.primary',
-                        fontWeight: typography.weight.medium,
-                      }}
-                    >
-                      {currentGameLastPlay.team_tricode ? `${currentGameLastPlay.team_tricode} - ` : ''}{currentGameLastPlay.description}
-                    </Typography>
-                  </Box>
-                </Box>
-              )}
-
-              {/* Top Performers Section */}
-              {(currentGameTopPerformers.home || currentGameTopPerformers.away) && (
-                <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      fontSize: typography.size.captionSmall,
-                      fontWeight: typography.weight.semibold,
-                      color: 'text.secondary',
-                      mb: 0.5,
-                      display: 'block',
-                    }}
-                  >
-                    TOP PERFORMERS
-                  </Typography>
-                  <Box sx={{ display: 'flex', gap: { xs: 1.5, sm: 2 }, flexWrap: 'wrap' }}>
-                    {currentGameTopPerformers.away && (
-                      <CompactTopPerformer player={currentGameTopPerformers.away} teamTricode={awayTeam || ''} />
-                    )}
-                    {currentGameTopPerformers.home && (
-                      <CompactTopPerformer player={currentGameTopPerformers.home} teamTricode={homeTeam || ''} />
-                    )}
-                  </Box>
-                </Box>
-              )}
-            </Box>
-          ) : null;
-        })()}
 
         {/* Games Display */}
         {loading && !searchInput && games.length === 0 ? (
@@ -1207,7 +1120,7 @@ const Scoreboard = () => {
                 sx={{
                   px: 4,
                   py: 1.5,
-                  borderRadius: 2,
+                  borderRadius: 1.5, // Material 3: 12dp
                   textTransform: 'none',
                   fontWeight: 600,
                 }}
@@ -1254,124 +1167,7 @@ const Scoreboard = () => {
             {toast?.message}
           </Alert>
         </Snackbar>
-          </Container>
-        </Box>
-
-        <Box
-          sx={{
-            width: 320,
-            flexShrink: 0,
-            display: { xs: 'none', md: 'flex' },
-            flexDirection: 'column',
-            borderLeft: '1px solid',
-            borderColor: 'divider',
-            backgroundColor: 'background.paper',
-            overflowY: 'auto',
-          }}
-        >
-          <UniversalSidebar />
-        </Box>
-      </Box>
-    </Box>
-  );
-};
-
-/**
- * Compact Top Performer component for main scoreboard
- */
-interface CompactTopPerformerProps {
-  player: PlayerBoxScoreStats;
-  teamTricode: string;
-}
-
-const CompactTopPerformer: React.FC<CompactTopPerformerProps> = ({ player, teamTricode }) => {
-  const isValidPlayerId = player.player_id && player.player_id > 0;
-  const avatarUrl = isValidPlayerId
-    ? `https://cdn.nba.com/headshots/nba/latest/1040x760/${player.player_id}.png`
-    : '';
-
-  // Get first initial and last name
-  const nameParts = player.name ? player.name.split(' ') : [];
-  const lastName = nameParts.length > 0 ? nameParts[nameParts.length - 1] : '';
-  const firstName = nameParts.length > 1 ? nameParts[0] : '';
-  const displayName = firstName && lastName ? `${firstName[0]}. ${lastName}` : player.name || 'N/A';
-
-  return (
-    <Box
-      component={isValidPlayerId ? Link : Box}
-      to={isValidPlayerId ? `/player/${player.player_id}` : undefined}
-      sx={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 0.75,
-        cursor: isValidPlayerId ? 'pointer' : 'default',
-        transition: transitions.normal,
-        textDecoration: 'none',
-        color: 'inherit',
-        '&:hover': isValidPlayerId ? { opacity: 0.8 } : {},
-      }}
-    >
-      {isValidPlayerId ? (
-        <Avatar
-          src={avatarUrl}
-          alt={player.name || 'Player'}
-          sx={{
-            width: 28,
-            height: 28,
-            border: '1px solid',
-            borderColor: 'divider',
-          }}
-          onError={e => {
-            const target = e.currentTarget as HTMLImageElement;
-            target.onerror = null;
-            target.src = '';
-          }}
-        />
-      ) : (
-        <Avatar
-          sx={{
-            width: 28,
-            height: 28,
-            backgroundColor: 'action.disabledBackground',
-            opacity: 0.5,
-          }}
-        />
-      )}
-      <Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
-          <Typography
-            variant="caption"
-            sx={{
-              fontWeight: typography.weight.semibold,
-              fontSize: typography.size.caption,
-              color: 'text.primary',
-            }}
-          >
-            {displayName}
-          </Typography>
-          <Typography
-            variant="caption"
-            sx={{
-              fontSize: typography.size.captionSmall,
-              color: 'text.secondary',
-            }}
-          >
-            #{player.jerseyNum || player.position || 'N/A'} - {teamTricode}
-          </Typography>
-        </Box>
-        <Typography
-          variant="caption"
-          sx={{
-            fontSize: typography.size.captionSmall,
-            color: 'text.secondary',
-            display: 'block',
-            fontFamily: 'monospace',
-            fontWeight: typography.weight.bold,
-          }}
-        >
-          {Math.round(player.points)}PTS
-        </Typography>
-      </Box>
+      </PageLayout>
     </Box>
   );
 };

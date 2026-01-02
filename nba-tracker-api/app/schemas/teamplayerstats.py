@@ -35,3 +35,4 @@ class TeamPlayerStatsResponse(BaseModel):
     season: str = Field(..., description="Season (e.g., '2024-25')")
     players: List[TeamPlayerStat] = Field(..., description="List of player statistics")
 
+

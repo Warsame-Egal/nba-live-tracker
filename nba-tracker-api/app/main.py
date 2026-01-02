@@ -2,9 +2,15 @@ import asyncio
 import logging
 import os
 from contextlib import asynccontextmanager
+from pathlib import Path
 
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
+# Load environment variables from .env file
+env_path = Path(__file__).parent.parent / ".env"
+load_dotenv(env_path)
 
 from app.routers.players import router as player_router
 from app.routers.schedule import router as schedule_router
@@ -88,6 +94,18 @@ app.add_middleware(
 def home():
     """Health check endpoint."""
     return {"message": "NBA Live API is running"}
+
+
+@app.get("/api/v1/config/check")
+def check_config():
+    """Check if Groq API key is configured (for debugging)."""
+    from app.config import get_groq_api_key
+    
+    groq_key = get_groq_api_key()
+    return {
+        "groq_configured": groq_key is not None,
+        "groq_key_length": len(groq_key) if groq_key else 0,
+    }
 
 
 # Register all API routes

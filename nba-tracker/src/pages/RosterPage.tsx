@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import {
-  Container,
   Box,
   Typography,
   Paper,
@@ -17,6 +16,7 @@ import {
 } from '@mui/material';
 import { TeamRoster, Player } from '../types/team';
 import Navbar from '../components/Navbar';
+import PageLayout from '../components/PageLayout';
 import { logger } from '../utils/logger';
 import { fetchJson } from '../utils/apiClient';
 
@@ -52,31 +52,32 @@ const RosterPage = () => {
 
   if (loading) {
     return (
-      <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
+      <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default', display: 'flex', flexDirection: 'column' }}>
         <Navbar />
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: { xs: 8, sm: 10 } }}>
-          <CircularProgress />
-        </Box>
+        <PageLayout>
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: { xs: 8, sm: 10 } }}>
+            <CircularProgress />
+          </Box>
+        </PageLayout>
       </Box>
     );
   }
 
-  // Show error message if something went wrong
   if (error) {
     return (
-      <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
+      <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default', display: 'flex', flexDirection: 'column' }}>
         <Navbar />
-        <Container sx={{ py: { xs: 4, sm: 5 }, px: { xs: 2, sm: 3 } }}>
+        <PageLayout>
           <Alert severity="error">{error}</Alert>
-        </Container>
+        </PageLayout>
       </Box>
     );
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
+    <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default', display: 'flex', flexDirection: 'column' }}>
       <Navbar />
-      <Container maxWidth="lg" sx={{ py: { xs: 4, sm: 5, md: 6 }, px: { xs: 2, sm: 3, md: 4 } }}>
+      <PageLayout>
         {/* Page title */}
         <Typography
           variant="h4"
@@ -97,7 +98,7 @@ const RosterPage = () => {
           sx={{
             border: '1px solid',
             borderColor: 'divider',
-            borderRadius: 2,
+            borderRadius: 1.5, // Material 3: 12dp
             overflow: 'hidden',
           }}
         >
@@ -126,13 +127,11 @@ const RosterPage = () => {
                 >
                   <TableCell>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 1.5 } }}>
-                      {/* Player photo */}
                       <Avatar
                         src={`https://cdn.nba.com/headshots/nba/latest/1040x760/${player.player_id}.png`}
                         alt={player.name}
                         sx={{ width: 40, height: 40 }}
                         onError={e => {
-                          // If player photo fails to load, use fallback
                           const target = e.currentTarget as HTMLImageElement;
                           target.src = 'https://cdn.nba.com/headshots/nba/latest/1040x760/fallback.png';
                         }}
@@ -151,7 +150,7 @@ const RosterPage = () => {
             </TableBody>
           </Table>
         </TableContainer>
-      </Container>
+      </PageLayout>
     </Box>
   );
 };

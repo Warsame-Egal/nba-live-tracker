@@ -37,11 +37,11 @@ const SeasonLeaders: React.FC<SeasonLeadersProps> = ({ data }) => {
           <Paper
             elevation={0}
             sx={{
-              p: 3,
-              backgroundColor: 'background.paper',
+              p: 3, // Material 3: 24dp
+              backgroundColor: 'background.paper', // Material 3: surface
               border: '1px solid',
-              borderColor: 'divider',
-              borderRadius: borderRadius.md,
+              borderColor: 'divider', // Material 3: outline
+              borderRadius: 1.5, // Material 3: 12dp
               height: '100%',
             }}
           >
@@ -102,12 +102,13 @@ const LeaderRow: React.FC<LeaderRowProps> = ({ leader, rank, formattedValue }) =
         alignItems: 'center',
         justifyContent: 'space-between',
         textDecoration: 'none',
-        color: 'inherit',
+        color: 'text.primary',
         p: 1.5,
         borderRadius: borderRadius.sm,
         transition: transitions.normal,
         '&:hover': {
           backgroundColor: 'action.hover',
+          color: 'text.primary', // Neutral color on hover, not blue
         },
       }}
     >

@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { 
   Box, 
-  Container, 
   Typography, 
   Tabs, 
   Tab, 
@@ -25,10 +24,11 @@ import {
 } from '@mui/material';
 import { Search, NavigateBefore, NavigateNext } from '@mui/icons-material';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import PageLayout from '../components/PageLayout';
 import UniversalSidebar from '../components/UniversalSidebar';
 import SeasonLeaders from '../components/SeasonLeaders';
 import Navbar from '../components/Navbar';
-import { responsiveSpacing, typography, borderRadius } from '../theme/designTokens';
+import { typography, borderRadius } from '../theme/designTokens';
 import { fetchJson } from '../utils/apiClient';
 import { getCurrentSeason, getSeasonOptions } from '../utils/season';
 import { SeasonLeadersResponse } from '../types/seasonleaders';
@@ -312,19 +312,20 @@ const Players = () => {
             border: '1px solid',
             borderColor: 'divider',
             borderRadius: borderRadius.md,
+            backgroundColor: 'background.paper',
           }}
         >
           <Table>
             <TableHead>
-              <TableRow>
-                <TableCell sx={{ fontWeight: typography.weight.bold }}>Player</TableCell>
-                <TableCell sx={{ fontWeight: typography.weight.bold }}>Team</TableCell>
-                <TableCell sx={{ fontWeight: typography.weight.bold }}>Number</TableCell>
-                <TableCell sx={{ fontWeight: typography.weight.bold }}>Position</TableCell>
-                <TableCell sx={{ fontWeight: typography.weight.bold }}>Height</TableCell>
-                <TableCell sx={{ fontWeight: typography.weight.bold }}>Weight</TableCell>
-                <TableCell sx={{ fontWeight: typography.weight.bold }}>Last Attended</TableCell>
-                <TableCell sx={{ fontWeight: typography.weight.bold }}>Country</TableCell>
+              <TableRow sx={{ backgroundColor: 'background.paper' }}>
+                <TableCell sx={{ fontWeight: typography.weight.bold, backgroundColor: 'background.paper' }}>Player</TableCell>
+                <TableCell sx={{ fontWeight: typography.weight.bold, backgroundColor: 'background.paper' }}>Team</TableCell>
+                <TableCell sx={{ fontWeight: typography.weight.bold, backgroundColor: 'background.paper' }}>Number</TableCell>
+                <TableCell sx={{ fontWeight: typography.weight.bold, backgroundColor: 'background.paper' }}>Position</TableCell>
+                <TableCell sx={{ fontWeight: typography.weight.bold, backgroundColor: 'background.paper' }}>Height</TableCell>
+                <TableCell sx={{ fontWeight: typography.weight.bold, backgroundColor: 'background.paper' }}>Weight</TableCell>
+                <TableCell sx={{ fontWeight: typography.weight.bold, backgroundColor: 'background.paper' }}>Last Attended</TableCell>
+                <TableCell sx={{ fontWeight: typography.weight.bold, backgroundColor: 'background.paper' }}>Country</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -337,6 +338,7 @@ const Players = () => {
                     onClick={() => navigate(`/player/${playerId}`)}
                     sx={{
                       cursor: 'pointer',
+                      backgroundColor: 'background.paper',
                       '&:hover': {
                         backgroundColor: 'action.hover',
                       },
@@ -459,68 +461,52 @@ const Players = () => {
   return (
     <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default', display: 'flex', flexDirection: 'column' }}>
       <Navbar />
-      <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-        <Box
-          sx={{
-            flex: 1,
-            overflowY: 'auto',
-            backgroundColor: 'background.default',
-          }}
-        >
-          <Container maxWidth={false} sx={{ py: responsiveSpacing.containerVertical, px: { xs: 2, sm: 3, md: 4, lg: 6 } }}>
-            <Box sx={{ mb: { xs: 3, sm: 4 } }}>
+      <PageLayout sidebar={<UniversalSidebar />}>
+        <Box sx={{ mb: { xs: 3, sm: 4 } }}>
               <Typography
                 variant="h4"
                 sx={{
                   fontWeight: typography.weight.bold,
                   fontSize: { xs: typography.size.h5, sm: typography.size.h4 },
-                  mb: 1,
+                  color: 'text.primary',
+                  mb: 0.5,
+                  letterSpacing: '-0.02em',
                 }}
               >
                 Players
               </Typography>
-            </Box>
-
-            {/* Tabs */}
-            <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-              <Tabs
-                value={activeTab}
-                onChange={handleTabChange}
-                sx={{
-                  '& .MuiTab-root': {
-                    textTransform: 'none',
-                    fontWeight: typography.weight.semibold,
-                    fontSize: typography.size.body,
-                    minHeight: 48,
-                  },
-                }}
+              <Typography 
+                variant="body2" 
+                color="text.secondary"
+                sx={{ fontSize: { xs: '0.875rem', sm: '0.9375rem' } }}
               >
-                <Tab label="League Roster" value="roster" />
-                <Tab label="Season Leaders" value="leaders" />
-              </Tabs>
+                Browse all NBA players and season leaders
+              </Typography>
             </Box>
 
-            {/* Tab Content */}
-            {activeTab === 'roster' && renderLeagueRoster()}
-            {activeTab === 'leaders' && renderSeasonLeaders()}
-          </Container>
+        {/* Tabs */}
+        <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+          <Tabs
+            value={activeTab}
+            onChange={handleTabChange}
+            sx={{
+              '& .MuiTab-root': {
+                textTransform: 'none',
+                fontWeight: typography.weight.semibold,
+                fontSize: typography.size.body,
+                minHeight: 48,
+              },
+            }}
+          >
+            <Tab label="League Roster" value="roster" />
+            <Tab label="Season Leaders" value="leaders" />
+          </Tabs>
         </Box>
 
-        <Box
-          sx={{
-            width: 320,
-            flexShrink: 0,
-            display: { xs: 'none', md: 'flex' },
-            flexDirection: 'column',
-            borderLeft: '1px solid',
-            borderColor: 'divider',
-            backgroundColor: 'background.paper',
-            overflowY: 'auto',
-          }}
-        >
-          <UniversalSidebar />
-        </Box>
-      </Box>
+        {/* Tab Content */}
+        {activeTab === 'roster' && renderLeagueRoster()}
+        {activeTab === 'leaders' && renderSeasonLeaders()}
+      </PageLayout>
     </Box>
   );
 };

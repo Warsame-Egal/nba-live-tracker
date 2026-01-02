@@ -212,7 +212,39 @@ const PlayersSidebar: React.FC<PlayersSidebarProps> = ({ selectedStat, onStatCha
         </FormControl>
       </Box>
 
-      <Box sx={{ flex: 1, overflowY: 'auto', position: 'relative' }}>
+      <Box sx={{ 
+        flex: 1, 
+        overflowY: 'auto', 
+        overflowX: 'hidden',
+        position: 'relative',
+        scrollbarWidth: 'thin',
+        scrollbarColor: 'rgba(0, 0, 0, 0.2) transparent',
+        '&::-webkit-scrollbar': {
+          width: '8px',
+        },
+        '&::-webkit-scrollbar-track': {
+          background: 'transparent',
+        },
+        '&::-webkit-scrollbar-thumb': {
+          backgroundColor: 'rgba(0, 0, 0, 0.2)',
+          borderRadius: '4px',
+          border: '2px solid transparent',
+          backgroundClip: 'padding-box',
+          '&:hover': {
+            backgroundColor: 'rgba(0, 0, 0, 0.3)',
+          },
+        },
+        '@media (prefers-color-scheme: dark)': {
+          scrollbarColor: 'rgba(255, 255, 255, 0.3) transparent',
+          '&::-webkit-scrollbar-thumb': {
+            backgroundColor: 'rgba(255, 255, 255, 0.3)',
+            '&:hover': {
+              backgroundColor: 'rgba(255, 255, 255, 0.5)',
+            },
+          },
+        },
+        WebkitOverflowScrolling: 'touch',
+      }}>
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 4 }}>
             <CircularProgress size={24} />

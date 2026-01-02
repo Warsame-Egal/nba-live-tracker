@@ -1,7 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import {
-  Container,
   Box,
   Typography,
   Paper,
@@ -23,6 +22,7 @@ import {
 } from '@mui/material';
 import { format } from 'date-fns';
 import Navbar from '../components/Navbar';
+import PageLayout from '../components/PageLayout';
 import UniversalSidebar from '../components/UniversalSidebar';
 import { fetchJson } from '../utils/apiClient';
 import { getCurrentSeason, getSeasonOptions } from '../utils/season';
@@ -217,29 +217,17 @@ const TeamPage = () => {
     fetchTeamData();
   }, [team_id, season]);
 
+  const sidebar = <UniversalSidebar />;
+
   if (loading) {
     return (
       <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default', display: 'flex', flexDirection: 'column' }}>
         <Navbar />
-        <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-          <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <PageLayout sidebar={sidebar}>
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
             <CircularProgress />
           </Box>
-          <Box
-            sx={{
-              width: 320,
-              flexShrink: 0,
-              display: { xs: 'none', md: 'flex' },
-              flexDirection: 'column',
-              borderLeft: '1px solid',
-              borderColor: 'divider',
-              backgroundColor: 'background.paper',
-              overflowY: 'auto',
-            }}
-          >
-            <UniversalSidebar />
-          </Box>
-        </Box>
+        </PageLayout>
       </Box>
     );
   }
@@ -248,25 +236,9 @@ const TeamPage = () => {
     return (
       <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default', display: 'flex', flexDirection: 'column' }}>
         <Navbar />
-        <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-          <Container sx={{ flex: 1, py: { xs: 4, sm: 5 }, px: { xs: 2, sm: 3 } }}>
-            <Alert severity="error">{error}</Alert>
-          </Container>
-          <Box
-            sx={{
-              width: 320,
-              flexShrink: 0,
-              display: { xs: 'none', md: 'flex' },
-              flexDirection: 'column',
-              borderLeft: '1px solid',
-              borderColor: 'divider',
-              backgroundColor: 'background.paper',
-              overflowY: 'auto',
-            }}
-          >
-            <UniversalSidebar />
-          </Box>
-        </Box>
+        <PageLayout sidebar={sidebar}>
+          <Alert severity="error">{error}</Alert>
+        </PageLayout>
       </Box>
     );
   }
@@ -275,27 +247,11 @@ const TeamPage = () => {
     return (
       <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default', display: 'flex', flexDirection: 'column' }}>
         <Navbar />
-        <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-          <Container sx={{ flex: 1, py: { xs: 4, sm: 5 }, px: { xs: 2, sm: 3 } }}>
-            <Typography variant="body1" color="text.secondary" textAlign="center">
-              Team not found.
-            </Typography>
-          </Container>
-          <Box
-            sx={{
-              width: 320,
-              flexShrink: 0,
-              display: { xs: 'none', md: 'flex' },
-              flexDirection: 'column',
-              borderLeft: '1px solid',
-              borderColor: 'divider',
-              backgroundColor: 'background.paper',
-              overflowY: 'auto',
-            }}
-          >
-            <UniversalSidebar />
-          </Box>
-        </Box>
+        <PageLayout sidebar={sidebar}>
+          <Typography variant="body1" color="text.secondary" textAlign="center">
+            Team not found.
+          </Typography>
+        </PageLayout>
       </Box>
     );
   }
@@ -730,12 +686,12 @@ const TeamPage = () => {
           <Paper
             elevation={0}
             sx={{
-              p: 3,
-              mb: 3,
-              backgroundColor: 'background.paper',
+              p: 3, // Material 3: 24dp
+              mb: 3, // Material 3: 24dp
+              backgroundColor: 'background.paper', // Material 3: surface
               border: '1px solid',
-              borderColor: 'divider',
-              borderRadius: borderRadius.md,
+              borderColor: 'divider', // Material 3: outline
+              borderRadius: 1.5, // Material 3: 12dp
             }}
           >
             <Typography
@@ -942,81 +898,54 @@ const TeamPage = () => {
   return (
     <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default', display: 'flex', flexDirection: 'column' }}>
       <Navbar />
-      <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-        <Box
-          sx={{
-            flex: 1,
-            overflowY: 'auto',
-            backgroundColor: 'background.default',
-          }}
-        >
-          {/* Team Banner */}
-          {team && (
-            <TeamBanner
-              teamId={team.team_id}
-              teamCity={team.team_city}
-              teamName={team.team_name}
-              abbreviation={team.abbreviation}
-              record={teamStanding ? `${teamStanding.wins} - ${teamStanding.losses}` : undefined}
-              conferenceRank={teamStanding?.playoff_rank}
-              conference={teamStanding?.conference}
-              teamStats={teamStatsForBanner}
-            />
-          )}
+      <PageLayout sidebar={<UniversalSidebar />}>
+        {team && (
+          <TeamBanner
+            teamId={team.team_id}
+            teamCity={team.team_city}
+            teamName={team.team_name}
+            abbreviation={team.abbreviation}
+            record={teamStanding ? `${teamStanding.wins} - ${teamStanding.losses}` : undefined}
+            conferenceRank={teamStanding?.playoff_rank}
+            conference={teamStanding?.conference}
+            teamStats={teamStatsForBanner}
+          />
+        )}
+        {/* Tabs */}
+          <Paper
+            elevation={0}
+            sx={{
+              mb: 3, // Material 3: 24dp
+              border: '1px solid',
+              borderColor: 'divider', // Material 3: outline
+              borderRadius: 1.5, // Material 3: 12dp
+              backgroundColor: 'background.paper', // Material 3: surface
+            }}
+          >
+          <Tabs
+            value={activeTab}
+            onChange={handleTabChange}
+            sx={{
+              borderBottom: '1px solid',
+              borderColor: 'divider',
+              '& .MuiTab-root': {
+                textTransform: 'none',
+                fontWeight: typography.weight.semibold,
+                fontSize: typography.size.body,
+              },
+            }}
+          >
+            <Tab label="Profile" value="profile" />
+            <Tab label="Schedule" value="schedule" />
+            <Tab label="Stats" value="stats" />
+          </Tabs>
+        </Paper>
 
-          <Container maxWidth="lg" sx={{ py: { xs: 3, sm: 4 }, px: { xs: 2, sm: 3, md: 4 } }}>
-            {/* Tabs */}
-            <Paper
-              elevation={0}
-              sx={{
-                mb: 3,
-                border: '1px solid',
-                borderColor: 'divider',
-                borderRadius: borderRadius.md,
-                backgroundColor: 'background.paper',
-              }}
-            >
-              <Tabs
-                value={activeTab}
-                onChange={handleTabChange}
-                sx={{
-                  borderBottom: '1px solid',
-                  borderColor: 'divider',
-                  '& .MuiTab-root': {
-                    textTransform: 'none',
-                    fontWeight: typography.weight.semibold,
-                    fontSize: typography.size.body,
-                  },
-                }}
-              >
-                <Tab label="Profile" value="profile" />
-                <Tab label="Schedule" value="schedule" />
-                <Tab label="Stats" value="stats" />
-              </Tabs>
-            </Paper>
-
-            {/* Tab Content */}
-            {activeTab === 'profile' && renderProfileTab()}
-            {activeTab === 'schedule' && renderScheduleTab()}
-            {activeTab === 'stats' && renderStatsTab()}
-          </Container>
-        </Box>
-
-        <Box
-          sx={{
-            width: 320,
-            flexShrink: 0,
-            display: { xs: 'none', md: 'flex' },
-            flexDirection: 'column',
-            borderLeft: '1px solid',
-            borderColor: 'divider',
-            backgroundColor: 'background.paper',
-            overflowY: 'auto',
-          }}
-        >
-          <UniversalSidebar />
-        </Box>
-      </Box>
+        {/* Tab Content */}
+        {activeTab === 'profile' && renderProfileTab()}
+        {activeTab === 'schedule' && renderScheduleTab()}
+        {activeTab === 'stats' && renderStatsTab()}
+      </PageLayout>
     </Box>
   );
 };
@@ -1118,7 +1047,7 @@ const LeaderCard = ({
       variant="h6"
       sx={{
         fontWeight: typography.weight.bold,
-        color: 'primary.main',
+        color: 'text.primary', // Neutral color, not blue
         fontSize: typography.size.h6,
       }}
     >

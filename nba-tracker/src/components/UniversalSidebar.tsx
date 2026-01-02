@@ -288,8 +288,9 @@ const UniversalSidebar: React.FC<UniversalSidebarProps> = () => {
             mb: 2,
             fontSize: typography.size.h6,
             cursor: 'pointer',
+            color: 'text.primary',
             '&:hover': {
-              color: 'primary.main',
+              color: 'text.primary', // Neutral color, not blue
             },
           }}
         >
@@ -356,7 +357,39 @@ const UniversalSidebar: React.FC<UniversalSidebarProps> = () => {
         </FormControl>
       </Box>
 
-      <Box sx={{ flex: 1, overflowY: 'auto', position: 'relative' }}>
+      <Box sx={{ 
+        flex: 1, 
+        overflowY: 'auto', 
+        overflowX: 'hidden',
+        position: 'relative',
+        scrollbarWidth: 'thin',
+        scrollbarColor: 'rgba(0, 0, 0, 0.2) transparent',
+        '&::-webkit-scrollbar': {
+          width: '8px',
+        },
+        '&::-webkit-scrollbar-track': {
+          background: 'transparent',
+        },
+        '&::-webkit-scrollbar-thumb': {
+          backgroundColor: 'rgba(0, 0, 0, 0.2)',
+          borderRadius: '4px',
+          border: '2px solid transparent',
+          backgroundClip: 'padding-box',
+          '&:hover': {
+            backgroundColor: 'rgba(0, 0, 0, 0.3)',
+          },
+        },
+        '@media (prefers-color-scheme: dark)': {
+          scrollbarColor: 'rgba(255, 255, 255, 0.3) transparent',
+          '&::-webkit-scrollbar-thumb': {
+            backgroundColor: 'rgba(255, 255, 255, 0.3)',
+            '&:hover': {
+              backgroundColor: 'rgba(255, 255, 255, 0.5)',
+            },
+          },
+        },
+        WebkitOverflowScrolling: 'touch',
+      }}>
         {playersLoading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 4 }}>
             <CircularProgress size={24} />
@@ -412,7 +445,7 @@ const UniversalSidebar: React.FC<UniversalSidebarProps> = () => {
                       variant="body2"
                       sx={{
                         fontWeight: typography.weight.bold,
-                        color: 'primary.main',
+                        color: 'text.primary', // Neutral color for data, not blue
                         ml: 1,
                       }}
                     >
@@ -439,8 +472,9 @@ const UniversalSidebar: React.FC<UniversalSidebarProps> = () => {
             mb: 2,
             fontSize: typography.size.h6,
             cursor: 'pointer',
+            color: 'text.primary',
             '&:hover': {
-              color: 'primary.main',
+              color: 'text.primary', // Neutral color, not blue
             },
           }}
         >
@@ -488,7 +522,39 @@ const UniversalSidebar: React.FC<UniversalSidebarProps> = () => {
         />
       </Box>
 
-      <Box sx={{ flex: 1, overflowY: 'auto', position: 'relative' }}>
+      <Box sx={{ 
+        flex: 1, 
+        overflowY: 'auto', 
+        overflowX: 'hidden',
+        position: 'relative',
+        scrollbarWidth: 'thin',
+        scrollbarColor: 'rgba(0, 0, 0, 0.2) transparent',
+        '&::-webkit-scrollbar': {
+          width: '8px',
+        },
+        '&::-webkit-scrollbar-track': {
+          background: 'transparent',
+        },
+        '&::-webkit-scrollbar-thumb': {
+          backgroundColor: 'rgba(0, 0, 0, 0.2)',
+          borderRadius: '4px',
+          border: '2px solid transparent',
+          backgroundClip: 'padding-box',
+          '&:hover': {
+            backgroundColor: 'rgba(0, 0, 0, 0.3)',
+          },
+        },
+        '@media (prefers-color-scheme: dark)': {
+          scrollbarColor: 'rgba(255, 255, 255, 0.3) transparent',
+          '&::-webkit-scrollbar-thumb': {
+            backgroundColor: 'rgba(255, 255, 255, 0.3)',
+            '&:hover': {
+              backgroundColor: 'rgba(255, 255, 255, 0.5)',
+            },
+          },
+        },
+        WebkitOverflowScrolling: 'touch',
+      }}>
         {teamsLoading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 4 }}>
             <CircularProgress size={24} />

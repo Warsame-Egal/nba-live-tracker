@@ -2,6 +2,8 @@ import logging
 
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 
+from typing import List, Dict, Any, Optional
+
 from app.schemas.player import TeamRoster
 from app.schemas.scoreboard import BoxScoreResponse, PlayByPlayResponse
 from app.services.scoreboard import fetchTeamRoster, getBoxScore, getPlayByPlay
@@ -9,6 +11,11 @@ from app.services.websockets_manager import (
     playbyplay_websocket_manager,
     scoreboard_websocket_manager,
 )
+from app.services.batched_insights import (
+    generate_batched_insights,
+    generate_lead_change_explanation,
+)
+from app.services.data_cache import data_cache
 
 # Set up logger for this file
 logger = logging.getLogger(__name__)
@@ -177,3 +184,182 @@ async def playbyplay_websocket_endpoint(websocket: WebSocket, game_id: str):
     finally:
         # Always clean up the connection
         await playbyplay_websocket_manager.disconnect(websocket, game_id)
+
+
+# Get batched insights for all live games
+@router.get(
+    "/scoreboard/insights",
+    tags=["insights"],
+    summary="Get Batched AI Insights",
+    description="Get AI-generated insights for all live games in one call. Cached for 60 seconds.",
+)
+async def get_batched_insights():
+    """
+    Get AI-generated insights for all currently live games.
+    Returns insights only for games with meaningful changes.
+    
+    Returns:
+        Dict with timestamp and insights list
+    """
+    try:
+        # Get current scoreboard
+        scoreboard_data = await data_cache.get_scoreboard()
+        
+        if not scoreboard_data:
+            return {
+                "timestamp": "",
+                "insights": []
+            }
+        
+        # Extract live games only (gameStatus == 2)
+        live_games = [
+            game for game in scoreboard_data.scoreboard.games
+            if game.gameStatus == 2
+        ]
+        
+        if not live_games:
+            return {
+                "timestamp": "",
+                "insights": []
+            }
+        
+        # Format games for batched insights
+        games_for_insights = []
+        for game in live_games:
+            home_team = game.homeTeam
+            away_team = game.awayTeam
+            
+            # Extract win probabilities if available (from gameLeaders or calculate from score)
+            home_score = home_team.score or 0
+            away_score = away_team.score or 0
+            
+            # Simple win probability based on score difference (if no actual prob available)
+            total_score = home_score + away_score
+            if total_score > 0:
+                win_prob_home = home_score / total_score
+                win_prob_away = away_score / total_score
+            else:
+                win_prob_home = 0.5
+                win_prob_away = 0.5
+            
+            games_for_insights.append({
+                "game_id": game.gameId,
+                "home_team": f"{home_team.teamCity} {home_team.teamName}".strip(),
+                "away_team": f"{away_team.teamCity} {away_team.teamName}".strip(),
+                "home_score": home_score,
+                "away_score": away_score,
+                "quarter": game.period,
+                "time_remaining": game.gameClock or "",
+                "win_prob_home": win_prob_home,
+                "win_prob_away": win_prob_away,
+                "last_event": game.gameStatusText,
+            })
+        
+        # Generate batched insights
+        return await generate_batched_insights(games_for_insights)
+        
+    except Exception as e:
+        logger.error(f"Error generating batched insights: {e}", exc_info=True)
+        return {
+            "timestamp": "",
+            "insights": []
+        }
+
+
+# Get lead change explanation for a specific game
+@router.get(
+    "/scoreboard/game/{game_id}/lead-change",
+    tags=["insights"],
+    summary="Get Lead Change Explanation",
+    description="Get AI-generated explanation for why the lead changed. Cached for 60 seconds per game.",
+)
+async def get_lead_change_explanation(game_id: str):
+    """
+    Get on-demand explanation for why the lead changed in a game.
+    Uses last 5 plays to explain the change.
+    
+    Args:
+        game_id: The unique game ID from NBA
+        
+    Returns:
+        Dict with summary and key_factors explaining the lead change
+    """
+    try:
+        # Get current game data
+        scoreboard_data = await data_cache.get_scoreboard()
+        
+        if not scoreboard_data:
+            raise HTTPException(status_code=404, detail="Scoreboard data not available")
+        
+        # Find the game
+        game = None
+        for g in scoreboard_data.scoreboard.games:
+            if g.gameId == game_id:
+                game = g
+                break
+        
+        if not game:
+            raise HTTPException(status_code=404, detail=f"Game {game_id} not found")
+        
+        # Get play-by-play for last 5 plays
+        playbyplay_data = await data_cache.get_playbyplay(game_id)
+        
+        last_5_plays = []
+        if playbyplay_data and playbyplay_data.plays:
+            # Get last 5 plays (most recent first)
+            sorted_plays = sorted(playbyplay_data.plays, key=lambda p: p.action_number, reverse=True)
+            last_5_plays = sorted_plays[:5]
+            
+            # Convert to dict format
+            last_5_plays = [
+                {
+                    "action_type": play.action_type,
+                    "description": play.description,
+                    "team_tricode": play.team_tricode,
+                }
+                for play in last_5_plays
+            ]
+        
+        home_team = game.homeTeam
+        away_team = game.awayTeam
+        current_home_score = home_team.score or 0
+        current_away_score = away_team.score or 0
+        
+        # Get previous scores from cache if available
+        from app.services.batched_insights import _insights_cache
+        previous_scores = _insights_cache.get_previous_scores(game_id)
+        
+        if previous_scores:
+            previous_home_score, previous_away_score = previous_scores
+        else:
+            # No previous scores tracked - use current as previous (first call)
+            previous_home_score = current_home_score
+            previous_away_score = current_away_score
+        
+        # Update tracking
+        _insights_cache.last_scores[game_id] = (current_home_score, current_away_score)
+        
+        # Generate explanation
+        explanation = await generate_lead_change_explanation(
+            game_id=game_id,
+            home_team=f"{home_team.teamCity} {home_team.teamName}".strip(),
+            away_team=f"{away_team.teamCity} {away_team.teamName}".strip(),
+            previous_home_score=previous_home_score,
+            previous_away_score=previous_away_score,
+            current_home_score=current_home_score,
+            current_away_score=current_away_score,
+            last_5_plays=last_5_plays,
+            quarter=game.period,
+            time_remaining=game.gameClock or "",
+        )
+        
+        if not explanation:
+            raise HTTPException(status_code=500, detail="Failed to generate lead change explanation")
+        
+        return explanation
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error generating lead change explanation for game {game_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error generating explanation: {str(e)}")

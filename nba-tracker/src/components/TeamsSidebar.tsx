@@ -22,6 +22,7 @@ import { responsiveSpacing, typography, borderRadius } from '../theme/designToke
 import { fetchJson } from '../utils/apiClient';
 import { StandingsResponse } from '../types/standings';
 import { getSeasonOptions } from '../utils/season';
+import { getTeamAbbreviation } from '../utils/teamMappings';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
@@ -166,7 +167,39 @@ const TeamsSidebar: React.FC<TeamsSidebarProps> = ({ season, onSeasonChange }) =
         />
       </Box>
 
-      <Box sx={{ flex: 1, overflowY: 'auto', position: 'relative' }}>
+      <Box sx={{ 
+        flex: 1, 
+        overflowY: 'auto', 
+        overflowX: 'hidden',
+        position: 'relative',
+        scrollbarWidth: 'thin',
+        scrollbarColor: 'rgba(0, 0, 0, 0.2) transparent',
+        '&::-webkit-scrollbar': {
+          width: '8px',
+        },
+        '&::-webkit-scrollbar-track': {
+          background: 'transparent',
+        },
+        '&::-webkit-scrollbar-thumb': {
+          backgroundColor: 'rgba(0, 0, 0, 0.2)',
+          borderRadius: '4px',
+          border: '2px solid transparent',
+          backgroundClip: 'padding-box',
+          '&:hover': {
+            backgroundColor: 'rgba(0, 0, 0, 0.3)',
+          },
+        },
+        '@media (prefers-color-scheme: dark)': {
+          scrollbarColor: 'rgba(255, 255, 255, 0.3) transparent',
+          '&::-webkit-scrollbar-thumb': {
+            backgroundColor: 'rgba(255, 255, 255, 0.3)',
+            '&:hover': {
+              backgroundColor: 'rgba(255, 255, 255, 0.5)',
+            },
+          },
+        },
+        WebkitOverflowScrolling: 'touch',
+      }}>
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 4 }}>
             <CircularProgress size={24} />

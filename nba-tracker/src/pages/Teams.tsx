@@ -1,12 +1,13 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Box, Container, CircularProgress, Typography, Grid, Button, Avatar, Paper, FormControl, InputLabel, Select, MenuItem } from '@mui/material';
+import { Box, CircularProgress, Typography, Grid, Button, Avatar, Paper, FormControl, InputLabel, Select, MenuItem } from '@mui/material';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import UniversalSidebar from '../components/UniversalSidebar';
 import Navbar from '../components/Navbar';
+import PageLayout from '../components/PageLayout';
 import { getCurrentSeason, getSeasonOptions } from '../utils/season';
 import { fetchJson } from '../utils/apiClient';
 import { StandingsResponse, StandingRecord } from '../types/standings';
-import { typography, borderRadius, transitions } from '../theme/designTokens';
+import { typography, transitions } from '../theme/designTokens';
 import { getTeamInfo } from '../utils/teamMappings';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
@@ -109,21 +110,7 @@ const Teams = () => {
   return (
     <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default', display: 'flex', flexDirection: 'column' }}>
       <Navbar />
-      <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden', flexDirection: { xs: 'column', md: 'row' } }}>
-        <Box
-          sx={{
-            flex: 1,
-            overflowY: 'auto',
-            backgroundColor: 'background.default',
-          }}
-        >
-          <Container 
-            maxWidth="xl" 
-            sx={{ 
-              py: { xs: 3, sm: 4, md: 5 }, 
-              px: { xs: 2, sm: 3, md: 4 } 
-            }}
-          >
+      <PageLayout sidebar={<UniversalSidebar />}>
             <Box sx={{ mb: { xs: 3, sm: 4 }, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
               <Typography
                 variant="h4"
@@ -140,7 +127,7 @@ const Teams = () => {
                   value={season}
                   label="Season"
                   onChange={(e) => handleSeasonChange(e.target.value)}
-                  sx={{ borderRadius: borderRadius.sm }}
+                  sx={{ borderRadius: 1 }} // Material 3: 8dp
                 >
                   {seasonOptions.map(seasonOption => (
                     <MenuItem key={seasonOption} value={seasonOption}>
@@ -173,7 +160,7 @@ const Teams = () => {
 
                     return (
                       <Grid item xs={12} sm={6} lg={4} key={division}>
-                        <Box sx={{ mb: 3 }}>
+                        <Box sx={{ mb: 3, display: 'flex', flexDirection: 'column', height: '100%' }}>
                           <Typography
                             variant="subtitle1"
                             sx={{
@@ -183,6 +170,8 @@ const Teams = () => {
                               color: 'text.secondary',
                               textTransform: 'uppercase',
                               letterSpacing: '0.5px',
+                              minHeight: '1.75rem', // Consistent height for division titles
+                              lineHeight: 1.5,
                             }}
                           >
                             {division}
@@ -191,9 +180,10 @@ const Teams = () => {
                             elevation={0}
                             sx={{
                               border: '1px solid',
-                              borderColor: 'divider',
-                              borderRadius: borderRadius.md,
-                              overflow: 'hidden',
+                              borderColor: 'divider', // Material 3: outline
+                              borderRadius: 1.5, // Material 3: 12dp
+                              overflow: 'hidden', // Keep for rounded corners
+                              backgroundColor: 'background.paper', // Material 3: surface
                             }}
                           >
                             {teams.map((team, index) => {
@@ -206,7 +196,7 @@ const Teams = () => {
                                   sx={{
                                     display: 'flex',
                                     alignItems: 'center',
-                                    gap: 2,
+                                    gap: 1.5,
                                     p: 2,
                                     borderBottom: index < teams.length - 1 ? '1px solid' : 'none',
                                     borderColor: 'divider',
@@ -228,6 +218,7 @@ const Teams = () => {
                                       borderColor: 'divider',
                                       cursor: 'pointer',
                                       transition: transitions.normal,
+                                      flexShrink: 0, // Prevent avatar from shrinking
                                       '&:hover': {
                                         borderColor: 'primary.main',
                                         transform: 'scale(1.05)',
@@ -239,19 +230,23 @@ const Teams = () => {
                                       target.src = '/logos/default.svg';
                                     }}
                                   />
-                                  <Box sx={{ flex: 1 }}>
+                                  <Box sx={{ flex: 1, minWidth: 0, overflow: 'hidden', mr: 1 }}>
                                     <Typography
                                       variant="body1"
                                       sx={{
                                         fontWeight: typography.weight.bold,
                                         fontSize: typography.size.body,
                                         mb: 0.25,
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        whiteSpace: 'nowrap',
+                                        display: 'block',
                                       }}
                                     >
                                       {fullTeamName}
                                     </Typography>
                                   </Box>
-                                  <Box sx={{ display: 'flex', gap: 1 }}>
+                                  <Box sx={{ display: 'flex', gap: 0.5, flexShrink: 0, ml: 'auto' }}>
                                     <Button
                                       size="small"
                                       variant="text"
@@ -260,7 +255,9 @@ const Teams = () => {
                                         textTransform: 'none',
                                         fontSize: typography.size.caption,
                                         minWidth: 'auto',
-                                        px: 1.5,
+                                        px: 1,
+                                        py: 0.5,
+                                        whiteSpace: 'nowrap',
                                       }}
                                     >
                                       Profile
@@ -273,7 +270,9 @@ const Teams = () => {
                                         textTransform: 'none',
                                         fontSize: typography.size.caption,
                                         minWidth: 'auto',
-                                        px: 1.5,
+                                        px: 1,
+                                        py: 0.5,
+                                        whiteSpace: 'nowrap',
                                       }}
                                     >
                                       Stats
@@ -286,7 +285,9 @@ const Teams = () => {
                                         textTransform: 'none',
                                         fontSize: typography.size.caption,
                                         minWidth: 'auto',
-                                        px: 1.5,
+                                        px: 1,
+                                        py: 0.5,
+                                        whiteSpace: 'nowrap',
                                       }}
                                     >
                                       Schedule
@@ -303,26 +304,7 @@ const Teams = () => {
                 </Grid>
               </Box>
             ))}
-          </Container>
-        </Box>
-
-        <Box
-          sx={{
-            width: { xs: '100%', md: 320 },
-            flexShrink: 0,
-            display: 'flex',
-            flexDirection: 'column',
-            borderLeft: { xs: 'none', md: '1px solid' },
-            borderTop: { xs: '1px solid', md: 'none' },
-            borderColor: 'divider',
-            backgroundColor: 'background.paper',
-            overflowY: 'auto',
-            order: { xs: 2, md: 0 },
-          }}
-        >
-          <UniversalSidebar />
-        </Box>
-      </Box>
+      </PageLayout>
     </Box>
   );
 };
