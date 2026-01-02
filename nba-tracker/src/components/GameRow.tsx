@@ -10,6 +10,8 @@ import {
   Divider,
   Link as MuiLink,
   Button,
+  CircularProgress,
+  Paper,
 } from '@mui/material';
 import { FiberManualRecord, Person, Assessment, Timeline } from '@mui/icons-material';
 import { borderRadius, transitions, typography, spacing } from '../theme/designTokens';
@@ -21,6 +23,8 @@ import LiveAIInsight from './LiveAIInsight';
 import LeadChangeDialog, { LeadChangeExplanation } from './LeadChangeDialog';
 import KeyMomentBadge from './KeyMomentBadge';
 import { KeyMoment } from '../types/scoreboard';
+import MomentumChart from './MomentumChart';
+import { TrendingUp, TrendingDown } from '@mui/icons-material';
 
 interface GameRowProps {
   game: Game | GameSummary;
@@ -52,6 +56,10 @@ const GameRow: React.FC<GameRowProps> = ({
   const isLiveGame = 'homeTeam' in game;
   const gameId = isLiveGame ? game.gameId : game.game_id;
   const [lastPlay, setLastPlay] = useState<PlayByPlayEvent | null>(null);
+  // Momentum visualization state
+  const [showMomentum, setShowMomentum] = useState(false); // Whether momentum chart is expanded
+  const [momentumPlays, setMomentumPlays] = useState<PlayByPlayEvent[]>([]); // All plays for momentum chart
+  const [loadingMomentum, setLoadingMomentum] = useState(false); // Loading state for fetching play-by-play
   const pbpServiceRef = React.useRef<PlayByPlayWebSocketService | null>(null);
   const homeTeam = isLiveGame ? game.homeTeam?.teamTricode : game.home_team?.team_abbreviation;
   const awayTeam = isLiveGame ? game.awayTeam?.teamTricode : game.away_team?.team_abbreviation;
@@ -175,6 +183,11 @@ const GameRow: React.FC<GameRowProps> = ({
       if (data?.plays && data.plays.length > 0) {
         const sorted = [...data.plays].sort((a, b) => b.action_number - a.action_number);
         setLastPlay(sorted[0]);
+        // Store all plays for momentum chart if it's visible
+        // This allows the momentum visualization to update in real-time for live games
+        if (showMomentum) {
+          setMomentumPlays(data.plays);
+        }
       }
     };
 
@@ -185,7 +198,35 @@ const GameRow: React.FC<GameRowProps> = ({
       service.unsubscribe(handleUpdate);
       service.disconnect();
     };
-  }, [isLive, isLiveGame, gameId]);
+  }, [isLive, isLiveGame, gameId, showMomentum]);
+
+  // Fetch play-by-play data when momentum chart is expanded
+  // For completed games, we fetch via REST API. For live games, WebSocket provides the data.
+  // Only fetch if we don't already have the data to avoid unnecessary API calls.
+  useEffect(() => {
+    if (!showMomentum || !gameId || momentumPlays.length > 0) return;
+
+    const fetchPlayByPlay = async () => {
+      setLoadingMomentum(true);
+      try {
+        const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+        const data = await fetchJson<PlayByPlayResponse>(
+          `${API_BASE_URL}/api/v1/scoreboard/game/${gameId}/play-by-play`,
+          {},
+          { maxRetries: 2, retryDelay: 1000, timeout: 30000 }
+        );
+        if (data?.plays && data.plays.length > 0) {
+          setMomentumPlays(data.plays);
+        }
+      } catch (error) {
+        console.error('Failed to fetch play-by-play for momentum:', error);
+      } finally {
+        setLoadingMomentum(false);
+      }
+    };
+
+    fetchPlayByPlay();
+  }, [showMomentum, gameId, momentumPlays.length]);
 
   return (
     <Box
@@ -574,7 +615,7 @@ const GameRow: React.FC<GameRowProps> = ({
           )}
 
           {/* Right Zone: Action Buttons */}
-          {(onOpenBoxScore || onOpenPlayByPlay) && (
+          {(onOpenBoxScore || onOpenPlayByPlay || (isLive || isFinal)) && (
             <Box
               sx={{
                 display: 'flex',
@@ -586,6 +627,27 @@ const GameRow: React.FC<GameRowProps> = ({
                 ml: { xs: 0, md: 'auto' },
               }}
             >
+              {(isLive || isFinal) && (
+                <Button
+                  variant={showMomentum ? "contained" : "outlined"}
+                  size="small"
+                  startIcon={showMomentum ? <TrendingDown /> : <TrendingUp />}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowMomentum(!showMomentum);
+                  }}
+                  sx={{
+                    borderRadius: borderRadius.sm,
+                    textTransform: 'none',
+                    fontSize: typography.size.caption,
+                    px: spacing.md,
+                    py: spacing.xs,
+                    minWidth: { xs: 'auto', md: 100 },
+                  }}
+                >
+                  Momentum
+                </Button>
+              )}
               {onOpenBoxScore && (
                 <Button
                   variant="outlined"
@@ -661,6 +723,48 @@ const GameRow: React.FC<GameRowProps> = ({
               }
             } : undefined}
           />
+        </Box>
+      )}
+
+      {/* Momentum Chart Section - Expandable */}
+      {/* Shows a visual timeline of score differential over time, with lead changes and scoring runs marked */}
+      {/* Only available for live or completed games (not upcoming games) */}
+      {showMomentum && (isLive || isFinal) && (
+        <Box
+          sx={{
+            pl: { xs: 2, sm: 2.5 },
+            pr: { xs: 1.5, sm: 2 },
+            pb: { xs: 1.5, sm: 2 },
+            borderTop: '1px solid',
+            borderColor: 'divider',
+          }}
+        >
+          {loadingMomentum ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+              <CircularProgress size={24} />
+            </Box>
+          ) : momentumPlays.length > 0 ? (
+            <MomentumChart
+              plays={momentumPlays}
+              homeTeam={homeTeamName || homeTeam || 'Home'}
+              awayTeam={awayTeamName || awayTeam || 'Away'}
+            />
+          ) : (
+            <Paper
+              elevation={0}
+              sx={{
+                p: 3,
+                backgroundColor: 'background.paper',
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: borderRadius.md,
+              }}
+            >
+              <Typography variant="body2" color="text.secondary" textAlign="center">
+                No play-by-play data available for momentum chart
+              </Typography>
+            </Paper>
+          )}
         </Box>
       )}
 

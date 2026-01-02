@@ -14,6 +14,7 @@ A web app that shows live NBA game scores, player stats, team information, and g
 - Play-by-play updates as they happen
 - AI insights powered by Groq that explain what's happening in games
 - Lead change explanations that break down why the score changed
+- Momentum visualization showing score differential over time with lead changes and scoring runs
 
 **Predictions:**
 
@@ -53,6 +54,7 @@ A web app that shows live NBA game scores, player stats, team information, and g
 - **Play-by-Play** - Every shot, foul, and timeout as it happens
 - **AI Insights** - Short, real-time insights about what's happening in games (powered by Groq)
 - **Lead Change Explanations** - On-demand explanations for why the lead changed
+- **Momentum Visualization** - Visual timeline chart showing score differential, lead changes, and scoring runs
 - **Players Page** - Season leaders and all active players
 - **Teams Page** - Team stats and performance charts
 - **Player Profiles** - Stats, game logs, and performance charts
