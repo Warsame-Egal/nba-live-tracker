@@ -1,0 +1,378 @@
+"""
+Batched AI insights service for live NBA games.
+Generates insights for ALL games in ONE Groq API call with caching.
+"""
+
+import asyncio
+import json
+import logging
+import time
+from datetime import datetime
+from typing import Dict, List, Optional, Any, Tuple
+
+from app.services.groq_client import GROQ_AVAILABLE, call_groq_api, get_groq_rate_limiter
+from app.services.groq_prompts import (
+    get_batched_insights_system_message,
+    build_batched_insights_prompt,
+    get_lead_change_system_message,
+    build_lead_change_prompt,
+)
+from app.config import get_groq_api_key
+
+logger = logging.getLogger(__name__)
+
+
+class BatchedInsightsCache:
+    """Cache for batched insights and lead change explanations."""
+    
+    def __init__(self):
+        self.batched_insights: Dict[str, Tuple[Dict, float]] = {}  # cache_key -> (data, timestamp)
+        self.lead_change_cache: Dict[str, Tuple[Dict, float]] = {}  # game_id -> (data, timestamp)
+        self.last_scores: Dict[str, Tuple[int, int]] = {}  # game_id -> (home_score, away_score)
+        self.cache_ttl = 60.0  # 60 seconds TTL
+    
+    def get_batched_insights(self, cache_key: str) -> Optional[Dict]:
+        """Get cached batched insights if still valid."""
+        if cache_key in self.batched_insights:
+            data, timestamp = self.batched_insights[cache_key]
+            if time.time() - timestamp < self.cache_ttl:
+                return data
+            else:
+                del self.batched_insights[cache_key]
+        return None
+    
+    def set_batched_insights(self, cache_key: str, data: Dict):
+        """Cache batched insights."""
+        self.batched_insights[cache_key] = (data, time.time())
+    
+    def get_lead_change_explanation(self, game_id: str) -> Optional[Dict]:
+        """Get cached lead change explanation if still valid."""
+        if game_id in self.lead_change_cache:
+            data, timestamp = self.lead_change_cache[game_id]
+            if time.time() - timestamp < self.cache_ttl:
+                return data
+            else:
+                del self.lead_change_cache[game_id]
+        return None
+    
+    def set_lead_change_explanation(self, game_id: str, data: Dict):
+        """Cache lead change explanation."""
+        self.lead_change_cache[game_id] = (data, time.time())
+    
+    def detect_lead_change(self, game_id: str, home_score: int, away_score: int) -> bool:
+        """Detect if lead changed and update tracking."""
+        if game_id in self.last_scores:
+            old_home, old_away = self.last_scores[game_id]
+            old_leader = "home" if old_home > old_away else ("away" if old_away > old_home else "tie")
+            new_leader = "home" if home_score > away_score else ("away" if away_score > home_score else "tie")
+            
+            if old_leader != new_leader and old_leader != "tie" and new_leader != "tie":
+                # Lead changed - invalidate cache
+                if game_id in self.lead_change_cache:
+                    del self.lead_change_cache[game_id]
+                self.last_scores[game_id] = (home_score, away_score)
+                return True
+        
+        self.last_scores[game_id] = (home_score, away_score)
+        return False
+    
+    def get_previous_scores(self, game_id: str) -> Optional[Tuple[int, int]]:
+        """Get previous scores for a game if available."""
+        return self.last_scores.get(game_id)
+
+
+_insights_cache = BatchedInsightsCache()
+
+
+async def generate_batched_insights(games: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """
+    Generate insights for ALL live games in ONE Groq API call.
+    
+    Args:
+        games: List of game dictionaries with UI-visible data:
+            - game_id
+            - home_team
+            - away_team
+            - home_score
+            - away_score
+            - quarter
+            - time_remaining
+            - win_prob_home
+            - win_prob_away
+            - last_event (optional)
+        
+    Returns:
+        Dict with timestamp and insights list
+    """
+    if not games:
+        return {
+            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "insights": []
+        }
+    
+    # Create cache key from game IDs and scores
+    cache_key_parts = []
+    for game in games:
+        game_id = game.get("game_id", "")
+        home_score = game.get("home_score", 0)
+        away_score = game.get("away_score", 0)
+        cache_key_parts.append(f"{game_id}:{home_score}-{away_score}")
+    cache_key = "|".join(sorted(cache_key_parts))
+    
+    # Check cache
+    cached = _insights_cache.get_batched_insights(cache_key)
+    if cached:
+        logger.debug(f"Returning cached batched insights for {len(games)} games")
+        return cached
+    
+    # Check if Groq is available
+    if not GROQ_AVAILABLE:
+        logger.debug("Groq not available for batched insights")
+        return {
+            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "insights": []
+        }
+    
+    groq_api_key = get_groq_api_key()
+    if not groq_api_key:
+        logger.debug("Groq API key not configured for batched insights")
+        return {
+            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "insights": []
+        }
+    
+    try:
+        # Build prompt
+        prompt = build_batched_insights_prompt(games)
+        system_message = get_batched_insights_system_message()
+        
+        # Call Groq API with timeout
+        try:
+            response = await asyncio.wait_for(
+                call_groq_api(
+                    api_key=groq_api_key,
+                    system_message=system_message,
+                    user_prompt=prompt,
+                    rate_limiter=get_groq_rate_limiter()
+                ),
+                timeout=10.0  # 10 second timeout for batched insights
+            )
+        except asyncio.TimeoutError:
+            logger.warning("Batched insights generation timeout")
+            return {
+                "timestamp": datetime.utcnow().isoformat() + "Z",
+                "insights": []
+            }
+        
+        # Parse response
+        content = response.get('content', '')
+        logger.info(f"Groq raw response content (first 1000 chars): {content[:1000]}")
+        
+        # Try to extract JSON from response
+        original_content = content
+        if "```json" in content:
+            content = content.split("```json")[1].split("```")[0].strip()
+            logger.debug("Extracted JSON from ```json block")
+        elif "```" in content:
+            content = content.split("```")[1].split("```")[0].strip()
+            logger.debug("Extracted JSON from ``` block")
+        
+        logger.info(f"Extracted JSON content (first 1000 chars): {content[:1000]}")
+        
+        try:
+            parsed_data = json.loads(content)
+            logger.info(f"Successfully parsed data. Type: {type(parsed_data)}")
+            
+            # Handle case where Groq returns a list instead of dict
+            if isinstance(parsed_data, list):
+                logger.info(f"Groq returned a list with {len(parsed_data)} items")
+                if len(parsed_data) > 0 and isinstance(parsed_data[0], dict):
+                    insights_data = parsed_data[0]  # Take first item
+                    logger.info(f"Using first item from list: {insights_data}")
+                else:
+                    logger.warning("List is empty or first item is not a dict, creating empty insights")
+                    insights_data = {
+                        "timestamp": datetime.utcnow().isoformat() + "Z",
+                        "insights": []
+                    }
+            elif isinstance(parsed_data, dict):
+                insights_data = parsed_data
+            else:
+                logger.warning(f"Unexpected data type: {type(parsed_data)}, creating empty insights")
+                insights_data = {
+                    "timestamp": datetime.utcnow().isoformat() + "Z",
+                    "insights": []
+                }
+            
+            logger.info(f"Final insights_data. Type: {type(insights_data)}, Keys: {list(insights_data.keys()) if isinstance(insights_data, dict) else 'N/A'}")
+            if isinstance(insights_data, dict):
+                logger.info(f"Insights array length: {len(insights_data.get('insights', []))}")
+        except json.JSONDecodeError as e:
+            logger.error(f"JSON decode error: {e}")
+            logger.error(f"Failed to parse content: {content[:500]}")
+            logger.error(f"Original content: {original_content[:500]}")
+            raise
+        
+        # Validate and format response
+        if isinstance(insights_data, dict):
+            # Ensure timestamp is present
+            if "timestamp" not in insights_data:
+                insights_data["timestamp"] = datetime.utcnow().isoformat() + "Z"
+            
+            # Ensure insights list exists
+            if "insights" not in insights_data:
+                insights_data["insights"] = []
+            
+            # Validate each insight
+            validated_insights = []
+            for insight in insights_data["insights"]:
+                if isinstance(insight, dict) and "game_id" in insight:
+                    # Ensure type and text exist
+                    if "type" not in insight:
+                        insight["type"] = "none"
+                    if "text" not in insight:
+                        insight["text"] = ""
+                    validated_insights.append(insight)
+            
+            insights_data["insights"] = validated_insights
+            
+            # Cache the result
+            _insights_cache.set_batched_insights(cache_key, insights_data)
+            
+            logger.info(f"Generated batched insights for {len(games)} games, {len(validated_insights)} insights returned")
+            return insights_data
+        
+        return {
+            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "insights": []
+        }
+        
+    except json.JSONDecodeError as e:
+        logger.warning(f"Failed to parse Groq JSON response for batched insights: {e}")
+        return {
+            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "insights": []
+        }
+    except Exception as e:
+        logger.warning(f"Error generating batched insights: {e}")
+        return {
+            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "insights": []
+        }
+
+
+async def generate_lead_change_explanation(
+    game_id: str,
+    home_team: str,
+    away_team: str,
+    previous_home_score: int,
+    previous_away_score: int,
+    current_home_score: int,
+    current_away_score: int,
+    last_5_plays: List[Dict[str, Any]],
+    quarter: int,
+    time_remaining: str,
+) -> Optional[Dict[str, Any]]:
+    """
+    Generate on-demand lead change explanation.
+    Cached for 60 seconds per game.
+    
+    Args:
+        game_id: Game ID
+        home_team: Home team name
+        away_team: Away team name
+        previous_home_score: Previous home score
+        previous_away_score: Previous away score
+        current_home_score: Current home score
+        current_away_score: Current away score
+        last_5_plays: Last 5 play dictionaries
+        quarter: Current quarter
+        time_remaining: Time remaining in quarter
+        
+    Returns:
+        Dict with summary and key_factors, or None if error
+    """
+    # Check if lead actually changed
+    if not _insights_cache.detect_lead_change(game_id, current_home_score, current_away_score):
+        # Check cache for existing explanation
+        cached = _insights_cache.get_lead_change_explanation(game_id)
+        if cached:
+            logger.debug(f"Returning cached lead change explanation for game {game_id}")
+            return cached
+    
+    # Check if Groq is available
+    if not GROQ_AVAILABLE:
+        logger.debug("Groq not available for lead change explanation")
+        return None
+    
+    groq_api_key = get_groq_api_key()
+    if not groq_api_key:
+        logger.debug("Groq API key not configured for lead change explanation")
+        return None
+    
+    try:
+        # Build prompt
+        prompt = build_lead_change_prompt(
+            game_id=game_id,
+            home_team=home_team,
+            away_team=away_team,
+            previous_home_score=previous_home_score,
+            previous_away_score=previous_away_score,
+            current_home_score=current_home_score,
+            current_away_score=current_away_score,
+            last_5_plays=last_5_plays,
+            quarter=quarter,
+            time_remaining=time_remaining,
+        )
+        
+        system_message = get_lead_change_system_message()
+        
+        # Call Groq API with timeout
+        try:
+            response = await asyncio.wait_for(
+                call_groq_api(
+                    api_key=groq_api_key,
+                    system_message=system_message,
+                    user_prompt=prompt,
+                    rate_limiter=get_groq_rate_limiter()
+                ),
+                timeout=5.0  # 5 second timeout for lead change explanation
+            )
+        except asyncio.TimeoutError:
+            logger.warning(f"Lead change explanation timeout for game {game_id}")
+            return None
+        
+        # Parse response
+        content = response['content']
+        
+        # Try to extract JSON from response
+        if "```json" in content:
+            content = content.split("```json")[1].split("```")[0].strip()
+        elif "```" in content:
+            content = content.split("```")[1].split("```")[0].strip()
+        
+        explanation_data = json.loads(content)
+        
+        # Validate response
+        if isinstance(explanation_data, dict) and "game_id" in explanation_data:
+            # Ensure required fields exist
+            if "summary" not in explanation_data:
+                explanation_data["summary"] = ""
+            if "key_factors" not in explanation_data:
+                explanation_data["key_factors"] = []
+            
+            # Cache the result
+            _insights_cache.set_lead_change_explanation(game_id, explanation_data)
+            
+            logger.debug(f"Generated lead change explanation for game {game_id}")
+            return explanation_data
+        
+        return None
+        
+    except json.JSONDecodeError as e:
+        logger.warning(f"Failed to parse Groq JSON response for lead change explanation: {e}")
+        return None
+    except Exception as e:
+        logger.warning(f"Error generating lead change explanation for game {game_id}: {e}")
+        return None
+

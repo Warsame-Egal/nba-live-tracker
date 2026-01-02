@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import {
-  Container,
   Box,
   Typography,
   Paper,
@@ -17,33 +16,23 @@ import {
 } from '@mui/material';
 import { TeamRoster, Player } from '../types/team';
 import Navbar from '../components/Navbar';
+import PageLayout from '../components/PageLayout';
 import { logger } from '../utils/logger';
 import { fetchJson } from '../utils/apiClient';
 
 // Base URL for API calls
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
-/**
- * Page that shows the full roster (all players) for a team.
- * Displays player information like name, position, height, weight, etc.
- */
+// Team roster page showing all players with their info
 const RosterPage = () => {
-  // Get the team ID from the URL
   const { team_id } = useParams<{ team_id: string }>();
-  // The team roster data
   const [teamRoster, setTeamRoster] = useState<TeamRoster | null>(null);
-  // Whether we're loading the roster
   const [loading, setLoading] = useState(true);
-  // Error message if something goes wrong
   const [error, setError] = useState<string | null>(null);
 
-  /**
-   * Fetch the team roster when the component loads or team ID changes.
-   */
   useEffect(() => {
     async function fetchTeamRoster() {
       try {
-        // Get roster season with retry
         const data = await fetchJson<TeamRoster>(
           `${API_BASE_URL}/api/v1/scoreboard/team/${team_id}/roster/2024-25`,
           {},
@@ -61,34 +50,34 @@ const RosterPage = () => {
     fetchTeamRoster();
   }, [team_id]);
 
-  // Show loading spinner while fetching data
   if (loading) {
     return (
-      <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
+      <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default', display: 'flex', flexDirection: 'column' }}>
         <Navbar />
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: { xs: 8, sm: 10 } }}>
-          <CircularProgress />
-        </Box>
+        <PageLayout>
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: { xs: 8, sm: 10 } }}>
+            <CircularProgress />
+          </Box>
+        </PageLayout>
       </Box>
     );
   }
 
-  // Show error message if something went wrong
   if (error) {
     return (
-      <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
+      <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default', display: 'flex', flexDirection: 'column' }}>
         <Navbar />
-        <Container sx={{ py: { xs: 4, sm: 5 }, px: { xs: 2, sm: 3 } }}>
+        <PageLayout>
           <Alert severity="error">{error}</Alert>
-        </Container>
+        </PageLayout>
       </Box>
     );
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
+    <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default', display: 'flex', flexDirection: 'column' }}>
       <Navbar />
-      <Container maxWidth="lg" sx={{ py: { xs: 4, sm: 5, md: 6 }, px: { xs: 2, sm: 3, md: 4 } }}>
+      <PageLayout>
         {/* Page title */}
         <Typography
           variant="h4"
@@ -109,7 +98,7 @@ const RosterPage = () => {
           sx={{
             border: '1px solid',
             borderColor: 'divider',
-            borderRadius: 2,
+            borderRadius: 1.5, // Material 3: 12dp
             overflow: 'hidden',
           }}
         >
@@ -138,13 +127,11 @@ const RosterPage = () => {
                 >
                   <TableCell>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 1.5 } }}>
-                      {/* Player photo */}
                       <Avatar
                         src={`https://cdn.nba.com/headshots/nba/latest/1040x760/${player.player_id}.png`}
                         alt={player.name}
                         sx={{ width: 40, height: 40 }}
                         onError={e => {
-                          // If player photo fails to load, use fallback
                           const target = e.currentTarget as HTMLImageElement;
                           target.src = 'https://cdn.nba.com/headshots/nba/latest/1040x760/fallback.png';
                         }}
@@ -163,7 +150,7 @@ const RosterPage = () => {
             </TableBody>
           </Table>
         </TableContainer>
-      </Container>
+      </PageLayout>
     </Box>
   );
 };

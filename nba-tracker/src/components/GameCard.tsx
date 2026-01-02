@@ -139,7 +139,7 @@ const GameCard: React.FC<GameCardProps> = ({ game, hideScore = false, onClick, i
           boxShadow: isLive ? '0 4px 12px rgba(239, 83, 80, 0.3)' : 'none',
           position: 'relative',
           overflow: 'hidden',
-          borderRadius: 2,
+          borderRadius: 1.5, // Material 3: 12dp
           // Animation for recently updated games
           ...(isRecentlyUpdated && {
             animation: 'scoreUpdateFlash 0.6s ease-out',
@@ -534,7 +534,7 @@ const LeaderPreview: React.FC<LeaderPreviewProps> = ({ leader }) => {
       <Box
         onClick={e => {
           e.stopPropagation();
-          navigate(`/players/${leader.personId}`);
+          navigate(`/player/${leader.personId}`);
         }}
         sx={{
           display: 'flex',

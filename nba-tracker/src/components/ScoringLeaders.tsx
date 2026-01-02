@@ -28,12 +28,11 @@ const ScoringLeaders = ({ selectedGame }: ScoringLeadersProps) => {
     <Paper
       elevation={0}
       sx={{
-        p: { xs: 2.5, sm: 3 },
-        backgroundColor: 'background.paper',
+        p: { xs: 2.5, sm: 3 }, // Material 3: 20dp, 24dp
+        backgroundColor: 'background.paper', // Material 3: surface
         border: '1px solid',
-        borderColor: 'divider',
-        borderRadius: 2,
-        backgroundImage: 'linear-gradient(135deg, rgba(25, 118, 210, 0.03) 0%, rgba(25, 118, 210, 0.01) 100%)',
+        borderColor: 'divider', // Material 3: outline
+        borderRadius: 1.5, // Material 3: 12dp
         transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
       }}
     >
@@ -103,7 +102,7 @@ const LeaderCard = ({ leader, teamName, teamTricode, isHome }: LeaderCardProps) 
 
   // Avatar component (clickable only if valid player ID)
   const AvatarComponent = isValidPlayerId ? (
-    <MuiLink component={Link} to={`/players/${leader.personId}`} sx={{ textDecoration: 'none' }}>
+    <MuiLink component={Link} to={`/player/${leader.personId}`} sx={{ textDecoration: 'none' }}>
       <Avatar
         src={avatarUrl}
         alt={leader.name}
@@ -144,7 +143,7 @@ const LeaderCard = ({ leader, teamName, teamTricode, isHome }: LeaderCardProps) 
   const NameComponent = isValidPlayerId ? (
     <MuiLink
       component={Link}
-      to={`/players/${leader.personId}`}
+      to={`/player/${leader.personId}`}
       sx={{
         color: 'text.primary',
         fontWeight: 700,

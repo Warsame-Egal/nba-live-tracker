@@ -17,6 +17,9 @@ import { BoxScoreResponse, PlayerBoxScoreStats } from '../types/scoreboard';
 import { PlayByPlayResponse, PlayByPlayEvent } from '../types/playbyplay';
 import PlayByPlayWebSocketService from '../services/PlayByPlayWebSocketService';
 import { fetchJson } from '../utils/apiClient';
+import { GameInsightData } from './GameInsight';
+import LiveAIInsight from './LiveAIInsight';
+import LeadChangeDialog, { LeadChangeExplanation } from './LeadChangeDialog';
 
 interface GameRowProps {
   game: Game | GameSummary;
@@ -25,16 +28,29 @@ interface GameRowProps {
   isSelected?: boolean;
   onOpenBoxScore?: (gameId: string) => void;
   onOpenPlayByPlay?: (gameId: string) => void;
+  insight?: GameInsightData | null;
+  onDismissInsight?: () => void;
 }
 
 /**
  * Compact horizontal game row component.
  */
-const GameRow: React.FC<GameRowProps> = ({ game, onClick, isRecentlyUpdated = false, isSelected = false, onOpenBoxScore, onOpenPlayByPlay }) => {
+const GameRow: React.FC<GameRowProps> = ({ 
+  game, 
+  onClick, 
+  isRecentlyUpdated = false, 
+  isSelected = false, 
+  onOpenBoxScore, 
+  onOpenPlayByPlay,
+  insight,
+  onDismissInsight: _onDismissInsight,
+}) => {
+  const [leadChangeDialogOpen, setLeadChangeDialogOpen] = React.useState(false);
+  const [leadChangeExplanation, setLeadChangeExplanation] = React.useState<LeadChangeExplanation | null>(null);
   const navigate = useNavigate();
   const isLiveGame = 'homeTeam' in game;
   const gameId = isLiveGame ? game.gameId : game.game_id;
-  const [topPerformers, setTopPerformers] = useState<{ home: PlayerBoxScoreStats | null; away: PlayerBoxScoreStats | null }>({ home: null, away: null });
+  const [_topPerformers, setTopPerformers] = useState<{ home: PlayerBoxScoreStats | null; away: PlayerBoxScoreStats | null }>({ home: null, away: null });
   const [lastPlay, setLastPlay] = useState<PlayByPlayEvent | null>(null);
   const pbpServiceRef = React.useRef<PlayByPlayWebSocketService | null>(null);
   const homeTeam = isLiveGame ? game.homeTeam?.teamTricode : game.home_team?.team_abbreviation;
@@ -53,7 +69,10 @@ const GameRow: React.FC<GameRowProps> = ({ game, onClick, isRecentlyUpdated = fa
   const period = isLiveGame ? game.period : null;
   const gameClock = isLiveGame ? game.gameClock : null;
   const statusLower = status.toLowerCase();
-  const isLive = statusLower.includes('live') || (status.match(/\b[1-4]q\b/i) && !statusLower.includes('final'));
+  // Check if game is live: gameStatus === 2 (in progress) OR status text indicates live
+  const isLive = (isLiveGame && 'gameStatus' in game && (game as Game).gameStatus === 2) || 
+                 statusLower.includes('live') || 
+                 (status.match(/\b[1-4]q\b/i) && !statusLower.includes('final'));
   const isFinal = statusLower.includes('final');
   const isUpcoming = !isLive && !isFinal && homeScore === 0 && awayScore === 0;
   const gameLeaders = isLiveGame 
@@ -197,25 +216,6 @@ const GameRow: React.FC<GameRowProps> = ({ game, onClick, isRecentlyUpdated = fa
       service.disconnect();
     };
   }, [isLive, isLiveGame, gameId]);
-
-  const formatPeriod = (period: number) => {
-    if (period <= 4) {
-      const suffixes = ['', 'st', 'nd', 'rd', 'th'];
-      return `${period}${suffixes[period] || 'th'}`;
-    }
-    return `OT${period - 4}`;
-  };
-
-  const formatClock = (clock: string) => {
-    if (!clock) return '';
-    const match = clock.match(/PT(\d+)M(\d+)S/);
-    if (match) {
-      const minutes = match[1];
-      const seconds = match[2].padStart(2, '0');
-      return `${minutes}:${seconds}`;
-    }
-    return clock;
-  };
 
   return (
     <Box
@@ -534,13 +534,14 @@ const GameRow: React.FC<GameRowProps> = ({ game, onClick, isRecentlyUpdated = fa
         </Box>
       )}
 
-      {/* Top Performers and Last Play - Only for live games */}
-      {isLive && isLiveGame && (topPerformers.home || topPerformers.away || lastPlay) && (
+      {/* Status Bar: Play-by-Play | Actions - Only for live games */}
+      {isLive && isLiveGame && (lastPlay || onOpenBoxScore || onOpenPlayByPlay) && (
         <Box
           sx={{
             display: 'flex',
             flexDirection: { xs: 'column', md: 'row' },
-            gap: { xs: 2, md: 3 },
+            alignItems: { xs: 'flex-start', md: 'center' },
+            gap: { xs: 1.5, md: 2 },
             pl: { xs: 2, sm: 2.5 },
             pr: { xs: 1.5, sm: 2 },
             pb: { xs: 1.5, sm: 2 },
@@ -549,127 +550,142 @@ const GameRow: React.FC<GameRowProps> = ({ game, onClick, isRecentlyUpdated = fa
             borderColor: 'divider',
           }}
         >
-          {/* Last Play Section */}
+          {/* Left Zone: Play-by-Play Text */}
           {lastPlay && (
-            <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Box 
+              sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 1,
+                flexShrink: 0,
+                minWidth: 0,
+                flex: 1,
+              }}
+            >
+              {lastPlay.team_tricode && (
+                <Avatar
+                  src={teamLogos[lastPlay.team_tricode] || teamLogos['NBA']}
+                  alt={`${lastPlay.team_tricode} logo`}
+                  sx={{
+                    width: 20,
+                    height: 20,
+                    flexShrink: 0,
+                  }}
+                />
+              )}
               <Typography
-                variant="caption"
+                variant="body2"
                 sx={{
-                  fontSize: typography.size.captionSmall,
-                  fontWeight: typography.weight.semibold,
-                  color: 'text.secondary',
-                  mb: 0.5,
-                  display: 'block',
+                  fontSize: typography.size.bodySmall,
+                  color: 'text.primary',
+                  fontWeight: typography.weight.medium,
+                  lineHeight: 1.4,
                 }}
               >
-                Last Play {formatClock(lastPlay.clock)} - {formatPeriod(lastPlay.period)}
+                {lastPlay.team_tricode ? `${lastPlay.team_tricode} - ` : ''}{lastPlay.description}
               </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                {lastPlay.team_tricode && (
-                  <Avatar
-                    src={teamLogos[lastPlay.team_tricode] || teamLogos['NBA']}
-                    alt={`${lastPlay.team_tricode} logo`}
-                    sx={{
-                      width: 24,
-                      height: 24,
-                    }}
-                  />
-                )}
-                <Typography
-                  variant="body2"
+            </Box>
+          )}
+
+          {/* Right Zone: Action Buttons */}
+          {(onOpenBoxScore || onOpenPlayByPlay) && (
+            <Box
+              sx={{
+                display: 'flex',
+                flexDirection: { xs: 'row', md: 'row' },
+                gap: 1,
+                alignItems: 'center',
+                justifyContent: { xs: 'flex-start', md: 'flex-end' },
+                flexShrink: 0,
+                ml: { xs: 0, md: 'auto' },
+              }}
+            >
+              {onOpenBoxScore && (
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<Assessment />}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onOpenBoxScore(gameId);
+                  }}
                   sx={{
-                    fontSize: typography.size.bodySmall,
-                    color: 'text.primary',
-                    fontWeight: typography.weight.medium,
+                    borderRadius: borderRadius.sm,
+                    textTransform: 'none',
+                    fontSize: typography.size.caption,
+                    px: spacing.md,
+                    py: spacing.xs,
+                    minWidth: { xs: 'auto', md: 100 },
                   }}
                 >
-                  {lastPlay.team_tricode ? `${lastPlay.team_tricode} - ` : ''}{lastPlay.description}
-                </Typography>
-              </Box>
+                  Box Score
+                </Button>
+              )}
+              {onOpenPlayByPlay && (
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<Timeline />}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onOpenPlayByPlay(gameId);
+                  }}
+                  sx={{
+                    borderRadius: borderRadius.sm,
+                    textTransform: 'none',
+                    fontSize: typography.size.caption,
+                    px: spacing.md,
+                    py: spacing.xs,
+                    minWidth: { xs: 'auto', md: 120 },
+                  }}
+                >
+                  Play-by-Play
+                </Button>
+              )}
             </Box>
           )}
-
-          {/* Top Performers Section */}
-          {(topPerformers.home || topPerformers.away) && (
-            <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography
-                variant="caption"
-                sx={{
-                  fontSize: typography.size.captionSmall,
-                  fontWeight: typography.weight.semibold,
-                  color: 'text.secondary',
-                  mb: 0.5,
-                  display: 'block',
-                }}
-              >
-                TOP PERFORMERS
-              </Typography>
-              <Box sx={{ display: 'flex', gap: { xs: 1.5, sm: 2 }, flexWrap: 'wrap' }}>
-                {topPerformers.away && (
-                  <TopPerformerPreview player={topPerformers.away} teamTricode={awayTeam || ''} navigate={navigate} />
-                )}
-                {topPerformers.home && (
-                  <TopPerformerPreview player={topPerformers.home} teamTricode={homeTeam || ''} navigate={navigate} />
-                )}
-              </Box>
-            </Box>
-          )}
-
-          {/* Action Buttons */}
-          <Box
-            sx={{
-              display: 'flex',
-              flexDirection: { xs: 'row', md: 'column' },
-              gap: 1,
-              alignItems: { xs: 'flex-start', md: 'flex-end' },
-              justifyContent: { xs: 'flex-start', md: 'flex-end' },
-            }}
-          >
-            {onOpenBoxScore && (
-              <Button
-                variant="outlined"
-                size="small"
-                startIcon={<Assessment />}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onOpenBoxScore(gameId);
-                }}
-                sx={{
-                  borderRadius: borderRadius.sm,
-                  textTransform: 'none',
-                  fontSize: typography.size.caption,
-                  px: spacing.md,
-                  py: spacing.xs,
-                  minWidth: { xs: 'auto', md: 120 },
-                }}
-              >
-                Box Score
-              </Button>
-            )}
-            {onOpenPlayByPlay && (
-              <Button
-                variant="outlined"
-                size="small"
-                startIcon={<Timeline />}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onOpenPlayByPlay(gameId);
-                }}
-                sx={{
-                  borderRadius: borderRadius.sm,
-                  textTransform: 'none',
-                  fontSize: typography.size.caption,
-                  px: spacing.md,
-                  py: spacing.xs,
-                  minWidth: { xs: 'auto', md: 120 },
-                }}
-              >
-                Play-by-Play
-              </Button>
-            )}
-          </Box>
         </Box>
       )}
+
+      {/* AI Insights Section - Below game row */}
+      {isLive && isLiveGame && (
+        <Box
+          sx={{
+            pl: { xs: 2, sm: 2.5 },
+            pr: { xs: 1.5, sm: 2 },
+            pb: { xs: 1, sm: 1.5 },
+            borderTop: '1px solid',
+            borderColor: 'divider',
+          }}
+        >
+          <LiveAIInsight
+            insight={insight && insight.type !== 'none' && insight.text ? insight : null}
+            onWhyClick={insight?.type === 'lead_change' ? async () => {
+              try {
+                const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+                const response = await fetchJson<LeadChangeExplanation>(
+                  `${API_BASE_URL}/api/v1/scoreboard/game/${gameId}/lead-change`
+                );
+                if (response) {
+                  setLeadChangeExplanation(response);
+                  setLeadChangeDialogOpen(true);
+                }
+              } catch (error) {
+                console.error('Failed to fetch lead change explanation:', error);
+              }
+            } : undefined}
+          />
+        </Box>
+      )}
+
+      {/* Lead Change Dialog */}
+      <LeadChangeDialog
+        open={leadChangeDialogOpen}
+        onClose={() => setLeadChangeDialogOpen(false)}
+        explanation={leadChangeExplanation}
+        homeTeam={homeTeam || ''}
+        awayTeam={awayTeam || ''}
+      />
     </Box>
   );
 };
@@ -704,7 +720,7 @@ const LeaderPreview: React.FC<LeaderPreviewProps> = ({ leader, teamTricode, navi
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (isValidPlayerId) navigate(`/players/${leader.personId}`);
+    if (isValidPlayerId) navigate(`/player/${leader.personId}`);
   };
 
   const nameParts = leader.name ? leader.name.split(' ') : [];
@@ -725,7 +741,7 @@ const LeaderPreview: React.FC<LeaderPreviewProps> = ({ leader, teamTricode, navi
       }}
     >
       {isValidPlayerId ? (
-        <MuiLink component={Link} to={`/players/${leader.personId}`} sx={{ textDecoration: 'none' }}>
+        <MuiLink component={Link} to={`/player/${leader.personId}`} sx={{ textDecoration: 'none' }}>
           <Avatar
             src={avatarUrl}
             alt={leader.name || 'Player'}
@@ -759,7 +775,7 @@ const LeaderPreview: React.FC<LeaderPreviewProps> = ({ leader, teamTricode, navi
           {isValidPlayerId ? (
             <MuiLink
               component={Link}
-              to={`/players/${leader.personId}`}
+              to={`/player/${leader.personId}`}
               sx={{
                 color: 'text.primary',
                 fontWeight: typography.weight.semibold,
@@ -826,124 +842,5 @@ const LeaderPreview: React.FC<LeaderPreviewProps> = ({ leader, teamTricode, navi
  * Top Performer preview component for live games
  * Shows player with current game stats (points)
  */
-interface TopPerformerPreviewProps {
-  player: PlayerBoxScoreStats;
-  teamTricode: string;
-  navigate: ReturnType<typeof useNavigate>;
-}
-
-const TopPerformerPreview: React.FC<TopPerformerPreviewProps> = ({ player, teamTricode, navigate }) => {
-  const isValidPlayerId = player.player_id && player.player_id > 0;
-  const avatarUrl = isValidPlayerId
-    ? `https://cdn.nba.com/headshots/nba/latest/1040x760/${player.player_id}.png`
-    : '';
-
-  const handleClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (isValidPlayerId) navigate(`/players/${player.player_id}`);
-  };
-
-  const nameParts = player.name ? player.name.split(' ') : [];
-  const lastName = nameParts.length > 0 ? nameParts[nameParts.length - 1] : '';
-  const firstName = nameParts.length > 1 ? nameParts[0] : '';
-  const displayName = firstName && lastName ? `${firstName[0]}. ${lastName}` : player.name || 'N/A';
-
-  return (
-    <Box
-      onClick={handleClick}
-      sx={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 0.75,
-        cursor: isValidPlayerId ? 'pointer' : 'default',
-        transition: transitions.normal,
-        '&:hover': isValidPlayerId ? { opacity: 0.8 } : {},
-      }}
-    >
-      {isValidPlayerId ? (
-        <MuiLink component={Link} to={`/players/${player.player_id}`} sx={{ textDecoration: 'none' }}>
-          <Avatar
-            src={avatarUrl}
-            alt={player.name || 'Player'}
-            sx={{
-              width: 32,
-              height: 32,
-              border: '1px solid',
-              borderColor: 'divider',
-            }}
-            onError={e => {
-              const target = e.currentTarget as HTMLImageElement;
-              target.onerror = null;
-              target.src = '';
-            }}
-          />
-        </MuiLink>
-      ) : (
-        <Avatar
-          sx={{
-            width: 32,
-            height: 32,
-            backgroundColor: 'action.disabledBackground',
-            opacity: 0.5,
-          }}
-        >
-          <Person sx={{ fontSize: 16 }} />
-        </Avatar>
-      )}
-      <Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
-          {isValidPlayerId ? (
-            <MuiLink
-              component={Link}
-              to={`/players/${player.player_id}`}
-              sx={{
-                color: 'text.primary',
-                fontWeight: typography.weight.semibold,
-                fontSize: typography.size.caption,
-                textDecoration: 'none',
-                '&:hover': { color: 'primary.main', textDecoration: 'underline' },
-              }}
-            >
-              {displayName}
-            </MuiLink>
-          ) : (
-            <Typography
-              variant="caption"
-              sx={{
-                fontWeight: typography.weight.semibold,
-                fontSize: typography.size.caption,
-                color: 'text.secondary',
-              }}
-            >
-              {displayName}
-            </Typography>
-          )}
-          <Typography
-            variant="caption"
-            sx={{
-              fontSize: typography.size.captionSmall,
-              color: 'text.secondary',
-            }}
-          >
-            #{player.position || 'N/A'} - {teamTricode}
-          </Typography>
-        </Box>
-        <Typography
-          variant="caption"
-          sx={{
-            fontSize: typography.size.captionSmall,
-            color: 'text.secondary',
-            display: 'block',
-            fontFamily: 'monospace',
-            fontWeight: typography.weight.bold,
-          }}
-        >
-          {Math.round(player.points)}PTS
-        </Typography>
-      </Box>
-    </Box>
-  );
-};
-
 export default GameRow;
 

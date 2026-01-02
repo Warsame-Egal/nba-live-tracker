@@ -1,17 +1,5 @@
-/**
- * Design Tokens
- * 
- * This file defines consistent spacing, typography, colors, and other design tokens
- * that should be used across all components to maintain a cohesive look and feel.
- * 
- * Usage:
- *   import { spacing, typography, colors } from '../theme/designTokens';
- */
-
-/**
- * Spacing scale (based on 8px grid)
- * Use these values for padding, margins, and gaps
- */
+// Design tokens for consistent spacing, typography, and styling
+// Use these across all components for a cohesive look
 export const spacing = {
   xs: 0.5,   // 4px
   sm: 1,     // 8px
@@ -22,11 +10,8 @@ export const spacing = {
   xxxl: 6,   // 48px
 } as const;
 
-/**
- * Responsive spacing patterns (2025 Material Design 3)
- * Use these for consistent responsive spacing across components
- * All values are in theme spacing units (8px base)
- */
+// Responsive spacing patterns (Material Design 3)
+// All values in theme spacing units (8px base)
 export const responsiveSpacing = {
   // Container padding
   container: { xs: 2, sm: 3, md: 4 },
@@ -52,10 +37,7 @@ export const responsiveSpacing = {
   gapLarge: { xs: 2.5, sm: 3, md: 4 },
 } as const;
 
-/**
- * Typography scale
- * Use these for consistent font sizes and weights
- */
+// Typography scale for consistent font sizes and weights
 export const typography = {
   // Font weights
   weight: {
@@ -107,10 +89,7 @@ export const typography = {
   },
 } as const;
 
-/**
- * Border radius scale (2025 Material Design 3)
- * Use these for consistent rounded corners
- */
+// Border radius scale for consistent rounded corners
 export const borderRadius = {
   none: 0,
   xs: 0.5,    // 4px - small badges, chips
@@ -121,10 +100,7 @@ export const borderRadius = {
   full: '50%', // circular
 } as const;
 
-/**
- * Shadow definitions
- * Use these for consistent elevation
- */
+// Shadow definitions for consistent elevation
 export const shadows = {
   none: 'none',
   sm: '0 2px 8px rgba(0, 0, 0, 0.1)',
@@ -155,10 +131,7 @@ export const shadows = {
   },
 } as const;
 
-/**
- * Transition timings
- * Use these for consistent animations
- */
+// Transition timings for consistent animations
 export const transitions = {
   fast: '0.15s ease-in-out',
   normal: '0.2s ease-in-out',
@@ -166,10 +139,7 @@ export const transitions = {
   smooth: '0.3s cubic-bezier(0.4, 0, 0.2, 1)',
 } as const;
 
-/**
- * Z-index scale
- * Use these for consistent layering
- */
+// Z-index scale for consistent layering
 export const zIndex = {
   base: 0,
   dropdown: 1000,
@@ -181,10 +151,7 @@ export const zIndex = {
   tooltip: 1600,
 } as const;
 
-/**
- * Common component styles
- * Pre-defined style objects for common patterns
- */
+// Pre-defined style objects for common component patterns
 export const componentStyles = {
   // Card styles
   card: {
@@ -238,8 +205,5 @@ export const componentStyles = {
   },
 } as const;
 
-/**
- * Helper function to get responsive value
- * Usage: getResponsive({ xs: 2, sm: 3, md: 4 })
- */
+// Helper to get responsive values
 export const getResponsive = <T,>(values: { xs: T; sm?: T; md?: T; lg?: T }) => values;

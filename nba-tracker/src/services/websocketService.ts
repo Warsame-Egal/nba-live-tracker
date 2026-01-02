@@ -49,11 +49,23 @@ class WebSocketService {
     // When we receive a message from the server
     this.socket.onmessage = event => {
       try {
-        // Parse the JSON data and send it to all subscribers
-        const data: ScoreboardResponse = JSON.parse(event.data);
-        this.listeners.forEach(callback => callback(data));
+        // Parse the JSON data
+        const data = JSON.parse(event.data);
+        
+        // Check if this is an insights message (has type field)
+        if (data.type === 'insights') {
+          console.log('[WebSocket] Received insights message:', data);
+          // Dispatch as custom event for insights handling with the parsed data
+          window.dispatchEvent(new CustomEvent('websocket-insights', { detail: data }));
+          return;
+        }
+        
+        // Otherwise, treat as scoreboard data
+        const scoreboardData: ScoreboardResponse = data;
+        this.listeners.forEach(callback => callback(scoreboardData));
       } catch (error) {
         logger.error('Error parsing WebSocket message', error);
+        console.error('[WebSocket] Error parsing message:', error, event.data);
       }
     };
 

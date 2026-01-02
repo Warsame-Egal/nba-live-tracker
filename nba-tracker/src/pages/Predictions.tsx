@@ -12,7 +12,6 @@ import {
   CardContent,
   LinearProgress,
   Chip,
-  Divider,
   IconButton,
   TextField,
   InputAdornment,
@@ -35,42 +34,18 @@ import {
   Tooltip,
 } from 'recharts';
 import Navbar from '../components/Navbar';
+import PageLayout from '../components/PageLayout';
 import UniversalSidebar from '../components/UniversalSidebar';
-import { typography, borderRadius } from '../theme/designTokens';
+import { typography } from '../theme/designTokens';
 import { fetchJson } from '../utils/apiClient';
 import { getCurrentSeason } from '../utils/season';
 import { PredictionsResponse, GamePrediction } from '../types/predictions';
 import { useTheme, alpha } from '@mui/material/styles';
 import { format, parseISO, addDays, subDays } from 'date-fns';
+import { getTeamAbbreviation, getTeamLogo } from '../utils/teamMappings';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
-const teamLogos: Record<string, string> = {
-  ATL: '/logos/ATL.svg', BOS: '/logos/BOS.svg', BKN: '/logos/BKN.svg', CHA: '/logos/CHA.svg',
-  CHI: '/logos/CHI.svg', CLE: '/logos/CLE.svg', DAL: '/logos/DAL.svg', DEN: '/logos/DEN.svg',
-  DET: '/logos/DET.svg', GSW: '/logos/GSW.svg', HOU: '/logos/HOU.svg', IND: '/logos/IND.svg',
-  LAC: '/logos/LAC.svg', LAL: '/logos/LAL.svg', MEM: '/logos/MEM.svg', MIA: '/logos/MIA.svg',
-  MIL: '/logos/MIL.svg', MIN: '/logos/MIN.svg', NOP: '/logos/NOP.svg', NYK: '/logos/NYK.svg',
-  OKC: '/logos/OKC.svg', ORL: '/logos/ORL.svg', PHI: '/logos/PHI.svg', PHX: '/logos/PHX.svg',
-  POR: '/logos/POR.svg', SAC: '/logos/SAC.svg', SAS: '/logos/SAS.svg', TOR: '/logos/TOR.svg',
-  UTA: '/logos/UTA.svg', WAS: '/logos/WAS.svg',
-};
-
-const getTeamAbbreviation = (teamName: string): string => {
-  const mapping: Record<string, string> = {
-    'Atlanta Hawks': 'ATL', 'Boston Celtics': 'BOS', 'Brooklyn Nets': 'BKN',
-    'Charlotte Hornets': 'CHA', 'Chicago Bulls': 'CHI', 'Cleveland Cavaliers': 'CLE',
-    'Dallas Mavericks': 'DAL', 'Denver Nuggets': 'DEN', 'Detroit Pistons': 'DET',
-    'Golden State Warriors': 'GSW', 'Houston Rockets': 'HOU', 'Indiana Pacers': 'IND',
-    'LA Clippers': 'LAC', 'Los Angeles Lakers': 'LAL', 'Memphis Grizzlies': 'MEM',
-    'Miami Heat': 'MIA', 'Milwaukee Bucks': 'MIL', 'Minnesota Timberwolves': 'MIN',
-    'New Orleans Pelicans': 'NOP', 'New York Knicks': 'NYK', 'Oklahoma City Thunder': 'OKC',
-    'Orlando Magic': 'ORL', 'Philadelphia 76ers': 'PHI', 'Phoenix Suns': 'PHX',
-    'Portland Trail Blazers': 'POR', 'Sacramento Kings': 'SAC', 'San Antonio Spurs': 'SAS',
-    'Toronto Raptors': 'TOR', 'Utah Jazz': 'UTA', 'Washington Wizards': 'WAS',
-  };
-  return mapping[teamName] || 'NBA';
-};
 
 const Predictions = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -92,8 +67,9 @@ const Predictions = () => {
         const data = await fetchJson<PredictionsResponse>(
           `${API_BASE_URL}/api/v1/predictions/date/${selectedDate}?season=${season}`,
           {},
-          { maxRetries: 2, retryDelay: 500, timeout: 15000 }
+          { maxRetries: 2, retryDelay: 500, timeout: 120000 } // 120s timeout for AI processing (10 games can take time)
         );
+        console.log(`Predictions loaded: ${data.predictions?.length || 0} games for ${selectedDate}`);
         setPredictions(data);
       } catch (err) {
         console.error('Predictions error:', err);
@@ -119,46 +95,73 @@ const Predictions = () => {
   return (
     <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default', display: 'flex', flexDirection: 'column' }}>
       <Navbar />
-      <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-        <Box sx={{ flex: 1, overflowY: 'auto', backgroundColor: 'background.default' }}>
-          <Box sx={{ maxWidth: 1400, mx: 'auto', py: { xs: 3, sm: 4, md: 5 }, px: { xs: 2, sm: 3, md: 4 } }}>
-            <Box sx={{ mb: { xs: 3, sm: 4 } }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-                <Analytics sx={{ fontSize: { xs: 32, sm: 40 }, color: 'primary.main' }} />
-                <Box sx={{ flex: 1 }}>
-                  <Typography
-                    variant="h4"
-                    sx={{
-                      fontWeight: typography.weight.bold,
-                      fontSize: { xs: typography.size.h5, sm: typography.size.h4 },
-                      color: 'text.primary',
-                      mb: 0.5,
-                      letterSpacing: '-0.02em',
-                    }}
-                  >
-                    Game Predictions
-                  </Typography>
-                  <Typography 
-                    variant="body2" 
-                    color="text.secondary"
-                    sx={{ fontSize: { xs: '0.875rem', sm: '0.9375rem' } }}
-                  >
-                    Statistical analysis and AI-powered insights for upcoming games
-                  </Typography>
+      <PageLayout sidebar={<UniversalSidebar />}>
+        <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+          <Paper
+            elevation={0}
+            sx={{
+              width: '100%',
+              maxWidth: { xs: '100%', md: 1200 },
+              borderRadius: 1.5,
+              backgroundColor: 'background.paper',
+              overflow: 'hidden',
+            }}
+          >
+            {/* Header with title and filters */}
+            <Box
+              sx={{
+                p: { xs: 2, sm: 3 },
+                borderBottom: '1px solid',
+                borderColor: 'divider',
+                backgroundColor: 'action.hover',
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2, flexWrap: 'wrap', gap: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  <Analytics sx={{ fontSize: { xs: 28, sm: 32 }, color: 'text.secondary' }} />
+                  <Box>
+                    <Typography
+                      variant="h5"
+                      sx={{
+                        fontWeight: typography.weight.bold,
+                        fontSize: { xs: typography.size.h6, sm: typography.size.h5 },
+                        color: 'text.primary',
+                      }}
+                    >
+                      Game Predictions
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ fontSize: '0.75rem' }}
+                    >
+                      Stat-based predictions with AI insights
+                    </Typography>
+                  </Box>
                 </Box>
+                <Chip
+                  label={`${predictions?.predictions.length || 0} Game${predictions?.predictions.length !== 1 ? 's' : ''}`}
+                  size="small"
+                  sx={{
+                    backgroundColor: 'background.paper',
+                    fontWeight: typography.weight.medium,
+                  }}
+                />
               </Box>
 
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              {/* Filters row */}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
                 <IconButton
                   onClick={() => handleDateNavigation('prev')}
+                  size="small"
                   sx={{
                     border: '1px solid',
                     borderColor: 'divider',
-                    borderRadius: borderRadius.md,
-                    width: 40,
-                    height: 40,
+                    borderRadius: 1,
+                    width: 36,
+                    height: 36,
                     '&:hover': {
-                      backgroundColor: 'action.hover',
+                      backgroundColor: 'background.paper',
                       borderColor: 'primary.main',
                     },
                   }}
@@ -169,117 +172,106 @@ const Predictions = () => {
                   type="date"
                   value={selectedDate}
                   onChange={(e) => handleDateChange(e.target.value)}
+                  size="small"
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
-                        <CalendarToday sx={{ color: 'text.secondary', fontSize: 20 }} />
+                        <CalendarToday sx={{ color: 'text.secondary', fontSize: 18 }} />
                       </InputAdornment>
                     ),
                   }}
                   sx={{
                     flex: 1,
-                    maxWidth: 280,
+                    minWidth: 200,
                     '& .MuiOutlinedInput-root': {
-                      borderRadius: borderRadius.md,
-                      fontSize: '0.9375rem',
+                      borderRadius: 1,
+                      fontSize: '0.875rem',
+                      backgroundColor: 'background.paper',
                     },
                   }}
                 />
                 <IconButton
                   onClick={() => handleDateNavigation('next')}
+                  size="small"
                   sx={{
                     border: '1px solid',
                     borderColor: 'divider',
-                    borderRadius: borderRadius.md,
-                    width: 40,
-                    height: 40,
+                    borderRadius: 1,
+                    width: 36,
+                    height: 36,
                     '&:hover': {
-                      backgroundColor: 'action.hover',
+                      backgroundColor: 'background.paper',
                       borderColor: 'primary.main',
                     },
                   }}
                 >
                   <TrendingUp fontSize="small" />
                 </IconButton>
-              </Box>
-            </Box>
-
-            {loading && (
-              <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-                <CircularProgress size={40} />
-              </Box>
-            )}
-
-            {error && (
-              <Alert 
-                severity="error" 
-                sx={{ 
-                  mb: 3, 
-                  borderRadius: borderRadius.md,
-                  '& .MuiAlert-message': {
-                    fontSize: '0.9375rem',
-                  },
-                }}
-              >
-                {error}
-              </Alert>
-            )}
-
-            {!loading && !error && predictions && (
-              <>
-                {predictions.predictions.length === 0 ? (
-                  <Paper
-                    elevation={0}
+                <FormControl size="small" sx={{ minWidth: 140 }}>
+                  <InputLabel>Sort</InputLabel>
+                  <Select
+                    value={sortBy}
+                    label="Sort"
+                    onChange={(e) => setSortBy(e.target.value as 'confidence' | 'home_prob')}
                     sx={{
-                      p: { xs: 4, sm: 6 },
-                      textAlign: 'center',
-                      border: '1px solid',
-                      borderColor: 'divider',
-                      borderRadius: borderRadius.lg,
+                      borderRadius: 1,
+                      fontSize: '0.875rem',
                       backgroundColor: 'background.paper',
                     }}
                   >
-                    <Typography 
-                      variant="h6" 
-                      sx={{ 
-                        mb: 1, 
-                        fontWeight: typography.weight.bold,
-                        fontSize: { xs: typography.size.body, sm: typography.size.h6 },
-                      }}
-                    >
-                      No Games Scheduled
-                    </Typography>
-                    <Typography 
-                      variant="body2" 
-                      color="text.secondary"
-                      sx={{ fontSize: '0.9375rem' }}
-                    >
-                      No games scheduled for {format(parseISO(selectedDate), 'MMMM d, yyyy')}
-                    </Typography>
-                  </Paper>
-                ) : (
-                  <>
-                    <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-                      <FormControl size="small" sx={{ minWidth: 180 }}>
-                        <InputLabel>Sort By</InputLabel>
-                        <Select
-                          value={sortBy}
-                          label="Sort By"
-                          onChange={(e) => setSortBy(e.target.value as 'confidence' | 'home_prob')}
-                        >
-                          <MenuItem value="confidence">Confidence</MenuItem>
-                          <MenuItem value="home_prob">Win Probability</MenuItem>
-                        </Select>
-                      </FormControl>
-                      <Chip
-                        label={`${predictions.predictions.length} Game${predictions.predictions.length !== 1 ? 's' : ''}`}
-                        size="small"
+                    <MenuItem value="confidence">Confidence</MenuItem>
+                    <MenuItem value="home_prob">Win Probability</MenuItem>
+                  </Select>
+                </FormControl>
+              </Box>
+            </Box>
+
+            {/* Content */}
+            <Box sx={{ p: { xs: 2, sm: 3 } }}>
+              {loading && (
+                <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+                  <CircularProgress size={40} />
+                </Box>
+              )}
+
+              {error && (
+                <Alert
+                  severity="error"
+                  sx={{
+                    mb: 3,
+                    borderRadius: 1,
+                    '& .MuiAlert-message': {
+                      fontSize: '0.875rem',
+                    },
+                  }}
+                >
+                  {error}
+                </Alert>
+              )}
+
+              {!loading && !error && predictions && (
+                <>
+                  {predictions.predictions.length === 0 ? (
+                    <Box sx={{ textAlign: 'center', py: 6 }}>
+                      <Typography
+                        variant="h6"
                         sx={{
-                          backgroundColor: 'action.hover',
-                          fontWeight: typography.weight.medium,
+                          mb: 1,
+                          fontWeight: typography.weight.bold,
+                          fontSize: { xs: typography.size.body, sm: typography.size.h6 },
                         }}
-                      />
+                      >
+                        No Games Scheduled
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{ fontSize: '0.875rem' }}
+                      >
+                        No games scheduled for {format(parseISO(selectedDate), 'MMMM d, yyyy')}
+                      </Typography>
                     </Box>
+                  ) : (
                     <Grid container spacing={{ xs: 2, sm: 3 }}>
                       {[...predictions.predictions]
                         .sort((a, b) => {
@@ -295,28 +287,13 @@ const Predictions = () => {
                           </Grid>
                         ))}
                     </Grid>
-                  </>
-                )}
-              </>
-            )}
-          </Box>
+                  )}
+                </>
+              )}
+            </Box>
+          </Paper>
         </Box>
-
-        <Box
-          sx={{
-            width: 320,
-            flexShrink: 0,
-            display: { xs: 'none', md: 'flex' },
-            flexDirection: 'column',
-            borderLeft: '1px solid',
-            borderColor: 'divider',
-            backgroundColor: 'background.paper',
-            overflowY: 'auto',
-          }}
-        >
-          <UniversalSidebar season={season} onSeasonChange={() => {}} />
-        </Box>
-      </Box>
+      </PageLayout>
     </Box>
   );
 };
@@ -327,172 +304,145 @@ const PredictionCard: React.FC<{ prediction: GamePrediction }> = ({ prediction }
   
   const homeAbbr = getTeamAbbreviation(prediction.home_team_name);
   const awayAbbr = getTeamAbbreviation(prediction.away_team_name);
-  const homeLogo = teamLogos[homeAbbr] || '/logos/default.svg';
-  const awayLogo = teamLogos[awayAbbr] || '/logos/default.svg';
+  const homeLogo = getTeamLogo(prediction.home_team_name);
+  const awayLogo = getTeamLogo(prediction.away_team_name);
   
   const homeWinProb = prediction.home_win_probability * 100;
   const awayWinProb = prediction.away_win_probability * 100;
   const confidence = prediction.confidence * 100;
 
+  // Compute colors for the donut chart - use theme colors as explicit hex strings
+  const homeColor = theme.palette.primary.main;
+  const awayColor = alpha(theme.palette.primary.main, 0.6); // Lighter version for contrast
+
   const probChartData = [
-    { name: 'Home', value: homeWinProb, fill: theme.palette.primary.main },
-    { name: 'Away', value: awayWinProb, fill: alpha(theme.palette.primary.main, 0.5) },
+    { 
+      name: 'Home', 
+      value: homeWinProb, 
+      fill: homeColor 
+    },
+    { 
+      name: 'Away', 
+      value: awayWinProb, 
+      fill: awayColor 
+    },
   ];
 
   return (
     <Card
       elevation={0}
       sx={{
-        border: '1px solid',
-        borderColor: 'divider',
-        borderRadius: borderRadius.lg,
+        borderRadius: 1.5,
         overflow: 'hidden',
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
+        backgroundColor: 'background.paper',
         transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
         '&:hover': {
-          boxShadow: theme.shadows[8],
-          transform: 'translateY(-2px)',
-          borderColor: 'primary.main',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
         },
       }}
     >
-      <CardContent sx={{ p: { xs: 2.5, sm: 3 }, flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1 }}>
-            <Box
+      <CardContent sx={{ p: { xs: 2, sm: 2.5 }, flex: 1, display: 'flex', flexDirection: 'column' }}>
+        {/* Header: Team logos + matchup */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              cursor: 'pointer',
+              transition: 'opacity 0.2s',
+              '&:hover': { opacity: 0.7 },
+            }}
+            onClick={() => navigate(`/team/${prediction.away_team_id}`)}
+          >
+            <Avatar
+              src={awayLogo}
               sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1.5,
-                flex: 1,
-                cursor: 'pointer',
-                transition: 'opacity 0.2s',
-                '&:hover': { opacity: 0.7 },
+                width: 40,
+                height: 40,
+                border: '1px solid',
+                borderColor: 'divider',
               }}
-              onClick={() => navigate(`/team/${prediction.away_team_id}`)}
-            >
-              <Avatar
-                src={awayLogo}
-                sx={{
-                  width: { xs: 40, sm: 48 },
-                  height: { xs: 40, sm: 48 },
-                  border: '1px solid',
-                  borderColor: 'divider',
-                }}
-              />
-              <Box>
-                <Typography 
-                  variant="body2" 
-                  sx={{ 
-                    fontWeight: typography.weight.semibold,
-                    fontSize: { xs: '0.875rem', sm: '0.9375rem' },
-                  }}
-                >
-                  {prediction.away_team_name.split(' ').pop()}
-                </Typography>
-                <Typography 
-                  variant="caption" 
-                  color="text.secondary"
-                  sx={{ fontSize: '0.75rem' }}
-                >
-                  {awayAbbr}
-                </Typography>
-              </Box>
-            </Box>
+            />
+          </Box>
 
-            <Typography 
-              variant="body2" 
-              color="text.secondary" 
-              sx={{ mx: 1, fontSize: '0.875rem' }}
-            >
-              @
-            </Typography>
+          <Typography
+            variant="body2"
+            sx={{
+              fontWeight: typography.weight.semibold,
+              fontSize: '0.875rem',
+              color: 'text.primary',
+            }}
+          >
+            {awayAbbr} @ {homeAbbr}
+          </Typography>
 
-            <Box
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              cursor: 'pointer',
+              transition: 'opacity 0.2s',
+              '&:hover': { opacity: 0.7 },
+              ml: 'auto',
+            }}
+            onClick={() => navigate(`/team/${prediction.home_team_id}`)}
+          >
+            <Avatar
+              src={homeLogo}
               sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1.5,
-                flex: 1,
-                cursor: 'pointer',
-                transition: 'opacity 0.2s',
-                '&:hover': { opacity: 0.7 },
+                width: 40,
+                height: 40,
+                border: '1px solid',
+                borderColor: 'divider',
               }}
-              onClick={() => navigate(`/team/${prediction.home_team_id}`)}
-            >
-              <Avatar
-                src={homeLogo}
-                sx={{
-                  width: { xs: 40, sm: 48 },
-                  height: { xs: 40, sm: 48 },
-                  border: '1px solid',
-                  borderColor: 'divider',
-                }}
-              />
-              <Box>
-                <Typography 
-                  variant="body2" 
-                  sx={{ 
-                    fontWeight: typography.weight.semibold,
-                    fontSize: { xs: '0.875rem', sm: '0.9375rem' },
-                  }}
-                >
-                  {prediction.home_team_name.split(' ').pop()}
-                </Typography>
-                <Typography 
-                  variant="caption" 
-                  color="text.secondary"
-                  sx={{ fontSize: '0.75rem' }}
-                >
-                  {homeAbbr}
-                </Typography>
-              </Box>
-            </Box>
+            />
           </Box>
         </Box>
 
-        <Divider sx={{ my: 3 }} />
-
-        <Box sx={{ mb: 3 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-            <Typography 
-              variant="h6" 
-              sx={{ 
-                fontWeight: typography.weight.bold, 
-                fontSize: { xs: typography.size.body, sm: typography.size.h6 },
+        {/* Win Probability section */}
+        <Box sx={{ mb: 2.5 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
+            <Typography
+              variant="subtitle2"
+              sx={{
+                fontWeight: typography.weight.semibold,
+                fontSize: '0.8125rem',
+                color: 'text.secondary',
               }}
             >
               Win Probability
             </Typography>
             <Chip
-              label={`${confidence.toFixed(0)}% Confidence`}
+              label={`${confidence.toFixed(0)}%`}
               size="small"
               sx={{
-                backgroundColor: alpha(theme.palette.primary.main, 0.1),
-                color: 'primary.main',
-                fontWeight: typography.weight.semibold,
-                fontSize: '0.75rem',
-                height: 24,
+                height: 20,
+                fontSize: '0.6875rem',
+                backgroundColor: 'action.hover',
+                fontWeight: typography.weight.medium,
               }}
             />
           </Box>
-          
-          <Box sx={{ mb: 2 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-              <Typography 
-                variant="body2" 
+
+          <Box sx={{ mb: 1.5 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.75 }}>
+              <Typography
+                variant="caption"
                 color="text.secondary"
-                sx={{ fontSize: '0.875rem' }}
+                sx={{ fontSize: '0.75rem' }}
               >
-                {prediction.away_team_name.split(' ').pop()}
+                {awayAbbr}
               </Typography>
-              <Typography 
-                variant="body2" 
-                sx={{ 
-                  fontWeight: typography.weight.bold,
-                  fontSize: '0.875rem',
+              <Typography
+                variant="body2"
+                sx={{
+                  fontWeight: typography.weight.semibold,
+                  fontSize: '0.8125rem',
                 }}
               >
                 {awayWinProb.toFixed(1)}%
@@ -502,31 +452,31 @@ const PredictionCard: React.FC<{ prediction: GamePrediction }> = ({ prediction }
               variant="determinate"
               value={awayWinProb}
               sx={{
-                height: 6,
-                borderRadius: borderRadius.sm,
-                backgroundColor: alpha(theme.palette.primary.main, 0.1),
+                height: 4,
+                borderRadius: 0.5,
+                backgroundColor: 'action.hover',
                 '& .MuiLinearProgress-bar': {
-                  backgroundColor: alpha(theme.palette.primary.main, 0.6),
-                  borderRadius: borderRadius.sm,
+                  backgroundColor: alpha(theme.palette.primary.main, 0.5),
+                  borderRadius: 0.5,
                 },
               }}
             />
           </Box>
-          
+
           <Box>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-              <Typography 
-                variant="body2" 
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.75 }}>
+              <Typography
+                variant="caption"
                 color="text.secondary"
-                sx={{ fontSize: '0.875rem' }}
+                sx={{ fontSize: '0.75rem' }}
               >
-                {prediction.home_team_name.split(' ').pop()}
+                {homeAbbr}
               </Typography>
-              <Typography 
-                variant="body2" 
-                sx={{ 
-                  fontWeight: typography.weight.bold,
-                  fontSize: '0.875rem',
+              <Typography
+                variant="body2"
+                sx={{
+                  fontWeight: typography.weight.semibold,
+                  fontSize: '0.8125rem',
                 }}
               >
                 {homeWinProb.toFixed(1)}%
@@ -536,79 +486,80 @@ const PredictionCard: React.FC<{ prediction: GamePrediction }> = ({ prediction }
               variant="determinate"
               value={homeWinProb}
               sx={{
-                height: 6,
-                borderRadius: borderRadius.sm,
-                backgroundColor: alpha(theme.palette.primary.main, 0.1),
+                height: 4,
+                borderRadius: 0.5,
+                backgroundColor: 'action.hover',
                 '& .MuiLinearProgress-bar': {
                   backgroundColor: theme.palette.primary.main,
-                  borderRadius: borderRadius.sm,
+                  borderRadius: 0.5,
                 },
               }}
             />
           </Box>
         </Box>
 
+        {/* Predicted Score */}
         <Box
           sx={{
             p: 2,
-            borderRadius: borderRadius.md,
+            borderRadius: 1,
             backgroundColor: 'action.hover',
-            mb: 3,
+            mb: 2.5,
           }}
         >
-          <Typography 
-            variant="caption" 
-            color="text.secondary" 
-            sx={{ 
-              display: 'block', 
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{
+              display: 'block',
               mb: 1.5,
-              fontSize: '0.75rem',
+              fontSize: '0.6875rem',
               textTransform: 'uppercase',
               letterSpacing: '0.05em',
             }}
           >
             Predicted Score
           </Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1.5 }}>
             <Box sx={{ textAlign: 'center' }}>
-              <Typography 
-                variant="h5" 
-                sx={{ 
+              <Typography
+                variant="h6"
+                sx={{
                   fontWeight: typography.weight.bold,
-                  fontSize: { xs: '1.5rem', sm: '1.75rem' },
+                  fontSize: '1.5rem',
                 }}
               >
                 {prediction.predicted_away_score.toFixed(0)}
               </Typography>
-              <Typography 
-                variant="caption" 
+              <Typography
+                variant="caption"
                 color="text.secondary"
-                sx={{ fontSize: '0.75rem' }}
+                sx={{ fontSize: '0.6875rem' }}
               >
                 {awayAbbr}
               </Typography>
             </Box>
-            <Typography 
-              variant="h6" 
+            <Typography
+              variant="body1"
               color="text.secondary"
-              sx={{ fontSize: '1.25rem' }}
+              sx={{ fontSize: '1rem' }}
             >
               -
             </Typography>
             <Box sx={{ textAlign: 'center' }}>
-              <Typography 
-                variant="h5" 
-                sx={{ 
+              <Typography
+                variant="h6"
+                sx={{
                   fontWeight: typography.weight.bold,
-                  fontSize: { xs: '1.5rem', sm: '1.75rem' },
+                  fontSize: '1.5rem',
                 }}
               >
                 {prediction.predicted_home_score.toFixed(0)}
               </Typography>
-              <Typography 
-                variant="caption" 
+              <Typography
+                variant="caption"
                 color="text.secondary"
-                sx={{ fontSize: '0.75rem' }}
+                sx={{ fontSize: '0.6875rem' }}
               >
                 {homeAbbr}
               </Typography>
@@ -616,86 +567,107 @@ const PredictionCard: React.FC<{ prediction: GamePrediction }> = ({ prediction }
           </Box>
         </Box>
 
+        {/* Insights */}
         {prediction.insights.length > 0 && (
-          <Box sx={{ mb: 3 }}>
-            <Typography 
-              variant="h6" 
-              sx={{ 
-                fontWeight: typography.weight.bold, 
-                mb: 2, 
-                fontSize: { xs: typography.size.body, sm: typography.size.h6 },
+          <Box sx={{ mb: 2.5 }}>
+            <Typography
+              variant="subtitle2"
+              sx={{
+                fontWeight: typography.weight.semibold,
+                mb: 1.5,
+                fontSize: '0.75rem',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                color: 'text.secondary',
               }}
             >
-              Key Insights
+              Insights
             </Typography>
-            <Grid container spacing={1.5}>
-              {prediction.insights.map((insight, idx) => (
-                <Grid item xs={12} sm={6} key={idx}>
-                  <Paper
-                    elevation={0}
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              {prediction.insights.slice(0, 3).map((insight, idx) => (
+                <Box
+                  key={idx}
+                  sx={{
+                    p: 1.5,
+                    borderRadius: 1,
+                    backgroundColor: 'action.hover',
+                  }}
+                >
+                  <Typography
+                    variant="body2"
                     sx={{
-                      p: 2,
-                      border: '1px solid',
-                      borderColor: 'divider',
-                      borderRadius: borderRadius.md,
-                      backgroundColor: 'background.paper',
-                      transition: 'all 0.2s',
-                      '&:hover': {
-                        borderColor: 'primary.main',
-                        backgroundColor: alpha(theme.palette.primary.main, 0.02),
-                      },
+                      fontWeight: typography.weight.semibold,
+                      mb: 0.5,
+                      fontSize: '0.8125rem',
+                      color: 'text.primary',
                     }}
                   >
-                    <Typography 
-                      variant="body2" 
-                      sx={{ 
-                        fontWeight: typography.weight.semibold, 
-                        mb: 0.5,
-                        fontSize: '0.875rem',
-                      }}
-                    >
-                      {insight.title}
-                    </Typography>
-                    <Typography 
-                      variant="caption" 
-                      color="text.secondary"
-                      sx={{ fontSize: '0.8125rem', lineHeight: 1.5 }}
-                    >
-                      {insight.description}
-                    </Typography>
-                  </Paper>
-                </Grid>
+                    {insight.title}
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{
+                      fontSize: '0.75rem',
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    {insight.description}
+                  </Typography>
+                </Box>
               ))}
-            </Grid>
+            </Box>
           </Box>
         )}
 
-        <Box sx={{ mt: 'auto', pt: 3 }}>
-          <Typography 
-            variant="h6" 
-            sx={{ 
-              fontWeight: typography.weight.bold, 
-              mb: 2, 
-              fontSize: { xs: typography.size.body, sm: typography.size.h6 },
+        {/* Probability Breakdown */}
+        <Box sx={{ mt: 'auto' }}>
+          <Typography
+            variant="subtitle2"
+            sx={{
+              fontWeight: typography.weight.semibold,
+              mb: 1.5,
+              fontSize: '0.75rem',
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+              color: 'text.secondary',
             }}
           >
             Probability Breakdown
           </Typography>
-          <Box sx={{ position: 'relative', height: 200, pt: 2 }}>
+          <Box 
+            sx={{ 
+              position: 'relative', 
+              height: 180, 
+              width: '100%', 
+              overflow: 'visible',
+            }}
+          >
             <ResponsiveContainer width="100%" height="100%">
               <PieChart margin={{ top: 10, right: 10, bottom: 10, left: 10 }}>
                 <Pie
                   data={probChartData}
                   cx="50%"
                   cy="50%"
-                  innerRadius={35}
-                  outerRadius={65}
-                  paddingAngle={3}
+                  innerRadius={40}
+                  outerRadius={60}
+                  paddingAngle={2}
                   dataKey="value"
-                  label={({ value }) => `${value.toFixed(1)}%`}
+                  label={({ name, value }) => `${name}: ${value.toFixed(1)}%`}
+                  labelLine={false}
+                  style={{
+                    fontSize: '0.6875rem',
+                    fill: theme.palette.text.primary,
+                    fontWeight: typography.weight.medium,
+                  }}
                 >
                   {probChartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.fill} />
+                    <Cell 
+                      key={`cell-${index}`} 
+                      fill={entry.fill}
+                      stroke={theme.palette.background.paper}
+                      strokeWidth={2}
+                    />
                   ))}
                 </Pie>
                 <Tooltip
@@ -703,8 +675,12 @@ const PredictionCard: React.FC<{ prediction: GamePrediction }> = ({ prediction }
                   contentStyle={{
                     backgroundColor: theme.palette.background.paper,
                     border: `1px solid ${theme.palette.divider}`,
-                    borderRadius: borderRadius.md,
-                    fontSize: '0.875rem',
+                    borderRadius: 1,
+                    fontSize: '0.8125rem',
+                    color: theme.palette.text.primary,
+                  }}
+                  labelStyle={{
+                    color: theme.palette.text.primary,
                   }}
                 />
               </PieChart>

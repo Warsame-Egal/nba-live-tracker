@@ -28,38 +28,40 @@ const TeamPerformanceChart: React.FC<TeamPerformanceChartProps> = ({ data }) => 
 
     const recentGames = [...data.games].slice(0, 20).reverse();
 
-    return recentGames.map(game => {
+    return recentGames.map((game, index) => {
       const date = parseISO(game.game_date);
-      // Calculate EPI: Points + Rebounds + Assists + Steals + Blocks - Turnovers
-      const epi = game.points + game.rebounds + game.assists + game.steals + game.blocks - game.turnovers;
+      // Calculate Team Efficiency: Points + Rebounds + Assists + Steals + Blocks - Turnovers
+      const teamEfficiency = game.points + game.rebounds + game.assists + game.steals + game.blocks - game.turnovers;
       return {
+        index: index,
         date: format(date, 'MMM d'),
         fullDate: game.game_date,
         Points: game.points,
-        EPI: Math.max(0, epi), // Ensure non-negative
+        Efficiency: Math.max(0, teamEfficiency), // Ensure non-negative
+        Win: game.win_loss === 'W' ? 1 : 0, // For visual indicator
       };
     });
   }, [data.games]);
 
   const averages = useMemo(() => {
-    if (chartData.length === 0) return { Points: 0, EPI: 0 };
+    if (chartData.length === 0) return { Points: 0, Efficiency: 0 };
 
     const totals = chartData.reduce(
       (acc, game) => ({
         Points: acc.Points + game.Points,
-        EPI: acc.EPI + game.EPI,
+        Efficiency: acc.Efficiency + game.Efficiency,
       }),
-      { Points: 0, EPI: 0 }
+      { Points: 0, Efficiency: 0 }
     );
 
     return {
       Points: totals.Points / chartData.length,
-      EPI: totals.EPI / chartData.length,
+      Efficiency: totals.Efficiency / chartData.length,
     };
   }, [chartData]);
 
   const maxPoints = useMemo(() => Math.max(...chartData.map(d => d.Points), 0), [chartData]);
-  const maxEPI = useMemo(() => Math.max(...chartData.map(d => d.EPI), 0), [chartData]);
+  const maxEfficiency = useMemo(() => Math.max(...chartData.map(d => d.Efficiency), 0), [chartData]);
 
   if (chartData.length === 0) {
     return (
@@ -80,9 +82,9 @@ const TeamPerformanceChart: React.FC<TeamPerformanceChartProps> = ({ data }) => 
     );
   }
 
-  // Color scheme matching reference
+  // Color scheme for team performance
   const pointsColor = '#1976d2'; // Blue
-  const epiColor = '#2e7d32'; // Green
+  const efficiencyColor = '#ed6c02'; // Orange/Amber
 
   return (
     <Paper
@@ -113,9 +115,13 @@ const TeamPerformanceChart: React.FC<TeamPerformanceChartProps> = ({ data }) => 
           margin={{ top: 20, right: 50, left: 30, bottom: 40 }}
         >
           <defs>
-            <linearGradient id="teamPointsGradient" x1="0" y1="0" x2="0" y2="1">
+            <linearGradient id="pointsGradient" x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%" stopColor={pointsColor} stopOpacity={0.3} />
               <stop offset="95%" stopColor={pointsColor} stopOpacity={0} />
+            </linearGradient>
+            <linearGradient id="efficiencyGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor={efficiencyColor} stopOpacity={0.2} />
+              <stop offset="95%" stopColor={efficiencyColor} stopOpacity={0} />
             </linearGradient>
           </defs>
           <CartesianGrid
@@ -125,7 +131,7 @@ const TeamPerformanceChart: React.FC<TeamPerformanceChartProps> = ({ data }) => 
             vertical={false}
           />
           <XAxis
-            dataKey="date"
+            dataKey="index"
             stroke={theme.palette.text.secondary}
             style={{
               fill: theme.palette.text.secondary,
@@ -137,6 +143,15 @@ const TeamPerformanceChart: React.FC<TeamPerformanceChartProps> = ({ data }) => 
             angle={0}
             textAnchor="middle"
             height={50}
+            tickFormatter={(value) => {
+              const dataPoint = chartData[value];
+              return dataPoint?.date || '';
+            }}
+            interval={(() => {
+              if (chartData.length > 15) return 2;
+              if (chartData.length > 10) return 1;
+              return 0;
+            })()}
           />
           <YAxis
             yAxisId="left"
@@ -169,15 +184,15 @@ const TeamPerformanceChart: React.FC<TeamPerformanceChartProps> = ({ data }) => 
               fontSize: '0.8125rem',
               fontWeight: typography.weight.medium,
             }}
-            domain={[0, Math.ceil(maxEPI * 1.1)]}
+            domain={[0, Math.ceil(maxEfficiency * 1.1)]}
             tickLine={{ stroke: theme.palette.text.secondary }}
             axisLine={{ stroke: theme.palette.divider }}
             label={{
-              value: 'EPI',
+              value: 'Efficiency',
               angle: 90,
               position: 'insideRight',
               style: {
-                fill: epiColor,
+                fill: efficiencyColor,
                 fontWeight: typography.weight.semibold,
                 fontSize: '0.875rem',
               },
@@ -185,7 +200,8 @@ const TeamPerformanceChart: React.FC<TeamPerformanceChartProps> = ({ data }) => 
           />
           <Tooltip
             content={({ active, payload, label }) => {
-              if (active && payload && payload.length) {
+              if (active && payload && payload.length && label !== undefined) {
+                const dataPoint = chartData[label as number];
                 return (
                   <Paper
                     elevation={8}
@@ -206,10 +222,10 @@ const TeamPerformanceChart: React.FC<TeamPerformanceChartProps> = ({ data }) => 
                         fontSize: typography.size.bodySmall,
                       }}
                     >
-                      {label}
+                      {dataPoint?.fullDate ? format(parseISO(dataPoint.fullDate), 'MMM d, yyyy') : ''}
                     </Typography>
                     {payload.map((entry, index) => {
-                      const color = entry.dataKey === 'Points' ? pointsColor : epiColor;
+                      const color = entry.dataKey === 'Points' ? pointsColor : efficiencyColor;
                       return (
                         <Box
                           key={index}
@@ -270,7 +286,7 @@ const TeamPerformanceChart: React.FC<TeamPerformanceChartProps> = ({ data }) => 
             type="monotone"
             dataKey="Points"
             stroke={pointsColor}
-            fill="url(#teamPointsGradient)"
+            fill="url(#pointsGradient)"
             strokeWidth={2}
             dot={{ r: 4, fill: pointsColor, strokeWidth: 1, stroke: theme.palette.background.paper }}
             activeDot={{ r: 6, fill: pointsColor, strokeWidth: 1, stroke: theme.palette.background.paper }}
@@ -281,12 +297,12 @@ const TeamPerformanceChart: React.FC<TeamPerformanceChartProps> = ({ data }) => 
           <Line
             yAxisId="right"
             type="monotone"
-            dataKey="EPI"
-            stroke={epiColor}
+            dataKey="Efficiency"
+            stroke={efficiencyColor}
             strokeWidth={2}
-            dot={{ r: 4, fill: epiColor, strokeWidth: 1, stroke: theme.palette.background.paper }}
-            activeDot={{ r: 6, fill: epiColor, strokeWidth: 1, stroke: theme.palette.background.paper }}
-            name={`EPI (Avg: ${averages.EPI.toFixed(1)})`}
+            dot={{ r: 4, fill: efficiencyColor, strokeWidth: 1, stroke: theme.palette.background.paper }}
+            activeDot={{ r: 6, fill: efficiencyColor, strokeWidth: 1, stroke: theme.palette.background.paper }}
+            name={`Efficiency (Avg: ${averages.Efficiency.toFixed(1)})`}
             animationDuration={800}
             animationBegin={100}
           />
@@ -299,8 +315,8 @@ const TeamPerformanceChart: React.FC<TeamPerformanceChartProps> = ({ data }) => 
           />
           <ReferenceLine
             yAxisId="right"
-            y={averages.EPI}
-            stroke={epiColor}
+            y={averages.Efficiency}
+            stroke={efficiencyColor}
             strokeDasharray="5 5"
             strokeOpacity={0.4}
           />
@@ -311,4 +327,3 @@ const TeamPerformanceChart: React.FC<TeamPerformanceChartProps> = ({ data }) => 
 };
 
 export default TeamPerformanceChart;
-

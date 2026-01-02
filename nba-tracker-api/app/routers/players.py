@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException, Query
 from app.schemas.player import PlayerSummary
 from app.schemas.seasonleaders import SeasonLeadersResponse
 from app.schemas.playergamelog import PlayerGameLogResponse
-from app.services.players import getPlayer, search_players, get_season_leaders, get_top_players_by_stat, get_player_game_log
+from app.services.players import getPlayer, search_players, get_season_leaders, get_top_players_by_stat, get_player_game_log, get_league_roster
 
 logger = logging.getLogger(__name__)
 
@@ -104,6 +104,24 @@ async def getPlayerGameLog(
         raise
     except Exception as e:
         logger.error(f"Error fetching game log: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get(
+    "/players/league-roster",
+    response_model=List[PlayerSummary],
+    summary="Get League Roster",
+    tags=["players"],
+    description="Get all active players in the league with their team, position, height, weight, college, and country.",
+)
+async def getLeagueRoster():
+    """Get all active players in the league."""
+    try:
+        return await get_league_roster()
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching league roster: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 

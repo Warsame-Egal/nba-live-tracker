@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Container,
   Box,
   Typography,
   Avatar,
@@ -19,59 +18,27 @@ import {
   Paper,
   useTheme,
   useMediaQuery,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material';
 import { StandingRecord, StandingsResponse } from '../types/standings';
 import { TrendingUp, TrendingDown } from '@mui/icons-material';
 import Navbar from './Navbar';
+import PageLayout from './PageLayout';
 import UniversalSidebar from './UniversalSidebar';
 import { responsiveSpacing, borderRadius, transitions, typography } from '../theme/designTokens';
 import { fetchJson } from '../utils/apiClient';
-import { getCurrentSeason } from '../utils/season';
+import { getCurrentSeason, getSeasonOptions } from '../utils/season';
+import { getTeamInfo } from '../utils/teamMappings';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
-/**
- * Map of team names to their abbreviations and logo paths.
- */
-const teamMappings: { [key: string]: { abbreviation: string; logo: string } } = {
-  'Atlanta Hawks': { abbreviation: 'ATL', logo: '/logos/ATL.svg' },
-  'Boston Celtics': { abbreviation: 'BOS', logo: '/logos/BOS.svg' },
-  'Brooklyn Nets': { abbreviation: 'BKN', logo: '/logos/BKN.svg' },
-  'Charlotte Hornets': { abbreviation: 'CHA', logo: '/logos/CHA.svg' },
-  'Chicago Bulls': { abbreviation: 'CHI', logo: '/logos/CHI.svg' },
-  'Cleveland Cavaliers': { abbreviation: 'CLE', logo: '/logos/CLE.svg' },
-  'Dallas Mavericks': { abbreviation: 'DAL', logo: '/logos/DAL.svg' },
-  'Denver Nuggets': { abbreviation: 'DEN', logo: '/logos/DEN.svg' },
-  'Detroit Pistons': { abbreviation: 'DET', logo: '/logos/DET.svg' },
-  'Golden State Warriors': { abbreviation: 'GSW', logo: '/logos/GSW.svg' },
-  'Houston Rockets': { abbreviation: 'HOU', logo: '/logos/HOU.svg' },
-  'Indiana Pacers': { abbreviation: 'IND', logo: '/logos/IND.svg' },
-  'LA Clippers': { abbreviation: 'LAC', logo: '/logos/LAC.svg' },
-  'Los Angeles Lakers': { abbreviation: 'LAL', logo: '/logos/LAL.svg' },
-  'Memphis Grizzlies': { abbreviation: 'MEM', logo: '/logos/MEM.svg' },
-  'Miami Heat': { abbreviation: 'MIA', logo: '/logos/MIA.svg' },
-  'Milwaukee Bucks': { abbreviation: 'MIL', logo: '/logos/MIL.svg' },
-  'Minnesota Timberwolves': { abbreviation: 'MIN', logo: '/logos/MIN.svg' },
-  'New Orleans Pelicans': { abbreviation: 'NOP', logo: '/logos/NOP.svg' },
-  'New York Knicks': { abbreviation: 'NYK', logo: '/logos/NYK.svg' },
-  'Oklahoma City Thunder': { abbreviation: 'OKC', logo: '/logos/OKC.svg' },
-  'Orlando Magic': { abbreviation: 'ORL', logo: '/logos/ORL.svg' },
-  'Philadelphia 76ers': { abbreviation: 'PHI', logo: '/logos/PHI.svg' },
-  'Phoenix Suns': { abbreviation: 'PHX', logo: '/logos/PHX.svg' },
-  'Portland Trail Blazers': { abbreviation: 'POR', logo: '/logos/POR.svg' },
-  'Sacramento Kings': { abbreviation: 'SAC', logo: '/logos/SAC.svg' },
-  'San Antonio Spurs': { abbreviation: 'SAS', logo: '/logos/SAS.svg' },
-  'Toronto Raptors': { abbreviation: 'TOR', logo: '/logos/TOR.svg' },
-  'Utah Jazz': { abbreviation: 'UTA', logo: '/logos/UTA.svg' },
-  'Washington Wizards': { abbreviation: 'WAS', logo: '/logos/WAS.svg' },
-};
 
 type ViewType = 'league' | 'conference' | 'division';
 
-/**
- * Standings page with polished table design and multiple view options.
- * Displays teams in a professional table format with clear hierarchy.
- */
+// Standings page with league/conference/division views
 const Standings = () => {
   const { season } = useParams<{ season?: string }>();
   const navigate = useNavigate();
@@ -79,13 +46,14 @@ const Standings = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const seasonParam = season || getCurrentSeason();
+  const seasonOptions = getSeasonOptions(5);
   const [standings, setStandings] = useState<StandingRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [viewType, setViewType] = useState<ViewType>('league');
   const [selectedConference, setSelectedConference] = useState<'East' | 'West'>('East');
 
-  // Handle season change from sidebar
+  // Handle season change
   const handleSeasonChange = (newSeason: string) => {
     if (newSeason !== seasonParam) {
       navigate(`/standings/${newSeason}`);
@@ -176,8 +144,9 @@ const Standings = () => {
 
   const renderTableRow = (team: StandingRecord, showRank: boolean = true) => {
     const fullTeamName = `${team.team_city} ${team.team_name}`;
-    const logo = teamMappings[fullTeamName]?.logo || '/logos/default.svg';
-    const abbreviation = teamMappings[fullTeamName]?.abbreviation || '';
+    const teamInfo = getTeamInfo(fullTeamName);
+    const logo = teamInfo.logo;
+    const abbreviation = teamInfo.abbreviation;
     const isPlayoffTeam = team.playoff_rank <= 8;
     const isTopSeed = team.playoff_rank <= 3;
     const streakColor = team.current_streak_str.startsWith('W') ? 'success.main' : 'error.main';
@@ -191,6 +160,7 @@ const Standings = () => {
         sx={{
           cursor: 'pointer',
           transition: transitions.normal,
+          backgroundColor: 'background.paper',
           '&:hover': {
             backgroundColor: 'action.hover',
           },
@@ -199,7 +169,7 @@ const Standings = () => {
         }}
       >
         {showRank && (
-          <TableCell sx={{ py: 2 }}>
+          <TableCell sx={{ py: 2, backgroundColor: 'background.paper' }}>
             <Chip
               label={team.playoff_rank}
               size="small"
@@ -220,7 +190,7 @@ const Standings = () => {
             />
           </TableCell>
         )}
-        <TableCell sx={{ py: 2 }}>
+        <TableCell sx={{ py: 2, backgroundColor: 'background.paper' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
             <Avatar
               src={logo}
@@ -260,7 +230,7 @@ const Standings = () => {
             </Box>
           </Box>
         </TableCell>
-        <TableCell align="center" sx={{ py: 2 }}>
+        <TableCell align="center" sx={{ py: 2, backgroundColor: 'background.paper' }}>
           <Typography
             variant="body2"
             sx={{
@@ -271,7 +241,7 @@ const Standings = () => {
             {team.wins}
           </Typography>
         </TableCell>
-        <TableCell align="center" sx={{ py: 2 }}>
+        <TableCell align="center" sx={{ py: 2, backgroundColor: 'background.paper' }}>
           <Typography
             variant="body2"
             sx={{
@@ -282,7 +252,7 @@ const Standings = () => {
             {team.losses}
           </Typography>
         </TableCell>
-        <TableCell align="center" sx={{ py: 2 }}>
+        <TableCell align="center" sx={{ py: 2, backgroundColor: 'background.paper' }}>
           <Chip
             label={formatPercentage(team.win_pct)}
             size="small"
@@ -295,7 +265,7 @@ const Standings = () => {
             }}
           />
         </TableCell>
-        <TableCell align="center" sx={{ py: 2 }}>
+        <TableCell align="center" sx={{ py: 2, backgroundColor: 'background.paper' }}>
           <Typography
             variant="body2"
             sx={{
@@ -306,7 +276,7 @@ const Standings = () => {
             {gamesBack}
           </Typography>
         </TableCell>
-        <TableCell align="center" sx={{ py: 2 }}>
+        <TableCell align="center" sx={{ py: 2, backgroundColor: 'background.paper' }}>
           <Typography
             variant="body2"
             sx={{
@@ -316,7 +286,7 @@ const Standings = () => {
             {team.home_record}
           </Typography>
         </TableCell>
-        <TableCell align="center" sx={{ py: 2 }}>
+        <TableCell align="center" sx={{ py: 2, backgroundColor: 'background.paper' }}>
           <Typography
             variant="body2"
             sx={{
@@ -326,7 +296,7 @@ const Standings = () => {
             {team.road_record}
           </Typography>
         </TableCell>
-        <TableCell align="center" sx={{ py: 2 }}>
+        <TableCell align="center" sx={{ py: 2, backgroundColor: 'background.paper' }}>
           <Typography
             variant="body2"
             sx={{
@@ -336,7 +306,7 @@ const Standings = () => {
             {team.division_record}
           </Typography>
         </TableCell>
-        <TableCell align="center" sx={{ py: 2 }}>
+        <TableCell align="center" sx={{ py: 2, backgroundColor: 'background.paper' }}>
           <Typography
             variant="body2"
             sx={{
@@ -348,7 +318,7 @@ const Standings = () => {
         </TableCell>
         {hasPPG && (
           <>
-            <TableCell align="center" sx={{ py: 2 }}>
+            <TableCell align="center" sx={{ py: 2, backgroundColor: 'background.paper' }}>
               <Typography
                 variant="body2"
                 sx={{
@@ -358,7 +328,7 @@ const Standings = () => {
                 {team.ppg?.toFixed(1) || '—'}
               </Typography>
             </TableCell>
-            <TableCell align="center" sx={{ py: 2 }}>
+            <TableCell align="center" sx={{ py: 2, backgroundColor: 'background.paper' }}>
               <Typography
                 variant="body2"
                 sx={{
@@ -368,7 +338,7 @@ const Standings = () => {
                 {team.opp_ppg?.toFixed(1) || '—'}
               </Typography>
             </TableCell>
-            <TableCell align="center" sx={{ py: 2 }}>
+            <TableCell align="center" sx={{ py: 2, backgroundColor: 'background.paper' }}>
               <Typography
                 variant="body2"
                 sx={{
@@ -384,7 +354,7 @@ const Standings = () => {
         )}
         {!isMobile && (
           <>
-            <TableCell align="center" sx={{ py: 2 }}>
+            <TableCell align="center" sx={{ py: 2, backgroundColor: 'background.paper' }}>
               <Chip
                 label={team.current_streak_str}
                 size="small"
@@ -404,7 +374,7 @@ const Standings = () => {
                 }}
               />
             </TableCell>
-            <TableCell align="center" sx={{ py: 2 }}>
+            <TableCell align="center" sx={{ py: 2, backgroundColor: 'background.paper' }}>
               <Typography
                 variant="body2"
                 sx={{
@@ -430,7 +400,8 @@ const Standings = () => {
         sx={{
           border: '1px solid',
           borderColor: 'divider',
-          borderRadius: borderRadius.md,
+          borderRadius: 1.5, // Material 3: 12dp
+          backgroundColor: 'background.paper',
           overflowX: 'auto',
           '&::-webkit-scrollbar': {
             height: 8,
@@ -449,58 +420,58 @@ const Standings = () => {
       >
         <Table sx={{ minWidth: isMobile ? 600 : 800 }}>
           <TableHead>
-            <TableRow sx={{ backgroundColor: 'background.default' }}>
+            <TableRow sx={{ backgroundColor: 'background.paper' }}>
               {showRank && (
                 <TableCell sx={{ fontWeight: typography.weight.bold, fontSize: typography.size.bodySmall, py: 2 }}>
                   Rank
                 </TableCell>
               )}
-              <TableCell sx={{ fontWeight: typography.weight.bold, fontSize: typography.size.bodySmall, py: 2 }}>
+              <TableCell sx={{ fontWeight: typography.weight.bold, fontSize: typography.size.bodySmall, py: 2, backgroundColor: 'background.paper' }}>
                 Team
               </TableCell>
-              <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: typography.size.bodySmall, py: 2 }}>
+              <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: typography.size.bodySmall, py: 2, backgroundColor: 'background.paper' }}>
                 W
               </TableCell>
-              <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: typography.size.bodySmall, py: 2 }}>
+              <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: typography.size.bodySmall, py: 2, backgroundColor: 'background.paper' }}>
                 L
               </TableCell>
-              <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: typography.size.bodySmall, py: 2 }}>
+              <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: typography.size.bodySmall, py: 2, backgroundColor: 'background.paper' }}>
                 PCT
               </TableCell>
-              <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: typography.size.bodySmall, py: 2 }}>
+              <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: typography.size.bodySmall, py: 2, backgroundColor: 'background.paper' }}>
                 GB
               </TableCell>
-              <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: typography.size.bodySmall, py: 2 }}>
+              <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: typography.size.bodySmall, py: 2, backgroundColor: 'background.paper' }}>
                 HOME
               </TableCell>
-              <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: typography.size.bodySmall, py: 2 }}>
+              <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: typography.size.bodySmall, py: 2, backgroundColor: 'background.paper' }}>
                 AWAY
               </TableCell>
-              <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: typography.size.bodySmall, py: 2 }}>
+              <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: typography.size.bodySmall, py: 2, backgroundColor: 'background.paper' }}>
                 DIV
               </TableCell>
-              <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: typography.size.bodySmall, py: 2 }}>
+              <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: typography.size.bodySmall, py: 2, backgroundColor: 'background.paper' }}>
                 CONF
               </TableCell>
               {hasPPG && (
                 <>
-                  <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: typography.size.bodySmall, py: 2 }}>
+                  <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: typography.size.bodySmall, py: 2, backgroundColor: 'background.paper' }}>
                     PPG
                   </TableCell>
-                  <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: typography.size.bodySmall, py: 2 }}>
+                  <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: typography.size.bodySmall, py: 2, backgroundColor: 'background.paper' }}>
                     OPP PPG
                   </TableCell>
-                  <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: typography.size.bodySmall, py: 2 }}>
+                  <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: typography.size.bodySmall, py: 2, backgroundColor: 'background.paper' }}>
                     DIFF
                   </TableCell>
                 </>
               )}
               {!isMobile && (
                 <>
-                  <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: typography.size.bodySmall, py: 2 }}>
+                  <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: typography.size.bodySmall, py: 2, backgroundColor: 'background.paper' }}>
                     STRK
                   </TableCell>
-                  <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: typography.size.bodySmall, py: 2 }}>
+                  <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: typography.size.bodySmall, py: 2, backgroundColor: 'background.paper' }}>
                     L10
                   </TableCell>
                 </>
@@ -618,128 +589,117 @@ const Standings = () => {
   return (
     <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default', display: 'flex', flexDirection: 'column' }}>
       <Navbar />
-      <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-        <Box
-          sx={{
-            flex: 1,
-            overflowY: 'auto',
-            backgroundColor: 'background.default',
-          }}
-        >
-          <Container maxWidth="xl" sx={{ py: responsiveSpacing.containerVertical, px: responsiveSpacing.container }}>
-            {/* Page header */}
-            <Box sx={{ mb: responsiveSpacing.section }}>
-              <Typography
-                variant="h4"
-                sx={{
-                  fontWeight: typography.weight.bold,
-                  mb: 0.5,
-                  fontSize: typography.size.h4,
-                  color: 'text.primary',
-                }}
-              >
-                Standings
-              </Typography>
-            </Box>
-
-            {/* View tabs */}
-            <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-              <Tabs
-                value={viewType}
-                onChange={(_, newValue) => setViewType(newValue)}
-                sx={{
-                  '& .MuiTab-root': {
-                    textTransform: 'none',
-                    fontWeight: typography.weight.semibold,
-                    fontSize: typography.size.body,
-                    minHeight: 48,
-                  },
-                }}
-              >
-                <Tab label="League" value="league" />
-                <Tab label="Conference" value="conference" />
-                <Tab label="Division" value="division" />
-              </Tabs>
-            </Box>
-
-            {/* Loading state */}
-            {loading && (
-              <Box sx={{ display: 'flex', justifyContent: 'center', py: { xs: 6, sm: 8 } }}>
-                <CircularProgress />
-              </Box>
-            )}
-
-            {/* Error state */}
-            {error && (
-              <Alert severity="error" sx={{ mb: { xs: 3, sm: 4 } }}>
-                {error}
-              </Alert>
-            )}
-
-            {/* Content based on view type */}
-            {!loading && !error && standings.length > 0 && (
-              <>
-                {viewType === 'league' && renderLeagueView()}
-                {viewType === 'conference' && renderConferenceView()}
-                {viewType === 'division' && renderDivisionView()}
-              </>
-            )}
-
-            {/* Empty state */}
-            {!loading && !error && standings.length === 0 && (
-              <Box
-                sx={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  py: { xs: 8, sm: 12 },
-                  px: 3,
-                  minHeight: '40vh',
-                }}
-              >
-                <Typography
-                  variant="h5"
-                  sx={{
-                    fontWeight: typography.weight.bold,
-                    mb: 1,
-                    textAlign: 'center',
-                    color: 'text.primary',
-                  }}
-                >
-                  No Standings Data Available
-                </Typography>
-                <Typography
-                  variant="body1"
-                  color="text.secondary"
-                  sx={{
-                    textAlign: 'center',
-                    maxWidth: 500,
-                    lineHeight: 1.6,
-                  }}
-                >
-                  Unable to load standings data for the selected season. Please try again later or select a different season.
-                </Typography>
-              </Box>
-            )}
-          </Container>
+      <PageLayout sidebar={<UniversalSidebar />}>
+        {/* Page header */}
+        <Box sx={{ mb: responsiveSpacing.section, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+          <Typography
+            variant="h4"
+            sx={{
+              fontWeight: typography.weight.bold,
+              fontSize: typography.size.h4,
+              color: 'text.primary',
+            }}
+          >
+            Standings
+          </Typography>
+          <FormControl size="small" sx={{ minWidth: 180 }}>
+            <InputLabel>Season</InputLabel>
+            <Select
+              value={seasonParam}
+              label="Season"
+              onChange={(e) => handleSeasonChange(e.target.value)}
+              sx={{ borderRadius: 1 }} // Material 3: 8dp
+            >
+              {seasonOptions.map(seasonOption => (
+                <MenuItem key={seasonOption} value={seasonOption}>
+                  {seasonOption} Regular Season
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
         </Box>
 
-        <Box
-          sx={{
-            width: 320,
-            flexShrink: 0,
-            display: { xs: 'none', md: 'flex' },
-            flexDirection: 'column',
-            borderLeft: '1px solid',
-            borderColor: 'divider',
-            backgroundColor: 'background.paper',
-            overflowY: 'auto',
-          }}
-        >
-          <UniversalSidebar season={seasonParam} onSeasonChange={handleSeasonChange} />
+        {/* View tabs */}
+        <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+          <Tabs
+            value={viewType}
+            onChange={(_, newValue) => setViewType(newValue)}
+            sx={{
+              '& .MuiTab-root': {
+                textTransform: 'none',
+                fontWeight: typography.weight.semibold,
+                fontSize: typography.size.body,
+                minHeight: 48,
+              },
+            }}
+          >
+            <Tab label="League" value="league" />
+            <Tab label="Conference" value="conference" />
+            <Tab label="Division" value="division" />
+          </Tabs>
         </Box>
-      </Box>
+
+        {/* Loading state */}
+        {loading && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: { xs: 6, sm: 8 } }}>
+            <CircularProgress />
+          </Box>
+        )}
+
+        {/* Error state */}
+        {error && (
+          <Alert severity="error" sx={{ mb: { xs: 3, sm: 4 } }}>
+            {error}
+          </Alert>
+        )}
+
+        {/* Content based on view type */}
+        {!loading && !error && standings.length > 0 && (
+          <>
+            {viewType === 'league' && renderLeagueView()}
+            {viewType === 'conference' && renderConferenceView()}
+            {viewType === 'division' && renderDivisionView()}
+          </>
+        )}
+
+        {/* Empty state */}
+        {!loading && !error && standings.length === 0 && (
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              py: { xs: 8, sm: 12 },
+              px: 3,
+              minHeight: '40vh',
+            }}
+          >
+            <Typography
+              variant="h5"
+              sx={{
+                fontWeight: typography.weight.bold,
+                mb: 1,
+                textAlign: 'center',
+                color: 'text.primary',
+              }}
+            >
+              No Standings Data Available
+            </Typography>
+            <Typography
+              variant="body1"
+              color="text.secondary"
+              sx={{
+                textAlign: 'center',
+                maxWidth: 500,
+                lineHeight: 1.6,
+              }}
+            >
+              Unable to load standings data for the selected season. Please try again later or select a different season.
+            </Typography>
+          </Box>
+        )}
+      </PageLayout>
     </Box>
   );
 };

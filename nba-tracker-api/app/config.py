@@ -1,11 +1,21 @@
 """
 Configuration module for NBA Tracker API.
-Handles environment variables and configuration for nba_api.
+Handles environment variables and configuration for nba_api and Groq.
 """
 import os
 import logging
+from pathlib import Path
 from typing import Optional, List
 import random
+
+# Load environment variables from .env file
+try:
+    from dotenv import load_dotenv
+    env_path = Path(__file__).parent.parent / ".env"
+    load_dotenv(env_path)
+except ImportError:
+    # python-dotenv not installed, skip .env loading
+    pass
 
 logger = logging.getLogger(__name__)
 
@@ -59,4 +69,9 @@ def get_api_kwargs() -> dict:
     if config:
         return {"proxy": config}
     return {}
+
+
+def get_groq_api_key() -> Optional[str]:
+    """Get Groq API key from environment variables."""
+    return os.getenv("GROQ_API_KEY")
 

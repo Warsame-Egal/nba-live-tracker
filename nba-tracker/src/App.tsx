@@ -14,10 +14,7 @@ const Teams = lazy(() => import('./pages/Teams'));
 const Predictions = lazy(() => import('./pages/Predictions'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
-/**
- * Main app component that sets up routing.
- * Defines all the routes (pages) in the application.
- */
+// Main app component with routing
 export default function App() {
   return (
     <Router>
@@ -51,7 +48,7 @@ export default function App() {
             {/* Players page - shows season leaders and player search */}
             <Route path="/players" element={<Players />} />
             {/* Player profile page - shows player details */}
-            <Route path="/players/:playerId" element={<PlayerProfile />} />
+            <Route path="/player/:playerId" element={<PlayerProfile />} />
             {/* Teams page - shows team statistics */}
             <Route path="/teams" element={<Teams />} />
             {/* Predictions page - shows AI-powered game predictions */}

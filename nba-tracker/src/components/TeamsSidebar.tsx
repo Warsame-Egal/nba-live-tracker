@@ -21,6 +21,8 @@ import { Search } from '@mui/icons-material';
 import { responsiveSpacing, typography, borderRadius } from '../theme/designTokens';
 import { fetchJson } from '../utils/apiClient';
 import { StandingsResponse } from '../types/standings';
+import { getSeasonOptions } from '../utils/season';
+import { getTeamAbbreviation } from '../utils/teamMappings';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
@@ -43,58 +45,8 @@ const TeamsSidebar: React.FC<TeamsSidebarProps> = ({ season, onSeasonChange }) =
   const [loading, setLoading] = useState(false);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const getSeasonOptions = (): string[] => {
-    const seasons: string[] = [];
-    const currentYear = new Date().getFullYear();
-    const currentMonth = new Date().getMonth() + 1;
-    const currentSeasonStartYear = currentMonth >= 10 ? currentYear : currentYear - 1;
+  const seasonOptions = getSeasonOptions(5);
 
-    for (let i = 0; i < 5; i++) {
-      const year = currentSeasonStartYear - i;
-      const seasonStr = `${year}-${(year + 1).toString().slice(2)}`;
-      seasons.push(seasonStr);
-    }
-    return seasons;
-  };
-
-  const seasonOptions = getSeasonOptions();
-
-  const getTeamAbbreviation = (teamCity: string, teamName: string): string => {
-    const teamMappings: { [key: string]: string } = {
-      'Atlanta Hawks': 'ATL',
-      'Boston Celtics': 'BOS',
-      'Brooklyn Nets': 'BKN',
-      'Charlotte Hornets': 'CHA',
-      'Chicago Bulls': 'CHI',
-      'Cleveland Cavaliers': 'CLE',
-      'Dallas Mavericks': 'DAL',
-      'Denver Nuggets': 'DEN',
-      'Detroit Pistons': 'DET',
-      'Golden State Warriors': 'GSW',
-      'Houston Rockets': 'HOU',
-      'Indiana Pacers': 'IND',
-      'LA Clippers': 'LAC',
-      'Los Angeles Lakers': 'LAL',
-      'Memphis Grizzlies': 'MEM',
-      'Miami Heat': 'MIA',
-      'Milwaukee Bucks': 'MIL',
-      'Minnesota Timberwolves': 'MIN',
-      'New Orleans Pelicans': 'NOP',
-      'New York Knicks': 'NYK',
-      'Oklahoma City Thunder': 'OKC',
-      'Orlando Magic': 'ORL',
-      'Philadelphia 76ers': 'PHI',
-      'Phoenix Suns': 'PHX',
-      'Portland Trail Blazers': 'POR',
-      'Sacramento Kings': 'SAC',
-      'San Antonio Spurs': 'SAS',
-      'Toronto Raptors': 'TOR',
-      'Utah Jazz': 'UTA',
-      'Washington Wizards': 'WAS',
-    };
-    const fullName = `${teamCity} ${teamName}`;
-    return teamMappings[fullName] || teamName.substring(0, 3).toUpperCase();
-  };
 
   const fetchAllTeams = useCallback(async (seasonParam: string) => {
     setLoading(true);
@@ -108,7 +60,7 @@ const TeamsSidebar: React.FC<TeamsSidebarProps> = ({ season, onSeasonChange }) =
       const teamsList: TeamListItem[] = data.standings.map(standing => ({
         id: standing.team_id,
         name: `${standing.team_city} ${standing.team_name}`,
-        abbreviation: getTeamAbbreviation(standing.team_city, standing.team_name),
+        abbreviation: getTeamAbbreviation(`${standing.team_city} ${standing.team_name}`),
       }));
 
       setAllTeams(teamsList);
@@ -215,7 +167,39 @@ const TeamsSidebar: React.FC<TeamsSidebarProps> = ({ season, onSeasonChange }) =
         />
       </Box>
 
-      <Box sx={{ flex: 1, overflowY: 'auto', position: 'relative' }}>
+      <Box sx={{ 
+        flex: 1, 
+        overflowY: 'auto', 
+        overflowX: 'hidden',
+        position: 'relative',
+        scrollbarWidth: 'thin',
+        scrollbarColor: 'rgba(0, 0, 0, 0.2) transparent',
+        '&::-webkit-scrollbar': {
+          width: '8px',
+        },
+        '&::-webkit-scrollbar-track': {
+          background: 'transparent',
+        },
+        '&::-webkit-scrollbar-thumb': {
+          backgroundColor: 'rgba(0, 0, 0, 0.2)',
+          borderRadius: '4px',
+          border: '2px solid transparent',
+          backgroundClip: 'padding-box',
+          '&:hover': {
+            backgroundColor: 'rgba(0, 0, 0, 0.3)',
+          },
+        },
+        '@media (prefers-color-scheme: dark)': {
+          scrollbarColor: 'rgba(255, 255, 255, 0.3) transparent',
+          '&::-webkit-scrollbar-thumb': {
+            backgroundColor: 'rgba(255, 255, 255, 0.3)',
+            '&:hover': {
+              backgroundColor: 'rgba(255, 255, 255, 0.5)',
+            },
+          },
+        },
+        WebkitOverflowScrolling: 'touch',
+      }}>
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 4 }}>
             <CircularProgress size={24} />

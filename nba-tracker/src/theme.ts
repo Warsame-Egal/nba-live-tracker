@@ -105,7 +105,7 @@ const baseTheme: ThemeOptions = {
     },
   },
   shape: {
-    borderRadius: 12,
+    borderRadius: 12, // Material 3 base: 12dp (medium)
   },
   spacing: 8,
   components: {
@@ -134,33 +134,40 @@ const baseTheme: ThemeOptions = {
     MuiButton: {
       styleOverrides: {
         root: {
-          borderRadius: 10,
+          borderRadius: 20, // Material 3: 20dp (full button)
           padding: '10px 24px',
-          fontWeight: 600,
-          fontSize: '0.9375rem',
+          fontWeight: 500, // Material 3: medium weight
+          fontSize: '0.875rem',
           textTransform: 'none',
           boxShadow: 'none',
           transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
           '&:hover': {
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24)',
           },
         },
         contained: {
+          backgroundColor: 'primary.main',
+          color: 'primary.contrastText',
           '&:hover': {
-            boxShadow: '0 6px 16px rgba(0, 0, 0, 0.2)',
+            backgroundColor: 'primary.dark',
+            boxShadow: '0 3px 6px rgba(0, 0, 0, 0.16), 0 3px 6px rgba(0, 0, 0, 0.23)',
           },
         },
         outlined: {
-          borderWidth: '1.5px',
+          borderWidth: '1px',
+          borderColor: 'divider',
           '&:hover': {
-            borderWidth: '1.5px',
+            borderWidth: '1px',
+            backgroundColor: 'action.hover',
           },
         },
         sizeSmall: {
+          borderRadius: 16,
           padding: '6px 16px',
           fontSize: '0.875rem',
         },
         sizeLarge: {
+          borderRadius: 24,
           padding: '14px 32px',
           fontSize: '1rem',
         },
@@ -169,13 +176,14 @@ const baseTheme: ThemeOptions = {
     MuiCard: {
       styleOverrides: {
         root: {
-          borderRadius: 16,
+          borderRadius: 12, // Material 3: 12dp
           border: '1px solid',
+          borderColor: 'divider', // Material 3: outline
           transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
           boxShadow: 'none',
+          backgroundColor: 'background.paper', // Material 3: surface
           '&:hover': {
-            transform: 'translateY(-2px)',
-            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)',
+            boxShadow: '0 3px 6px rgba(0, 0, 0, 0.16), 0 3px 6px rgba(0, 0, 0, 0.23)',
           },
         },
       },
@@ -183,24 +191,25 @@ const baseTheme: ThemeOptions = {
     MuiPaper: {
       styleOverrides: {
         root: {
-          borderRadius: 16,
+          borderRadius: 12, // Material 3: 12dp (medium surface)
           border: '1px solid',
+          borderColor: 'divider', // Material 3: outline color
           transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
         },
         elevation0: {
           boxShadow: 'none',
         },
         elevation1: {
-          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24)',
         },
         elevation2: {
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+          boxShadow: '0 3px 6px rgba(0, 0, 0, 0.16), 0 3px 6px rgba(0, 0, 0, 0.23)',
         },
         elevation3: {
-          boxShadow: '0 8px 16px rgba(0, 0, 0, 0.12)',
+          boxShadow: '0 10px 20px rgba(0, 0, 0, 0.19), 0 6px 6px rgba(0, 0, 0, 0.23)',
         },
         elevation4: {
-          boxShadow: '0 12px 24px rgba(0, 0, 0, 0.15)',
+          boxShadow: '0 14px 28px rgba(0, 0, 0, 0.25), 0 10px 10px rgba(0, 0, 0, 0.22)',
         },
       },
     },
@@ -307,8 +316,8 @@ const baseTheme: ThemeOptions = {
         root: {
           boxShadow: 'none',
           borderBottom: '1px solid',
-          backdropFilter: 'blur(10px)',
-          backgroundColor: 'background.paper',
+          borderColor: 'divider', // Material 3: outline color
+          borderRadius: 0, // Flat, straight - no rounded corners
         },
       },
     },
@@ -410,8 +419,8 @@ export const darkTheme = createTheme({
       contrastText: '#FFFFFF',
     },
     background: {
-      default: '#0A0E27',
-      paper: '#141B2D',
+      default: '#1E1E1E', // Material 3: dark surface (not pure black)
+      paper: '#2C2C2C', // Material 3: dark surface container
     },
     text: {
       primary: '#FFFFFF',
@@ -452,7 +461,7 @@ export const darkTheme = createTheme({
       styleOverrides: {
         root: {
           ...(baseTheme.components?.MuiCard?.styleOverrides?.root as Record<string, unknown> ?? {}),
-          backgroundColor: '#141B2D',
+          backgroundColor: '#121212',
           borderColor: 'rgba(255, 255, 255, 0.12)',
           '&:hover': {
             borderColor: 'rgba(255, 255, 255, 0.2)',
@@ -465,7 +474,7 @@ export const darkTheme = createTheme({
       styleOverrides: {
         root: {
           ...(baseTheme.components?.MuiPaper?.styleOverrides?.root as Record<string, unknown> ?? {}),
-          backgroundColor: '#141B2D',
+          backgroundColor: '#121212',
           borderColor: 'rgba(255, 255, 255, 0.12)',
         },
       },
@@ -493,7 +502,7 @@ export const darkTheme = createTheme({
       styleOverrides: {
         paper: {
           ...(baseTheme.components?.MuiDialog?.styleOverrides?.paper as Record<string, unknown> ?? {}),
-          backgroundColor: '#141B2D',
+          backgroundColor: '#121212',
           borderColor: 'rgba(255, 255, 255, 0.12)',
         },
       },
@@ -502,7 +511,7 @@ export const darkTheme = createTheme({
       styleOverrides: {
         paper: {
           ...(baseTheme.components?.MuiDrawer?.styleOverrides?.paper as Record<string, unknown> ?? {}),
-          backgroundColor: '#141B2D',
+          backgroundColor: '#121212',
           borderColor: 'rgba(255, 255, 255, 0.12)',
         },
       },
@@ -523,7 +532,7 @@ export const darkTheme = createTheme({
       styleOverrides: {
         paper: {
           ...(baseTheme.components?.MuiMenu?.styleOverrides?.paper as Record<string, unknown> ?? {}),
-          backgroundColor: '#141B2D',
+          backgroundColor: '#121212',
           borderColor: 'rgba(255, 255, 255, 0.12)',
         },
       },

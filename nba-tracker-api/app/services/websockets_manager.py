@@ -15,6 +15,7 @@ from typing import Dict, List, Set
 from fastapi import WebSocket
 
 from app.services.data_cache import data_cache
+from app.services.batched_insights import generate_batched_insights
 
 logger = logging.getLogger(__name__)
 
@@ -127,10 +128,78 @@ class ScoreboardWebSocketManager:
                 
                 logger.info(f"Broadcasting score updates for {len(self.current_games)} games")
                 
+                # Generate batched insights for live games
+                insights_data = None
+                try:
+                    # Extract live games only (gameStatus == 2)
+                    live_games = [
+                        game for game in self.current_games
+                        if game.get("gameStatus") == 2
+                    ]
+                    
+                    if live_games:
+                        # Format games for batched insights
+                        games_for_insights = []
+                        for game in live_games:
+                            home_team = game.get("homeTeam", {})
+                            away_team = game.get("awayTeam", {})
+                            
+                            # Extract win probabilities if available (from gameLeaders or calculate from score)
+                            home_score = home_team.get("score", 0)
+                            away_score = away_team.get("score", 0)
+                            
+                            # Simple win probability based on score difference (if no actual prob available)
+                            total_score = home_score + away_score
+                            if total_score > 0:
+                                win_prob_home = home_score / total_score
+                                win_prob_away = away_score / total_score
+                            else:
+                                win_prob_home = 0.5
+                                win_prob_away = 0.5
+                            
+                            games_for_insights.append({
+                                "game_id": game.get("gameId", ""),
+                                "home_team": f"{home_team.get('teamCity', '')} {home_team.get('teamName', '')}".strip(),
+                                "away_team": f"{away_team.get('teamCity', '')} {away_team.get('teamName', '')}".strip(),
+                                "home_score": home_score,
+                                "away_score": away_score,
+                                "quarter": game.get("period", 1),
+                                "time_remaining": game.get("gameClock", ""),
+                                "win_prob_home": win_prob_home,
+                                "win_prob_away": win_prob_away,
+                                "last_event": game.get("gameStatusText", ""),
+                            })
+                        
+                        # Generate batched insights (non-blocking)
+                        insights_data = await generate_batched_insights(games_for_insights)
+                        if insights_data:
+                            logger.info(f"Generated insights_data: {insights_data}")
+                            if insights_data.get("insights"):
+                                logger.info(f"Sending {len(insights_data['insights'])} insights to clients")
+                                for insight in insights_data["insights"]:
+                                    logger.info(f"  - Game {insight.get('game_id')}: type={insight.get('type')}, text={insight.get('text', '')[:50]}...")
+                            else:
+                                logger.warning("insights_data has no 'insights' key or empty list")
+                        else:
+                            logger.warning("generate_batched_insights returned None or empty")
+                except Exception as e:
+                    logger.warning(f"Error generating batched insights: {e}", exc_info=True)
+                
+                # Send scoreboard data with insights
                 disconnected_clients = []
                 for connection in list(self.active_connections):
                     try:
+                        # Send scoreboard data
                         await connection.send_json(standardized_data)
+                        
+                        # Send insights separately if available
+                        if insights_data and insights_data.get("insights"):
+                            insights_message = {
+                                "type": "insights",
+                                "data": insights_data
+                            }
+                            logger.info(f"Sending insights message: {insights_message}")
+                            await connection.send_json(insights_message)
                     except Exception as e:
                         logger.warning(f"Error sending update to client: {e}")
                         disconnected_clients.append(connection)
