@@ -51,6 +51,7 @@ http://localhost:8000/api/v1
 | `GET` | `/scoreboard/game/{game_id}/play-by-play` | Get play-by-play for a game |
 | `GET` | `/scoreboard/insights` | Get AI insights for all live games |
 | `GET` | `/scoreboard/game/{game_id}/lead-change` | Get explanation for why lead changed |
+| `GET` | `/scoreboard/game/{game_id}/key-moments` | Get recent key moments for a game |
 
 ### Predictions
 
@@ -100,6 +101,9 @@ curl http://localhost:8000/api/v1/scoreboard/insights
 
 # Get lead change explanation
 curl http://localhost:8000/api/v1/scoreboard/game/0022400123/lead-change
+
+# Get key moments for a game
+curl http://localhost:8000/api/v1/scoreboard/game/0022400123/key-moments
 
 # Get predictions
 curl http://localhost:8000/api/v1/predictions/date/2024-01-15?season=2024-25

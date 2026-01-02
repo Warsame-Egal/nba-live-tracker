@@ -21,7 +21,7 @@ import {
   Button,
 } from '@mui/material';
 import { Search, Close, Event, Notifications, CalendarToday, FilterList, Refresh, Schedule } from '@mui/icons-material';
-import { ScoreboardResponse, Game } from '../types/scoreboard';
+import { ScoreboardResponse, Game, KeyMoment } from '../types/scoreboard';
 import { GamesResponse, GameSummary, GameLeaders } from '../types/schedule';
 import WebSocketService from '../services/websocketService';
 import GameRow from '../components/GameRow';
@@ -115,6 +115,10 @@ const Scoreboard = () => {
   // State for AI insights (game_id -> insight)
   const [gameInsights, setGameInsights] = useState<Map<string, GameInsightData>>(new Map());
   const [dismissedInsights, setDismissedInsights] = useState<Set<string>>(new Set());
+  // State for key moments - stores the most recent key moment for each game
+  // Key moments are automatically detected important plays (game-tying shots, lead changes, etc.)
+  // We only keep the most recent one per game to avoid cluttering the UI
+  const [gameKeyMoments, setGameKeyMoments] = useState<Map<string, KeyMoment>>(new Map());
 
   // Split games into live, upcoming, and completed categories
   // This is memoized so it only recalculates when games or date changes
@@ -172,6 +176,7 @@ const Scoreboard = () => {
       setRecentlyUpdatedGames(new Set());
       setGameInsights(new Map());
       setDismissedInsights(new Set());
+      setGameKeyMoments(new Map());
       
       // Handle insights messages from WebSocket
       const handleInsightsEvent = (event: CustomEvent) => {
@@ -230,8 +235,44 @@ const Scoreboard = () => {
         }
       };
       
+      // Handle key moments messages from WebSocket
+      // When the backend detects a key moment (like a game-tying shot or lead change),
+      // it sends it to us via WebSocket. We update our state so the badge appears on the game row.
+      const handleKeyMomentsEvent = (event: CustomEvent) => {
+        try {
+          const data = event.detail;
+          console.log('[Scoreboard] Received key moments event:', data);
+          if (data && data.type === 'key_moments' && data.data && data.data.moments_by_game) {
+            const momentsByGame = data.data.moments_by_game;
+            console.log('[Scoreboard] Processing key moments for games:', Object.keys(momentsByGame));
+            
+            setGameKeyMoments(prev => {
+              const merged = new Map(prev);
+              // Update with most recent moment for each game
+              // We only keep the most recent one per game to keep the UI clean
+              Object.entries(momentsByGame).forEach(([gameId, moments]: [string, any]) => {
+                if (Array.isArray(moments) && moments.length > 0) {
+                  // Get the most recent moment (first in array should be most recent)
+                  const mostRecent = moments[0];
+                  if (mostRecent) {
+                    merged.set(gameId, mostRecent);
+                    console.log(`[Scoreboard] Updated key moment for game ${gameId}:`, mostRecent.type);
+                  }
+                }
+              });
+              return merged;
+            });
+          }
+        } catch (error) {
+          console.error('[Scoreboard] Error parsing key moments message', error);
+          logger.error('Error parsing key moments message', error);
+        }
+      };
+      
       // Listen for insights events
       window.addEventListener('websocket-insights', handleInsightsEvent as EventListener);
+      // Listen for key moments events
+      window.addEventListener('websocket-key-moments', handleKeyMomentsEvent as EventListener);
       
       // Connect to WebSocket for live updates
       WebSocketService.connect(SCOREBOARD_WEBSOCKET_URL);
@@ -365,6 +406,7 @@ const Scoreboard = () => {
         WebSocketService.unsubscribe(handleScoreboardUpdate);
         WebSocketService.disconnect();
         window.removeEventListener('websocket-insights', handleInsightsEvent as EventListener);
+        window.removeEventListener('websocket-key-moments', handleKeyMomentsEvent as EventListener);
       };
     }
     return () => {};
@@ -615,6 +657,7 @@ const Scoreboard = () => {
             };
             
             const insight = dismissedInsights.has(gameId) ? null : (gameInsights.get(gameId) || null);
+            const keyMoment = gameKeyMoments.get(gameId) || null;
             if (isLive) {
               console.log(`[Scoreboard] Game ${gameId} - isLive: ${isLive}, insight:`, insight);
               if (insight) {
@@ -634,9 +677,7 @@ const Scoreboard = () => {
                 onOpenBoxScore={(isLive || isCompleted) ? handleOpenBoxScore : undefined}
                 onOpenPlayByPlay={(isLive || isCompleted) ? handleOpenPlayByPlay : undefined}
                 insight={insight}
-                onDismissInsight={() => {
-                  setDismissedInsights(prev => new Set(prev).add(gameId));
-                }}
+                keyMoment={keyMoment}
               />
             );
           })}

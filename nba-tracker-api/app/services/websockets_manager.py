@@ -16,6 +16,7 @@ from fastapi import WebSocket
 
 from app.services.data_cache import data_cache
 from app.services.batched_insights import generate_batched_insights
+from app.services.key_moments import process_live_games, get_key_moments_for_game
 
 logger = logging.getLogger(__name__)
 
@@ -185,14 +186,48 @@ class ScoreboardWebSocketManager:
                 except Exception as e:
                     logger.warning(f"Error generating batched insights: {e}", exc_info=True)
                 
-                # Send scoreboard data with insights
+                # Process key moments detection for all live games (non-blocking)
+                # This analyzes play-by-play events to find important moments like game-tying
+                # shots, lead changes, scoring runs, etc. After detection, it batches all
+                # moments that need AI context into one Groq call (same efficient pattern as
+                # batched insights). If it fails, we just continue - key moments are nice to
+                # have but not critical
+                try:
+                    await process_live_games()
+                except Exception as e:
+                    logger.warning(f"Error processing key moments: {e}", exc_info=True)
+                
+                # Get key moments for live games that were detected recently
+                # We only send moments from the last 30 seconds to avoid spamming clients
+                # with old moments they might have already seen
+                key_moments_by_game = {}
+                for game in live_games:
+                    game_id = game.get("gameId", "")
+                    if game_id:
+                        try:
+                            moments = await get_key_moments_for_game(game_id)
+                            if moments:
+                                # Only get moments from last 30 seconds (very recent)
+                                from datetime import datetime, timedelta
+                                cutoff = datetime.utcnow() - timedelta(seconds=30)
+                                recent_moments = [
+                                    m for m in moments
+                                    if datetime.fromisoformat(m["timestamp"]) > cutoff
+                                ]
+                                if recent_moments:
+                                    key_moments_by_game[game_id] = recent_moments
+                        except Exception as e:
+                            logger.debug(f"Error getting key moments for game {game_id}: {e}")
+                
+                # Send scoreboard data with insights and key moments
                 disconnected_clients = []
                 for connection in list(self.active_connections):
                     try:
-                        # Send scoreboard data
+                        # Send scoreboard data (scores, game status, etc.)
                         await connection.send_json(standardized_data)
                         
-                        # Send insights separately if available
+                        # Send AI insights separately if available
+                        # These are general game insights, different from key moments
                         if insights_data and insights_data.get("insights"):
                             insights_message = {
                                 "type": "insights",
@@ -200,6 +235,17 @@ class ScoreboardWebSocketManager:
                             }
                             logger.info(f"Sending insights message: {insights_message}")
                             await connection.send_json(insights_message)
+                        
+                        # Send key moments if any were detected recently
+                        # Format: { type: "key_moments", data: { moments_by_game: { game_id: [moments] } } }
+                        if key_moments_by_game:
+                            key_moments_message = {
+                                "type": "key_moments",
+                                "data": {
+                                    "moments_by_game": key_moments_by_game
+                                }
+                            }
+                            await connection.send_json(key_moments_message)
                     except Exception as e:
                         logger.warning(f"Error sending update to client: {e}")
                         disconnected_clients.append(connection)
