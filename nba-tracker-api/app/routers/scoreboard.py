@@ -5,8 +5,9 @@ from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 from typing import List, Dict, Any, Optional
 
 from app.schemas.player import TeamRoster
-from app.schemas.scoreboard import BoxScoreResponse, PlayByPlayResponse
+from app.schemas.scoreboard import BoxScoreResponse, PlayByPlayResponse, KeyMomentsResponse
 from app.services.scoreboard import fetchTeamRoster, getBoxScore, getPlayByPlay
+from app.services.key_moments import get_key_moments_for_game
 from app.services.websockets_manager import (
     playbyplay_websocket_manager,
     scoreboard_websocket_manager,
@@ -363,3 +364,41 @@ async def get_lead_change_explanation(game_id: str):
     except Exception as e:
         logger.error(f"Error generating lead change explanation for game {game_id}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Error generating explanation: {str(e)}")
+
+
+# Get key moments for a specific game
+@router.get(
+    "/scoreboard/game/{game_id}/key-moments",
+    response_model=KeyMomentsResponse,
+    tags=["insights"],
+    summary="Get Key Moments",
+    description="Get recent key moments detected for a game (game-tying shots, lead changes, scoring runs, etc.).",
+)
+async def get_game_key_moments(game_id: str):
+    """
+    Get recent key moments for a game.
+    
+    This endpoint returns all key moments detected for a game in the last 5 minutes.
+    Key moments are automatically detected by analyzing play-by-play events - things like
+    game-tying shots, lead changes, scoring runs, clutch plays, and big shots.
+    
+    Each moment includes AI-generated context explaining why it matters. Moments are also
+    automatically sent via WebSocket when detected, so you can use this endpoint to get
+    historical moments or if you missed a WebSocket message.
+    
+    Args:
+        game_id: The unique game ID from NBA
+        
+    Returns:
+        KeyMomentsResponse: List of recent key moments with AI-generated context
+    """
+    try:
+        moments = await get_key_moments_for_game(game_id)
+        
+        return KeyMomentsResponse(
+            game_id=game_id,
+            moments=moments
+        )
+    except Exception as e:
+        logger.error(f"Error getting key moments for game {game_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error getting key moments: {str(e)}")

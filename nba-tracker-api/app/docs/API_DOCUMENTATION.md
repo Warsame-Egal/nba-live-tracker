@@ -399,6 +399,79 @@ curl http://localhost:8000/api/v1/scoreboard/game/0022400123/lead-change
 
 ---
 
+#### Get Key Moments
+
+Get recent key moments detected for a game. Key moments are automatically identified important plays like game-tying shots, lead changes, scoring runs, clutch plays, and big shots.
+
+```http
+GET /api/v1/scoreboard/game/{game_id}/key-moments
+```
+
+**Parameters:**
+- `game_id` (string, required) - Game ID
+
+**When it's used:**
+- Called to get recent key moments for a specific game
+- Returns moments from the last 5 minutes
+- Key moments are also automatically sent via WebSocket when detected
+
+**Key Moment Types:**
+- `game_tying_shot` - A shot that tied the game
+- `lead_change` - A play that changed which team is leading
+- `scoring_run` - A team scoring 6+ points in quick succession
+- `clutch_play` - An important play in the final 2 minutes with score within 5 points
+- `big_shot` - A 3-pointer that extends lead to 10+ or cuts deficit to 5 or less
+
+**Example:**
+```bash
+curl http://localhost:8000/api/v1/scoreboard/game/0022400123/key-moments
+```
+
+**Response:**
+```json
+{
+  "game_id": "0022400123",
+  "moments": [
+    {
+      "type": "lead_change",
+      "play": {
+        "action_number": 145,
+        "clock": "PT4M30S",
+        "period": 4,
+        "team_tricode": "LAL",
+        "action_type": "2pt Shot",
+        "description": "Anthony Davis makes 2-pt shot from 8 ft",
+        "player_name": "Anthony Davis",
+        "score_home": "98",
+        "score_away": "97"
+      },
+      "timestamp": "2025-01-15T20:45:30Z",
+      "context": "This shot gave the Lakers the lead with 4:30 remaining in a tight game."
+    },
+    {
+      "type": "clutch_play",
+      "play": {
+        "action_number": 150,
+        "clock": "PT1M15S",
+        "period": 4,
+        "team_tricode": "GSW",
+        "action_type": "3-pt Shot",
+        "description": "Stephen Curry makes 3-pt shot from 26 ft",
+        "player_name": "Stephen Curry",
+        "score_home": "102",
+        "score_away": "100"
+      },
+      "timestamp": "2025-01-15T20:48:15Z",
+      "context": "Curry's three-pointer cuts the deficit to 2 points with just over a minute left."
+    }
+  ]
+}
+```
+
+**Note:** Key moments are detected automatically for live games by analyzing play-by-play events. Each moment includes AI-generated context explaining why it matters. Moments older than 5 minutes are automatically removed from the cache.
+
+---
+
 ### Search
 
 #### Search Players and Teams
@@ -520,6 +593,35 @@ AI insights (sent separately when available):
 }
 ```
 
+Key moments (sent separately when detected):
+```json
+{
+  "type": "key_moments",
+  "data": {
+    "moments_by_game": {
+      "0022400123": [
+        {
+          "type": "lead_change",
+          "play": {
+            "action_number": 145,
+            "clock": "PT4M30S",
+            "period": 4,
+            "team_tricode": "LAL",
+            "action_type": "2pt Shot",
+            "description": "Anthony Davis makes 2-pt shot from 8 ft",
+            "player_name": "Anthony Davis",
+            "score_home": "98",
+            "score_away": "97"
+          },
+          "timestamp": "2025-01-15T20:45:30Z",
+          "context": "This shot gave the Lakers the lead with 4:30 remaining in a tight game."
+        }
+      ]
+    }
+  }
+}
+```
+
 **Update Frequency:**
 - Scoreboard updates sent at fixed intervals (e.g., ~8 seconds for live scoreboard) when changes are detected
 - AI insights generated and sent when meaningful game changes occur
@@ -529,6 +631,8 @@ AI insights (sent separately when available):
 The backend polls the NBA API at fixed intervals (e.g., ~8 seconds for live scoreboard) and caches the latest scoreboard data. WebSocket connections read from this cache, so multiple clients don't trigger multiple API calls.
 
 When live games are detected, the backend generates batched AI insights for all games in one Groq API call. These insights are sent as separate messages with `type: "insights"` so the frontend can handle them differently from scoreboard updates.
+
+The backend also automatically detects key moments by analyzing play-by-play events. When a key moment is detected (like a game-tying shot or lead change), it's sent as a separate message with `type: "key_moments"`. Each moment includes AI-generated context explaining why it matters.
 
 ---
 

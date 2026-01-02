@@ -60,6 +60,16 @@ class WebSocketService {
           return;
         }
         
+        // Check if this is a key moments message
+        // Key moments are automatically detected important plays like game-tying shots,
+        // lead changes, scoring runs, clutch plays, and big shots
+        if (data.type === 'key_moments') {
+          console.log('[WebSocket] Received key moments message:', data);
+          // Dispatch as custom event so the Scoreboard component can handle it
+          window.dispatchEvent(new CustomEvent('websocket-key-moments', { detail: data }));
+          return;
+        }
+        
         // Otherwise, treat as scoreboard data
         const scoreboardData: ScoreboardResponse = data;
         this.listeners.forEach(callback => callback(scoreboardData));

@@ -20,6 +20,8 @@ import { fetchJson } from '../utils/apiClient';
 import { GameInsightData } from './GameInsight';
 import LiveAIInsight from './LiveAIInsight';
 import LeadChangeDialog, { LeadChangeExplanation } from './LeadChangeDialog';
+import KeyMomentBadge from './KeyMomentBadge';
+import { KeyMoment } from '../types/scoreboard';
 
 interface GameRowProps {
   game: Game | GameSummary;
@@ -29,7 +31,7 @@ interface GameRowProps {
   onOpenBoxScore?: (gameId: string) => void;
   onOpenPlayByPlay?: (gameId: string) => void;
   insight?: GameInsightData | null;
-  onDismissInsight?: () => void;
+  keyMoment?: KeyMoment | null;
 }
 
 /**
@@ -43,14 +45,13 @@ const GameRow: React.FC<GameRowProps> = ({
   onOpenBoxScore, 
   onOpenPlayByPlay,
   insight,
-  onDismissInsight: _onDismissInsight,
+  keyMoment,
 }) => {
   const [leadChangeDialogOpen, setLeadChangeDialogOpen] = React.useState(false);
   const [leadChangeExplanation, setLeadChangeExplanation] = React.useState<LeadChangeExplanation | null>(null);
   const navigate = useNavigate();
   const isLiveGame = 'homeTeam' in game;
   const gameId = isLiveGame ? game.gameId : game.game_id;
-  const [_topPerformers, setTopPerformers] = useState<{ home: PlayerBoxScoreStats | null; away: PlayerBoxScoreStats | null }>({ home: null, away: null });
   const [lastPlay, setLastPlay] = useState<PlayByPlayEvent | null>(null);
   const pbpServiceRef = React.useRef<PlayByPlayWebSocketService | null>(null);
   const homeTeam = isLiveGame ? game.homeTeam?.teamTricode : game.home_team?.team_abbreviation;
@@ -164,36 +165,6 @@ const GameRow: React.FC<GameRowProps> = ({
     if (teamId) navigate(`/team/${teamId}`);
   };
 
-  useEffect(() => {
-    if (!isLive || !isLiveGame) return;
-
-    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
-    
-    const fetchBoxScore = async () => {
-      try {
-        const data = await fetchJson<BoxScoreResponse>(
-          `${API_BASE_URL}/api/v1/scoreboard/game/${gameId}/boxscore`,
-          {},
-          { maxRetries: 2, retryDelay: 1000, timeout: 20000 }
-        );
-        const homeTopScorer = data.home_team.players
-          .filter(p => p.points > 0)
-          .sort((a, b) => b.points - a.points)[0] || null;
-        
-        const awayTopScorer = data.away_team.players
-          .filter(p => p.points > 0)
-          .sort((a, b) => b.points - a.points)[0] || null;
-        
-        setTopPerformers({ home: homeTopScorer, away: awayTopScorer });
-      } catch {
-        // Silently fail for background updates
-      }
-    };
-
-    fetchBoxScore();
-    const interval = setInterval(fetchBoxScore, 30000);
-    return () => clearInterval(interval);
-  }, [isLive, isLiveGame, gameId]);
 
   useEffect(() => {
     if (!isLive || !isLiveGame || !gameId) return;
@@ -584,6 +555,22 @@ const GameRow: React.FC<GameRowProps> = ({
               >
                 {lastPlay.team_tricode ? `${lastPlay.team_tricode} - ` : ''}{lastPlay.description}
               </Typography>
+            </Box>
+          )}
+
+          {/* Center Zone: Key Moment Badge */}
+          {/* Show a badge when a key moment is detected (game-tying shot, lead change, etc.) */}
+          {/* The badge appears in the status bar between play-by-play text and action buttons */}
+          {keyMoment && (
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <KeyMomentBadge moment={keyMoment} />
             </Box>
           )}
 

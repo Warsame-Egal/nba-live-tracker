@@ -102,3 +102,25 @@ export interface PlayerBoxScoreStats {
   blocks: number;
   turnovers: number;
 }
+
+export interface KeyMoment {
+  type: 'game_tying_shot' | 'lead_change' | 'scoring_run' | 'clutch_play' | 'big_shot';
+  play: {
+    action_number: number;
+    clock: string;
+    period: number;
+    team_tricode?: string;
+    action_type: string;
+    description: string;
+    player_name?: string;
+    score_home?: string;
+    score_away?: string;
+  };
+  timestamp: string;
+  context?: string;
+}
+
+export interface KeyMomentsResponse {
+  game_id: string;
+  moments: KeyMoment[];
+}

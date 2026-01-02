@@ -180,6 +180,22 @@ class Scoreboard(BaseModel):
     games: List[LiveGame] = Field(..., description="List of games played on the specified date.")
 
 
+class KeyMoment(BaseModel):
+    """Represents a key moment detected in a game."""
+
+    type: str = Field(..., description="Type of key moment (game_tying_shot, lead_change, scoring_run, clutch_play, big_shot)")
+    play: dict = Field(..., description="Play-by-play event that triggered the moment")
+    timestamp: str = Field(..., description="ISO timestamp when moment was detected")
+    context: Optional[str] = Field(None, description="AI-generated context explaining why the moment matters")
+
+
+class KeyMomentsResponse(BaseModel):
+    """Response schema for key moments."""
+
+    game_id: str = Field(..., description="Game ID")
+    moments: List[KeyMoment] = Field(..., description="List of recent key moments")
+
+
 class ScoreboardResponse(BaseModel):
     """Response schema for retrieving live NBA scores."""
 

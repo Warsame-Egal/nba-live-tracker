@@ -444,3 +444,225 @@ Explain WHY the lead changed based on the last 5 plays."""
     
     return prompt
 
+
+def get_key_moment_system_message() -> str:
+    """
+    Get the system message for key moment context generation.
+    
+    This tells Groq how to behave when generating context for key moments. We want short,
+    factual explanations that explain why the moment matters - like "This shot tied the game
+    with 2 minutes remaining" or "The lead change gives momentum heading into the final quarter."
+    """
+    return (
+        "You are an NBA game analyst. Explain why a key moment matters in one short sentence. "
+        "Be factual and neutral. Return only valid JSON in format: {\"context\": \"...\"}. "
+        "No markdown, no explanations outside JSON."
+    )
+
+
+def build_key_moment_context_prompt(moment: Dict[str, Any], game_info: Dict[str, Any]) -> str:
+    """
+    Build prompt for generating context for a key moment.
+    
+    We give Groq all the context it needs - what type of moment it is, what play happened,
+    the current game state (scores, time remaining, period), and ask it to explain why
+    this moment matters in one short sentence. The AI uses this to generate context like
+    "This shot tied the game with 2 minutes remaining" or "The lead change gives momentum
+    heading into the final quarter."
+    
+    Args:
+        moment: Key moment dictionary with type and play
+        game_info: Game information (home_team, away_team, scores, period, clock)
+        
+    Returns:
+        str: Formatted prompt for Groq LLM
+    """
+    import json
+    
+    moment_type = moment.get("type", "")
+    play = moment.get("play", {})
+    
+    play_description = play.get("description", "")
+    action_type = play.get("action_type", "")
+    team_tricode = play.get("team_tricode", "")
+    player_name = play.get("player_name", "")
+    
+    home_team = game_info.get("home_team", "")
+    away_team = game_info.get("away_team", "")
+    home_score = game_info.get("home_score", 0)
+    away_score = game_info.get("away_score", 0)
+    period = game_info.get("period", 1)
+    clock = game_info.get("clock", "")
+    
+    score_diff = abs(home_score - away_score)
+    leading_team = home_team if home_score > away_score else away_team
+    
+    # Context based on moment type
+    type_descriptions = {
+        "game_tying_shot": "A shot that tied the game",
+        "lead_change": "A play that changed which team is leading",
+        "scoring_run": "A team scoring multiple times in quick succession",
+        "clutch_play": "An important play in the final minutes of a close game",
+        "big_shot": "A significant 3-pointer that changes the game situation",
+    }
+    
+    moment_description = type_descriptions.get(moment_type, "An important game moment")
+    
+    prompt = f"""You are an NBA game analyst. Explain why this key moment matters.
+
+MOMENT TYPE: {moment_description}
+
+GAME STATE:
+Home Team: {home_team} ({home_score})
+Away Team: {away_team} ({away_score})
+Period: {period}
+Time: {clock}
+Score Difference: {score_diff} points
+Leading: {leading_team}
+
+THE PLAY:
+Team: {team_tricode}
+Player: {player_name}
+Action: {action_type}
+Description: {play_description}
+
+TASK:
+Explain in ONE short sentence (max 15 words) why this moment matters in the context of the game.
+
+STYLE:
+- Factual and neutral
+- No hype or exaggeration
+- Focus on game impact
+- ESPN broadcast tone
+
+OUTPUT FORMAT (STRICT JSON):
+{{"context": "one short sentence explaining why this moment matters"}}
+
+Example:
+{{"context": "This shot tied the game with 2 minutes remaining, setting up a tight finish."}}
+{{"context": "The lead change gives the visiting team momentum heading into the final quarter."}}
+{{"context": "The scoring run extends the lead to double digits, putting pressure on the opponent."}}
+
+Generate the context."""
+
+    return prompt
+
+
+def get_batched_moment_context_system_message() -> str:
+    """
+    Get the system message for batched key moment context generation.
+    
+    This is used when generating context for multiple moments at once. We batch all moments
+    that need context into one Groq call for efficiency, similar to how AI insights work.
+    """
+    return (
+        "You are an NBA game analyst. Generate context for multiple key moments. "
+        "For each moment, explain why it matters in one short sentence. "
+        "Be factual and neutral. Return only valid JSON. No markdown, no explanations outside JSON."
+    )
+
+
+def build_batched_moment_context_prompt(moments_with_game_info: List[Dict[str, Any]]) -> str:
+    """
+    Build prompt for generating context for multiple key moments in one Groq call.
+    
+    This batches all moments that need context into one API call, similar to how
+    batched insights work. This is much more efficient than calling Groq per-moment.
+    
+    Args:
+        moments_with_game_info: List of dicts with keys:
+            - moment_id: Unique identifier for this moment
+            - moment: Key moment dictionary with type and play
+            - game_info: Game information (home_team, away_team, scores, period, clock)
+        
+    Returns:
+        str: Formatted prompt for Groq LLM
+    """
+    import json
+    
+    moments_data = []
+    for item in moments_with_game_info:
+        moment = item["moment"]
+        game_info = item["game_info"]
+        moment_id = item["moment_id"]
+        
+        moment_type = moment.get("type", "")
+        play = moment.get("play", {})
+        
+        play_description = play.get("description", "")
+        action_type = play.get("action_type", "")
+        team_tricode = play.get("team_tricode", "")
+        player_name = play.get("player_name", "")
+        
+        home_team = game_info.get("home_team", "")
+        away_team = game_info.get("away_team", "")
+        home_score = game_info.get("home_score", 0)
+        away_score = game_info.get("away_score", 0)
+        period = game_info.get("period", 1)
+        clock = game_info.get("clock", "")
+        
+        score_diff = abs(home_score - away_score)
+        leading_team = home_team if home_score > away_score else away_team
+        
+        type_descriptions = {
+            "game_tying_shot": "A shot that tied the game",
+            "lead_change": "A play that changed which team is leading",
+            "scoring_run": "A team scoring multiple times in quick succession",
+            "clutch_play": "An important play in the final minutes of a close game",
+            "big_shot": "A significant 3-pointer that changes the game situation",
+        }
+        
+        moment_description = type_descriptions.get(moment_type, "An important game moment")
+        
+        moments_data.append({
+            "moment_id": moment_id,
+            "game": f"{home_team} vs {away_team}",
+            "moment_type": moment_description,
+            "game_state": {
+                "home_score": home_score,
+                "away_score": away_score,
+                "period": period,
+                "clock": clock,
+                "score_diff": score_diff,
+                "leading": leading_team,
+            },
+            "play": {
+                "team": team_tricode,
+                "player": player_name,
+                "action": action_type,
+                "description": play_description,
+            }
+        })
+    
+    moments_json = json.dumps(moments_data, indent=2)
+    
+    prompt = f"""You are an NBA game analyst. Generate context for multiple key moments.
+
+MOMENTS:
+{moments_json}
+
+TASK:
+For each moment, explain in ONE short sentence (max 15 words) why it matters in the context of the game.
+
+STYLE:
+- Factual and neutral
+- No hype or exaggeration
+- Focus on game impact
+- ESPN broadcast tone
+
+OUTPUT FORMAT (STRICT JSON):
+{{
+  "contexts": [
+    {{"moment_id": "moment_1", "context": "one short sentence explaining why this moment matters"}},
+    {{"moment_id": "moment_2", "context": "one short sentence explaining why this moment matters"}}
+  ]
+}}
+
+EXAMPLES:
+{{"moment_id": "moment_1", "context": "This shot tied the game with 2 minutes remaining, setting up a tight finish."}}
+{{"moment_id": "moment_2", "context": "The lead change gives the visiting team momentum heading into the final quarter."}}
+
+Generate contexts for all moments."""
+
+    return prompt
+
