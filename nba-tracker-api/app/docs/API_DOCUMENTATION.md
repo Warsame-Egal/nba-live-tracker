@@ -315,6 +315,8 @@ curl http://localhost:8000/api/v1/scoreboard/game/0022400123/boxscore
 
 Get all play-by-play events for a game. Works for both live and completed games.
 
+This endpoint is used by the momentum visualization feature to display score differential over time, detect lead changes, and identify scoring runs.
+
 ```http
 GET /api/v1/scoreboard/game/{game_id}/play-by-play
 ```
@@ -327,7 +329,7 @@ GET /api/v1/scoreboard/game/{game_id}/play-by-play
 curl http://localhost:8000/api/v1/scoreboard/game/0022400123/play-by-play
 ```
 
-**Note:** For completed games, returns all plays. For live games, use the WebSocket endpoint for real-time updates.
+**Note:** For completed games, returns all plays. For live games, use the WebSocket endpoint for real-time updates. The momentum visualization feature processes this data to create visual charts showing game flow and momentum shifts.
 
 ---
 
