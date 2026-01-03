@@ -2,17 +2,15 @@
 
 REST API and WebSocket service for real-time NBA game data, player statistics, team information, and game predictions.
 
-This API is designed for the NBA Live Tracker frontend but can be used independently.
-
-**Base URL:** `http://localhost:8000`  
-**API Version:** `v1`  
-**API Prefix:** `/api/v1`
-
----
+Base URL: http://localhost:8000  
+API Version: v1  
+API Prefix: /api/v1
 
 ## Table of Contents
 
 - [REST Endpoints](#rest-endpoints)
+  - [Health Check](#health-check)
+  - [Config Check](#config-check)
   - [Players](#players)
   - [Teams](#teams)
   - [Schedule](#schedule)
@@ -28,9 +26,56 @@ This API is designed for the NBA Live Tracker frontend but can be used independe
 - [Data Cache Service](#data-cache-service)
 - [Error Handling](#error-handling)
 
+## REST Endpoints
+
+### Health Check
+
+Check if API is running.
+
+```http
+GET /
+```
+
+**Response:**
+
+```json
+{
+  "message": "NBA Live API is running"
+}
+```
+
+**Example:**
+
+```bash
+curl http://localhost:8000/
+```
+
 ---
 
-## REST Endpoints
+### Config Check
+
+Check if Groq API key is configured. Used for debugging.
+
+```http
+GET /api/v1/config/check
+```
+
+**Response:**
+
+```json
+{
+  "groq_configured": true,
+  "groq_key_length": 64
+}
+```
+
+**Example:**
+
+```bash
+curl http://localhost:8000/api/v1/config/check
+```
+
+---
 
 ### Players
 
@@ -43,14 +88,17 @@ GET /api/v1/player/{player_id}
 ```
 
 **Parameters:**
+
 - `player_id` (string, required) - NBA player ID (e.g., "2544")
 
 **Example:**
+
 ```bash
 curl http://localhost:8000/api/v1/player/2544
 ```
 
 **Response:**
+
 ```json
 {
   "PERSON_ID": 2544,
@@ -76,9 +124,27 @@ Search for players by name. Returns up to 20 results.
 GET /api/v1/players/search/{search_term}
 ```
 
+**Parameters:**
+
+- `search_term` (string, required) - Player name to search for
+
 **Example:**
+
 ```bash
 curl http://localhost:8000/api/v1/players/search/lebron
+```
+
+**Response:**
+
+```json
+[
+  {
+    "PERSON_ID": 2544,
+    "PLAYER_FIRST_NAME": "LeBron",
+    "PLAYER_LAST_NAME": "James",
+    "TEAM_NAME": "Los Angeles Lakers"
+  }
+]
 ```
 
 ---
@@ -92,11 +158,25 @@ GET /api/v1/players/season-leaders?season={season}
 ```
 
 **Parameters:**
+
 - `season` (string, optional) - Season format "YYYY-YY" (default: current season)
 
 **Example:**
+
 ```bash
 curl http://localhost:8000/api/v1/players/season-leaders?season=2024-25
+```
+
+**Response:**
+
+```json
+{
+  "points_leaders": [...],
+  "rebounds_leaders": [...],
+  "assists_leaders": [...],
+  "steals_leaders": [...],
+  "blocks_leaders": [...]
+}
 ```
 
 ---
@@ -110,13 +190,28 @@ GET /api/v1/players/top-by-stat?season={season}&stat={stat}&top_n={top_n}
 ```
 
 **Parameters:**
+
 - `season` (string, optional) - Season format "YYYY-YY" (default: current season)
 - `stat` (string, optional) - Stat to sort by: PTS, REB, AST, STL, BLK (default: PTS)
 - `top_n` (integer, optional) - Number of players to return, 1-50 (default: 10)
 
 **Example:**
+
 ```bash
 curl "http://localhost:8000/api/v1/players/top-by-stat?season=2024-25&stat=PTS&top_n=10"
+```
+
+**Response:**
+
+```json
+[
+  {
+    "PERSON_ID": 2544,
+    "PLAYER_FIRST_NAME": "LeBron",
+    "PLAYER_LAST_NAME": "James",
+    "PTS": 28.5
+  }
+]
 ```
 
 ---
@@ -130,12 +225,33 @@ GET /api/v1/player/{player_id}/game-log?season={season}
 ```
 
 **Parameters:**
+
 - `player_id` (string, required) - NBA player ID
 - `season` (string, optional) - Season format "YYYY-YY" (default: current season)
 
 **Example:**
+
 ```bash
 curl http://localhost:8000/api/v1/player/2544/game-log?season=2024-25
+```
+
+**Response:**
+
+```json
+{
+  "player_id": "2544",
+  "season": "2024-25",
+  "games": [
+    {
+      "game_id": "0022400123",
+      "game_date": "2024-10-15",
+      "matchup": "LAL @ GSW",
+      "PTS": 28,
+      "REB": 7,
+      "AST": 8
+    }
+  ]
+}
 ```
 
 ---
@@ -149,8 +265,23 @@ GET /api/v1/players/league-roster
 ```
 
 **Example:**
+
 ```bash
 curl http://localhost:8000/api/v1/players/league-roster
+```
+
+**Response:**
+
+```json
+[
+  {
+    "PERSON_ID": 2544,
+    "PLAYER_FIRST_NAME": "LeBron",
+    "PLAYER_LAST_NAME": "James",
+    "TEAM_NAME": "Los Angeles Lakers",
+    "POSITION": "F"
+  }
+]
 ```
 
 ---
@@ -166,11 +297,26 @@ GET /api/v1/teams/{team_id}
 ```
 
 **Parameters:**
-- `team_id` (integer, required) - NBA team ID (e.g., `1610612747`)
+
+- `team_id` (integer, required) - NBA team ID (e.g., 1610612747)
 
 **Example:**
+
 ```bash
 curl http://localhost:8000/api/v1/teams/1610612747
+```
+
+**Response:**
+
+```json
+{
+  "team_id": 1610612747,
+  "team_name": "Los Angeles Lakers",
+  "team_city": "Los Angeles",
+  "arena": "Crypto.com Arena",
+  "owner": "...",
+  "coach": "..."
+}
 ```
 
 ---
@@ -184,11 +330,23 @@ GET /api/v1/teams/stats?season={season}
 ```
 
 **Parameters:**
+
 - `season` (string, optional) - Season format "YYYY-YY" (default: current season)
 
 **Example:**
+
 ```bash
 curl http://localhost:8000/api/v1/teams/stats?season=2024-25
+```
+
+**Response:**
+
+```json
+{
+  "points_per_game": [...],
+  "rebounds_per_game": [...],
+  "assists_per_game": [...]
+}
 ```
 
 ---
@@ -202,12 +360,33 @@ GET /api/v1/teams/{team_id}/game-log?season={season}
 ```
 
 **Parameters:**
+
 - `team_id` (integer, required) - NBA team ID
 - `season` (string, optional) - Season format "YYYY-YY" (default: current season)
 
 **Example:**
+
 ```bash
 curl http://localhost:8000/api/v1/teams/1610612747/game-log?season=2024-25
+```
+
+**Response:**
+
+```json
+{
+  "team_id": 1610612747,
+  "season": "2024-25",
+  "games": [
+    {
+      "game_id": "0022400123",
+      "game_date": "2024-10-15",
+      "matchup": "LAL @ GSW",
+      "PTS": 112,
+      "REB": 45,
+      "AST": 28
+    }
+  ]
+}
 ```
 
 ---
@@ -221,12 +400,32 @@ GET /api/v1/teams/{team_id}/player-stats?season={season}
 ```
 
 **Parameters:**
+
 - `team_id` (integer, required) - NBA team ID
 - `season` (string, optional) - Season format "YYYY-YY" (default: current season)
 
 **Example:**
+
 ```bash
 curl http://localhost:8000/api/v1/teams/1610612747/player-stats?season=2024-25
+```
+
+**Response:**
+
+```json
+{
+  "team_id": 1610612747,
+  "season": "2024-25",
+  "players": [
+    {
+      "player_id": 2544,
+      "name": "LeBron James",
+      "PTS": 25.5,
+      "REB": 7.2,
+      "AST": 8.1
+    }
+  ]
+}
 ```
 
 ---
@@ -240,12 +439,25 @@ GET /api/v1/scoreboard/team/{team_id}/roster/{season}
 ```
 
 **Parameters:**
+
 - `team_id` (integer, required) - NBA team ID
 - `season` (string, required) - Season format "YYYY-YY"
 
 **Example:**
+
 ```bash
 curl http://localhost:8000/api/v1/scoreboard/team/1610612747/roster/2024-25
+```
+
+**Response:**
+
+```json
+{
+  "team_id": 1610612747,
+  "season": "2024-25",
+  "players": [...],
+  "coaches": [...]
+}
 ```
 
 ---
@@ -261,11 +473,29 @@ GET /api/v1/schedule/date/{date}
 ```
 
 **Parameters:**
-- `date` (string, required) - Date format `YYYY-MM-DD` (e.g., "2024-01-15")
+
+- `date` (string, required) - Date format YYYY-MM-DD (e.g., "2024-01-15")
 
 **Example:**
+
 ```bash
 curl http://localhost:8000/api/v1/schedule/date/2024-01-15
+```
+
+**Response:**
+
+```json
+{
+  "date": "2024-01-15",
+  "games": [
+    {
+      "game_id": "0022400123",
+      "home_team": {...},
+      "away_team": {...},
+      "game_status": "Final"
+    }
+  ]
+}
 ```
 
 ---
@@ -281,11 +511,23 @@ GET /api/v1/standings/season/{season}
 ```
 
 **Parameters:**
+
 - `season` (string, required) - Season format "YYYY-YY" (e.g., "2023-24")
 
 **Example:**
+
 ```bash
 curl http://localhost:8000/api/v1/standings/season/2023-24
+```
+
+**Response:**
+
+```json
+{
+  "season": "2023-24",
+  "eastern_conference": [...],
+  "western_conference": [...]
+}
 ```
 
 ---
@@ -301,11 +543,33 @@ GET /api/v1/scoreboard/game/{game_id}/boxscore
 ```
 
 **Parameters:**
+
 - `game_id` (string, required) - Game ID (e.g., "0022400123")
 
 **Example:**
+
 ```bash
 curl http://localhost:8000/api/v1/scoreboard/game/0022400123/boxscore
+```
+
+**Response:**
+
+```json
+{
+  "game_id": "0022400123",
+  "home_team": {
+    "team_id": 1610612744,
+    "team_name": "Warriors",
+    "score": 112,
+    "players": [...]
+  },
+  "away_team": {
+    "team_id": 1610612747,
+    "team_name": "Lakers",
+    "score": 108,
+    "players": [...]
+  }
+}
 ```
 
 **Note:** For games that haven't started, returns empty box score with team names, but scores/stats are 0.
@@ -316,21 +580,42 @@ curl http://localhost:8000/api/v1/scoreboard/game/0022400123/boxscore
 
 Get all play-by-play events for a game. Works for both live and completed games.
 
-This endpoint is used by the momentum visualization feature to display score differential over time, detect lead changes, and identify scoring runs.
-
 ```http
 GET /api/v1/scoreboard/game/{game_id}/play-by-play
 ```
 
 **Parameters:**
+
 - `game_id` (string, required) - Game ID
 
 **Example:**
+
 ```bash
 curl http://localhost:8000/api/v1/scoreboard/game/0022400123/play-by-play
 ```
 
-**Note:** For completed games, returns all plays. For live games, use the WebSocket endpoint for real-time updates. The momentum visualization feature processes this data to create visual charts showing game flow and momentum shifts.
+**Response:**
+
+```json
+{
+  "game_id": "0022400123",
+  "plays": [
+    {
+      "action_number": 1,
+      "clock": "PT12M00S",
+      "period": 1,
+      "team_tricode": "LAL",
+      "action_type": "2pt Shot",
+      "description": "Anthony Davis makes 2-pt shot from 8 ft",
+      "player_name": "Anthony Davis",
+      "score_home": "0",
+      "score_away": "2"
+    }
+  ]
+}
+```
+
+**Note:** For completed games, returns all plays. For live games, use the WebSocket endpoint for real-time updates.
 
 ---
 
@@ -343,16 +628,19 @@ GET /api/v1/scoreboard/insights
 ```
 
 **When it's used:**
+
 - Called periodically to get insights for all live games
 - Returns insights only for games with meaningful changes
 - Cached for 60 seconds
 
 **Example:**
+
 ```bash
 curl http://localhost:8000/api/v1/scoreboard/insights
 ```
 
 **Response:**
+
 ```json
 {
   "timestamp": "2025-01-15T20:30:00Z",
@@ -377,18 +665,22 @@ GET /api/v1/scoreboard/game/{game_id}/lead-change
 ```
 
 **Parameters:**
+
 - `game_id` (string, required) - Game ID
 
 **When it's used:**
+
 - Called when user clicks "Why?" on a lead change insight
 - Cached for 60 seconds per game
 
 **Example:**
+
 ```bash
 curl http://localhost:8000/api/v1/scoreboard/game/0022400123/lead-change
 ```
 
 **Response:**
+
 ```json
 {
   "summary": "The Lakers took the lead through consecutive scoring plays and a defensive stop.",
@@ -411,14 +703,17 @@ GET /api/v1/scoreboard/game/{game_id}/key-moments
 ```
 
 **Parameters:**
+
 - `game_id` (string, required) - Game ID
 
 **When it's used:**
+
 - Called to get recent key moments for a specific game
 - Returns moments from the last 5 minutes
 - Key moments are also automatically sent via WebSocket when detected
 
 **Key Moment Types:**
+
 - `game_tying_shot` - A shot that tied the game
 - `lead_change` - A play that changed which team is leading
 - `scoring_run` - A team scoring 6+ points in quick succession
@@ -426,11 +721,13 @@ GET /api/v1/scoreboard/game/{game_id}/key-moments
 - `big_shot` - A 3-pointer that extends lead to 10+ or cuts deficit to 5 or less
 
 **Example:**
+
 ```bash
 curl http://localhost:8000/api/v1/scoreboard/game/0022400123/key-moments
 ```
 
 **Response:**
+
 ```json
 {
   "game_id": "0022400123",
@@ -450,22 +747,6 @@ curl http://localhost:8000/api/v1/scoreboard/game/0022400123/key-moments
       },
       "timestamp": "2025-01-15T20:45:30Z",
       "context": "This shot gave the Lakers the lead with 4:30 remaining in a tight game."
-    },
-    {
-      "type": "clutch_play",
-      "play": {
-        "action_number": 150,
-        "clock": "PT1M15S",
-        "period": 4,
-        "team_tricode": "GSW",
-        "action_type": "3-pt Shot",
-        "description": "Stephen Curry makes 3-pt shot from 26 ft",
-        "player_name": "Stephen Curry",
-        "score_home": "102",
-        "score_away": "100"
-      },
-      "timestamp": "2025-01-15T20:48:15Z",
-      "context": "Curry's three-pointer cuts the deficit to 2 points with just over a minute left."
     }
   ]
 }
@@ -484,19 +765,23 @@ GET /api/v1/scoreboard/game/{game_id}/win-probability
 ```
 
 **Parameters:**
+
 - `game_id` (string, required) - Game ID
 
 **When it's used:**
+
 - Called to get current win probability for a specific live game
 - Returns probability data with optional history for visualization
 - Win probability updates automatically via WebSocket every 8 seconds
 
 **Example:**
+
 ```bash
 curl http://localhost:8000/api/v1/scoreboard/game/0022400123/win-probability
 ```
 
 **Response:**
+
 ```json
 {
   "game_id": "0022400123",
@@ -508,17 +793,13 @@ curl http://localhost:8000/api/v1/scoreboard/game/0022400123/win-probability
       {
         "home_win_prob": 0.62,
         "away_win_prob": 0.38
-      },
-      {
-        "home_win_prob": 0.64,
-        "away_win_prob": 0.36
       }
     ]
   }
 }
 ```
 
-**Note:** Win probability is calculated by the NBA API based on play-by-play events. Returns `null` if the game hasn't started or data is not available. Probability values range from 0.0 to 1.0 (0% to 100%).
+**Note:** Win probability is calculated by the NBA API based on play-by-play events. Returns null if the game hasn't started or data is not available. Probability values range from 0.0 to 1.0 (0% to 100%).
 
 ---
 
@@ -533,18 +814,33 @@ GET /api/v1/search?q={query}
 ```
 
 **Parameters:**
-- `q` (string, required) - Search term
+
+- `q` (string, required) - Search term (minimum 1 character)
 
 **Example:**
+
 ```bash
 curl "http://localhost:8000/api/v1/search?q=lakers"
 ```
 
 **Response:**
+
 ```json
 {
-  "players": [...],
-  "teams": [...]
+  "players": [
+    {
+      "PERSON_ID": 2544,
+      "PLAYER_FIRST_NAME": "LeBron",
+      "PLAYER_LAST_NAME": "James",
+      "TEAM_NAME": "Los Angeles Lakers"
+    }
+  ],
+  "teams": [
+    {
+      "team_id": 1610612747,
+      "team_name": "Los Angeles Lakers"
+    }
+  ]
 }
 ```
 
@@ -561,20 +857,24 @@ GET /api/v1/league/leaders?stat_category={category}&season={season}
 ```
 
 **Parameters:**
-- `stat_category` (string, optional) - Stat category: `PTS`, `REB`, `AST`, `STL`, or `BLK` (default: `PTS`)
+
+- `stat_category` (string, optional) - Stat category: PTS, REB, AST, STL, or BLK (default: PTS)
 - `season` (string, optional) - Season format "YYYY-YY" (default: current season)
 
 **When it's used:**
+
 - Called to display top players in the League Leaders dashboard
 - Returns top 5 players sorted by the specified stat category
 - Results are cached for 5 minutes to reduce API calls
 
 **Example:**
+
 ```bash
 curl "http://localhost:8000/api/v1/league/leaders?stat_category=PTS&season=2024-25"
 ```
 
 **Response:**
+
 ```json
 {
   "category": "PTS",
@@ -587,14 +887,6 @@ curl "http://localhost:8000/api/v1/league/leaders?stat_category=PTS&season=2024-
       "stat_value": 28.5,
       "rank": 1,
       "games_played": 65
-    },
-    {
-      "player_id": 201939,
-      "name": "Stephen Curry",
-      "team": "GSW",
-      "stat_value": 27.2,
-      "rank": 2,
-      "games_played": 68
     }
   ]
 }
@@ -613,13 +905,41 @@ GET /api/v1/predictions/date/{date}?season={season}
 ```
 
 **Parameters:**
-- `date` (string, required) - Date format `YYYY-MM-DD`
+
+- `date` (string, required) - Date format YYYY-MM-DD
 - `season` (string, optional) - Season format "YYYY-YY" (default: current season)
 
 **Example:**
+
 ```bash
 curl http://localhost:8000/api/v1/predictions/date/2024-01-15?season=2024-25
 ```
+
+**Response:**
+
+```json
+{
+  "date": "2024-01-15",
+  "season": "2024-25",
+  "predictions": [
+    {
+      "game_id": "0022400123",
+      "home_team_id": 1610612744,
+      "away_team_id": 1610612747,
+      "home_team_name": "Warriors",
+      "away_team_name": "Lakers",
+      "favored_team": "Warriors",
+      "favored_prob": 0.65,
+      "confidence": 0.8,
+      "projected_score_home": 112.5,
+      "projected_score_away": 108.2,
+      "explanation": "Warriors have a 65% chance to win based on home court advantage and recent form."
+    }
+  ]
+}
+```
+
+**Note:** Uses a simple statistical model based on team win percentages, net ratings, and home court advantage. Date must be within 1 year of today.
 
 ---
 
@@ -634,6 +954,7 @@ Real-time scoreboard updates broadcast to all connected clients.
 **Endpoint:** `ws://localhost:8000/api/v1/ws`
 
 **Connection Example:**
+
 ```javascript
 const ws = new WebSocket("ws://localhost:8000/api/v1/ws");
 
@@ -650,6 +971,7 @@ ws.onmessage = (event) => {
 **Message Formats:**
 
 Scoreboard updates (standard game data):
+
 ```json
 {
   "scoreboard": {
@@ -679,6 +1001,7 @@ Scoreboard updates (standard game data):
 ```
 
 AI insights (sent separately when available):
+
 ```json
 {
   "type": "insights",
@@ -696,6 +1019,7 @@ AI insights (sent separately when available):
 ```
 
 Key moments (sent separately when detected):
+
 ```json
 {
   "type": "key_moments",
@@ -725,6 +1049,7 @@ Key moments (sent separately when detected):
 ```
 
 Win probability (sent every 8 seconds for live games):
+
 ```json
 {
   "type": "win_probability",
@@ -747,6 +1072,7 @@ Win probability (sent every 8 seconds for live games):
 ```
 
 **Update Frequency:**
+
 - Scoreboard updates sent at fixed intervals (e.g., ~8 seconds for live scoreboard) when changes are detected
 - AI insights generated and sent when meaningful game changes occur
 - Initial data sent immediately upon connection
@@ -769,9 +1095,11 @@ Real-time play-by-play updates for a specific game.
 **Endpoint:** `ws://localhost:8000/api/v1/ws/{game_id}/play-by-play`
 
 **Parameters:**
+
 - `game_id` (string, required) - Game ID for play-by-play updates
 
 **Connection Example:**
+
 ```javascript
 const gameId = "0022400123";
 const ws = new WebSocket(
@@ -785,6 +1113,7 @@ ws.onmessage = (event) => {
 ```
 
 **Message Format:**
+
 ```json
 {
   "game_id": "0022400123",
@@ -805,6 +1134,7 @@ ws.onmessage = (event) => {
 ```
 
 **Update Frequency:**
+
 - Updates sent at fixed intervals (e.g., ~5 seconds for play-by-play) when new plays are detected
 - All historical plays sent immediately upon connection
 
@@ -823,6 +1153,7 @@ The API handles rate limiting for two different services: NBA API calls and Groq
 The NBA API can throttle or block requests if too many calls are made too quickly. Our backend waits at least 600ms between each NBA API call to stay within limits.
 
 **How it works:**
+
 ```python
 from app.utils.rate_limiter import rate_limit
 
@@ -839,12 +1170,14 @@ All REST endpoints that call the NBA API automatically use rate limiting. You do
 Groq has strict rate limits: 28 requests per minute (RPM) and 5800 tokens per minute (TPM). We track both and wait before making calls if we're approaching limits.
 
 **How it works:**
+
 - Tracks requests and tokens in rolling 60-second windows
 - Automatically waits if approaching limits
 - Uses batching to reduce total calls (one call for all games)
 - Caches results to avoid repeated calls
 
 **Where it applies:**
+
 - Batched insights endpoint (`/scoreboard/insights`)
 - Lead change explanations (`/scoreboard/game/{game_id}/lead-change`)
 - Predictions page AI explanations
@@ -858,6 +1191,7 @@ All Groq calls go through the same rate limiter. If a limit is hit, the system w
 The data cache service reduces NBA API calls by polling in the background and caching results.
 
 **What it does:**
+
 - Polls NBA API at fixed intervals (e.g., ~8 seconds for live scoreboard, ~5 seconds for play-by-play)
 - Caches the latest data in memory
 - WebSocket connections read from cache instead of making API calls
@@ -869,6 +1203,7 @@ If 100 people are watching the scoreboard, we don't want 100 API calls. The cach
 WebSocket managers (`websockets_manager.py`) never call the NBA API directly. They call `data_cache.get_scoreboard()` or `data_cache.get_playbyplay()`, which returns cached data. The cache service handles all the polling and rate limiting in the background.
 
 **Example:**
+
 ```python
 from app.services.data_cache import data_cache
 
@@ -928,6 +1263,7 @@ WebSocket connections may close unexpectedly. Recommended practices:
 3. **Graceful degradation** - Fall back to polling REST endpoints if WebSocket fails
 
 **Example Reconnection Pattern:**
+
 ```javascript
 class WebSocketService {
   constructor() {
@@ -984,20 +1320,6 @@ class WebSocketService {
 ## Interactive Documentation
 
 Interactive API docs available at:
+
 - **Swagger UI:** http://localhost:8000/docs
 - **ReDoc:** http://localhost:8000/redoc
-
-### Health Check
-
-Check if API is running:
-
-```http
-GET /
-```
-
-**Response:**
-```json
-{
-  "message": "NBA Live API is running"
-}
-```
