@@ -22,8 +22,6 @@ import {
 } from '@mui/material';
 import { format } from 'date-fns';
 import Navbar from '../components/Navbar';
-import PageLayout from '../components/PageLayout';
-import UniversalSidebar from '../components/UniversalSidebar';
 import { fetchJson } from '../utils/apiClient';
 import { getCurrentSeason, getSeasonOptions } from '../utils/season';
 import { TeamRoster } from '../types/team';
@@ -217,17 +215,15 @@ const TeamPage = () => {
     fetchTeamData();
   }, [team_id, season]);
 
-  const sidebar = <UniversalSidebar />;
-
   if (loading) {
     return (
       <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default', display: 'flex', flexDirection: 'column' }}>
         <Navbar />
-        <PageLayout sidebar={sidebar}>
+        <Box sx={{ maxWidth: '1400px', mx: 'auto', px: { xs: 2, sm: 3, md: 4 }, py: { xs: 2, sm: 3 } }}>
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
             <CircularProgress />
           </Box>
-        </PageLayout>
+        </Box>
       </Box>
     );
   }
@@ -236,9 +232,9 @@ const TeamPage = () => {
     return (
       <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default', display: 'flex', flexDirection: 'column' }}>
         <Navbar />
-        <PageLayout sidebar={sidebar}>
+        <Box sx={{ maxWidth: '1400px', mx: 'auto', px: { xs: 2, sm: 3, md: 4 }, py: { xs: 2, sm: 3 } }}>
           <Alert severity="error">{error}</Alert>
-        </PageLayout>
+        </Box>
       </Box>
     );
   }
@@ -247,11 +243,11 @@ const TeamPage = () => {
     return (
       <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default', display: 'flex', flexDirection: 'column' }}>
         <Navbar />
-        <PageLayout sidebar={sidebar}>
+        <Box sx={{ maxWidth: '1400px', mx: 'auto', px: { xs: 2, sm: 3, md: 4 }, py: { xs: 2, sm: 3 } }}>
           <Typography variant="body1" color="text.secondary" textAlign="center">
             Team not found.
           </Typography>
-        </PageLayout>
+        </Box>
       </Box>
     );
   }
@@ -331,8 +327,12 @@ const TeamPage = () => {
           >
             {season} Team Roster
           </Typography>
-          <TableContainer sx={{ overflowX: 'auto' }}>
-            <Table size="small" stickyHeader>
+          <Box sx={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+            <TableContainer sx={{ 
+              overflowX: 'auto',
+              minWidth: { xs: 600, sm: 'auto' },
+            }}>
+              <Table size="small" stickyHeader sx={{ minWidth: { xs: 600, sm: 'auto' } }}>
               <TableHead>
                 <TableRow>
                   <TableCell sx={{ fontWeight: typography.weight.bold }}>Player</TableCell>
@@ -359,7 +359,26 @@ const TeamPage = () => {
                       },
                     }}
                   >
-                    <TableCell sx={{ fontWeight: typography.weight.medium }}>{player.name}</TableCell>
+                    <TableCell>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                        <Avatar
+                          src={`https://cdn.nba.com/headshots/nba/latest/1040x760/${player.player_id}.png`}
+                          alt={player.name}
+                          sx={{ 
+                            width: 40, 
+                            height: 40,
+                            border: '1px solid',
+                            borderColor: 'divider',
+                          }}
+                          onError={(e) => {
+                            const target = e.currentTarget as HTMLImageElement;
+                            target.onerror = null;
+                            target.src = '';
+                          }}
+                        />
+                        <Typography sx={{ fontWeight: typography.weight.medium }}>{player.name}</Typography>
+                      </Box>
+                    </TableCell>
                     <TableCell align="center">{player.jersey_number || '—'}</TableCell>
                     <TableCell align="center">{player.position || '—'}</TableCell>
                     <TableCell align="center">{player.height || '—'}</TableCell>
@@ -375,6 +394,7 @@ const TeamPage = () => {
               </TableBody>
             </Table>
           </TableContainer>
+          </Box>
         </Paper>
       ) : null}
     </Box>
@@ -898,7 +918,7 @@ const TeamPage = () => {
   return (
     <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default', display: 'flex', flexDirection: 'column' }}>
       <Navbar />
-      <PageLayout sidebar={<UniversalSidebar />}>
+      <Box sx={{ maxWidth: '1400px', mx: 'auto', px: { xs: 2, sm: 3, md: 4 }, py: { xs: 2, sm: 3 } }}>
         {team && (
           <TeamBanner
             teamId={team.team_id}
@@ -945,7 +965,7 @@ const TeamPage = () => {
         {activeTab === 'profile' && renderProfileTab()}
         {activeTab === 'schedule' && renderScheduleTab()}
         {activeTab === 'stats' && renderStatsTab()}
-      </PageLayout>
+      </Box>
     </Box>
   );
 };

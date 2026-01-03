@@ -1,8 +1,9 @@
 import React from 'react';
-import { Box, Typography } from '@mui/material';
+import { Box, Typography, Divider } from '@mui/material';
+import { TrendingUp } from '@mui/icons-material';
 import { Game } from '../types/scoreboard';
 import { WinProbability } from '../types/scoreboard';
-import { responsiveSpacing, typography, borderRadius } from '../theme/designTokens';
+import { typography, borderRadius } from '../theme/designTokens';
 import { alpha, useTheme } from '@mui/material/styles';
 
 interface WinProbabilityTrackerProps {
@@ -20,37 +21,53 @@ const WinProbabilityTracker: React.FC<WinProbabilityTrackerProps> = ({ games, wi
   // Filter to only live games (gameStatus === 2)
   const liveGames = games.filter(game => game.gameStatus === 2);
   
-  if (liveGames.length === 0) {
-    return (
-      <Box
-        sx={{
-          p: responsiveSpacing.container,
-          textAlign: 'center',
-          color: 'text.secondary',
-        }}
-      >
-        <Typography variant="body2">
-          No live games at the moment. Win probability will appear here when games are in progress.
-        </Typography>
-      </Box>
-    );
-  }
+  // Always reserve space to prevent layout shifts
+  const minHeight = liveGames.length > 0 ? undefined : 120;
   
   return (
-    <Box sx={{ p: responsiveSpacing.container }}>
-      <Typography
-        variant="h6"
-        sx={{
-          fontWeight: typography.weight.bold,
-          mb: 2,
-          fontSize: typography.size.h6,
-          color: 'text.primary',
-        }}
-      >
-        Live Win Probability
-      </Typography>
+    <Box 
+      sx={{ 
+        p: { xs: 1.5, sm: 2 },
+        pb: { xs: 1, sm: 1.5 },
+        minHeight: minHeight,
+        transition: 'min-height 0.3s ease',
+      }}
+    >
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
+        <TrendingUp sx={{ fontSize: { xs: 20, sm: 24 }, color: 'primary.main' }} />
+        <Typography
+          variant="h6"
+          sx={{
+            fontWeight: typography.weight.bold,
+            fontSize: { xs: typography.size.h6.xs, sm: typography.size.h6.sm },
+            color: 'text.primary',
+            letterSpacing: '-0.01em',
+          }}
+        >
+          Live Win Probability
+        </Typography>
+      </Box>
+      <Divider sx={{ mb: 2 }} />
       
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      {liveGames.length === 0 ? (
+        <Box
+          sx={{
+            textAlign: 'center',
+            color: 'text.secondary',
+            py: 2,
+          }}
+        >
+          <Typography 
+            variant="body2"
+            sx={{
+              fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm },
+            }}
+          >
+            No live games at the moment. Win probability will appear here when games are in progress.
+          </Typography>
+        </Box>
+      ) : (
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
         {liveGames.map(game => {
           const winProb = winProbabilities.get(game.gameId);
           const homeTeam = game.homeTeam;
@@ -69,15 +86,33 @@ const WinProbabilityTracker: React.FC<WinProbabilityTrackerProps> = ({ games, wi
                   borderColor: 'divider',
                 }}
               >
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                  <Typography variant="body2" sx={{ fontWeight: typography.weight.semibold }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+                  <Typography 
+                    variant="body2" 
+                    sx={{ 
+                      fontWeight: typography.weight.semibold,
+                      fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm },
+                    }}
+                  >
                     {awayTeam.teamTricode} @ {homeTeam.teamTricode}
                   </Typography>
-                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                  <Typography 
+                    variant="caption" 
+                    sx={{ 
+                      color: 'text.secondary',
+                      fontSize: { xs: typography.size.captionSmall.xs, sm: typography.size.captionSmall.sm },
+                    }}
+                  >
                     {game.gameStatusText}
                   </Typography>
                 </Box>
-                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                <Typography 
+                  variant="caption" 
+                  sx={{ 
+                    color: 'text.secondary',
+                    fontSize: { xs: typography.size.captionSmall.xs, sm: typography.size.captionSmall.sm },
+                  }}
+                >
                   Win probability data not available yet
                 </Typography>
               </Box>
@@ -104,10 +139,22 @@ const WinProbabilityTracker: React.FC<WinProbabilityTrackerProps> = ({ games, wi
             >
               {/* Game header */}
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="body2" sx={{ fontWeight: typography.weight.semibold }}>
+                <Typography 
+                  variant="body2" 
+                  sx={{ 
+                    fontWeight: typography.weight.semibold,
+                    fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm },
+                  }}
+                >
                   {awayTeam.teamTricode} @ {homeTeam.teamTricode}
                 </Typography>
-                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                <Typography 
+                  variant="caption" 
+                  sx={{ 
+                    color: 'text.secondary',
+                    fontSize: { xs: typography.size.captionSmall.xs, sm: typography.size.captionSmall.sm },
+                  }}
+                >
                   {game.gameStatusText}
                 </Typography>
               </Box>
@@ -144,7 +191,7 @@ const WinProbabilityTracker: React.FC<WinProbabilityTrackerProps> = ({ games, wi
                       variant="caption"
                       sx={{
                         fontWeight: typography.weight.semibold,
-                        fontSize: typography.size.caption,
+                        fontSize: { xs: typography.size.caption.xs, sm: typography.size.caption.sm },
                       }}
                     >
                       {awayTeam.teamTricode} {awayProb.toFixed(1)}%
@@ -170,7 +217,7 @@ const WinProbabilityTracker: React.FC<WinProbabilityTrackerProps> = ({ games, wi
                       variant="caption"
                       sx={{
                         fontWeight: typography.weight.semibold,
-                        fontSize: typography.size.caption,
+                        fontSize: { xs: typography.size.caption.xs, sm: typography.size.caption.sm },
                       }}
                     >
                       {homeProb.toFixed(1)}% {homeTeam.teamTricode}
@@ -180,12 +227,25 @@ const WinProbabilityTracker: React.FC<WinProbabilityTrackerProps> = ({ games, wi
               </Box>
               
               {/* Additional info */}
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
+                <Typography 
+                  variant="caption" 
+                  sx={{ 
+                    color: 'text.secondary',
+                    fontSize: { xs: typography.size.captionSmall.xs, sm: typography.size.captionSmall.sm },
+                  }}
+                >
                   {homeTeam.teamTricode} {homeTeam.score} - {awayTeam.score} {awayTeam.teamTricode}
                 </Typography>
                 {probDiff < 5 && (
-                  <Typography variant="caption" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
+                  <Typography 
+                    variant="caption" 
+                    sx={{ 
+                      color: 'text.secondary', 
+                      fontStyle: 'italic',
+                      fontSize: { xs: typography.size.captionSmall.xs, sm: typography.size.captionSmall.sm },
+                    }}
+                  >
                     Very close game
                   </Typography>
                 )}
@@ -193,7 +253,8 @@ const WinProbabilityTracker: React.FC<WinProbabilityTrackerProps> = ({ games, wi
             </Box>
           );
         })}
-      </Box>
+        </Box>
+      )}
     </Box>
   );
 };

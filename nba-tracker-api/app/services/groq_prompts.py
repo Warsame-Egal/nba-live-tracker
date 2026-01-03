@@ -258,6 +258,217 @@ def get_batched_insights_system_message() -> str:
     )
 
 
+def build_batched_prediction_insights_prompt(predictions: List[Dict[str, Any]]) -> str:
+    """
+    Build prompt for batched prediction insights across all games for a date.
+    
+    Args:
+        predictions: List of prediction dictionaries with:
+            - game_id
+            - home_team_name
+            - away_team_name
+            - home_win_prob (0-1)
+            - away_win_prob (0-1)
+            - predicted_home_score
+            - predicted_away_score
+            - home_win_pct (optional, for context)
+            - away_win_pct (optional, for context)
+            - net_rating_diff_str (optional)
+        
+    Returns:
+        str: Formatted prompt for Groq LLM
+    """
+    import json
+    
+    # Format predictions for prompt
+    predictions_snapshot = []
+    for pred in predictions:
+        home_win_prob_pct = pred.get("home_win_prob", 0.5) * 100
+        away_win_prob_pct = pred.get("away_win_prob", 0.5) * 100
+        net_rating_str = pred.get("net_rating_diff_str", "")
+        
+        predictions_snapshot.append({
+            "game_id": pred.get("game_id", ""),
+            "home_team": pred.get("home_team_name", ""),
+            "away_team": pred.get("away_team_name", ""),
+            "home_win_prob_pct": round(home_win_prob_pct, 1),
+            "away_win_prob_pct": round(away_win_prob_pct, 1),
+            "predicted_home_score": round(pred.get("predicted_home_score", 0)),
+            "predicted_away_score": round(pred.get("predicted_away_score", 0)),
+            "net_rating_diff": net_rating_str
+        })
+    
+    predictions_json = json.dumps(predictions_snapshot, indent=2)
+    
+    prompt = f"""Generate prediction insights for the following NBA games.
+
+GAMES:
+{predictions_json}
+
+RULES (non-negotiable):
+- You MUST NOT calculate probabilities, scores, or stats.
+- You MUST NOT invent numbers or change provided values.
+- You MUST NOT contradict the inputs.
+- You MUST NOT label teams as underdogs/favorites unless the probabilities clearly support it.
+- You ONLY explain what the numbers already say.
+- If information is unclear, stay neutral.
+- No hype, no opinions, no predictions beyond the data.
+
+NBA context:
+- Home teams usually have a small advantage.
+- Large probability gaps (>15%) indicate a clear favorite.
+- Small gaps (<10%) indicate a competitive game.
+- Score differences of 5–8 points = moderate margin.
+- Do not restate numbers unless explaining them.
+
+OUTPUT FORMAT (STRICT JSON):
+{{
+  "insights": [
+    {{
+      "game_id": "string",
+      "insights": [
+        {{"title": "Short title", "description": "1-2 line explanation"}},
+        {{"title": "Short title", "description": "1-2 line explanation"}}
+      ]
+    }}
+  ]
+}}
+
+IMPORTANT: 
+- Return 2-3 insights per game.
+- Each insight should have a title and description.
+- Insights must agree with the provided probabilities and scores.
+- If probability gap is <5%, stay neutral about favorites.
+- Generate insights for ALL games provided."""
+    
+    return prompt
+
+
+def build_enhanced_prediction_prompt(predictions: List[Dict[str, Any]]) -> str:
+    """
+    Build prompt for enhanced prediction analysis with confidence tiers, key drivers, risk factors, and matchup narrative.
+    
+    Args:
+        predictions: List of prediction dictionaries with:
+            - game_id
+            - home_team_name
+            - away_team_name
+            - home_win_prob (0-1)
+            - away_win_prob (0-1)
+            - predicted_home_score
+            - predicted_away_score
+            - home_win_pct (optional)
+            - away_win_pct (optional)
+            - home_net_rating (optional)
+            - away_net_rating (optional)
+            - net_rating_diff_str (optional)
+            - confidence (0-1, optional)
+        
+    Returns:
+        str: Formatted prompt for Groq LLM to generate enhanced analysis
+    """
+    import json
+    
+    # Format predictions for prompt
+    predictions_snapshot = []
+    for pred in predictions:
+        home_win_prob_pct = pred.get("home_win_prob", 0.5) * 100
+        away_win_prob_pct = pred.get("away_win_prob", 0.5) * 100
+        confidence_val = pred.get("confidence", 0.5)
+        net_rating_str = pred.get("net_rating_diff_str", "")
+        home_net = pred.get("home_net_rating")
+        away_net = pred.get("away_net_rating")
+        
+        predictions_snapshot.append({
+            "game_id": pred.get("game_id", ""),
+            "home_team": pred.get("home_team_name", ""),
+            "away_team": pred.get("away_team_name", ""),
+            "home_win_prob_pct": round(home_win_prob_pct, 1),
+            "away_win_prob_pct": round(away_win_prob_pct, 1),
+            "predicted_home_score": round(pred.get("predicted_home_score", 0)),
+            "predicted_away_score": round(pred.get("predicted_away_score", 0)),
+            "confidence": round(confidence_val, 2),
+            "home_win_pct": round(pred.get("home_win_pct", 0) * 100, 1) if pred.get("home_win_pct") else None,
+            "away_win_pct": round(pred.get("away_win_pct", 0) * 100, 1) if pred.get("away_win_pct") else None,
+            "home_net_rating": round(home_net, 1) if home_net is not None else None,
+            "away_net_rating": round(away_net, 1) if away_net is not None else None,
+            "net_rating_diff": net_rating_str
+        })
+    
+    predictions_json = json.dumps(predictions_snapshot, indent=2)
+    
+    prompt = f"""Generate enhanced prediction analysis for the following NBA games.
+
+GAMES:
+{predictions_json}
+
+RULES (non-negotiable):
+- You MUST NOT calculate probabilities, scores, or stats. Use only provided values.
+- You MUST NOT invent numbers or change provided values.
+- You MUST NOT contradict the inputs.
+- You ONLY explain what the numbers already say.
+- Analytical tone: professional, data-driven, no hype.
+- If information is unclear, stay neutral.
+
+ANALYSIS REQUIREMENTS:
+
+1. CONFIDENCE TIER: Determine "high", "medium", or "low" based on:
+   - High: Clear favorite (>15% prob gap), strong stats alignment, high confidence value (>0.7)
+   - Medium: Moderate favorite (10-15% gap), mixed signals, confidence 0.5-0.7
+   - Low: Close game (<10% gap), conflicting stats, confidence <0.5, or significant uncertainty
+   Provide a brief explanation (1 sentence) for the tier.
+
+2. KEY DRIVERS: Identify top 2-3 factors driving the prediction:
+   - Examples: "Home Court Advantage", "Net Rating Gap", "Win Percentage Difference", "Recent Form"
+   - For each: factor name, impact description, magnitude ("High", "Moderate", or "Low")
+   - Focus on factors that most strongly influence the prediction
+
+3. RISK FACTORS: Identify 0-2 factors that create uncertainty or upset potential:
+   - Only include if there are genuine risks (close games, inconsistent teams, etc.)
+   - If prediction is very clear (high confidence, large gap), may have 0 risk factors
+   - Each risk: factor name and explanation of why it creates uncertainty
+
+4. MATCHUP NARRATIVE: Write 1 analytical paragraph (3-4 sentences) summarizing:
+   - The statistical context of the matchup
+   - Key factors influencing the prediction
+   - Overall assessment of competitiveness
+   - Professional, analytical tone (no hype, no predictions beyond data)
+
+5. BASIC INSIGHTS: Generate 2-3 short insights (title + description) as before.
+
+OUTPUT FORMAT (STRICT JSON):
+{{
+  "insights": [
+    {{
+      "game_id": "string",
+      "confidence_tier": "high|medium|low",
+      "confidence_explanation": "1 sentence explanation",
+      "key_drivers": [
+        {{"factor": "Factor name", "impact": "Impact description", "magnitude": "High|Moderate|Low"}},
+        {{"factor": "Factor name", "impact": "Impact description", "magnitude": "High|Moderate|Low"}}
+      ],
+      "risk_factors": [
+        {{"factor": "Risk name", "explanation": "Why this creates uncertainty"}}
+      ],
+      "matchup_narrative": "3-4 sentence analytical paragraph",
+      "insights": [
+        {{"title": "Short title", "description": "1-2 line explanation", "impact": "Impact on prediction"}}
+      ]
+    }}
+  ]
+}}
+
+IMPORTANT:
+- Generate analysis for ALL games provided.
+- Confidence tier must match the data (don't inflate confidence).
+- Key drivers should be the most influential factors (2-3 max).
+- Risk factors only if uncertainty exists (0-2 per game).
+- Matchup narrative must be analytical, not promotional.
+- All insights must agree with provided probabilities and scores."""
+    
+    return prompt
+
+
 def build_batched_insights_prompt(games: List[Dict[str, Any]]) -> str:
     """
     Build prompt for batched insights across all live games.

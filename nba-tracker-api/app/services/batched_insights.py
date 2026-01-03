@@ -208,10 +208,85 @@ async def generate_batched_insights(games: List[Dict[str, Any]]) -> Dict[str, An
             if isinstance(insights_data, dict):
                 logger.info(f"Insights array length: {len(insights_data.get('insights', []))}")
         except json.JSONDecodeError as e:
-            logger.error(f"JSON decode error: {e}")
-            logger.error(f"Failed to parse content: {content[:500]}")
-            logger.error(f"Original content: {original_content[:500]}")
-            raise
+            logger.warning(f"JSON decode error (possibly truncated): {e}")
+            logger.warning(f"Failed to parse content (first 500 chars): {content[:500]}")
+            
+            # Try to recover partial JSON by finding the last complete JSON structure
+            try:
+                # Find the last position where we have balanced braces for the insights array
+                # Look for "insights": [ and try to find where the array closes
+                insights_start = content.find('"insights"')
+                if insights_start > 0:
+                    # Find the opening bracket after "insights"
+                    bracket_start = content.find('[', insights_start)
+                    if bracket_start > 0:
+                        # Count braces to find the last complete insight
+                        brace_count = 0
+                        in_string = False
+                        escape_next = False
+                        last_complete_pos = bracket_start
+                        
+                        for i in range(bracket_start + 1, len(content)):
+                            char = content[i]
+                            
+                            if escape_next:
+                                escape_next = False
+                                continue
+                            
+                            if char == '\\':
+                                escape_next = True
+                                continue
+                            
+                            if char == '"':
+                                in_string = not in_string
+                                continue
+                            
+                            if in_string:
+                                continue
+                            
+                            if char == '{':
+                                brace_count += 1
+                            elif char == '}':
+                                brace_count -= 1
+                                if brace_count == 0:
+                                    # Found a complete insight object
+                                    last_complete_pos = i + 1
+                            elif char == ']' and brace_count == 0:
+                                # Found the end of the insights array
+                                last_complete_pos = i + 1
+                                break
+                        
+                        # Try to parse the partial JSON up to the last complete position
+                        partial_json = content[:last_complete_pos]
+                        # Try to close the JSON structure if needed
+                        if not partial_json.rstrip().endswith('}'):
+                            # Find the last opening brace for the root object
+                            root_brace = partial_json.find('{')
+                            if root_brace >= 0:
+                                # Close the insights array and root object
+                                if not partial_json.rstrip().endswith(']'):
+                                    partial_json = partial_json.rstrip().rstrip(',') + ']'
+                                partial_json = partial_json.rstrip().rstrip(',') + '}'
+                        
+                        try:
+                            parsed_data = json.loads(partial_json)
+                            if isinstance(parsed_data, dict) and "insights" in parsed_data:
+                                logger.info(f"Recovered {len(parsed_data['insights'])} insights from truncated JSON")
+                                insights_data = parsed_data
+                            else:
+                                raise ValueError("Recovered JSON doesn't have expected structure")
+                        except json.JSONDecodeError:
+                            raise ValueError("Could not parse recovered JSON")
+                    else:
+                        raise ValueError("Could not find insights array opening bracket")
+                else:
+                    raise ValueError("Could not find insights key in content")
+            except Exception as recovery_error:
+                logger.warning(f"Could not recover from truncated JSON: {recovery_error}, using empty insights")
+                insights_data = {
+                    "timestamp": datetime.utcnow().isoformat() + "Z",
+                    "insights": []
+                }
         
         # Validate and format response
         if isinstance(insights_data, dict):

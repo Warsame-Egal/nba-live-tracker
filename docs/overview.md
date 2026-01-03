@@ -1,4 +1,4 @@
-# Architecture Overview
+# Overview
 
 How the app is organized and how data flows.
 
@@ -22,6 +22,7 @@ How the app is organized and how data flows.
 ## Data Flow
 
 **Live Scoreboard:**
+
 1. Backend polls NBA API at fixed intervals (e.g., ~8 seconds for live scoreboard) with rate limiting
 2. Data cached in `data_cache.py`
 3. WebSocket manager reads from cache (no direct API calls)
@@ -32,6 +33,7 @@ How the app is organized and how data flows.
 If 10 people are watching the scoreboard, we don't make 10 API calls. We make 1 call, cache it, and all 10 WebSocket connections read from the same cache.
 
 **AI Insights:**
+
 1. WebSocket manager detects live games
 2. Formats game data for Groq
 3. Calls `batched_insights.py` (one call for all games)
@@ -41,6 +43,7 @@ If 10 people are watching the scoreboard, we don't make 10 API calls. We make 1 
 7. Frontend displays below game rows
 
 **Predictions:**
+
 1. User visits predictions page
 2. Backend calculates win probabilities (Python math)
 3. Calls Groq for AI explanations
@@ -50,11 +53,13 @@ If 10 people are watching the scoreboard, we don't make 10 API calls. We make 1 
 ## Rate Limiting
 
 **NBA API:**
+
 - 600ms minimum between calls
 - Applied automatically to all NBA API endpoints
 - Prevents throttling from NBA.com
 
 **Groq:**
+
 - 28 requests per minute
 - 5800 tokens per minute
 - Tracked in rolling 60-second windows
@@ -63,11 +68,13 @@ If 10 people are watching the scoreboard, we don't make 10 API calls. We make 1 
 ## Caching
 
 **Data Cache:**
+
 - Scoreboard: Polled at fixed intervals (e.g., ~8 seconds), cached in memory
 - Play-by-play: Polled at fixed intervals (e.g., ~5 seconds) per game, cached in memory
 - WebSocket clients read from cache (no direct API calls)
 
 **Insights Cache:**
+
 - Batched insights: 60 seconds TTL
 - Lead change explanations: 60 seconds TTL per game
 - Reduces Groq API calls
@@ -83,33 +90,6 @@ The main scoreboard WebSocket sends multiple types of messages:
 
 The frontend handles them separately. Scoreboard updates go to the game list. Insights, key moments, and win probability are handled by their respective event listeners.
 
-**WebSocket Example:**
-```javascript
-const ws = new WebSocket("ws://localhost:8000/api/v1/ws");
-
-ws.onmessage = (event) => {
-  const data = JSON.parse(event.data);
-  
-  // Handle scoreboard updates
-  if (data.scoreboard) {
-    console.log("Live scores:", data.scoreboard);
-  }
-  
-  // Handle AI insights
-  if (data.type === 'insights') {
-    console.log("AI insights:", data.data.insights);
-  }
-  
-  // Handle key moments
-  if (data.type === 'key_moments') {
-    console.log("Key moments:", data.data.moments_by_game);
-  }
-  
-  // Handle win probability
-  if (data.type === 'win_probability') {
-    console.log("Win probability:", data.data.probabilities_by_game);
-  }
-};
 ```
 
 **How it works:**
@@ -120,46 +100,48 @@ The backend periodically polls the NBA API and caches the data in `data_cache.py
 ## Project Structure
 
 ```
+
 nba-live-tracker/
-├── nba-tracker/          # Frontend React app
-│   ├── src/
-│   │   ├── components/   # UI components
-│   │   │   ├── GameRow.tsx
-│   │   │   ├── LiveAIInsight.tsx
-│   │   │   ├── KeyMomentBadge.tsx
-│   │   │   ├── MomentumChart.tsx
-│   │   │   ├── WinProbabilityTracker.tsx
-│   │   │   └── ...
-│   │   ├── pages/        # Page components
-│   │   │   ├── Scoreboard.tsx
-│   │   │   ├── Predictions.tsx
-│   │   │   ├── Players.tsx
-│   │   │   ├── Teams.tsx
-│   │   │   └── Standings.tsx
-│   │   ├── services/     # API services & WebSockets
-│   │   │   ├── websocketService.ts
-│   │   │   └── PlayByPlayWebSocketService.ts
-│   │   └── types/        # TypeScript types
-│   └── public/           # Static assets
-└── nba-tracker-api/      # Backend FastAPI app
-    └── app/
-        ├── routers/      # API routes
-        │   ├── scoreboard.py
-        │   ├── players.py
-        │   ├── teams.py
-        │   └── predictions.py
-        ├── services/     # Business logic
-        │   ├── batched_insights.py    # Batched AI insights (one call for all games)
-        │   ├── groq_client.py         # Groq API client & rate limiter
-        │   ├── groq_prompts.py        # AI prompt templates
-        │   ├── predictions.py         # Game predictions with AI
-        │   ├── websockets_manager.py  # WebSocket broadcasting (reads from cache)
-        │   ├── data_cache.py          # Data caching (WebSockets don't call API directly)
-        │   ├── key_moments.py         # Key moments detection
-        │   ├── win_probability.py     # Win probability service
-        │   └── groq_batcher.py        # Reusable Groq batching utility
-        └── schemas/      # Data models
+├── nba-tracker/ # Frontend React app
+│ ├── src/
+│ │ ├── components/ # UI components
+│ │ │ ├── GameRow.tsx
+│ │ │ ├── LiveAIInsight.tsx
+│ │ │ ├── KeyMomentBadge.tsx
+│ │ │ ├── MomentumChart.tsx
+│ │ │ ├── WinProbabilityTracker.tsx
+│ │ │ └── ...
+│ │ ├── pages/ # Page components
+│ │ │ ├── Scoreboard.tsx
+│ │ │ ├── Predictions.tsx
+│ │ │ ├── Players.tsx
+│ │ │ ├── Teams.tsx
+│ │ │ └── Standings.tsx
+│ │ ├── services/ # API services & WebSockets
+│ │ │ ├── websocketService.ts
+│ │ │ └── PlayByPlayWebSocketService.ts
+│ │ └── types/ # TypeScript types
+│ └── public/ # Static assets
+└── nba-tracker-api/ # Backend FastAPI app
+└── app/
+├── routers/ # API routes
+│ ├── scoreboard.py
+│ ├── players.py
+│ ├── teams.py
+│ └── predictions.py
+├── services/ # Business logic
+│ ├── batched_insights.py # Batched AI insights (one call for all games)
+│ ├── groq_client.py # Groq API client & rate limiter
+│ ├── groq_prompts.py # AI prompt templates
+│ ├── predictions.py # Game predictions with AI
+│ ├── websockets_manager.py # WebSocket broadcasting (reads from cache)
+│ ├── data_cache.py # Data caching (WebSockets don't call API directly)
+│ ├── key_moments.py # Key moments detection
+│ ├── win_probability.py # Win probability service
+│ └── groq_batcher.py # Reusable Groq batching utility
+└── schemas/ # Data models
+
 ```
 
 **Key point:** WebSockets don't call the NBA API directly. They read from `data_cache.py`, which polls the API in the background. This means 100 people watching the scoreboard = 1 API call, not 100.
-
+```

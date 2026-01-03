@@ -35,6 +35,11 @@ logger = logging.getLogger(__name__)
 _key_moments_cache: Dict[str, List[Dict]] = {}
 _last_checked_plays: Dict[str, int] = {}  # game_id -> last action_number checked
 
+# Cache for AI context of key moments: key = moment_id, value = context string
+# Context is cached permanently (until server restart) to avoid duplicate Groq calls.
+# Once generated for a moment_id, same context is returned for all requests.
+_moment_context_cache: Dict[str, str] = {}
+
 
 class KeyMomentType:
     """Types of key moments that can be detected."""
@@ -472,6 +477,9 @@ async def generate_batched_moment_contexts(moments_with_game_info: List[Dict[str
     This batches all moments that need context into a single Groq call, similar to how
     batched insights work. This is much more efficient than calling Groq per-moment.
     
+    Contexts are cached permanently by moment_id to avoid duplicate Groq API calls.
+    Once generated, the same context is returned for all subsequent requests.
+    
     Args:
         moments_with_game_info: List of dicts with keys:
             - moment_id: Unique identifier (e.g., "game_id:timestamp")
@@ -483,6 +491,29 @@ async def generate_batched_moment_contexts(moments_with_game_info: List[Dict[str
     """
     if not moments_with_game_info:
         return {}
+    
+    # Check cache first - separate moments into cached and uncached
+    cached_contexts: Dict[str, str] = {}
+    moments_needing_context: List[Dict[str, Any]] = []
+    
+    for item in moments_with_game_info:
+        moment_id = item.get("moment_id", "")
+        if moment_id and moment_id in _moment_context_cache:
+            # Context already exists in cache
+            cached_contexts[moment_id] = _moment_context_cache[moment_id]
+            logger.debug(f"Using cached context for moment {moment_id}")
+        else:
+            # Need to generate context
+            moments_needing_context.append(item)
+    
+    # If all moments are cached, return immediately (no Groq call)
+    if not moments_needing_context:
+        logger.info(f"Returning {len(cached_contexts)} cached contexts - skipping Groq calls")
+        return cached_contexts
+    
+    # If some moments are cached, log it
+    if cached_contexts:
+        logger.info(f"Found {len(cached_contexts)} cached contexts, generating {len(moments_needing_context)} new contexts")
     
     try:
         api_key = get_groq_api_key()
@@ -497,7 +528,8 @@ async def generate_batched_moment_contexts(moments_with_game_info: List[Dict[str
         from app.services.groq_client import get_groq_rate_limiter
         
         system_message = get_batched_moment_context_system_message()
-        prompt = build_batched_moment_context_prompt(moments_with_game_info)
+        # Only build prompt for moments that need context (not cached ones)
+        prompt = build_batched_moment_context_prompt(moments_needing_context)
         
         response = await call_groq_api(
             api_key=api_key,
@@ -505,6 +537,8 @@ async def generate_batched_moment_contexts(moments_with_game_info: List[Dict[str
             user_prompt=prompt,
             rate_limiter=get_groq_rate_limiter()
         )
+        
+        newly_generated_contexts: Dict[str, str] = {}
         
         if response and response.get("content"):
             import json
@@ -517,24 +551,30 @@ async def generate_batched_moment_contexts(moments_with_game_info: List[Dict[str
                     content = content.split("```")[1].split("```")[0].strip()
                 
                 parsed = json.loads(content)
-                contexts = {}
                 
                 # Parse response - should have "contexts" array
                 if isinstance(parsed, dict) and "contexts" in parsed:
                     for item in parsed["contexts"]:
                         if isinstance(item, dict) and "moment_id" in item and "context" in item:
-                            contexts[item["moment_id"]] = item["context"]
+                            moment_id = item["moment_id"]
+                            context = item["context"]
+                            newly_generated_contexts[moment_id] = context
+                            # Cache the newly generated context
+                            _moment_context_cache[moment_id] = context
+                            logger.debug(f"Cached context for moment {moment_id}")
                 
-                logger.info(f"Generated batched context for {len(contexts)} moments")
-                return contexts
+                logger.info(f"Generated and cached context for {len(newly_generated_contexts)} moments")
             except json.JSONDecodeError as e:
                 logger.warning(f"Failed to parse batched context JSON: {e}")
-                return {}
         
-        return {}
+        # Merge cached contexts with newly generated contexts
+        all_contexts = {**cached_contexts, **newly_generated_contexts}
+        return all_contexts
+        
     except Exception as e:
         logger.warning(f"Error generating batched moment contexts: {e}")
-        return {}
+        # Return cached contexts even if Groq fails
+        return cached_contexts
 
 
 async def generate_moment_context(moment: Dict, game_info: Dict) -> Optional[str]:
@@ -549,6 +589,9 @@ async def generate_moment_context(moment: Dict, game_info: Dict) -> Optional[str
     If Groq isn't available or fails, we just return None and the moment still gets shown,
     just without the AI explanation.
     
+    Context is cached permanently by moment_id to avoid duplicate Groq API calls.
+    Once generated, the same context is returned for all subsequent requests.
+    
     Args:
         moment: Key moment dictionary with type and play
         game_info: Game information (home_team, away_team, scores, etc.)
@@ -556,6 +599,17 @@ async def generate_moment_context(moment: Dict, game_info: Dict) -> Optional[str
     Returns:
         AI-generated context string or None if generation fails
     """
+    # Create moment_id from moment data for caching
+    # Use game_id from game_info if available, otherwise use timestamp
+    game_id = game_info.get("game_id", "") or moment.get("game_id", "")
+    timestamp = moment.get("timestamp", "")
+    moment_id = f"{game_id}:{timestamp}" if game_id and timestamp else None
+    
+    # Check cache first
+    if moment_id and moment_id in _moment_context_cache:
+        logger.debug(f"Returning cached context for moment {moment_id}")
+        return _moment_context_cache[moment_id]
+    
     try:
         api_key = get_groq_api_key()
         if not api_key:
@@ -567,6 +621,7 @@ async def generate_moment_context(moment: Dict, game_info: Dict) -> Optional[str
         
         response = await call_groq_api(api_key, system_message, prompt)
         
+        context = None
         if response and response.get("content"):
             # Parse JSON response
             import json
@@ -579,12 +634,17 @@ async def generate_moment_context(moment: Dict, game_info: Dict) -> Optional[str
                     content = content.split("```")[1].split("```")[0].strip()
                 
                 parsed = json.loads(content)
-                return parsed.get("context", "")
+                context = parsed.get("context", "")
             except json.JSONDecodeError:
                 # If not JSON, try to extract text directly
-                return content.strip()
+                context = content.strip()
         
-        return None
+        # Cache the context if we have a moment_id and context was generated
+        if moment_id and context:
+            _moment_context_cache[moment_id] = context
+            logger.debug(f"Cached context for moment {moment_id}")
+        
+        return context
     except Exception as e:
         logger.warning(f"Error generating moment context: {e}")
         return None

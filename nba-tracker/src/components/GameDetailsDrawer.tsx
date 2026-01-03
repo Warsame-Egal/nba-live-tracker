@@ -300,14 +300,30 @@ const GameDetailsDrawer = ({ gameId, open, onClose, initialTab = 'box', gameInfo
         >
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <IconButton onClick={onClose} size="small" sx={{ color: 'text.secondary' }}>
+              <IconButton 
+                onClick={onClose} 
+                size="small" 
+                sx={{ 
+                  color: 'text.secondary',
+                  minWidth: { xs: 44, sm: 40 },
+                  minHeight: { xs: 44, sm: 40 },
+                }}
+              >
                 <ArrowBack />
               </IconButton>
               <Typography variant="h6" sx={{ fontWeight: 700, fontSize: { xs: '1.125rem', sm: '1.25rem' } }}>
                 Game Details
               </Typography>
             </Box>
-            <IconButton onClick={onClose} size="small" sx={{ color: 'text.secondary' }}>
+            <IconButton 
+              onClick={onClose} 
+              size="small" 
+              sx={{ 
+                color: 'text.secondary',
+                minWidth: { xs: 44, sm: 40 },
+                minHeight: { xs: 44, sm: 40 },
+              }}
+            >
               <Close />
             </IconButton>
           </Box>

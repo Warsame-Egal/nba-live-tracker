@@ -15,17 +15,17 @@
  */
 
 import React, { useMemo } from 'react';
-import { Box, Typography, Paper, useTheme, alpha } from '@mui/material';
+import { Box, Typography, Paper, useTheme } from '@mui/material';
 import {
   Area,
-  AreaChart,
+  ComposedChart,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
   ReferenceLine,
-  Dot,
+  Scatter,
 } from 'recharts';
 import { PlayByPlayEvent } from '../types/playbyplay';
 import { typography, borderRadius } from '../theme/designTokens';
@@ -234,41 +234,92 @@ const MomentumChart: React.FC<MomentumChartProps> = ({ plays, homeTeam, awayTeam
     return dataPoints;
   }, [plays]);
 
-  // Custom tooltip component
+  // Custom tooltip component - broadcast-quality design
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload as MomentumDataPoint;
       const leadingTeam = data.differential > 0 ? homeTeam : awayTeam;
       const lead = Math.abs(data.differential);
+      const isTied = data.differential === 0;
       
       return (
         <Paper
-          elevation={3}
+          elevation={8}
           sx={{
-            p: 1.5,
-            backgroundColor: theme.palette.background.paper,
+            p: 2,
+            backgroundColor: theme.palette.mode === 'dark' 
+              ? 'rgba(18, 18, 18, 0.95)' 
+              : 'rgba(255, 255, 255, 0.98)',
             border: '1px solid',
             borderColor: 'divider',
+            borderRadius: borderRadius.sm,
+            boxShadow: theme.palette.mode === 'dark'
+              ? '0 8px 32px rgba(0, 0, 0, 0.6)'
+              : '0 8px 32px rgba(0, 0, 0, 0.15)',
+            backdropFilter: 'blur(10px)',
           }}
         >
-          <Typography variant="caption" sx={{ fontWeight: typography.weight.semibold, display: 'block', mb: 0.5 }}>
+          <Typography 
+            variant="caption" 
+            sx={{ 
+              fontWeight: typography.weight.bold, 
+              display: 'block', 
+              mb: 1,
+              fontSize: '0.8125rem',
+              color: 'text.primary',
+            }}
+          >
             {data.time}
           </Typography>
-          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
-            {homeTeam}: {data.homeScore} | {awayTeam}: {data.awayScore}
-          </Typography>
-          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
-            {leadingTeam} leading by {lead}
-          </Typography>
-          {data.isLeadChange && (
-            <Typography variant="caption" sx={{ color: theme.palette.primary.main, display: 'block', mt: 0.5 }}>
-              Lead Change
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+            <Typography variant="caption" sx={{ color: 'text.primary', display: 'block', fontWeight: typography.weight.medium }}>
+              {homeTeam}: <strong>{data.homeScore}</strong> | {awayTeam}: <strong>{data.awayScore}</strong>
             </Typography>
-          )}
-          {data.isScoringRun && (
-            <Typography variant="caption" sx={{ color: theme.palette.warning.main, display: 'block', mt: 0.5 }}>
-              Scoring Run
-            </Typography>
+            {!isTied && (
+              <Typography 
+                variant="caption" 
+                sx={{ 
+                  color: data.differential > 0 ? homeColor : awayColor, 
+                  display: 'block',
+                  fontWeight: typography.weight.semibold,
+                }}
+              >
+                {leadingTeam} leading by {lead}
+              </Typography>
+            )}
+            {isTied && (
+              <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
+                Game tied
+              </Typography>
+            )}
+          </Box>
+          {(data.isLeadChange || data.isScoringRun) && (
+            <Box sx={{ mt: 1, pt: 1, borderTop: '1px solid', borderColor: 'divider' }}>
+              {data.isLeadChange && (
+                <Typography 
+                  variant="caption" 
+                  sx={{ 
+                    color: theme.palette.mode === 'dark' ? 'rgba(255, 193, 7, 0.9)' : 'rgba(255, 152, 0, 0.9)', 
+                    display: 'block',
+                    fontWeight: typography.weight.semibold,
+                  }}
+                >
+                  Lead Change
+                </Typography>
+              )}
+              {data.isScoringRun && (
+                <Typography 
+                  variant="caption" 
+                  sx={{ 
+                    color: theme.palette.warning.main, 
+                    display: 'block',
+                    fontWeight: typography.weight.semibold,
+                  }}
+                >
+                  Scoring Run
+                </Typography>
+              )}
+            </Box>
           )}
         </Paper>
       );
@@ -315,10 +366,18 @@ const MomentumChart: React.FC<MomentumChartProps> = ({ plays, homeTeam, awayTeam
     );
   }
 
-  const homeColor = theme.palette.primary.main;
-  const awayColor = alpha(theme.palette.secondary.main, 0.6);
+  const homeColor = theme.palette.primary.main; // Blue for home team leading
+  // Use orange color for away team leading (warning color is typically orange)
+  const awayColor = theme.palette.warning.main || '#ff9800';
   const gridColor = theme.palette.divider;
   const textColor = theme.palette.text.secondary;
+
+  // Transform data to separate positive (home leading) and negative (away leading) values
+  const transformedData = chartData.map(d => ({
+    ...d,
+    homeLeading: d.differential > 0 ? d.differential : 0,
+    awayLeading: d.differential < 0 ? d.differential : 0, // Keep negative for display below zero
+  }));
 
   // Find max absolute differential for Y-axis range
   const maxDifferential = Math.max(
@@ -348,23 +407,26 @@ const MomentumChart: React.FC<MomentumChartProps> = ({ plays, homeTeam, awayTeam
         Game Momentum
       </Typography>
       
-      <ResponsiveContainer width="100%" height={300}>
-        <AreaChart
-          data={chartData}
-          margin={{ top: 10, right: 10, left: 10, bottom: 10 }}
+      <Box sx={{ width: '100%', height: { xs: 300, sm: 380 } }}>
+        <ResponsiveContainer width="100%" height="100%">
+        <ComposedChart
+          data={transformedData}
+          margin={{ top: 15, right: 15, left: 15, bottom: 50 }}
         >
           <defs>
             <linearGradient id="homeGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor={homeColor} stopOpacity={0.3} />
-              <stop offset="95%" stopColor={homeColor} stopOpacity={0.05} />
+              <stop offset="0%" stopColor={homeColor} stopOpacity={0.35} />
+              <stop offset="50%" stopColor={homeColor} stopOpacity={0.2} />
+              <stop offset="100%" stopColor={homeColor} stopOpacity={0.05} />
             </linearGradient>
             <linearGradient id="awayGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor={awayColor} stopOpacity={0.3} />
-              <stop offset="95%" stopColor={awayColor} stopOpacity={0.05} />
+              <stop offset="0%" stopColor={awayColor} stopOpacity={0.35} />
+              <stop offset="50%" stopColor={awayColor} stopOpacity={0.2} />
+              <stop offset="100%" stopColor={awayColor} stopOpacity={0.05} />
             </linearGradient>
           </defs>
           
-          <CartesianGrid strokeDasharray="3 3" stroke={gridColor} opacity={0.3} />
+          <CartesianGrid strokeDasharray="2 4" stroke={gridColor} opacity={0.25} />
           
           <XAxis
             dataKey="time"
@@ -373,7 +435,8 @@ const MomentumChart: React.FC<MomentumChartProps> = ({ plays, homeTeam, awayTeam
             angle={-45}
             textAnchor="end"
             height={60}
-            interval="preserveStartEnd"
+            interval={Math.max(0, Math.floor((transformedData.length - 1) / 6))}
+            tickCount={7}
           />
           
           <YAxis
@@ -390,74 +453,124 @@ const MomentumChart: React.FC<MomentumChartProps> = ({ plays, homeTeam, awayTeam
           
           <Tooltip content={<CustomTooltip />} />
           
-          {/* Zero line (tied game) */}
-          <ReferenceLine y={0} stroke={textColor} strokeDasharray="2 2" opacity={0.5} />
+          {/* Zero line (tied game) - more prominent but neutral */}
+          <ReferenceLine 
+            y={0} 
+            stroke={theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.3)'} 
+            strokeWidth={1.5}
+            strokeDasharray="4 4" 
+          />
           
-          {/* Area chart showing differential */}
+          {/* Area chart for home team leading (positive values, blue) */}
           <Area
-            type="monotone"
-            dataKey="differential"
+            type="stepAfter"
+            dataKey="homeLeading"
             stroke={homeColor}
-            strokeWidth={2}
+            strokeWidth={2.5}
             fill="url(#homeGradient)"
             isAnimationActive={false}
+            baseValue={0}
+            connectNulls={false}
           />
           
-          {/* Markers for lead changes */}
-          {chartData.map((point, index) => 
-            point.isLeadChange ? (
-              <Dot
-                key={`lead-change-${index}`}
-                cx={undefined}
-                cy={undefined}
-                r={4}
-                fill={theme.palette.warning.main}
-                stroke={theme.palette.background.paper}
-                strokeWidth={2}
-              />
-            ) : null
-          )}
-        </AreaChart>
-      </ResponsiveContainer>
-      
-      {/* Legend */}
-      <Box sx={{ display: 'flex', gap: 2, mt: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <Box
-            sx={{
-              width: 12,
-              height: 12,
-              borderRadius: '50%',
-              backgroundColor: homeColor,
+          {/* Area chart for away team leading (negative values, orange) */}
+          <Area
+            type="stepAfter"
+            dataKey="awayLeading"
+            stroke={awayColor}
+            strokeWidth={2.5}
+            fill="url(#awayGradient)"
+            isAnimationActive={false}
+            baseValue={0}
+            connectNulls={false}
+          />
+          
+          {/* Subtle markers for lead changes */}
+          <Scatter
+            data={transformedData.filter((_, idx) => chartData[idx].isLeadChange)}
+            dataKey="differential"
+            fill={theme.palette.mode === 'dark' ? 'rgba(255, 193, 7, 0.8)' : 'rgba(255, 152, 0, 0.8)'}
+            shape={(props: any) => {
+              const { cx, cy } = props;
+              return (
+                <circle
+                  cx={cx}
+                  cy={cy}
+                  r={3.5}
+                  fill={theme.palette.mode === 'dark' ? 'rgba(255, 193, 7, 0.9)' : 'rgba(255, 152, 0, 0.9)'}
+                  stroke={theme.palette.background.paper}
+                  strokeWidth={1.5}
+                />
+              );
             }}
           />
-          <Typography variant="caption" color="text.secondary">
+        </ComposedChart>
+      </ResponsiveContainer>
+      </Box>
+      
+      {/* Legend - premium styling */}
+      <Box sx={{ display: 'flex', gap: 3, mt: 2.5, justifyContent: 'center', flexWrap: 'wrap' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+          <Box
+            sx={{
+              width: 14,
+              height: 14,
+              borderRadius: '50%',
+              backgroundColor: homeColor,
+              border: `2px solid ${theme.palette.background.paper}`,
+              boxShadow: `0 0 0 1px ${homeColor}40`,
+            }}
+          />
+          <Typography 
+            variant="caption" 
+            sx={{ 
+              color: 'text.primary',
+              fontWeight: typography.weight.medium,
+              fontSize: '0.75rem',
+            }}
+          >
             {homeTeam} leading
           </Typography>
         </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
           <Box
             sx={{
-              width: 12,
-              height: 12,
+              width: 14,
+              height: 14,
               borderRadius: '50%',
               backgroundColor: awayColor,
+              border: `2px solid ${theme.palette.background.paper}`,
+              boxShadow: `0 0 0 1px ${awayColor}40`,
             }}
           />
-          <Typography variant="caption" color="text.secondary">
+          <Typography 
+            variant="caption" 
+            sx={{ 
+              color: 'text.primary',
+              fontWeight: typography.weight.medium,
+              fontSize: '0.75rem',
+            }}
+          >
             {awayTeam} leading
           </Typography>
         </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
           <Box
             sx={{
-              width: 8,
-              height: 8,
+              width: 10,
+              height: 10,
               borderRadius: '50%',
-              backgroundColor: theme.palette.warning.main,
+              backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 193, 7, 0.9)' : 'rgba(255, 152, 0, 0.9)',
+              border: `1.5px solid ${theme.palette.background.paper}`,
             }}
           />
-          <Typography variant="caption" color="text.secondary">
+          <Typography 
+            variant="caption" 
+            sx={{ 
+              color: 'text.secondary',
+              fontSize: '0.75rem',
+            }}
+          >
             Lead change
           </Typography>
         </Box>

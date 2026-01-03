@@ -1,8 +1,8 @@
 import React from 'react';
 import { Box, Typography, Link, Fade } from '@mui/material';
-import { Psychology } from '@mui/icons-material';
 import { useTheme, alpha } from '@mui/material/styles';
-import { typography, transitions } from '../theme/designTokens';
+import { AutoAwesome } from '@mui/icons-material';
+import { typography, transitions, borderRadius } from '../theme/designTokens';
 import { GameInsightData } from './GameInsight';
 
 interface LiveAIInsightProps {
@@ -27,104 +27,102 @@ const LiveAIInsight: React.FC<LiveAIInsightProps> = ({ insight, onWhyClick }) =>
     <Box
       sx={{
         display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
+        flexDirection: 'column',
+        alignItems: 'flex-start',
         gap: 0.75,
         flex: 1,
         minWidth: 0,
-        px: 1.5,
-        position: 'relative',
+        px: 2,
+        py: 1,
       }}
     >
-      {/* Subtle left accent line/dot */}
-      <Box
-        sx={{
-          position: 'absolute',
-          left: 0,
-          top: '50%',
-          transform: 'translateY(-50%)',
-          width: 2,
-          height: hasInsight ? 16 : 12,
-          backgroundColor: accentColor,
-          borderRadius: 1,
-          opacity: hasInsight ? 0.4 : 0.2,
-        }}
-      />
-      
-      {/* Brain/pulse icon */}
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          color: accentColor,
-          flexShrink: 0,
+      {/* AI Insights label - always visible */}
+      <Box 
+        sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: 0.5,
+          minWidth: { xs: 60, sm: 70 },
+          pt: 0.5,
         }}
       >
-        <Psychology 
+        <AutoAwesome 
           sx={{ 
-            fontSize: 14,
-            opacity: hasInsight ? 0.7 : 0.4,
+            fontSize: { xs: 14, sm: 16 }, 
+            color: 'primary.main',
+            opacity: 0.9,
+            animation: 'pulse 2s ease-in-out infinite',
+            '@keyframes pulse': {
+              '0%, 100%': { opacity: 0.9 },
+              '50%': { opacity: 0.6 },
+            },
           }} 
         />
-      </Box>
-      
-      {/* Insight text or label */}
-      {hasInsight ? (
-        <Fade in={true} timeout={300}>
-          <Typography
-            variant="body2"
-            sx={{
-              fontSize: typography.size.bodySmall,
-              color: 'text.secondary',
-              fontWeight: typography.weight.regular,
-              lineHeight: 1.4,
-              flex: 1,
-              minWidth: 0,
-              transition: transitions.normal,
-            }}
-          >
-            {insight.text}
-            {insight.type === 'lead_change' && onWhyClick && (
-              <>
-                {' '}
-                <Link
-                  component="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onWhyClick();
-                  }}
-                  sx={{
-                    color: accentColor,
-                    textDecoration: 'none',
-                    fontSize: 'inherit',
-                    fontWeight: typography.weight.medium,
-                    cursor: 'pointer',
-                    '&:hover': {
-                      textDecoration: 'underline',
-                      opacity: 0.8,
-                    },
-                  }}
-                >
-                  Why?
-                </Link>
-              </>
-            )}
-          </Typography>
-        </Fade>
-      ) : (
         <Typography
           variant="caption"
           sx={{
-            fontSize: typography.size.captionSmall,
-            color: 'text.disabled',
-            fontWeight: typography.weight.medium,
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-            opacity: 0.5,
+            fontSize: { xs: typography.size.captionSmall.xs, sm: typography.size.captionSmall.sm },
+            fontWeight: typography.weight.semibold,
+            color: 'text.secondary',
           }}
         >
           AI Insights
         </Typography>
+      </Box>
+      
+      {/* Insight text - shown when available */}
+      {hasInsight && (
+        <Fade in={true} timeout={300}>
+          <Box
+            sx={{
+              flex: 1,
+              minWidth: 0,
+              px: 1.5,
+              py: 0.75,
+              borderRadius: borderRadius.xs,
+              backgroundColor: alpha(theme.palette.primary.main, 0.06),
+              transition: transitions.normal,
+              width: '100%',
+            }}
+          >
+            <Typography
+              variant="body2"
+              sx={{
+                fontSize: '0.9375rem',
+                color: 'text.primary',
+                fontWeight: typography.weight.semibold,
+                lineHeight: 1.5,
+              }}
+            >
+              {insight.text}
+              {insight.type === 'lead_change' && onWhyClick && (
+                <>
+                  {' '}
+                  <Link
+                    component="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onWhyClick();
+                    }}
+                    sx={{
+                      color: accentColor,
+                      textDecoration: 'none',
+                      fontSize: 'inherit',
+                      fontWeight: typography.weight.medium,
+                      cursor: 'pointer',
+                      '&:hover': {
+                        textDecoration: 'underline',
+                        opacity: 0.8,
+                      },
+                    }}
+                  >
+                    Why?
+                  </Link>
+                </>
+              )}
+            </Typography>
+          </Box>
+        </Fade>
       )}
     </Box>
   );

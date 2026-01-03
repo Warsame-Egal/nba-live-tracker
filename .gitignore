@@ -49,3 +49,7 @@ nba-tracker-api/patch_scoreboard.py
 
 GROQ_SETUP_GUIDE.md
 RATE_LIMITING_CHANGES.md
+
+system-architecture.md
+groq-ai
+CACHING_RATE_LIMITING_SUMMARY.md

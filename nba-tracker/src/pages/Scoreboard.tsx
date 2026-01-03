@@ -1,17 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
-  TextField,
   Typography,
   Box,
-  Paper,
-  InputAdornment,
-  IconButton,
-  List,
-  ListItem,
-  ListItemText,
-  CircularProgress,
-  Link as MuiLink,
-  Chip,
   ToggleButton,
   ToggleButtonGroup,
   Divider,
@@ -20,23 +10,25 @@ import {
   Alert,
   Button,
 } from '@mui/material';
-import { Search, Close, Event, Notifications, CalendarToday, FilterList, Refresh, Schedule } from '@mui/icons-material';
+import { Event, Notifications, CalendarToday, FilterList, Refresh, Schedule, FiberManualRecord } from '@mui/icons-material';
 import { ScoreboardResponse, Game, KeyMoment, WinProbability } from '../types/scoreboard';
 import { GamesResponse, GameSummary, GameLeaders } from '../types/schedule';
+import { PredictionsResponse, GamePrediction } from '../types/predictions';
 import WebSocketService from '../services/websocketService';
 import GameRow from '../components/GameRow';
 import { GameInsightData } from '../components/GameInsight';
 import Navbar from '../components/Navbar';
-import PageLayout from '../components/PageLayout';
 import WeeklyCalendar from '../components/WeeklyCalendar';
 import GameDetailsDrawer from '../components/GameDetailsDrawer';
-import UniversalSidebar from '../components/UniversalSidebar';
+import WinProbabilityTracker from '../components/WinProbabilityTracker';
+import PredictionsSummary from '../components/PredictionsSummary';
 import { useSearchParams } from 'react-router-dom';
 import { SearchResults } from '../types/search';
 import debounce from 'lodash/debounce';
 import { logger } from '../utils/logger';
-import { responsiveSpacing, borderRadius, typography, zIndex } from '../theme/designTokens';
+import { responsiveSpacing, borderRadius, typography, transitions } from '../theme/designTokens';
 import { fetchJson } from '../utils/apiClient';
+import { getCurrentSeason } from '../utils/season';
 
 // WebSocket URL for live score updates
 const SCOREBOARD_WEBSOCKET_URL = `${
@@ -110,6 +102,14 @@ const Scoreboard = () => {
   const previousGameStatesRef = useRef<Map<string, { status: string; isOvertime: boolean; isFinal: boolean; differential: number; hasStarted: boolean }>>(new Map());
   // Reference to store game leaders from schedule endpoint (for merging with WebSocket updates)
   const scheduleGameLeadersRef = useRef<Map<string, GameLeaders>>(new Map());
+  // Reference to track if predictions have been initially set (prevents clearing on first games load)
+  const predictionsInitializedRef = useRef<boolean>(false);
+  // Reference to track previous filtered prediction IDs (prevents circular dependency)
+  const previousFilteredPredictionIdsRef = useRef<string>('');
+  // Reference to track previous game statuses to avoid unnecessary filtering
+  const previousGameStatusesRef = useRef<Map<string, string>>(new Map());
+  // Reference to store the last filtered predictions to avoid circular dependencies
+  const lastFilteredPredictionsRef = useRef<GamePrediction[]>([]);
   
   
   // State for AI insights (game_id -> insight)
@@ -122,6 +122,11 @@ const Scoreboard = () => {
   // State for win probability - stores current win probability for each live game
   // Win probability shows the likelihood of each team winning at any given moment
   const [gameWinProbabilities, setGameWinProbabilities] = useState<Map<string, WinProbability>>(new Map());
+  // State for predictions - stores predictions for upcoming games on the selected date
+  // Store all fetched predictions (before filtering by game status)
+  const [allPredictions, setAllPredictions] = useState<GamePrediction[]>([]);
+  const [predictionsLoading, setPredictionsLoading] = useState(false);
+  const [predictionsError, setPredictionsError] = useState<string | null>(null);
 
   // Split games into live, upcoming, and completed categories
   // This is memoized so it only recalculates when games or date changes
@@ -253,7 +258,7 @@ const Scoreboard = () => {
               const merged = new Map(prev);
               // Update with most recent moment for each game
               // We only keep the most recent one per game to keep the UI clean
-              Object.entries(momentsByGame).forEach(([gameId, moments]: [string, any]) => {
+              Object.entries(momentsByGame).forEach(([gameId, moments]: [string, unknown]) => {
                 if (Array.isArray(moments) && moments.length > 0) {
                   // Get the most recent moment (first in array should be most recent)
                   const mostRecent = moments[0];
@@ -286,11 +291,12 @@ const Scoreboard = () => {
             setGameWinProbabilities(prev => {
               const merged = new Map(prev);
               // Update win probability for each game
-              Object.entries(probabilitiesByGame).forEach(([gameId, winProb]: [string, any]) => {
-                if (winProb) {
-                  merged.set(gameId, winProb);
+              Object.entries(probabilitiesByGame).forEach(([gameId, winProb]: [string, unknown]) => {
+                if (winProb && typeof winProb === 'object' && 'home_win_prob' in winProb && 'away_win_prob' in winProb) {
+                  const typedWinProb = winProb as WinProbability;
+                  merged.set(gameId, typedWinProb);
                   console.log(`[Scoreboard] Updated win probability for game ${gameId}:`, 
-                    `Home ${(winProb.home_win_prob * 100).toFixed(1)}%`);
+                    `Home ${(typedWinProb.home_win_prob * 100).toFixed(1)}%`);
                 }
               });
               return merged;
@@ -534,6 +540,208 @@ const Scoreboard = () => {
   }, [selectedDate]);
 
   /**
+   * Fetch predictions for the selected date (only for today/future dates with upcoming games).
+   * Only fetch when date changes, not when games change.
+   */
+  useEffect(() => {
+    const today = getLocalISODate();
+    const isFutureDate = selectedDate >= today;
+    
+    // Only fetch predictions for today or future dates
+    if (!isFutureDate) {
+      setAllPredictions([]);
+      setPredictionsError(null);
+      predictionsInitializedRef.current = false;
+      previousFilteredPredictionIdsRef.current = '';
+      lastFilteredPredictionsRef.current = [];
+      return;
+    }
+
+    const fetchPredictions = async () => {
+      setPredictionsLoading(true);
+      setPredictionsError(null);
+      try {
+        const season = getCurrentSeason();
+        const data = await fetchJson<PredictionsResponse>(
+          `${API_BASE_URL}/api/v1/predictions/date/${selectedDate}?season=${season}`,
+          {},
+          { maxRetries: 2, retryDelay: 500, timeout: 120000 }
+        );
+        
+        // Store all predictions and immediately filter them
+        setAllPredictions(data.predictions);
+        predictionsInitializedRef.current = true;
+        
+        // Immediately filter predictions based on current games (if any)
+        // This ensures predictions show up right away even if games haven't loaded yet
+        if (data.predictions.length > 0) {
+          const upcomingPredictions = data.predictions.filter(prediction => {
+            if (games.length === 0) {
+              return true; // No games loaded yet, show all predictions
+            }
+            
+            const matchingGame = games.find(game => {
+              const gameId = 'gameId' in game ? game.gameId : game.game_id;
+              if (gameId === prediction.game_id) {
+                return true;
+              }
+              const homeId = 'homeTeam' in game ? game.homeTeam?.teamId : game.home_team?.team_id;
+              const awayId = 'awayTeam' in game ? game.awayTeam?.teamId : game.away_team?.team_id;
+              return (
+                (homeId === prediction.home_team_id && awayId === prediction.away_team_id) ||
+                (homeId === prediction.away_team_id && awayId === prediction.home_team_id)
+              );
+            });
+            
+            if (!matchingGame) {
+              return true;
+            }
+            
+            return getGameStatus(matchingGame) === 'upcoming';
+          });
+          
+          // Initialize the refs with the initial filtered predictions and IDs
+          lastFilteredPredictionsRef.current = upcomingPredictions;
+          previousFilteredPredictionIdsRef.current = upcomingPredictions.map(p => p.game_id).sort().join(',');
+        } else {
+          // No predictions, clear the refs
+          lastFilteredPredictionsRef.current = [];
+          previousFilteredPredictionIdsRef.current = '';
+        }
+      } catch (err) {
+        logger.error('Error fetching predictions', err);
+        setPredictionsError(err instanceof Error ? err.message : 'Failed to load predictions');
+        setAllPredictions([]);
+        lastFilteredPredictionsRef.current = [];
+        previousFilteredPredictionIdsRef.current = '';
+        predictionsInitializedRef.current = false;
+      } finally {
+        setPredictionsLoading(false);
+      }
+    };
+
+    fetchPredictions();
+  }, [selectedDate, games]);
+  
+  /**
+   * Filter predictions based on current games (without re-fetching).
+   * Uses memoization and game status tracking to prevent unnecessary re-renders from WebSocket updates.
+   * Only re-filters when game statuses actually change, not on every score update.
+   */
+  const filteredPredictions = useMemo(() => {
+    // Don't filter if we don't have predictions yet, still loading, or not initialized
+    if (allPredictions.length === 0 || predictionsLoading || !predictionsInitializedRef.current) {
+      // Return last filtered predictions from ref to maintain stability
+      // If ref is empty, return empty array (stable reference) to prevent flashing
+      return lastFilteredPredictionsRef.current.length > 0 
+        ? lastFilteredPredictionsRef.current 
+        : [];
+    }
+    
+    // Build a map of current game statuses (only for games that match predictions)
+    const currentGameStatuses = new Map<string, string>();
+    const relevantGameIds = new Set(allPredictions.map(p => p.game_id));
+    
+    games.forEach(game => {
+      const gameId = 'gameId' in game ? game.gameId : game.game_id;
+      // Only track status for games that have predictions
+      if (relevantGameIds.has(gameId)) {
+        const status = getGameStatus(game);
+        currentGameStatuses.set(gameId, status);
+      }
+    });
+    
+    // Check if any relevant game statuses actually changed (only filter if status changed)
+    let statusChanged = false;
+    if (currentGameStatuses.size !== previousGameStatusesRef.current.size) {
+      statusChanged = true;
+    } else {
+      for (const [gameId, status] of currentGameStatuses.entries()) {
+        if (previousGameStatusesRef.current.get(gameId) !== status) {
+          statusChanged = true;
+          break;
+        }
+      }
+    }
+    
+    // If no status changes, return last filtered predictions to avoid re-render
+    if (!statusChanged && lastFilteredPredictionsRef.current.length > 0) {
+      return lastFilteredPredictionsRef.current;
+    }
+    
+    // Update the ref with current statuses
+    previousGameStatusesRef.current = new Map(currentGameStatuses);
+    
+    // Filter to only show predictions for upcoming games
+    // Show predictions if game doesn't exist yet OR if game exists and is upcoming
+    const upcomingPredictions = allPredictions.filter(prediction => {
+      // If no games loaded yet, show all predictions (they're for future games)
+      if (games.length === 0) {
+        return true;
+      }
+      
+      // Try to find matching game
+      const matchingGame = games.find(game => {
+        const gameId = 'gameId' in game ? game.gameId : game.game_id;
+        if (gameId === prediction.game_id) {
+          return true;
+        }
+        // Also try matching by team IDs
+        const homeId = 'homeTeam' in game ? game.homeTeam?.teamId : game.home_team?.team_id;
+        const awayId = 'awayTeam' in game ? game.awayTeam?.teamId : game.away_team?.team_id;
+        return (
+          (homeId === prediction.home_team_id && awayId === prediction.away_team_id) ||
+          (homeId === prediction.away_team_id && awayId === prediction.home_team_id)
+        );
+      });
+      
+      // Show prediction if:
+      // 1. No matching game found (prediction exists but game not in schedule yet) - show it
+      // 2. Matching game exists and is upcoming - show it
+      if (!matchingGame) {
+        return true; // Prediction exists but game not scheduled yet
+      }
+      
+      // Game exists - only show if it's upcoming
+      return getGameStatus(matchingGame) === 'upcoming';
+    });
+    
+    // Generate stable ID string for comparison
+    const newIds = upcomingPredictions.map(p => p.game_id).sort().join(',');
+    const previousIds = previousFilteredPredictionIdsRef.current;
+    
+    // Only update if the filtered list actually changed (avoid unnecessary re-renders)
+    // Defensive check: preserve existing predictions if filtering returns empty during rapid updates
+    if (newIds !== previousIds) {
+      // If filtering returns empty but we have allPredictions, preserve current predictions
+      // This prevents clearing during rapid game state transitions
+      if (upcomingPredictions.length === 0 && allPredictions.length > 0 && previousIds !== '') {
+        // During rapid updates, games might temporarily be in a state where they appear live
+        // but predictions should still be shown. Only clear if we're certain there are no upcoming games.
+        // For now, preserve existing predictions to prevent flickering.
+        const preserved = lastFilteredPredictionsRef.current.length > 0 
+          ? lastFilteredPredictionsRef.current 
+          : upcomingPredictions;
+        lastFilteredPredictionsRef.current = preserved;
+        return preserved;
+      }
+      
+      // Update the refs to track the new IDs and predictions
+      previousFilteredPredictionIdsRef.current = newIds;
+      lastFilteredPredictionsRef.current = upcomingPredictions;
+      return upcomingPredictions;
+    }
+    
+    // No change, return last filtered predictions to maintain stability
+    return lastFilteredPredictionsRef.current.length > 0 
+      ? lastFilteredPredictionsRef.current 
+      : upcomingPredictions;
+  }, [allPredictions, games, predictionsLoading]);
+
+  // Note: We no longer update predictions state here since we use filteredPredictions directly
+  // This prevents unnecessary re-renders and flashing
+
+  /**
    * Close search results dropdown when user clicks outside of it.
    */
   useEffect(() => {
@@ -629,39 +837,47 @@ const Scoreboard = () => {
   const renderGameSection = (
     title: string,
     gameList: (Game | GameSummary)[],
+    icon?: React.ReactNode,
+    isFirst?: boolean,
   ) => {
     if (gameList.length === 0) return null;
 
     return (
-      <Box sx={{ mb: responsiveSpacing.section }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: responsiveSpacing.element }}>
+      <Box sx={{ mb: { xs: 3, sm: 4, md: 5 }, mt: isFirst ? 0 : undefined }}>
+        <Box 
+          sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: { xs: 1.5, sm: 2 },
+            mb: { xs: 2, sm: 2.5 },
+            pb: 1,
+            borderBottom: '1px solid',
+            borderColor: 'divider',
+          }}
+        >
+          {icon && (
+            <Box sx={{ color: 'primary.main', display: 'flex', alignItems: 'center' }}>
+              {icon}
+            </Box>
+          )}
           <Typography 
             variant="h6" 
             sx={{ 
               fontWeight: typography.weight.bold, 
-              fontSize: typography.size.h6,
+              fontSize: { xs: typography.size.h6.xs, sm: typography.size.h6.sm },
               color: 'text.primary',
+              letterSpacing: '-0.01em',
+              flex: 1,
             }}
           >
             {title}
           </Typography>
-          <Chip
-            label={gameList.length}
-            size="small"
-            sx={{
-              backgroundColor: 'rgba(255, 255, 255, 0.08)',
-              color: 'text.secondary',
-              fontWeight: typography.weight.semibold,
-              height: 22,
-              fontSize: typography.size.captionSmall,
-            }}
-          />
         </Box>
         <Box
           sx={{
             display: 'flex',
             flexDirection: 'column',
-            gap: 1,
+            gap: { xs: 2, sm: 2.5, md: 3 }, // Responsive spacing between games
           }}
         >
           {gameList.map(game => {
@@ -723,205 +939,106 @@ const Scoreboard = () => {
     );
   };
 
+  // Prepare search props for Navbar
+  const searchProps = {
+    searchInput,
+    setSearchInput,
+    searchResults,
+    showSearchResults,
+    setShowSearchResults,
+    loading,
+    searchContainerRef,
+  };
+
   return (
     <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default', display: 'flex', flexDirection: 'column' }}>
-      <Navbar />
-      <PageLayout sidebar={<UniversalSidebar games={games.filter((g): g is Game => 'gameId' in g)} winProbabilities={gameWinProbabilities} />}>
-        {/* Scoreboard Page Header: Title, Calendar, and Search */}
+      <Navbar searchProps={searchProps} />
+      <Box sx={{ maxWidth: '1400px', mx: 'auto', px: { xs: 2, sm: 3, md: 4 }, py: { xs: 2, sm: 3 } }}>
+        {/* Scoreboard Page Header: Title and Calendar */}
         <Box
           sx={{
             display: 'flex',
-            flexDirection: { xs: 'column', md: 'row' },
-            alignItems: { xs: 'flex-start', md: 'center' },
+            flexDirection: { xs: 'column', sm: 'row' },
+            alignItems: { xs: 'stretch', sm: 'center' },
             justifyContent: 'space-between',
             gap: { xs: 2, sm: 3 },
-            mb: { xs: 3, sm: 4 },
-            flexWrap: 'wrap',
+            mb: { xs: 3, sm: 4, md: 5 },
           }}
         >
-          {/* Left: Page Title */}
-          <Box sx={{ flex: { xs: '1 1 100%', md: '0 0 auto' }, minWidth: 0 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexShrink: 0 }}>
             <Typography
               variant="h4"
               sx={{
                 fontWeight: typography.weight.bold,
                 fontSize: { xs: typography.size.h5, sm: typography.size.h4 },
                 color: 'text.primary',
-                mb: 0.5,
                 letterSpacing: '-0.02em',
               }}
             >
-              Live Scoreboard
-            </Typography>
-            <Typography 
-              variant="body2" 
-              color="text.secondary"
-              sx={{ fontSize: { xs: '0.875rem', sm: '0.9375rem' } }}
-            >
-              Real-time NBA game scores and updates
+              NBA Scoreboard
             </Typography>
           </Box>
-
-          {/* Center: Calendar - Compact */}
-          <Box
-            sx={{
-              flex: { xs: '1 1 100%', md: '0 0 auto' },
-              order: { xs: 3, md: 2 },
-              width: { xs: '100%', md: 'auto' },
-              maxWidth: { xs: '100%', md: 400 },
-            }}
-          >
+          <Box sx={{ flexShrink: 0 }}>
             <WeeklyCalendar selectedDate={selectedDate} setSelectedDate={setSelectedDate} />
           </Box>
+        </Box>
 
-          {/* Right: Search input */}
-          <Box
-            ref={searchContainerRef}
-            sx={{
-              position: 'relative',
-              flex: { xs: '1 1 100%', md: '0 0 auto' },
-              width: { xs: '100%', md: 'auto' },
-              maxWidth: { xs: '100%', md: 320 },
-              order: { xs: 2, md: 3 },
+        {/* Predictions & Insights Section - Always render when date condition is met */}
+        {selectedDate >= getLocalISODate() && (
+          <Box 
+            sx={{ 
+              mb: 0,
+              minHeight: predictionsLoading ? 180 : undefined,
+              transition: 'min-height 0.3s ease',
             }}
           >
-            <TextField
-              fullWidth
-              value={searchInput}
-              onChange={e => setSearchInput(e.target.value)}
-              placeholder="Search..."
-              variant="outlined"
-              size="small"
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Search sx={{ color: 'text.secondary', fontSize: 18 }} />
-                  </InputAdornment>
-                ),
-                endAdornment: searchInput && (
-                  <InputAdornment position="end">
-                    {loading ? (
-                      <CircularProgress size={16} />
-                    ) : (
-                      <IconButton
-                        onClick={() => setSearchInput('')}
-                        size="small"
-                        sx={{ color: 'text.secondary', p: 0.5 }}
-                      >
-                        <Close fontSize="small" />
-                      </IconButton>
-                    )}
-                  </InputAdornment>
-                ),
-              }}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  fontSize: { xs: '0.875rem', sm: '0.9375rem' },
-                  height: { xs: 36, sm: 40 },
-                },
-              }}
+            <PredictionsSummary
+              predictions={filteredPredictions}
+              loading={predictionsLoading}
+              error={predictionsError}
             />
-            {/* Search results dropdown */}
-            {showSearchResults && (searchResults.players.length > 0 || searchResults.teams.length > 0) && (
-              <Paper
-                elevation={3} // Material 3: max elevation for dropdowns
-                sx={{
-                  position: 'absolute',
-                  top: '100%',
-                  left: 0,
-                  right: 0,
-                  mt: 1,
-                  maxHeight: 400,
-                  overflow: 'auto',
-                  zIndex: zIndex.dropdown,
-                  backgroundColor: 'background.paper', // Material 3: surface
-                  borderRadius: 1.5, // Material 3: 12dp
-                  border: '1px solid',
-                  borderColor: 'divider', // Material 3: outline
-                }}
-              >
-                <List dense>
-                  {/* Players section */}
-                  {searchResults.players.length > 0 && (
-                    <>
-                      <ListItem>
-                        <ListItemText
-                          primary="Players"
-                          primaryTypographyProps={{
-                            variant: 'caption',
-                            sx: { fontWeight: typography.weight.bold, textTransform: 'uppercase', color: 'text.secondary' },
-                          }}
-                        />
-                      </ListItem>
-                      {searchResults.players.map(player => {
-                        const parts = player.name.split(' ');
-                        const firstName = parts.slice(0, -1).join(' ');
-                        const lastName = parts[parts.length - 1];
-                        return (
-                          <ListItem
-                            key={`p${player.id}`}
-                            component={MuiLink}
-                            href={`/player/${player.id}`}
-                            onClick={() => setShowSearchResults(false)}
-                            sx={{
-                              cursor: 'pointer',
-                              '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.04)' },
-                            }}
-                          >
-                            <ListItemText
-                              primary={`${firstName} ${lastName}`}
-                              secondary={player.team_abbreviation}
-                              primaryTypographyProps={{ fontWeight: typography.weight.semibold }}
-                            />
-                          </ListItem>
-                        );
-                      })}
-                    </>
-                  )}
-                  {/* Teams section */}
-                  {searchResults.teams.length > 0 && (
-                    <>
-                      <ListItem>
-                        <ListItemText
-                          primary="Teams"
-                          primaryTypographyProps={{
-                            variant: 'caption',
-                            sx: { fontWeight: typography.weight.bold, textTransform: 'uppercase', color: 'text.secondary' },
-                          }}
-                        />
-                      </ListItem>
-                      {searchResults.teams.map(team => (
-                        <ListItem
-                          key={`t${team.id}`}
-                          component={MuiLink}
-                          href={`/team/${team.id}`}
-                          onClick={() => setShowSearchResults(false)}
-                          sx={{
-                            cursor: 'pointer',
-                            '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.04)' },
-                          }}
-                        >
-                          <ListItemText
-                            primary={team.name}
-                            secondary={team.abbreviation}
-                            primaryTypographyProps={{ fontWeight: typography.weight.semibold }}
-                          />
-                        </ListItem>
-                      ))}
-                    </>
-                  )}
-                </List>
-              </Paper>
-            )}
           </Box>
+        )}
+
+        {/* Win Probability Insights - Always reserve space to prevent layout shifts */}
+        <Box 
+          sx={{ 
+            mb: 0,
+            minHeight: isToday ? 200 : 0,
+            transition: 'opacity 0.3s ease, min-height 0.3s ease',
+            opacity: isToday && !loading ? 1 : 0,
+            visibility: isToday && !loading ? 'visible' : 'hidden',
+            height: isToday && !loading ? 'auto' : 0,
+            overflow: isToday && !loading ? 'visible' : 'hidden',
+          }}
+        >
+          {isToday && !loading && (() => {
+            // Filter to only live games (Game type with gameStatus === 2)
+            const liveGamesForTracker = games.filter(
+              (g): g is Game => {
+                if (!('homeTeam' in g) || !('gameStatus' in g)) return false;
+                const game = g as Game;
+                return game.gameStatus === 2;
+              }
+            );
+            if (liveGamesForTracker.length > 0 && gameWinProbabilities.size > 0) {
+              return (
+                <WinProbabilityTracker
+                  games={liveGamesForTracker}
+                  winProbabilities={gameWinProbabilities}
+                />
+              );
+            }
+            return null;
+          })()}
         </Box>
 
         {/* Game Statistics Summary Bar */}
         {loading && isToday ? (
-          <Box sx={{ mb: responsiveSpacing.element, display: 'flex', gap: 2, alignItems: 'center' }}>
-            <Skeleton variant="text" width={100} height={20} />
-            <Skeleton variant="text" width={100} height={20} />
-            <Skeleton variant="text" width={100} height={20} />
+          <Box sx={{ mb: { xs: 1.5, sm: 2 }, mt: 0, display: 'flex', gap: 2, alignItems: 'center', minHeight: 40 }}>
+            <Skeleton variant="text" width={100} height={24} sx={{ borderRadius: borderRadius.xs }} />
+            <Skeleton variant="text" width={80} height={24} sx={{ borderRadius: borderRadius.xs }} />
+            <Skeleton variant="rectangular" width={200} height={32} sx={{ borderRadius: borderRadius.sm, ml: 'auto' }} />
           </Box>
         ) : (
           games.length > 0 && isToday && (
@@ -930,19 +1047,38 @@ const Scoreboard = () => {
                 display: 'flex',
                 gap: { xs: 2, sm: 3 },
                 alignItems: 'center',
-                mb: responsiveSpacing.element,
+                mb: { xs: 1.5, sm: 2 },
+                mt: 0,
                 flexWrap: 'wrap',
+                minHeight: 40, // Prevent layout shift
               }}
             >
-              <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: typography.weight.medium }}>
-                {gameStats.totalGames} Games
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  color: 'text.secondary', 
+                  fontWeight: typography.weight.medium,
+                  fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm },
+                }}
+              >
+                {gameStats.totalGames} {gameStats.totalGames === 1 ? 'Game' : 'Games'}
               </Typography>
               {gameStats.gamesInProgress > 0 && (
                 <>
-                  <Divider orientation="vertical" flexItem sx={{ height: 16 }} />
-                  <Typography variant="body2" sx={{ color: 'error.main', fontWeight: typography.weight.semibold }}>
-                    {gameStats.gamesInProgress} Live
-                  </Typography>
+                  <Divider orientation="vertical" flexItem sx={{ height: { xs: 14, sm: 16 } }} />
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <FiberManualRecord sx={{ fontSize: 8, color: 'error.main' }} />
+                    <Typography 
+                      variant="body2" 
+                      sx={{ 
+                        color: 'error.main', 
+                        fontWeight: typography.weight.semibold,
+                        fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm },
+                      }}
+                    >
+                      {gameStats.gamesInProgress} Live
+                    </Typography>
+                  </Box>
                 </>
               )}
               <Box sx={{ flex: 1 }} />
@@ -953,13 +1089,16 @@ const Scoreboard = () => {
                 size="small"
                 sx={{
                   '& .MuiToggleButton-root': {
-                    px: 1.5,
-                    py: 0.5,
+                    px: { xs: 1.5, sm: 1.5 },
+                    py: { xs: 1, sm: 1 },
                     textTransform: 'none',
                     fontWeight: typography.weight.semibold,
-                    fontSize: typography.size.caption,
+                    fontSize: { xs: typography.size.caption.xs, sm: typography.size.caption.sm },
+                    minHeight: { xs: 44, sm: 40 }, // 44px minimum for mobile touch targets
+                    minWidth: { xs: 44, sm: 'auto' }, // Ensure minimum width for touch
                     borderColor: 'divider',
                     color: 'text.secondary',
+                    transition: transitions.smooth,
                     '&.Mui-selected': {
                       backgroundColor: 'primary.main',
                       color: 'primary.contrastText',
@@ -967,6 +1106,9 @@ const Scoreboard = () => {
                       '&:hover': {
                         backgroundColor: 'primary.dark',
                       },
+                    },
+                    '&:hover': {
+                      backgroundColor: 'action.hover',
                     },
                   },
                 }}
@@ -985,14 +1127,23 @@ const Scoreboard = () => {
         {loading && !searchInput && games.length === 0 ? (
           <Box>
             {/* Skeleton loading */}
-            <Box sx={{ mb: responsiveSpacing.section }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: responsiveSpacing.element }}>
-                <Skeleton variant="text" width={120} height={24} />
-                <Skeleton variant="rectangular" width={32} height={22} sx={{ borderRadius: borderRadius.xs }} />
+            <Box sx={{ mb: { xs: 3, sm: 4, md: 5 } }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1.5, sm: 2 }, mb: { xs: 2, sm: 2.5 }, pb: 1 }}>
+                <Skeleton variant="circular" width={20} height={20} />
+                <Skeleton variant="text" width={140} height={28} sx={{ flex: 1 }} />
+                <Skeleton variant="rectangular" width={32} height={24} sx={{ borderRadius: borderRadius.xs }} />
               </Box>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 2, sm: 2.5, md: 3 } }}>
                 {[...Array(3)].map((_, index) => (
-                  <Skeleton key={index} variant="rectangular" height={64} sx={{ borderRadius: borderRadius.sm }} />
+                  <Skeleton 
+                    key={index} 
+                    variant="rectangular" 
+                    height={110}
+                    sx={{ 
+                      borderRadius: borderRadius.md,
+                      height: { xs: 100, sm: 110 },
+                    }} 
+                  />
                 ))}
               </Box>
             </Box>
@@ -1013,29 +1164,38 @@ const Scoreboard = () => {
                 </Box>
               </Box>
             )}
-            {renderGameSection('Live Games', filteredLiveGames)}
-            {renderGameSection('Upcoming Games', filteredUpcomingGames)}
-            {renderGameSection('Completed Games', filteredCompletedGames)}
+            {renderGameSection('Live Games', filteredLiveGames, <FiberManualRecord sx={{ fontSize: { xs: 16, sm: 18 }, color: 'error.main' }} />, filteredLiveGames.length > 0 && filteredUpcomingGames.length === 0 && filteredCompletedGames.length === 0)}
+            {renderGameSection('Upcoming Games', filteredUpcomingGames, <Schedule sx={{ fontSize: { xs: 16, sm: 18 } }} />, filteredLiveGames.length === 0 && filteredUpcomingGames.length > 0)}
+            {renderGameSection('Completed Games', filteredCompletedGames, <Event sx={{ fontSize: { xs: 16, sm: 18 } }} />, filteredLiveGames.length === 0 && filteredUpcomingGames.length === 0 && filteredCompletedGames.length > 0)}
           </Box>
         ) : (
           // If viewing past or future date, show appropriate category with filters applied
           <Box>
             {loading && (
-              <Box sx={{ mb: responsiveSpacing.section }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: responsiveSpacing.element }}>
-                  <Skeleton variant="text" width={120} height={24} />
-                  <Skeleton variant="rectangular" width={32} height={22} sx={{ borderRadius: borderRadius.xs }} />
+              <Box sx={{ mb: { xs: 3, sm: 4, md: 5 } }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1.5, sm: 2 }, mb: { xs: 2, sm: 2.5 }, pb: 1 }}>
+                  <Skeleton variant="circular" width={20} height={20} />
+                  <Skeleton variant="text" width={140} height={28} sx={{ flex: 1 }} />
+                  <Skeleton variant="rectangular" width={32} height={24} sx={{ borderRadius: borderRadius.xs }} />
                 </Box>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 2, sm: 2.5, md: 3 } }}>
                   {[...Array(2)].map((_, index) => (
-                    <Skeleton key={index} variant="rectangular" height={64} sx={{ borderRadius: borderRadius.sm }} />
+                    <Skeleton 
+                      key={index} 
+                      variant="rectangular" 
+                      height={110}
+                      sx={{ 
+                        borderRadius: borderRadius.md,
+                        height: { xs: 100, sm: 110 },
+                      }} 
+                    />
                   ))}
                 </Box>
               </Box>
             )}
             {selectedDate < today
-              ? renderGameSection('Completed Games', filteredCompletedGames)
-              : renderGameSection('Future Games', filteredUpcomingGames)}
+              ? renderGameSection('Completed Games', filteredCompletedGames, <Event sx={{ fontSize: { xs: 16, sm: 18 } }} />, true)
+              : renderGameSection('Future Games', filteredUpcomingGames, <Schedule sx={{ fontSize: { xs: 16, sm: 18 } }} />, true)}
           </Box>
         )}
 
@@ -1245,7 +1405,7 @@ const Scoreboard = () => {
             {toast?.message}
           </Alert>
         </Snackbar>
-      </PageLayout>
+      </Box>
     </Box>
   );
 };

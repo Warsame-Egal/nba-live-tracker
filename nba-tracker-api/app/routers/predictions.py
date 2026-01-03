@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime
+from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query
 
@@ -62,4 +63,5 @@ async def get_predictions_for_date(
     except Exception as e:
         logger.error(f"Error getting predictions for date {date}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Error getting predictions: {str(e)}")
+
 

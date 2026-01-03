@@ -43,7 +43,7 @@ const categoryLabels: Record<CategoryTab, string> = {
  * - Clickable player cards that navigate to player profiles
  * - Responsive design matching existing UI style
  * 
- * Used in the UniversalSidebar as a new "Leaders" tab.
+ * Displays league leaders across multiple stat categories.
  */
 const LeagueLeadersDashboard: React.FC<LeagueLeadersDashboardProps> = ({ season }) => {
   const navigate = useNavigate();
