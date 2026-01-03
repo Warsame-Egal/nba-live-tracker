@@ -1,17 +1,19 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Box, CircularProgress, Typography, Grid, Button, Avatar, Paper, FormControl, InputLabel, Select, MenuItem } from '@mui/material';
+import { Box, Typography, Grid, Button, Avatar, Paper, FormControl, InputLabel, Select, MenuItem, Skeleton } from '@mui/material';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import UniversalSidebar from '../components/UniversalSidebar';
 import Navbar from '../components/Navbar';
-import PageLayout from '../components/PageLayout';
 import { getCurrentSeason, getSeasonOptions } from '../utils/season';
 import { fetchJson } from '../utils/apiClient';
 import { StandingsResponse, StandingRecord } from '../types/standings';
-import { typography, transitions } from '../theme/designTokens';
+import { typography, transitions, responsiveSpacing, borderRadius } from '../theme/designTokens';
 import { getTeamInfo } from '../utils/teamMappings';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
+/**
+ * Teams page showing all NBA teams grouped by division.
+ * Supports season filtering and navigation to individual team pages.
+ */
 const Teams = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -89,8 +91,25 @@ const Teams = () => {
     return (
       <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default', display: 'flex', flexDirection: 'column' }}>
         <Navbar />
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1 }}>
-          <CircularProgress />
+        <Box sx={{ maxWidth: '1400px', mx: 'auto', px: responsiveSpacing.container, py: responsiveSpacing.containerVertical, width: '100%' }}>
+          <Box sx={{ mb: responsiveSpacing.section, minHeight: { xs: 80, sm: 90 } }}>
+            <Skeleton variant="text" width={200} height={40} sx={{ mb: 1 }} />
+            <Skeleton variant="text" width={300} height={24} />
+          </Box>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            {[...Array(2)].map((_, index) => (
+              <Box key={index}>
+                <Skeleton variant="text" width={250} height={32} sx={{ mb: 2 }} />
+                <Grid container spacing={2}>
+                  {[...Array(3)].map((_, divIndex) => (
+                    <Grid item xs={12} sm={6} lg={4} key={divIndex}>
+                      <Skeleton variant="rectangular" height={400} sx={{ borderRadius: borderRadius.md }} />
+                    </Grid>
+                  ))}
+                </Grid>
+              </Box>
+            ))}
+          </Box>
         </Box>
       </Box>
     );
@@ -110,24 +129,31 @@ const Teams = () => {
   return (
     <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default', display: 'flex', flexDirection: 'column' }}>
       <Navbar />
-      <PageLayout sidebar={<UniversalSidebar />}>
-            <Box sx={{ mb: { xs: 3, sm: 4 }, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
-              <Typography
-                variant="h4"
-                sx={{
-                  fontWeight: typography.weight.bold,
-                  fontSize: { xs: typography.size.h5, sm: typography.size.h4 },
-                }}
-              >
-                All Teams
-              </Typography>
-              <FormControl size="small" sx={{ minWidth: 180 }}>
-                <InputLabel>Season</InputLabel>
+      <Box sx={{ maxWidth: '1400px', mx: 'auto', px: responsiveSpacing.container, py: responsiveSpacing.containerVertical }}>
+            <Box sx={{ mb: responsiveSpacing.section, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2, minHeight: { xs: 80, sm: 90 } }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                <Typography
+                  variant="h4"
+                  sx={{
+                    fontWeight: typography.weight.bold,
+                    fontSize: { xs: typography.size.h5.xs, sm: typography.size.h5.sm, md: typography.size.h4.md },
+                    color: 'text.primary',
+                    letterSpacing: typography.letterSpacing.tight,
+                  }}
+                >
+                  All Teams
+                </Typography>
+              </Box>
+              <FormControl size="small" sx={{ minWidth: { xs: 160, sm: 180 } }}>
+                <InputLabel sx={{ fontSize: { xs: typography.size.body.xs, sm: typography.size.body.sm } }}>Season</InputLabel>
                 <Select
                   value={season}
                   label="Season"
                   onChange={(e) => handleSeasonChange(e.target.value)}
-                  sx={{ borderRadius: 1 }} // Material 3: 8dp
+                  sx={{ 
+                    borderRadius: borderRadius.sm,
+                    fontSize: { xs: typography.size.body.xs, sm: typography.size.body.sm },
+                  }}
                 >
                   {seasonOptions.map(seasonOption => (
                     <MenuItem key={seasonOption} value={seasonOption}>
@@ -140,14 +166,15 @@ const Teams = () => {
 
             {/* Teams grouped by division */}
             {(['East', 'West'] as const).map(conference => (
-              <Box key={conference} sx={{ mb: { xs: 4, sm: 5 } }}>
+              <Box key={conference} sx={{ mb: responsiveSpacing.sectionLarge, minHeight: { xs: 400, sm: 500 } }}>
                 <Typography
                   variant="h5"
                   sx={{
                     fontWeight: typography.weight.bold,
                     mb: 2,
-                    fontSize: { xs: typography.size.h6, sm: typography.size.h5 },
+                    fontSize: { xs: typography.size.h6.xs, sm: typography.size.h6.sm, md: typography.size.h5.md },
                     color: 'text.primary',
+                    letterSpacing: typography.letterSpacing.tight,
                   }}
                 >
                   {conference === 'East' ? 'Eastern Conference' : 'Western Conference'}
@@ -166,11 +193,11 @@ const Teams = () => {
                             sx={{
                               fontWeight: typography.weight.semibold,
                               mb: 1.5,
-                              fontSize: typography.size.bodyLarge,
+                              fontSize: { xs: typography.size.bodyLarge.xs, sm: typography.size.bodyLarge.sm },
                               color: 'text.secondary',
                               textTransform: 'uppercase',
                               letterSpacing: '0.5px',
-                              minHeight: '1.75rem', // Consistent height for division titles
+                              minHeight: { xs: '1.5rem', sm: '1.75rem' },
                               lineHeight: 1.5,
                             }}
                           >
@@ -180,10 +207,11 @@ const Teams = () => {
                             elevation={0}
                             sx={{
                               border: '1px solid',
-                              borderColor: 'divider', // Material 3: outline
-                              borderRadius: 1.5, // Material 3: 12dp
-                              overflow: 'hidden', // Keep for rounded corners
-                              backgroundColor: 'background.paper', // Material 3: surface
+                              borderColor: 'divider',
+                              borderRadius: borderRadius.md,
+                              overflow: 'hidden',
+                              backgroundColor: 'background.paper',
+                              minHeight: { xs: 300, sm: 350 },
                             }}
                           >
                             {teams.map((team, index) => {
@@ -235,7 +263,7 @@ const Teams = () => {
                                       variant="body1"
                                       sx={{
                                         fontWeight: typography.weight.bold,
-                                        fontSize: typography.size.body,
+                                        fontSize: { xs: typography.size.body.xs, sm: typography.size.body.sm },
                                         mb: 0.25,
                                         overflow: 'hidden',
                                         textOverflow: 'ellipsis',
@@ -246,18 +274,19 @@ const Teams = () => {
                                       {fullTeamName}
                                     </Typography>
                                   </Box>
-                                  <Box sx={{ display: 'flex', gap: 0.5, flexShrink: 0, ml: 'auto' }}>
+                                  <Box sx={{ display: 'flex', gap: 0.5, flexShrink: 0, ml: 'auto', flexWrap: 'wrap' }}>
                                     <Button
                                       size="small"
                                       variant="text"
                                       onClick={() => navigate(`/team/${team.team_id}`)}
                                       sx={{
                                         textTransform: 'none',
-                                        fontSize: typography.size.caption,
-                                        minWidth: 'auto',
-                                        px: 1,
-                                        py: 0.5,
+                                        fontSize: { xs: typography.size.caption.xs, sm: typography.size.caption.sm },
+                                        minWidth: { xs: 44, sm: 'auto' },
+                                        px: { xs: 1, sm: 1 },
+                                        py: { xs: 1, sm: 0.5 },
                                         whiteSpace: 'nowrap',
+                                        minHeight: { xs: 44, sm: 36 },
                                       }}
                                     >
                                       Profile
@@ -268,11 +297,12 @@ const Teams = () => {
                                       onClick={() => navigate(`/team/${team.team_id}?tab=stats`)}
                                       sx={{
                                         textTransform: 'none',
-                                        fontSize: typography.size.caption,
-                                        minWidth: 'auto',
-                                        px: 1,
-                                        py: 0.5,
+                                        fontSize: { xs: typography.size.caption.xs, sm: typography.size.caption.sm },
+                                        minWidth: { xs: 44, sm: 'auto' },
+                                        px: { xs: 1, sm: 1 },
+                                        py: { xs: 1, sm: 0.5 },
                                         whiteSpace: 'nowrap',
+                                        minHeight: { xs: 44, sm: 36 },
                                       }}
                                     >
                                       Stats
@@ -283,11 +313,12 @@ const Teams = () => {
                                       onClick={() => navigate(`/team/${team.team_id}?tab=schedule`)}
                                       sx={{
                                         textTransform: 'none',
-                                        fontSize: typography.size.caption,
-                                        minWidth: 'auto',
-                                        px: 1,
-                                        py: 0.5,
+                                        fontSize: { xs: typography.size.caption.xs, sm: typography.size.caption.sm },
+                                        minWidth: { xs: 44, sm: 'auto' },
+                                        px: { xs: 1, sm: 1 },
+                                        py: { xs: 1, sm: 0.5 },
                                         whiteSpace: 'nowrap',
+                                        minHeight: { xs: 44, sm: 36 },
                                       }}
                                     >
                                       Schedule
@@ -304,7 +335,7 @@ const Teams = () => {
                 </Grid>
               </Box>
             ))}
-      </PageLayout>
+      </Box>
     </Box>
   );
 };

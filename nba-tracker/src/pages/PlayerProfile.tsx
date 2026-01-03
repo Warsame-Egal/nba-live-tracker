@@ -16,8 +16,6 @@ import {
 import { PlayerSummary } from '../types/player';
 import { format } from 'date-fns';
 import Navbar from '../components/Navbar';
-import PageLayout from '../components/PageLayout';
-import PlayersSidebar from '../components/PlayersSidebar';
 import PlayerPerformanceChart from '../components/PlayerPerformanceChart';
 import PlayerBanner from '../components/PlayerBanner';
 import { fetchJson } from '../utils/apiClient';
@@ -30,18 +28,13 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000
 // Player profile page with stats, game log, and performance charts
 const PlayerProfile: React.FC = () => {
   const { playerId } = useParams<{ playerId: string }>();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const [player, setPlayer] = useState<PlayerSummary | null>(null);
   const [gameLog, setGameLog] = useState<PlayerGameLogResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedStat, setSelectedStat] = useState<string>('PTS');
 
   const season = searchParams.get('season') || getCurrentSeason();
-
-  const handleSeasonChange = (newSeason: string) => {
-    setSearchParams({ season: newSeason });
-  };
 
   useEffect(() => {
     if (!playerId) return;
@@ -86,25 +79,16 @@ const PlayerProfile: React.FC = () => {
     fetchGameLog();
   }, [playerId, season]);
 
-  const sidebar = (
-    <PlayersSidebar
-      selectedStat={selectedStat}
-      onStatChange={setSelectedStat}
-      season={season}
-      onSeasonChange={handleSeasonChange}
-    />
-  );
-
   // Show loading spinner while fetching data
   if (loading) {
     return (
       <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default', display: 'flex', flexDirection: 'column' }}>
         <Navbar />
-        <PageLayout sidebar={sidebar}>
+        <Box sx={{ maxWidth: '1400px', mx: 'auto', px: { xs: 2, sm: 3, md: 4 }, py: { xs: 2, sm: 3 } }}>
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
             <CircularProgress />
           </Box>
-        </PageLayout>
+        </Box>
       </Box>
     );
   }
@@ -114,9 +98,9 @@ const PlayerProfile: React.FC = () => {
     return (
       <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default', display: 'flex', flexDirection: 'column' }}>
         <Navbar />
-        <PageLayout sidebar={sidebar}>
+        <Box sx={{ maxWidth: '1400px', mx: 'auto', px: { xs: 2, sm: 3, md: 4 }, py: { xs: 2, sm: 3 } }}>
           <Alert severity="error">{error}</Alert>
-        </PageLayout>
+        </Box>
       </Box>
     );
   }
@@ -126,11 +110,11 @@ const PlayerProfile: React.FC = () => {
     return (
       <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default', display: 'flex', flexDirection: 'column' }}>
         <Navbar />
-        <PageLayout sidebar={sidebar}>
+        <Box sx={{ maxWidth: '1400px', mx: 'auto', px: { xs: 2, sm: 3, md: 4 }, py: { xs: 2, sm: 3 } }}>
           <Typography variant="body1" color="text.secondary" textAlign="center">
             Player not found.
           </Typography>
-        </PageLayout>
+        </Box>
       </Box>
     );
   }
@@ -141,7 +125,7 @@ const PlayerProfile: React.FC = () => {
   return (
     <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default', display: 'flex', flexDirection: 'column' }}>
       <Navbar />
-      <PageLayout sidebar={sidebar}>
+      <Box sx={{ maxWidth: '1400px', mx: 'auto', px: { xs: 2, sm: 3, md: 4 }, py: { xs: 2, sm: 3 } }}>
         <PlayerBanner
           playerId={player.PERSON_ID}
           firstName={player.PLAYER_FIRST_NAME}
@@ -194,12 +178,14 @@ const PlayerProfile: React.FC = () => {
               >
                 Game Log
               </Typography>
-              <TableContainer
-                sx={{
-                  overflowX: 'auto',
-                }}
-              >
-                <Table size="small">
+              <Box sx={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                <TableContainer
+                  sx={{
+                    overflowX: 'auto',
+                    minWidth: { xs: 600, sm: 'auto' },
+                  }}
+                >
+                  <Table size="small" sx={{ minWidth: { xs: 600, sm: 'auto' } }}>
                   <TableHead>
                     <TableRow>
                       <TableCell sx={{ fontWeight: typography.weight.bold }}>Date</TableCell>
@@ -307,10 +293,11 @@ const PlayerProfile: React.FC = () => {
                   </TableBody>
                 </Table>
               </TableContainer>
+              </Box>
             </Paper>
           </Box>
         )}
-      </PageLayout>
+      </Box>
     </Box>
   );
 };

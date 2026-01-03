@@ -93,38 +93,79 @@ const GameRow: React.FC<GameRowProps> = ({
     : ('gameLeaders' in game ? (game as GameSummary).gameLeaders : null);
   const getGameTime = () => {
     if (isLiveGame) {
+      // For live games, try gameEt first (Eastern Time), then gameTimeUTC
       if (game.gameEt) {
         try {
-          return format(parseISO(game.gameEt), 'h:mm a');
+          const parsed = parseISO(game.gameEt);
+          if (!isNaN(parsed.getTime())) {
+            return format(parsed, 'h:mm a');
+          }
         } catch {
-          return 'TBD';
+          // Continue to next option
         }
       }
       if (game.gameTimeUTC) {
         try {
-          return format(parseISO(game.gameTimeUTC), 'h:mm a');
+          const parsed = parseISO(game.gameTimeUTC);
+          if (!isNaN(parsed.getTime())) {
+            return format(parsed, 'h:mm a');
+          }
         } catch {
-          return 'TBD';
+          // Continue to next option
         }
       }
       return 'TBD';
     }
-    if (game.game_time_utc) {
+    // For GameSummary (future/past games), check game_time_utc first
+    // The API provides this field for scheduled games
+    if (game.game_time_utc && game.game_time_utc.trim() !== '') {
       try {
-        return format(parseISO(game.game_time_utc), 'h:mm a');
-      } catch {
-        return 'TBD';
+        // Try parsing as ISO string first
+        let parsed = parseISO(game.game_time_utc);
+        
+        // If that fails or results in invalid date, try other formats
+        if (isNaN(parsed.getTime())) {
+          // Try parsing as date string with time
+          parsed = new Date(game.game_time_utc);
+        }
+        
+        // Verify it's a valid date
+        if (!isNaN(parsed.getTime())) {
+          // Check if it has time information (not just date)
+          // Even if it's midnight, we can still show the time
+          return format(parsed, 'h:mm a');
+        }
+      } catch (error) {
+        // Continue to next option
+        console.debug('Failed to parse game_time_utc:', game.game_time_utc, error);
       }
     }
+    // Also check if there's a gameTimeUTC field (some API responses might use this)
+    if ('gameTimeUTC' in game && game.gameTimeUTC && typeof game.gameTimeUTC === 'string') {
+      try {
+        const parsed = parseISO(game.gameTimeUTC);
+        if (!isNaN(parsed.getTime())) {
+          return format(parsed, 'h:mm a');
+        }
+      } catch {
+        // Continue
+      }
+    }
+    // Fallback to game_date if it has time information
     if (game.game_date) {
       try {
         const parsed = parseISO(game.game_date);
-        if (parsed.getHours() === 0 && parsed.getMinutes() === 0) {
-          return 'TBD';
+        // Check if it's a valid date
+        if (!isNaN(parsed.getTime())) {
+          // Check if it has time information (not exactly midnight)
+          if (parsed.getHours() !== 0 || parsed.getMinutes() !== 0) {
+            return format(parsed, 'h:mm a');
+          }
+          // Even if midnight, if it's a future game, we might want to show it
+          // But for now, only show if it has actual time info
         }
-        return format(parsed, 'h:mm a');
       } catch {
-        return 'TBD';
+        // Continue
       }
     }
     return 'TBD';
@@ -238,7 +279,19 @@ const GameRow: React.FC<GameRowProps> = ({
       sx={{
         display: 'flex',
         flexDirection: 'column',
-        gap: 1,
+        gap: 0,
+        backgroundColor: 'background.paper',
+        borderRadius: borderRadius.md,
+        border: '1px solid',
+        borderColor: 'divider',
+        overflow: 'hidden',
+        // Subtle shadow for depth
+        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+        transition: transitions.normal,
+        minHeight: { xs: 100, sm: 110 }, // Fixed min height to prevent layout shifts
+        '&:hover': onClick ? {
+          boxShadow: '0 2px 6px rgba(0, 0, 0, 0.08)',
+        } : {},
       }}
     >
       {/* Main game row */}
@@ -249,39 +302,26 @@ const GameRow: React.FC<GameRowProps> = ({
           alignItems: 'center',
           gap: { xs: 1.5, sm: 2 },
           p: { xs: 1.5, sm: 2 },
+          minHeight: { xs: 100, sm: 110 }, // Fixed min height to prevent layout shifts
           cursor: onClick ? 'pointer' : (isUpcoming ? 'not-allowed' : 'default'),
           opacity: isUpcoming ? 0.7 : 1,
           backgroundColor: isSelected 
-            ? 'rgba(25, 118, 210, 0.08)' 
-            : isLive 
-              ? 'rgba(239, 83, 80, 0.05)' 
-              : 'background.paper',
-          border: '1px solid',
-          borderColor: isSelected 
-            ? 'primary.main' 
-            : isLive 
-              ? 'error.main' 
-              : 'divider',
-          borderLeft: (isSelected || isLive) ? '3px solid' : '1px solid',
-          borderLeftColor: isSelected 
-            ? 'primary.main' 
-            : isLive 
-              ? 'error.main' 
-              : 'divider',
-          borderRadius: borderRadius.sm,
+            ? alpha(theme.palette.primary.main, 0.06)
+            : 'transparent',
           transition: transitions.normal,
           ...(isRecentlyUpdated && {
             animation: 'scoreUpdateFlash 0.6s ease-out',
             '@keyframes scoreUpdateFlash': {
-              '0%': { backgroundColor: isLive ? 'rgba(239, 83, 80, 0.05)' : 'background.paper' },
-              '50%': { backgroundColor: 'rgba(25, 118, 210, 0.1)' },
-              '100%': { backgroundColor: isLive ? 'rgba(239, 83, 80, 0.05)' : 'background.paper' },
+              '0%': { backgroundColor: 'transparent' },
+              '50%': { backgroundColor: alpha(theme.palette.primary.main, 0.1) },
+              '100%': { backgroundColor: 'transparent' },
             },
           }),
           '&:hover': onClick
             ? {
-                backgroundColor: isLive ? 'rgba(239, 83, 80, 0.1)' : 'action.hover',
-                borderColor: isLive ? 'error.main' : 'primary.main',
+                backgroundColor: isSelected 
+                  ? alpha(theme.palette.primary.main, 0.08)
+                  : 'action.hover',
               }
             : isUpcoming
               ? {
@@ -316,7 +356,7 @@ const GameRow: React.FC<GameRowProps> = ({
         <Typography
           variant="caption"
           sx={{
-            fontSize: typography.size.captionSmall,
+            fontSize: { xs: typography.size.captionSmall.xs, sm: typography.size.captionSmall.sm },
             fontWeight: isLive ? typography.weight.bold : typography.weight.regular,
             color: isLive ? 'error.main' : 'text.secondary',
             textAlign: 'center',
@@ -356,7 +396,7 @@ const GameRow: React.FC<GameRowProps> = ({
               variant="body2"
               sx={{
                 fontWeight: typography.weight.semibold,
-                fontSize: typography.size.bodySmall,
+                fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm },
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
@@ -368,7 +408,7 @@ const GameRow: React.FC<GameRowProps> = ({
               <Typography
                 variant="caption"
                 sx={{
-                  fontSize: typography.size.captionSmall,
+                  fontSize: { xs: typography.size.captionSmall.xs, sm: typography.size.captionSmall.sm },
                   color: 'text.secondary',
                 }}
               >
@@ -380,7 +420,7 @@ const GameRow: React.FC<GameRowProps> = ({
             <Typography
               variant="caption"
               sx={{
-                fontSize: typography.size.captionSmall,
+                fontSize: { xs: typography.size.captionSmall.xs, sm: typography.size.captionSmall.sm },
                 color: 'text.secondary',
                 display: 'block',
                 overflow: 'hidden',
@@ -436,7 +476,7 @@ const GameRow: React.FC<GameRowProps> = ({
               variant="body2"
               sx={{
                 fontWeight: typography.weight.semibold,
-                fontSize: typography.size.bodySmall,
+                fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm },
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
@@ -448,7 +488,7 @@ const GameRow: React.FC<GameRowProps> = ({
               <Typography
                 variant="caption"
                 sx={{
-                  fontSize: typography.size.captionSmall,
+                  fontSize: { xs: typography.size.captionSmall.xs, sm: typography.size.captionSmall.sm },
                   color: 'text.secondary',
                 }}
               >
@@ -460,7 +500,7 @@ const GameRow: React.FC<GameRowProps> = ({
             <Typography
               variant="caption"
               sx={{
-                fontSize: typography.size.captionSmall,
+                fontSize: { xs: typography.size.captionSmall.xs, sm: typography.size.captionSmall.sm },
                 color: 'text.secondary',
                 display: 'block',
                 overflow: 'hidden',
@@ -485,35 +525,6 @@ const GameRow: React.FC<GameRowProps> = ({
           {isUpcoming ? '—' : homeScore}
         </Typography>
       </Box>
-
-      {/* Box Score Button */}
-      {onOpenBoxScore && (
-        <Button
-          variant="outlined"
-          size="small"
-          onClick={(e) => {
-            e.stopPropagation();
-            onOpenBoxScore(gameId);
-          }}
-          sx={{
-            borderRadius: '9999px',
-            textTransform: 'none',
-            fontSize: typography.size.caption,
-            fontWeight: typography.weight.semibold,
-            px: spacing.md,
-            py: spacing.xs,
-            minWidth: 'auto',
-            borderColor: 'primary.main',
-            color: 'primary.main',
-            '&:hover': {
-              borderColor: 'primary.dark',
-              backgroundColor: 'rgba(25, 118, 210, 0.04)',
-            },
-          }}
-        >
-          Box Score
-        </Button>
-      )}
       </Box>
 
       {/* Game Leaders / Players to Watch */}
@@ -524,13 +535,14 @@ const GameRow: React.FC<GameRowProps> = ({
             gap: { xs: 1.5, sm: 2 },
             pl: { xs: 2, sm: 2.5 },
             pr: { xs: 1.5, sm: 2 },
-            pb: { xs: 1, sm: 1.5 },
+            pb: { xs: 0.75, sm: 1 },
+            mb: 0, // Remove bottom margin to reduce gap
           }}
         >
           <Typography
             variant="caption"
             sx={{
-              fontSize: typography.size.captionSmall,
+              fontSize: { xs: typography.size.captionSmall.xs, sm: typography.size.captionSmall.sm },
               fontWeight: typography.weight.semibold,
               color: 'text.secondary',
               minWidth: { xs: 60, sm: 70 },
@@ -541,10 +553,10 @@ const GameRow: React.FC<GameRowProps> = ({
           </Typography>
           <Box sx={{ display: 'flex', gap: { xs: 1.5, sm: 2 }, flex: 1, flexWrap: 'wrap' }}>
             {gameLeaders.awayLeaders && gameLeaders.awayLeaders.name && (
-              <LeaderPreview leader={gameLeaders.awayLeaders} teamTricode={awayTeam || ''} navigate={navigate} isLive={isLive} />
+              <LeaderPreview leader={gameLeaders.awayLeaders} teamTricode={awayTeam || ''} navigate={navigate} isLive={isLive} isFinal={isFinal} />
             )}
             {gameLeaders.homeLeaders && gameLeaders.homeLeaders.name && (
-              <LeaderPreview leader={gameLeaders.homeLeaders} teamTricode={homeTeam || ''} navigate={navigate} isLive={isLive} />
+              <LeaderPreview leader={gameLeaders.homeLeaders} teamTricode={homeTeam || ''} navigate={navigate} isLive={isLive} isFinal={isFinal} />
             )}
           </Box>
         </Box>
@@ -592,7 +604,7 @@ const GameRow: React.FC<GameRowProps> = ({
               <Typography
                 variant="body2"
                 sx={{
-                  fontSize: typography.size.bodySmall,
+                  fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm },
                   color: 'text.primary',
                   fontWeight: typography.weight.medium,
                   lineHeight: 1.4,
@@ -666,7 +678,7 @@ const GameRow: React.FC<GameRowProps> = ({
                     <Typography
                       variant="caption"
                       sx={{
-                        fontSize: typography.size.captionSmall,
+                        fontSize: { xs: typography.size.captionSmall.xs, sm: typography.size.captionSmall.sm },
                         fontWeight: typography.weight.semibold,
                         color: alpha(theme.palette.primary.main, 0.9),
                         whiteSpace: 'nowrap',
@@ -711,10 +723,11 @@ const GameRow: React.FC<GameRowProps> = ({
                   sx={{
                     borderRadius: borderRadius.sm,
                     textTransform: 'none',
-                    fontSize: typography.size.caption,
-                    px: spacing.md,
-                    py: spacing.xs,
-                    minWidth: { xs: 'auto', md: 100 },
+                    fontSize: { xs: typography.size.caption.xs, sm: typography.size.caption.sm },
+                    px: { xs: 1.5, sm: spacing.md },
+                    py: { xs: 1, sm: spacing.xs },
+                    minWidth: { xs: 44, sm: 'auto', md: 100 },
+                    minHeight: { xs: 44, sm: 32 },
                   }}
                 >
                   Momentum
@@ -732,10 +745,11 @@ const GameRow: React.FC<GameRowProps> = ({
                   sx={{
                     borderRadius: borderRadius.sm,
                     textTransform: 'none',
-                    fontSize: typography.size.caption,
-                    px: spacing.md,
-                    py: spacing.xs,
-                    minWidth: { xs: 'auto', md: 100 },
+                    fontSize: { xs: typography.size.caption.xs, sm: typography.size.caption.sm },
+                    px: { xs: 1.5, sm: spacing.md },
+                    py: { xs: 1, sm: spacing.xs },
+                    minWidth: { xs: 44, sm: 'auto', md: 100 },
+                    minHeight: { xs: 44, sm: 32 },
                   }}
                 >
                   Box Score
@@ -753,10 +767,11 @@ const GameRow: React.FC<GameRowProps> = ({
                   sx={{
                     borderRadius: borderRadius.sm,
                     textTransform: 'none',
-                    fontSize: typography.size.caption,
-                    px: spacing.md,
-                    py: spacing.xs,
-                    minWidth: { xs: 'auto', md: 120 },
+                    fontSize: { xs: typography.size.caption.xs, sm: typography.size.caption.sm },
+                    px: { xs: 1.5, sm: spacing.md },
+                    py: { xs: 1, sm: spacing.xs },
+                    minWidth: { xs: 44, sm: 'auto', md: 120 },
+                    minHeight: { xs: 44, sm: 32 },
                   }}
                 >
                   Play-by-Play
@@ -773,9 +788,11 @@ const GameRow: React.FC<GameRowProps> = ({
           sx={{
             pl: { xs: 2, sm: 2.5 },
             pr: { xs: 1.5, sm: 2 },
-            pb: { xs: 1, sm: 1.5 },
+            pt: 1.5,
+            pb: { xs: 1.5, sm: 2 },
             borderTop: '1px solid',
             borderColor: 'divider',
+            backgroundColor: alpha(theme.palette.primary.main, 0.02),
           }}
         >
           <LiveAIInsight
@@ -806,6 +823,7 @@ const GameRow: React.FC<GameRowProps> = ({
           sx={{
             pl: { xs: 2, sm: 2.5 },
             pr: { xs: 1.5, sm: 2 },
+            pt: { xs: 2, sm: 2.5 },
             pb: { xs: 1.5, sm: 2 },
             borderTop: '1px solid',
             borderColor: 'divider',
@@ -870,9 +888,10 @@ interface LeaderPreviewProps {
   teamTricode: string;
   navigate: ReturnType<typeof useNavigate>;
   isLive?: boolean | null;
+  isFinal?: boolean;
 }
 
-const LeaderPreview: React.FC<LeaderPreviewProps> = ({ leader, teamTricode, navigate, isLive = false }) => {
+const LeaderPreview: React.FC<LeaderPreviewProps> = ({ leader, teamTricode, navigate, isLive = false, isFinal = false }) => {
   if (!leader) return null;
 
   const isValidPlayerId = leader.personId && leader.personId > 0;
@@ -885,10 +904,7 @@ const LeaderPreview: React.FC<LeaderPreviewProps> = ({ leader, teamTricode, navi
     if (isValidPlayerId) navigate(`/player/${leader.personId}`);
   };
 
-  const nameParts = leader.name ? leader.name.split(' ') : [];
-  const lastName = nameParts.length > 0 ? nameParts[nameParts.length - 1] : '';
-  const firstName = nameParts.length > 1 ? nameParts[0] : '';
-  const displayName = firstName && lastName ? `${firstName[0]}. ${lastName}` : leader.name || 'N/A';
+  const displayName = leader.name || 'N/A';
 
   return (
     <Box
@@ -964,7 +980,7 @@ const LeaderPreview: React.FC<LeaderPreviewProps> = ({ leader, teamTricode, navi
             <Typography
               variant="caption"
               sx={{
-                fontSize: typography.size.captionSmall,
+                fontSize: { xs: typography.size.captionSmall.xs, sm: typography.size.captionSmall.sm },
                 color: 'text.secondary',
               }}
             >
@@ -974,7 +990,7 @@ const LeaderPreview: React.FC<LeaderPreviewProps> = ({ leader, teamTricode, navi
           <Typography
             variant="caption"
             sx={{
-              fontSize: typography.size.captionSmall,
+              fontSize: { xs: typography.size.captionSmall.xs, sm: typography.size.captionSmall.sm },
               color: 'text.secondary',
             }}
           >
@@ -984,13 +1000,13 @@ const LeaderPreview: React.FC<LeaderPreviewProps> = ({ leader, teamTricode, navi
         <Typography
           variant="caption"
           sx={{
-            fontSize: typography.size.captionSmall,
+            fontSize: { xs: typography.size.captionSmall.xs, sm: typography.size.captionSmall.sm },
             color: 'text.secondary',
             display: 'block',
             fontFamily: 'monospace',
           }}
         >
-          {isLive 
+          {isLive || isFinal
             ? `${Math.round(leader.points)}PTS ${Math.round(leader.rebounds)}REB ${Math.round(leader.assists)}AST`
             : `${leader.points ? leader.points.toFixed(1) : '0.0'}PPG ${leader.rebounds ? leader.rebounds.toFixed(1) : '0.0'}RPG ${leader.assists ? leader.assists.toFixed(1) : '0.0'}APG`
           }

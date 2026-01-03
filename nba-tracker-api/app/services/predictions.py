@@ -3,19 +3,29 @@ import logging
 import math
 import json
 import time
-from typing import Optional
+from typing import Optional, Dict, Tuple, List, Any
 
 from fastapi import HTTPException
 from nba_api.stats.endpoints import leaguestandingsv3, leaguedashteamstats
 from nba_api.stats.library.parameters import PerModeDetailed, SeasonTypeAllStar
 
-from app.schemas.predictions import PredictionsResponse, GamePrediction, GamePredictionInsight
+from app.schemas.predictions import PredictionsResponse, GamePrediction, GamePredictionInsight, KeyDriver, RiskFactor
 from app.services.schedule import getGamesForDate
 from app.config import get_api_kwargs, get_groq_api_key
 from app.services.groq_client import GROQ_AVAILABLE, call_groq_api, get_groq_rate_limiter
-from app.services.groq_prompts import get_system_message, build_insight_prompt
+from app.services.groq_prompts import get_system_message, build_insight_prompt, build_batched_prediction_insights_prompt, build_enhanced_prediction_prompt
 
 logger = logging.getLogger(__name__)
+
+# Cache for predictions: key = "{date}_{season}", value = PredictionsResponse
+# Predictions are cached permanently (until server restart) to avoid duplicate Groq calls.
+# Once generated for a date+season, same predictions are returned for all requests.
+_predictions_cache: Dict[str, PredictionsResponse] = {}
+
+# Cache for team statistics: key = "{season}", value = team_stats dict
+# Team stats are cached for 1 hour to reduce API calls while still allowing updates
+_team_stats_cache: Dict[str, Tuple[dict, float]] = {}
+TEAM_STATS_CACHE_TTL = 3600.0  # 1 hour
 
 
 def calculate_win_probability(
@@ -341,9 +351,354 @@ def generate_simple_insights(
     return insights[:3]  # Limit to 3 insights
 
 
+async def generate_batched_prediction_insights(
+    predictions_data: List[Dict[str, Any]]
+) -> Dict[str, List[GamePredictionInsight]]:
+    """
+    Generate AI insights for multiple predictions in ONE Groq API call.
+    
+    This batches all prediction insights into a single API call, significantly
+    reducing API usage and improving performance compared to per-game calls.
+    
+    Args:
+        predictions_data: List of dictionaries with prediction data:
+            - game_id: str
+            - home_team_name: str
+            - away_team_name: str
+            - home_win_prob: float (0-1)
+            - away_win_prob: float (0-1)
+            - predicted_home_score: float
+            - predicted_away_score: float
+            - home_win_pct: float (optional, for fallback)
+            - away_win_pct: float (optional, for fallback)
+            - home_net_rating: Optional[float] (optional, for fallback)
+            - away_net_rating: Optional[float] (optional, for fallback)
+            - net_rating_diff_str: str (optional)
+        
+    Returns:
+        Dict mapping game_id to list of GamePredictionInsight objects.
+        If Groq fails or is unavailable, returns empty dict (caller should use fallback).
+    """
+    if not predictions_data:
+        return {}
+    
+    # Check if Groq is available and configured
+    if not GROQ_AVAILABLE:
+        logger.debug("Groq not available for batched prediction insights")
+        return {}
+    
+    groq_api_key = get_groq_api_key()
+    if not groq_api_key:
+        logger.debug("Groq API key not configured for batched prediction insights")
+        return {}
+    
+    try:
+        # Build batched prompt
+        prompt = build_batched_prediction_insights_prompt(predictions_data)
+        system_message = get_system_message()
+        
+        # Call Groq API with timeout
+        try:
+            response = await asyncio.wait_for(
+                call_groq_api(
+                    api_key=groq_api_key,
+                    system_message=system_message,
+                    user_prompt=prompt,
+                    rate_limiter=get_groq_rate_limiter()
+                ),
+                timeout=30.0  # 30 second timeout for batched insights (more games = more time)
+            )
+        except asyncio.TimeoutError:
+            logger.warning("Batched prediction insights generation timeout")
+            return {}
+        
+        # Parse response
+        content = response['content']
+        
+        # Try to extract JSON from response (handle markdown code blocks)
+        if "```json" in content:
+            content = content.split("```json")[1].split("```")[0].strip()
+        elif "```" in content:
+            content = content.split("```")[1].split("```")[0].strip()
+        
+        # Robust JSON parsing - handle truncated responses from Groq
+        insights_data = None
+        try:
+            insights_data = json.loads(content)
+        except json.JSONDecodeError as parse_error:
+            # If JSON is truncated, try to find the last complete JSON structure
+            logger.debug(f"Initial JSON parse failed (possibly truncated): {parse_error}")
+            
+            # Try to recover partial JSON by finding the last complete JSON structure
+            try:
+                # Find the last position where we have balanced braces for the insights array
+                # Look for "insights": [ and try to find where the array closes
+                insights_start = content.find('"insights"')
+                if insights_start > 0:
+                    # Find the opening bracket after "insights"
+                    bracket_start = content.find('[', insights_start)
+                    if bracket_start > 0:
+                        # Count braces to find the last complete game entry
+                        brace_count = 0
+                        in_string = False
+                        escape_next = False
+                        last_complete_pos = bracket_start
+                        
+                        for i in range(bracket_start + 1, len(content)):
+                            char = content[i]
+                            
+                            if escape_next:
+                                escape_next = False
+                                continue
+                            
+                            if char == '\\':
+                                escape_next = True
+                                continue
+                            
+                            if char == '"':
+                                in_string = not in_string
+                                continue
+                            
+                            if in_string:
+                                continue
+                            
+                            if char == '{':
+                                brace_count += 1
+                            elif char == '}':
+                                brace_count -= 1
+                                if brace_count == 0:
+                                    # Found a complete game entry object
+                                    last_complete_pos = i + 1
+                            elif char == ']' and brace_count == 0:
+                                # Found the end of the insights array
+                                last_complete_pos = i + 1
+                                break
+                        
+                        # Try to parse the partial JSON up to the last complete position
+                        partial_json = content[:last_complete_pos]
+                        # Try to close the JSON structure if needed
+                        if not partial_json.rstrip().endswith('}'):
+                            # Find the last opening brace for the root object
+                            root_brace = partial_json.find('{')
+                            if root_brace >= 0:
+                                # Close the insights array and root object
+                                if not partial_json.rstrip().endswith(']'):
+                                    partial_json = partial_json.rstrip().rstrip(',') + ']'
+                                partial_json = partial_json.rstrip().rstrip(',') + '}'
+                        
+                        try:
+                            parsed_data = json.loads(partial_json)
+                            if isinstance(parsed_data, dict) and "insights" in parsed_data:
+                                logger.info(f"Recovered {len(parsed_data['insights'])} game insights from truncated JSON")
+                                insights_data = parsed_data
+                            else:
+                                raise ValueError("Recovered JSON doesn't have expected structure")
+                        except (json.JSONDecodeError, ValueError) as e:
+                            logger.debug(f"Could not parse recovered JSON: {e}")
+                            raise parse_error
+                    else:
+                        raise parse_error
+                else:
+                    raise parse_error
+            except (json.JSONDecodeError, ValueError) as e:
+                logger.debug(f"Failed to recover truncated JSON: {e}")
+                raise parse_error
+        
+        # Map insights back to game_ids
+        result: Dict[str, list[GamePredictionInsight]] = {}
+        
+        # Expected format: {"insights": [{"game_id": "...", "insights": [...]}]}
+        if insights_data and "insights" in insights_data:
+            for game_insights in insights_data["insights"]:
+                game_id = game_insights.get("game_id", "")
+                insights_list = game_insights.get("insights", [])
+                
+                if not game_id:
+                    continue
+                
+                # Convert to GamePredictionInsight objects
+                parsed_insights = []
+                for item in insights_list[:3]:  # Limit to 3 per game
+                    if isinstance(item, dict) and "title" in item and "description" in item:
+                        parsed_insights.append(GamePredictionInsight(
+                            title=item["title"],
+                            description=item["description"],
+                            impact=""
+                        ))
+                
+                if parsed_insights:
+                    result[game_id] = parsed_insights
+        
+        logger.info(f"Generated batched insights for {len(result)}/{len(predictions_data)} games")
+        return result
+        
+    except json.JSONDecodeError as e:
+        logger.warning(f"Failed to parse batched prediction insights JSON: {e}")
+        return {}
+    except Exception as e:
+        error_str = str(e)
+        # Handle rate limit errors specifically
+        if "429" in error_str or "rate_limit" in error_str.lower() or "Rate limit" in error_str:
+            logger.warning(f"Groq rate limit hit for batched prediction insights: {e}")
+            await asyncio.sleep(12)
+        else:
+            logger.warning(f"Error generating batched prediction insights: {e}")
+        return {}
+
+
+async def generate_enhanced_ai_analysis(predictions_data: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
+    """
+    Generate enhanced AI analysis for predictions including confidence tiers, key drivers, risk factors, and matchup narrative.
+    
+    Uses a single batched Groq API call for all games to maintain performance.
+    
+    Args:
+        predictions_data: List of prediction dictionaries with game data
+        
+    Returns:
+        Dict mapping game_id to enhanced analysis data:
+        {
+            "game_id": {
+                "confidence_tier": "high|medium|low",
+                "confidence_explanation": "...",
+                "key_drivers": [KeyDriver, ...],
+                "risk_factors": [RiskFactor, ...],
+                "matchup_narrative": "...",
+                "insights": [GamePredictionInsight, ...]
+            }
+        }
+    """
+    if not GROQ_AVAILABLE or not predictions_data:
+        logger.debug("Groq not available or no predictions data, skipping enhanced analysis")
+        return {}
+    
+    try:
+        # Build enhanced prompt
+        prompt = build_enhanced_prediction_prompt(predictions_data)
+        system_message = get_system_message()
+        
+        # Get rate limiter
+        rate_limiter = get_groq_rate_limiter()
+        
+        # Call Groq API
+        logger.info(f"Calling Groq API for enhanced prediction analysis ({len(predictions_data)} games)")
+        response_text = await call_groq_api(prompt, system_message, rate_limiter)
+        
+        if not response_text:
+            logger.warning("Empty response from Groq for enhanced prediction analysis")
+            return {}
+        
+        # Parse JSON response
+        try:
+            insights_data = json.loads(response_text)
+        except json.JSONDecodeError as parse_error:
+            # Try to recover from truncated JSON (common with Groq)
+            logger.warning(f"Failed to parse enhanced analysis JSON, attempting recovery: {parse_error}")
+            try:
+                # Try to find the last complete JSON object
+                last_brace = response_text.rfind('}')
+                if last_brace > 0:
+                    # Find the opening brace for the insights array
+                    insights_start = response_text.rfind('"insights"', 0, last_brace)
+                    if insights_start > 0:
+                        # Find the opening brace of the outer object
+                        outer_start = response_text.rfind('{', 0, insights_start)
+                        if outer_start >= 0:
+                            partial_json = response_text[outer_start:last_brace + 1]
+                            insights_data = json.loads(partial_json)
+                        else:
+                            raise parse_error
+                    else:
+                        raise parse_error
+                else:
+                    raise parse_error
+            except (json.JSONDecodeError, ValueError) as e:
+                logger.debug(f"Failed to recover truncated JSON: {e}")
+                raise parse_error
+        
+        # Map enhanced analysis back to game_ids
+        result: Dict[str, Dict[str, Any]] = {}
+        
+        # Expected format: {"insights": [{"game_id": "...", "confidence_tier": "...", ...}]}
+        if insights_data and "insights" in insights_data:
+            for game_analysis in insights_data["insights"]:
+                game_id = game_analysis.get("game_id", "")
+                
+                if not game_id:
+                    continue
+                
+                # Parse key drivers
+                key_drivers = []
+                drivers_data = game_analysis.get("key_drivers", [])
+                for driver in drivers_data[:3]:  # Limit to 3
+                    if isinstance(driver, dict) and "factor" in driver:
+                        try:
+                            key_drivers.append(KeyDriver(
+                                factor=driver.get("factor", ""),
+                                impact=driver.get("impact", ""),
+                                magnitude=driver.get("magnitude", "Moderate")
+                            ))
+                        except Exception as e:
+                            logger.debug(f"Failed to parse key driver: {e}")
+                            continue
+                
+                # Parse risk factors
+                risk_factors = []
+                risks_data = game_analysis.get("risk_factors", [])
+                for risk in risks_data[:2]:  # Limit to 2
+                    if isinstance(risk, dict) and "factor" in risk:
+                        try:
+                            risk_factors.append(RiskFactor(
+                                factor=risk.get("factor", ""),
+                                explanation=risk.get("explanation", "")
+                            ))
+                        except Exception as e:
+                            logger.debug(f"Failed to parse risk factor: {e}")
+                            continue
+                
+                # Parse insights
+                insights = []
+                insights_list = game_analysis.get("insights", [])
+                for item in insights_list[:3]:  # Limit to 3
+                    if isinstance(item, dict) and "title" in item and "description" in item:
+                        insights.append(GamePredictionInsight(
+                            title=item["title"],
+                            description=item["description"],
+                            impact=item.get("impact", "")
+                        ))
+                
+                # Build result
+                result[game_id] = {
+                    "confidence_tier": game_analysis.get("confidence_tier"),
+                    "confidence_explanation": game_analysis.get("confidence_explanation"),
+                    "key_drivers": key_drivers if key_drivers else None,
+                    "risk_factors": risk_factors if risk_factors else None,
+                    "matchup_narrative": game_analysis.get("matchup_narrative"),
+                    "insights": insights if insights else None,
+                }
+        
+        logger.info(f"Generated enhanced analysis for {len(result)}/{len(predictions_data)} games")
+        return result
+        
+    except json.JSONDecodeError as e:
+        logger.warning(f"Failed to parse enhanced prediction analysis JSON: {e}")
+        return {}
+    except Exception as e:
+        error_str = str(e)
+        # Handle rate limit errors specifically
+        if "429" in error_str or "rate_limit" in error_str.lower() or "Rate limit" in error_str:
+            logger.warning(f"Groq rate limit hit for enhanced prediction analysis: {e}")
+            await asyncio.sleep(12)
+        else:
+            logger.warning(f"Error generating enhanced prediction analysis: {e}")
+        return {}
+
+
 async def get_team_statistics(season: str) -> dict:
     """
     Get basic team statistics (win percentage and net rating).
+    
+    Team statistics are cached for 1 hour to reduce API calls while still allowing updates.
     
     Args:
         season: Season (e.g., "2024-25")
@@ -351,6 +706,16 @@ async def get_team_statistics(season: str) -> dict:
     Returns:
         dict: {team_id: {"win_pct": float, "net_rating": float, "team_name": str}}
     """
+    # Check cache first
+    if season in _team_stats_cache:
+        cached_stats, timestamp = _team_stats_cache[season]
+        if time.time() - timestamp < TEAM_STATS_CACHE_TTL:
+            logger.debug(f"Returning cached team statistics for season {season}")
+            return cached_stats
+        else:
+            # Cache expired, remove it
+            del _team_stats_cache[season]
+    
     try:
         api_kwargs = get_api_kwargs()
         
@@ -425,6 +790,10 @@ async def get_team_statistics(season: str) -> dict:
                     net_rating = float(plus_minus) if not math.isnan(plus_minus) else None
                     team_stats[team_id]["net_rating"] = net_rating
         
+        # Cache the team statistics
+        _team_stats_cache[season] = (team_stats, time.time())
+        logger.debug(f"Cached team statistics for season {season}")
+        
         return team_stats
     except Exception as e:
         logger.error(f"Error fetching team statistics for season {season}: {e}", exc_info=True)
@@ -441,6 +810,9 @@ async def predict_games_for_date(date: str, season: str) -> PredictionsResponse:
     3. Predict scores based on win probability
     4. Generate AI insights (with fallback to simple insights)
     
+    Predictions are cached permanently by date+season to avoid duplicate Groq API calls.
+    Once generated, the same predictions are returned for all subsequent requests.
+    
     Args:
         date: Date in YYYY-MM-DD format
         season: Season (e.g., "2024-25")
@@ -448,6 +820,12 @@ async def predict_games_for_date(date: str, season: str) -> PredictionsResponse:
     Returns:
         PredictionsResponse: Predictions for all games
     """
+    # Check cache first - if predictions exist, return immediately (no Groq calls)
+    cache_key = f"{date}_{season}"
+    if cache_key in _predictions_cache:
+        logger.info(f"Returning cached predictions for {date} (season {season}) - skipping Groq calls")
+        return _predictions_cache[cache_key]
+    
     try:
         # Get games for the date (with timeout)
         try:
@@ -499,9 +877,13 @@ async def predict_games_for_date(date: str, season: str) -> PredictionsResponse:
         logger.info(f"Processing {len(games)} games for predictions on {date}")
         start_time = time.time()
         
+        # STEP 1: Collect all prediction data (without calling Groq)
+        predictions_data = []
+        game_data_map = {}  # Map game_id to game data for later use
+        
         for idx, game in enumerate(games, 1):
             try:
-                logger.debug(f"Processing game {idx}/{len(games)}: {game.game_id}")
+                logger.debug(f"Preparing game {idx}/{len(games)}: {game.game_id}")
                 
                 home_team_id = game.home_team.team_id
                 away_team_id = game.away_team.team_id
@@ -545,43 +927,127 @@ async def predict_games_for_date(date: str, season: str) -> PredictionsResponse:
                 predicted_home_score = predict_score(home_win_prob)
                 predicted_away_score = predict_score(away_win_prob)
                 
-                # Generate AI insights (with fallback to simple insights)
-                # AI only receives visible UI data (win probabilities, predicted scores)
-                # Fallback data (win pct, net rating) is only used if AI fails
-                logger.info(f"Generating AI insights for game {idx}/{len(games)}: {away_team_name} @ {home_team_name}")
-                try:
-                    insights = await asyncio.wait_for(
-                        generate_ai_insights(
-                            home_team_name,
-                            away_team_name,
-                            home_win_prob,
-                            predicted_home_score,
-                            predicted_away_score,
-                            home_win_pct,
-                            away_win_pct,
-                            home_net_rating,
-                            away_net_rating,
-                        ),
-                        timeout=10.0  # 10 second timeout per game's AI insights - fail fast and use fallback
-                    )
-                    logger.info(f"AI insights generated for game {idx}/{len(games)}")
-                except asyncio.TimeoutError:
-                    logger.warning(f"AI insights timeout for game {idx}, using fallback")
-                    insights = generate_simple_insights(
-                        home_team_name, away_team_name, home_win_prob,
-                        predicted_home_score, predicted_away_score,
-                        home_win_pct, away_win_pct, home_net_rating, away_net_rating
-                    )
-                except Exception as insight_error:
-                    logger.warning(f"Error generating AI insights for game {idx}: {insight_error}, using fallback")
+                # Calculate net rating difference string if available
+                net_rating_diff_str = ""
+                if home_net_rating is not None and away_net_rating is not None:
+                    net_rating_diff = home_net_rating - away_net_rating
+                    net_rating_diff_str = f"+{net_rating_diff:.1f} ({home_team_name if net_rating_diff > 0 else away_team_name})"
+                
+                # Calculate confidence based on probability gap and stats alignment
+                prob_gap = abs(home_win_prob - away_win_prob)
+                # Higher confidence for larger gaps and when stats align
+                if prob_gap > 0.15:
+                    confidence = 0.8  # Clear favorite
+                elif prob_gap > 0.10:
+                    confidence = 0.7  # Moderate favorite
+                elif prob_gap > 0.05:
+                    confidence = 0.6  # Slight favorite
+                else:
+                    confidence = 0.5  # Very close game
+                
+                # Store data for batched insights and enhanced analysis
+                predictions_data.append({
+                    "game_id": game.game_id,
+                    "home_team_name": home_team_name,
+                    "away_team_name": away_team_name,
+                    "home_win_prob": home_win_prob,
+                    "away_win_prob": away_win_prob,
+                    "predicted_home_score": predicted_home_score,
+                    "predicted_away_score": predicted_away_score,
+                    "net_rating_diff_str": net_rating_diff_str,
+                    "confidence": confidence,
+                    "home_win_pct": home_win_pct,
+                    "away_win_pct": away_win_pct,
+                    "home_net_rating": home_net_rating,
+                    "away_net_rating": away_net_rating,
+                })
+                
+                # Store game data for later use
+                game_data_map[game.game_id] = {
+                    "game": game,
+                    "home_team_id": home_team_id,
+                    "home_team_name": home_team_name,
+                    "away_team_id": away_team_id,
+                    "away_team_name": away_team_name,
+                    "home_win_prob": home_win_prob,
+                    "away_win_prob": away_win_prob,
+                    "predicted_home_score": predicted_home_score,
+                    "predicted_away_score": predicted_away_score,
+                    "home_win_pct": home_win_pct,
+                    "away_win_pct": away_win_pct,
+                    "home_net_rating": home_net_rating,
+                    "away_net_rating": away_net_rating,
+                    "confidence": confidence,
+                }
+                
+            except Exception as game_error:
+                logger.error(f"Error preparing game {idx} ({game.game_id}): {game_error}", exc_info=True)
+                # Continue with next game instead of failing entirely
+                continue
+        
+        # STEP 2: Generate batched AI insights first (more reliable, faster)
+        logger.info(f"Generating batched AI insights for {len(predictions_data)} games")
+        batched_insights = await generate_batched_prediction_insights(predictions_data)
+        
+        # STEP 2b: Generate enhanced AI analysis (optional, adds extra features)
+        # If this fails, we still have batched insights, so predictions won't be empty
+        logger.info(f"Generating enhanced AI analysis for {len(predictions_data)} games")
+        enhanced_analysis = {}
+        try:
+            enhanced_analysis = await generate_enhanced_ai_analysis(predictions_data)
+        except Exception as e:
+            logger.warning(f"Enhanced AI analysis failed, continuing with batched insights: {e}")
+            # Continue without enhanced analysis - batched insights are sufficient
+        
+        # STEP 3: Create GamePrediction objects using batched insights or fallback
+        for game_id, game_data in game_data_map.items():
+            try:
+                game = game_data["game"]
+                home_team_id = game_data["home_team_id"]
+                home_team_name = game_data["home_team_name"]
+                away_team_id = game_data["away_team_id"]
+                away_team_name = game_data["away_team_name"]
+                home_win_prob = game_data["home_win_prob"]
+                away_win_prob = game_data["away_win_prob"]
+                predicted_home_score = game_data["predicted_home_score"]
+                predicted_away_score = game_data["predicted_away_score"]
+                home_win_pct = game_data["home_win_pct"]
+                away_win_pct = game_data["away_win_pct"]
+                home_net_rating = game_data["home_net_rating"]
+                away_net_rating = game_data["away_net_rating"]
+                confidence = game_data.get("confidence", 0.75)
+                
+                # Get enhanced analysis if available
+                enhanced_data = enhanced_analysis.get(game_id, {}) if enhanced_analysis else {}
+                
+                # Use batched insights first (most reliable)
+                insights = batched_insights.get(game_id)
+                
+                # If batched insights failed, try enhanced analysis insights
+                if not insights and enhanced_data.get("insights"):
+                    insights = enhanced_data.get("insights", [])
+                
+                # Final fallback: generate simple insights if both AI calls failed
+                if not insights:
+                    logger.debug(f"Using fallback simple insights for game {game_id}")
                     insights = generate_simple_insights(
                         home_team_name, away_team_name, home_win_prob,
                         predicted_home_score, predicted_away_score,
                         home_win_pct, away_win_pct, home_net_rating, away_net_rating
                     )
                 
+                # Calculate confidence tier from confidence value if not provided by AI
+                confidence_tier = enhanced_data.get("confidence_tier")
+                if not confidence_tier:
+                    if confidence >= 0.7:
+                        confidence_tier = "high"
+                    elif confidence >= 0.5:
+                        confidence_tier = "medium"
+                    else:
+                        confidence_tier = "low"
+                
                 prediction = GamePrediction(
-                    game_id=game.game_id,
+                    game_id=game_id,
                     home_team_id=home_team_id,
                     home_team_name=home_team_name,
                     away_team_id=away_team_id,
@@ -591,24 +1057,40 @@ async def predict_games_for_date(date: str, season: str) -> PredictionsResponse:
                     away_win_probability=away_win_prob,
                     predicted_home_score=predicted_home_score,
                     predicted_away_score=predicted_away_score,
-                    confidence=0.75,  # Fixed confidence for simplicity
+                    confidence=confidence,
                     insights=insights,
                     home_team_win_pct=home_win_pct,
                     away_team_win_pct=away_win_pct,
                     home_team_net_rating=home_net_rating,
                     away_team_net_rating=away_net_rating,
+                    confidence_tier=confidence_tier,
+                    confidence_explanation=enhanced_data.get("confidence_explanation"),
+                    key_drivers=enhanced_data.get("key_drivers"),
+                    risk_factors=enhanced_data.get("risk_factors"),
+                    matchup_narrative=enhanced_data.get("matchup_narrative"),
                 )
                 
                 predictions.append(prediction)
-                logger.debug(f"Completed game {idx}/{len(games)}: {away_team_name} @ {home_team_name}")
+                logger.debug(f"Completed game: {away_team_name} @ {home_team_name}")
                 
             except Exception as game_error:
-                logger.error(f"Error processing game {idx} ({game.game_id}): {game_error}", exc_info=True)
+                logger.error(f"Error creating prediction for game {game_id}: {game_error}", exc_info=True)
                 # Continue with next game instead of failing entirely
                 continue
         
         elapsed_time = time.time() - start_time
         logger.info(f"Successfully generated {len(predictions)} predictions for date {date} in {elapsed_time:.1f}s")
+        
+        # Ensure all predictions have insights (even if AI failed)
+        for pred in predictions:
+            if not pred.insights or len(pred.insights) == 0:
+                logger.warning(f"Prediction {pred.game_id} has no insights, generating fallback")
+                pred.insights = generate_simple_insights(
+                    pred.home_team_name, pred.away_team_name, pred.home_win_probability,
+                    pred.predicted_home_score, pred.predicted_away_score,
+                    pred.home_team_win_pct, pred.away_team_win_pct,
+                    pred.home_team_net_rating, pred.away_team_net_rating
+                )
         
         response = PredictionsResponse(
             date=date,
@@ -616,7 +1098,10 @@ async def predict_games_for_date(date: str, season: str) -> PredictionsResponse:
             season=season
         )
         
-        logger.info(f"Returning {len(predictions)} predictions to client for date {date}")
+        # Cache the predictions before returning (permanent cache until server restart)
+        _predictions_cache[cache_key] = response
+        logger.info(f"Generated and cached {len(predictions)} predictions for {date} (season {season})")
+        
         return response
         
     except HTTPException:

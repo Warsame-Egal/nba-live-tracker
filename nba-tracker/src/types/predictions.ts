@@ -4,6 +4,17 @@ export interface GamePredictionInsight {
   impact: string;
 }
 
+export interface KeyDriver {
+  factor: string;
+  impact: string;
+  magnitude: 'High' | 'Moderate' | 'Low';
+}
+
+export interface RiskFactor {
+  factor: string;
+  explanation: string;
+}
+
 export interface GamePrediction {
   game_id: string;
   home_team_id: number;
@@ -21,6 +32,12 @@ export interface GamePrediction {
   away_team_win_pct: number;
   home_team_net_rating?: number;
   away_team_net_rating?: number;
+  // Enhanced AI analysis (optional)
+  confidence_tier?: 'high' | 'medium' | 'low';
+  confidence_explanation?: string;
+  key_drivers?: KeyDriver[];
+  risk_factors?: RiskFactor[];
+  matchup_narrative?: string;
 }
 
 export interface PredictionsResponse {

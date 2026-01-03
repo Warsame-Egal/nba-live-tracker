@@ -16,7 +16,6 @@ import {
 } from '@mui/material';
 import { TeamRoster, Player } from '../types/team';
 import Navbar from '../components/Navbar';
-import PageLayout from '../components/PageLayout';
 import { logger } from '../utils/logger';
 import { fetchJson } from '../utils/apiClient';
 
@@ -54,11 +53,11 @@ const RosterPage = () => {
     return (
       <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default', display: 'flex', flexDirection: 'column' }}>
         <Navbar />
-        <PageLayout>
+        <Box sx={{ maxWidth: '1400px', mx: 'auto', px: { xs: 2, sm: 3, md: 4 }, py: { xs: 2, sm: 3 } }}>
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: { xs: 8, sm: 10 } }}>
             <CircularProgress />
           </Box>
-        </PageLayout>
+        </Box>
       </Box>
     );
   }
@@ -67,9 +66,9 @@ const RosterPage = () => {
     return (
       <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default', display: 'flex', flexDirection: 'column' }}>
         <Navbar />
-        <PageLayout>
+        <Box sx={{ maxWidth: '1400px', mx: 'auto', px: { xs: 2, sm: 3, md: 4 }, py: { xs: 2, sm: 3 } }}>
           <Alert severity="error">{error}</Alert>
-        </PageLayout>
+        </Box>
       </Box>
     );
   }
@@ -77,7 +76,7 @@ const RosterPage = () => {
   return (
     <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default', display: 'flex', flexDirection: 'column' }}>
       <Navbar />
-      <PageLayout>
+      <Box sx={{ maxWidth: '1400px', mx: 'auto', px: { xs: 2, sm: 3, md: 4 }, py: { xs: 2, sm: 3 } }}>
         {/* Page title */}
         <Typography
           variant="h4"
@@ -92,17 +91,19 @@ const RosterPage = () => {
         </Typography>
 
         {/* Players table */}
-        <TableContainer
-          component={Paper}
-          elevation={0}
-          sx={{
-            border: '1px solid',
-            borderColor: 'divider',
-            borderRadius: 1.5, // Material 3: 12dp
-            overflow: 'hidden',
-          }}
-        >
-          <Table>
+        <Box sx={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+          <TableContainer
+            component={Paper}
+            elevation={0}
+            sx={{
+              border: '1px solid',
+              borderColor: 'divider',
+              borderRadius: 1.5, // Material 3: 12dp
+              overflow: 'hidden',
+              minWidth: { xs: 600, sm: 'auto' },
+            }}
+          >
+            <Table sx={{ minWidth: { xs: 600, sm: 'auto' } }}>
             <TableHead>
               <TableRow>
                 <TableCell sx={{ fontWeight: 600 }}>Player</TableCell>
@@ -150,7 +151,8 @@ const RosterPage = () => {
             </TableBody>
           </Table>
         </TableContainer>
-      </PageLayout>
+        </Box>
+      </Box>
     </Box>
   );
 };

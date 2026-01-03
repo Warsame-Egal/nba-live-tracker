@@ -4,7 +4,6 @@ import {
   Box,
   Typography,
   Avatar,
-  CircularProgress,
   Alert,
   Tabs,
   Tab,
@@ -26,9 +25,8 @@ import {
 import { StandingRecord, StandingsResponse } from '../types/standings';
 import { TrendingUp, TrendingDown } from '@mui/icons-material';
 import Navbar from './Navbar';
-import PageLayout from './PageLayout';
-import UniversalSidebar from './UniversalSidebar';
 import { responsiveSpacing, borderRadius, transitions, typography } from '../theme/designTokens';
+import { Skeleton } from '@mui/material';
 import { fetchJson } from '../utils/apiClient';
 import { getCurrentSeason, getSeasonOptions } from '../utils/season';
 import { getTeamInfo } from '../utils/teamMappings';
@@ -38,7 +36,10 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000
 
 type ViewType = 'league' | 'conference' | 'division';
 
-// Standings page with league/conference/division views
+/**
+ * Standings page showing NBA team records and rankings.
+ * Supports league, conference, and division views with conference filtering.
+ */
 const Standings = () => {
   const { season } = useParams<{ season?: string }>();
   const navigate = useNavigate();
@@ -208,12 +209,12 @@ const Standings = () => {
                 variant="body2"
                 sx={{
                   fontWeight: typography.weight.bold,
-                  fontSize: typography.size.bodySmall,
+                  fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm },
                 }}
               >
                 {abbreviation || team.team_city}
                 {!showRank && (
-                  <Typography component="span" sx={{ color: 'text.secondary', ml: 0.5, fontSize: typography.size.caption }}>
+                  <Typography component="span" sx={{ color: 'text.secondary', ml: 0.5, fontSize: { xs: typography.size.caption.xs, sm: typography.size.caption.sm } }}>
                     ({team.playoff_rank})
                   </Typography>
                 )}
@@ -222,7 +223,7 @@ const Standings = () => {
                 variant="caption"
                 sx={{
                   color: 'text.secondary',
-                  fontSize: typography.size.caption,
+                  fontSize: { xs: typography.size.caption.xs, sm: typography.size.caption.sm },
                 }}
               >
                 {team.team_city} {team.team_name}
@@ -235,7 +236,7 @@ const Standings = () => {
             variant="body2"
             sx={{
               fontWeight: typography.weight.bold,
-              fontSize: typography.size.bodySmall,
+              fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm },
             }}
           >
             {team.wins}
@@ -246,7 +247,7 @@ const Standings = () => {
             variant="body2"
             sx={{
               fontWeight: typography.weight.bold,
-              fontSize: typography.size.bodySmall,
+              fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm },
             }}
           >
             {team.losses}
@@ -259,7 +260,7 @@ const Standings = () => {
             sx={{
               height: 24,
               fontWeight: typography.weight.semibold,
-              fontSize: typography.size.caption,
+              fontSize: { xs: typography.size.caption.xs, sm: typography.size.caption.sm },
               backgroundColor: 'rgba(25, 118, 210, 0.1)',
               color: 'primary.main',
             }}
@@ -269,7 +270,7 @@ const Standings = () => {
           <Typography
             variant="body2"
             sx={{
-              fontSize: typography.size.bodySmall,
+              fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm },
               color: 'text.secondary',
             }}
           >
@@ -280,7 +281,7 @@ const Standings = () => {
           <Typography
             variant="body2"
             sx={{
-              fontSize: typography.size.bodySmall,
+              fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm },
             }}
           >
             {team.home_record}
@@ -290,7 +291,7 @@ const Standings = () => {
           <Typography
             variant="body2"
             sx={{
-              fontSize: typography.size.bodySmall,
+              fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm },
             }}
           >
             {team.road_record}
@@ -300,7 +301,7 @@ const Standings = () => {
           <Typography
             variant="body2"
             sx={{
-              fontSize: typography.size.bodySmall,
+              fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm },
             }}
           >
             {team.division_record}
@@ -310,7 +311,7 @@ const Standings = () => {
           <Typography
             variant="body2"
             sx={{
-              fontSize: typography.size.bodySmall,
+              fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm },
             }}
           >
             {team.conference_record}
@@ -322,7 +323,7 @@ const Standings = () => {
               <Typography
                 variant="body2"
                 sx={{
-                  fontSize: typography.size.bodySmall,
+                  fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm },
                 }}
               >
                 {team.ppg?.toFixed(1) || '—'}
@@ -332,7 +333,7 @@ const Standings = () => {
               <Typography
                 variant="body2"
                 sx={{
-                  fontSize: typography.size.bodySmall,
+                  fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm },
                 }}
               >
                 {team.opp_ppg?.toFixed(1) || '—'}
@@ -342,7 +343,7 @@ const Standings = () => {
               <Typography
                 variant="body2"
                 sx={{
-                  fontSize: typography.size.bodySmall,
+                  fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm },
                   color: team.diff && team.diff >= 0 ? 'success.main' : team.diff && team.diff < 0 ? 'error.main' : 'text.secondary',
                   fontWeight: typography.weight.semibold,
                 }}
@@ -366,7 +367,7 @@ const Standings = () => {
                 sx={{
                   height: 24,
                   fontWeight: typography.weight.semibold,
-                  fontSize: typography.size.caption,
+                  fontSize: { xs: typography.size.caption.xs, sm: typography.size.caption.sm },
                   backgroundColor: team.current_streak_str.startsWith('W')
                     ? 'rgba(76, 175, 80, 0.1)'
                     : 'rgba(239, 83, 80, 0.1)',
@@ -378,7 +379,7 @@ const Standings = () => {
               <Typography
                 variant="body2"
                 sx={{
-                  fontSize: typography.size.bodySmall,
+                  fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm },
                 }}
               >
                 {team.l10_record}
@@ -400,9 +401,10 @@ const Standings = () => {
         sx={{
           border: '1px solid',
           borderColor: 'divider',
-          borderRadius: 1.5, // Material 3: 12dp
+          borderRadius: borderRadius.md,
           backgroundColor: 'background.paper',
           overflowX: 'auto',
+          minHeight: { xs: 400, sm: 500 },
           '&::-webkit-scrollbar': {
             height: 8,
           },
@@ -422,56 +424,56 @@ const Standings = () => {
           <TableHead>
             <TableRow sx={{ backgroundColor: 'background.paper' }}>
               {showRank && (
-                <TableCell sx={{ fontWeight: typography.weight.bold, fontSize: typography.size.bodySmall, py: 2 }}>
+                <TableCell sx={{ fontWeight: typography.weight.bold, fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm }, py: 2 }}>
                   Rank
                 </TableCell>
               )}
-              <TableCell sx={{ fontWeight: typography.weight.bold, fontSize: typography.size.bodySmall, py: 2, backgroundColor: 'background.paper' }}>
+              <TableCell sx={{ fontWeight: typography.weight.bold, fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm }, py: 2, backgroundColor: 'background.paper' }}>
                 Team
               </TableCell>
-              <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: typography.size.bodySmall, py: 2, backgroundColor: 'background.paper' }}>
+              <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm }, py: 2, backgroundColor: 'background.paper' }}>
                 W
               </TableCell>
-              <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: typography.size.bodySmall, py: 2, backgroundColor: 'background.paper' }}>
+              <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm }, py: 2, backgroundColor: 'background.paper' }}>
                 L
               </TableCell>
-              <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: typography.size.bodySmall, py: 2, backgroundColor: 'background.paper' }}>
+              <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm }, py: 2, backgroundColor: 'background.paper' }}>
                 PCT
               </TableCell>
-              <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: typography.size.bodySmall, py: 2, backgroundColor: 'background.paper' }}>
+              <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm }, py: 2, backgroundColor: 'background.paper' }}>
                 GB
               </TableCell>
-              <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: typography.size.bodySmall, py: 2, backgroundColor: 'background.paper' }}>
+              <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm }, py: 2, backgroundColor: 'background.paper' }}>
                 HOME
               </TableCell>
-              <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: typography.size.bodySmall, py: 2, backgroundColor: 'background.paper' }}>
+              <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm }, py: 2, backgroundColor: 'background.paper' }}>
                 AWAY
               </TableCell>
-              <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: typography.size.bodySmall, py: 2, backgroundColor: 'background.paper' }}>
+              <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm }, py: 2, backgroundColor: 'background.paper' }}>
                 DIV
               </TableCell>
-              <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: typography.size.bodySmall, py: 2, backgroundColor: 'background.paper' }}>
+              <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm }, py: 2, backgroundColor: 'background.paper' }}>
                 CONF
               </TableCell>
               {hasPPG && (
                 <>
-                  <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: typography.size.bodySmall, py: 2, backgroundColor: 'background.paper' }}>
+                  <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm }, py: 2, backgroundColor: 'background.paper' }}>
                     PPG
                   </TableCell>
-                  <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: typography.size.bodySmall, py: 2, backgroundColor: 'background.paper' }}>
+                  <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm }, py: 2, backgroundColor: 'background.paper' }}>
                     OPP PPG
                   </TableCell>
-                  <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: typography.size.bodySmall, py: 2, backgroundColor: 'background.paper' }}>
+                  <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm }, py: 2, backgroundColor: 'background.paper' }}>
                     DIFF
                   </TableCell>
                 </>
               )}
               {!isMobile && (
                 <>
-                  <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: typography.size.bodySmall, py: 2, backgroundColor: 'background.paper' }}>
+                  <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm }, py: 2, backgroundColor: 'background.paper' }}>
                     STRK
                   </TableCell>
-                  <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: typography.size.bodySmall, py: 2, backgroundColor: 'background.paper' }}>
+                  <TableCell align="center" sx={{ fontWeight: typography.weight.bold, fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm }, py: 2, backgroundColor: 'background.paper' }}>
                     L10
                   </TableCell>
                 </>
@@ -499,9 +501,11 @@ const Standings = () => {
               label="Eastern Conference"
               onClick={() => setSelectedConference('East')}
               sx={{
-                px: 2,
-                py: 1,
+                px: { xs: 1.5, sm: 2 },
+                py: { xs: 1.25, sm: 1 },
+                minHeight: { xs: 44, sm: 32 },
                 fontWeight: typography.weight.semibold,
+                fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm },
                 backgroundColor: selectedConference === 'East' ? 'primary.main' : 'transparent',
                 color: selectedConference === 'East' ? 'primary.contrastText' : 'text.secondary',
                 border: '1px solid',
@@ -516,9 +520,11 @@ const Standings = () => {
               label="Western Conference"
               onClick={() => setSelectedConference('West')}
               sx={{
-                px: 2,
-                py: 1,
+                px: { xs: 1.5, sm: 2 },
+                py: { xs: 1.25, sm: 1 },
+                minHeight: { xs: 44, sm: 32 },
                 fontWeight: typography.weight.semibold,
+                fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm },
                 backgroundColor: selectedConference === 'West' ? 'primary.main' : 'transparent',
                 color: selectedConference === 'West' ? 'primary.contrastText' : 'text.secondary',
                 border: '1px solid',
@@ -537,48 +543,72 @@ const Standings = () => {
   };
 
   const renderDivisionView = () => {
-    const conferences = ['East', 'West'] as const;
     const eastDivisions = ['Atlantic', 'Central', 'Southeast'];
     const westDivisions = ['Northwest', 'Pacific', 'Southwest'];
+    const confDivisions = selectedConference === 'East' ? eastDivisions : westDivisions;
 
     return (
       <Box>
-        {conferences.map(conf => {
-          const confDivisions = conf === 'East' ? eastDivisions : westDivisions;
+        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Chip
+              label="Eastern Conference"
+              onClick={() => setSelectedConference('East')}
+              sx={{
+                px: { xs: 1.5, sm: 2 },
+                py: { xs: 1.25, sm: 1 },
+                minHeight: { xs: 44, sm: 32 },
+                fontWeight: typography.weight.semibold,
+                fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm },
+                backgroundColor: selectedConference === 'East' ? 'primary.main' : 'transparent',
+                color: selectedConference === 'East' ? 'primary.contrastText' : 'text.secondary',
+                border: '1px solid',
+                borderColor: selectedConference === 'East' ? 'primary.main' : 'divider',
+                cursor: 'pointer',
+                '&:hover': {
+                  backgroundColor: selectedConference === 'East' ? 'primary.dark' : 'action.hover',
+                },
+              }}
+            />
+            <Chip
+              label="Western Conference"
+              onClick={() => setSelectedConference('West')}
+              sx={{
+                px: { xs: 1.5, sm: 2 },
+                py: { xs: 1.25, sm: 1 },
+                minHeight: { xs: 44, sm: 32 },
+                fontWeight: typography.weight.semibold,
+                fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm },
+                backgroundColor: selectedConference === 'West' ? 'primary.main' : 'transparent',
+                color: selectedConference === 'West' ? 'primary.contrastText' : 'text.secondary',
+                border: '1px solid',
+                borderColor: selectedConference === 'West' ? 'primary.main' : 'divider',
+                cursor: 'pointer',
+                '&:hover': {
+                  backgroundColor: selectedConference === 'West' ? 'primary.dark' : 'action.hover',
+                },
+              }}
+            />
+          </Box>
+        </Box>
+        {confDivisions.map(div => {
+          const teams = divisionStandings[selectedConference][div] || [];
+          if (teams.length === 0) return null;
+
           return (
-            <Box key={conf} sx={{ mb: 4 }}>
+            <Box key={div} sx={{ mb: 3, minHeight: { xs: 200, sm: 250 } }}>
               <Typography
-                variant="h6"
+                variant="subtitle1"
                 sx={{
-                  fontWeight: typography.weight.bold,
-                  mb: 2,
-                  fontSize: typography.size.h6,
-                  color: 'text.primary',
+                  fontWeight: typography.weight.semibold,
+                  mb: 1.5,
+                  fontSize: { xs: typography.size.bodyLarge.xs, sm: typography.size.bodyLarge.sm },
+                  color: 'text.secondary',
                 }}
               >
-                {conf === 'East' ? 'Eastern Conference' : 'Western Conference'}
+                {div}
               </Typography>
-              {confDivisions.map(div => {
-                const teams = divisionStandings[conf][div] || [];
-                if (teams.length === 0) return null;
-
-                return (
-                  <Box key={div} sx={{ mb: 3 }}>
-                    <Typography
-                      variant="subtitle1"
-                      sx={{
-                        fontWeight: typography.weight.semibold,
-                        mb: 1.5,
-                        fontSize: typography.size.bodyLarge,
-                        color: 'text.secondary',
-                      }}
-                    >
-                      {div}
-                    </Typography>
-                    {renderTable(teams, false)}
-                  </Box>
-                );
-              })}
+              {renderTable(teams, false)}
             </Box>
           );
         })}
@@ -589,26 +619,32 @@ const Standings = () => {
   return (
     <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default', display: 'flex', flexDirection: 'column' }}>
       <Navbar />
-      <PageLayout sidebar={<UniversalSidebar />}>
+      <Box sx={{ maxWidth: '1400px', mx: 'auto', px: { xs: 2, sm: 3, md: 4 }, py: { xs: 2, sm: 3 } }}>
         {/* Page header */}
-        <Box sx={{ mb: responsiveSpacing.section, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
-          <Typography
-            variant="h4"
-            sx={{
-              fontWeight: typography.weight.bold,
-              fontSize: typography.size.h4,
-              color: 'text.primary',
-            }}
-          >
-            Standings
-          </Typography>
-          <FormControl size="small" sx={{ minWidth: 180 }}>
-            <InputLabel>Season</InputLabel>
+        <Box sx={{ mb: responsiveSpacing.section, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2, minHeight: { xs: 80, sm: 90 } }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <Typography
+              variant="h4"
+              sx={{
+                fontWeight: typography.weight.bold,
+                fontSize: { xs: typography.size.h5.xs, sm: typography.size.h5.sm, md: typography.size.h4.md },
+                color: 'text.primary',
+                letterSpacing: typography.letterSpacing.tight,
+              }}
+            >
+              Standings
+            </Typography>
+          </Box>
+          <FormControl size="small" sx={{ minWidth: { xs: 160, sm: 180 } }}>
+            <InputLabel sx={{ fontSize: { xs: typography.size.body.xs, sm: typography.size.body.sm } }}>Season</InputLabel>
             <Select
               value={seasonParam}
               label="Season"
               onChange={(e) => handleSeasonChange(e.target.value)}
-              sx={{ borderRadius: 1 }} // Material 3: 8dp
+              sx={{ 
+                borderRadius: borderRadius.sm,
+                fontSize: { xs: typography.size.body.xs, sm: typography.size.body.sm },
+              }}
             >
               {seasonOptions.map(seasonOption => (
                 <MenuItem key={seasonOption} value={seasonOption}>
@@ -620,7 +656,7 @@ const Standings = () => {
         </Box>
 
         {/* View tabs */}
-        <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+        <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3, minHeight: { xs: 48, sm: 56 } }}>
           <Tabs
             value={viewType}
             onChange={(_, newValue) => setViewType(newValue)}
@@ -628,8 +664,9 @@ const Standings = () => {
               '& .MuiTab-root': {
                 textTransform: 'none',
                 fontWeight: typography.weight.semibold,
-                fontSize: typography.size.body,
-                minHeight: 48,
+                fontSize: { xs: typography.size.body.xs, sm: typography.size.body.sm },
+                minHeight: { xs: 48, sm: 56 },
+                transition: transitions.normal,
               },
             }}
           >
@@ -641,8 +678,11 @@ const Standings = () => {
 
         {/* Loading state */}
         {loading && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: { xs: 6, sm: 8 } }}>
-            <CircularProgress />
+          <Box sx={{ minHeight: { xs: 400, sm: 500 } }}>
+            <Skeleton variant="rectangular" height={60} sx={{ borderRadius: borderRadius.md, mb: 2 }} />
+            {[...Array(10)].map((_, index) => (
+              <Skeleton key={index} variant="rectangular" height={56} sx={{ borderRadius: borderRadius.sm, mb: 0.5 }} />
+            ))}
           </Box>
         )}
 
@@ -682,6 +722,7 @@ const Standings = () => {
                 mb: 1,
                 textAlign: 'center',
                 color: 'text.primary',
+                fontSize: { xs: typography.size.h6.xs, sm: typography.size.h6.sm, md: typography.size.h5.md },
               }}
             >
               No Standings Data Available
@@ -693,13 +734,14 @@ const Standings = () => {
                 textAlign: 'center',
                 maxWidth: 500,
                 lineHeight: 1.6,
+                fontSize: { xs: typography.size.body.xs, sm: typography.size.body.sm },
               }}
             >
               Unable to load standings data for the selected season. Please try again later or select a different season.
             </Typography>
           </Box>
         )}
-      </PageLayout>
+      </Box>
     </Box>
   );
 };

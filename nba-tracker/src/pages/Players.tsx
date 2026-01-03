@@ -18,17 +18,15 @@ import {
   TableRow,
   Paper,
   Avatar,
-  CircularProgress,
   Alert,
   IconButton,
+  Skeleton,
 } from '@mui/material';
 import { Search, NavigateBefore, NavigateNext } from '@mui/icons-material';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import PageLayout from '../components/PageLayout';
-import UniversalSidebar from '../components/UniversalSidebar';
 import SeasonLeaders from '../components/SeasonLeaders';
 import Navbar from '../components/Navbar';
-import { typography, borderRadius } from '../theme/designTokens';
+import { typography, borderRadius, responsiveSpacing, transitions } from '../theme/designTokens';
 import { fetchJson } from '../utils/apiClient';
 import { getCurrentSeason, getSeasonOptions } from '../utils/season';
 import { SeasonLeadersResponse } from '../types/seasonleaders';
@@ -40,6 +38,10 @@ type TabValue = 'roster' | 'leaders';
 
 const ROWS_PER_PAGE = 25;
 
+/**
+ * Players page showing league roster and season leaders.
+ * Supports search, pagination, and season filtering.
+ */
 const Players = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -196,7 +198,7 @@ const Players = () => {
   const renderLeagueRoster = () => (
     <Box>
       {/* Search and Filters */}
-      <Box sx={{ mb: 3 }}>
+      <Box sx={{ mb: 3, minHeight: { xs: 140, sm: 160 } }}>
         <TextField
           fullWidth
           size="small"
@@ -206,21 +208,30 @@ const Players = () => {
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
-                <Search />
+                <Search sx={{ fontSize: { xs: 18, sm: 20 } }} />
               </InputAdornment>
             ),
           }}
-          sx={{ mb: 2, borderRadius: borderRadius.sm }}
+          sx={{ 
+            mb: 2, 
+            borderRadius: borderRadius.sm,
+            '& .MuiOutlinedInput-root': {
+              fontSize: { xs: typography.size.body.xs, sm: typography.size.body.sm },
+            },
+          }}
         />
 
-        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 2 }}>
-          <FormControl size="small" sx={{ minWidth: 150 }}>
-            <InputLabel>All Players</InputLabel>
+        <Box sx={{ display: 'flex', gap: { xs: 1.5, sm: 2 }, flexWrap: 'wrap', mb: 2 }}>
+          <FormControl size="small" sx={{ minWidth: { xs: 140, sm: 150 } }}>
+            <InputLabel sx={{ fontSize: { xs: typography.size.body.xs, sm: typography.size.body.sm } }}>All Players</InputLabel>
             <Select
               value={selectedLetter}
               label="All Players"
               onChange={(e) => setSelectedLetter(e.target.value)}
-              sx={{ borderRadius: borderRadius.sm }}
+              sx={{ 
+                borderRadius: borderRadius.sm,
+                fontSize: { xs: typography.size.body.xs, sm: typography.size.body.sm },
+              }}
             >
               <MenuItem value="All Players">All Players</MenuItem>
               {alphabet.map(letter => (
@@ -229,13 +240,16 @@ const Players = () => {
             </Select>
           </FormControl>
 
-          <FormControl size="small" sx={{ minWidth: 180 }}>
-            <InputLabel>All Teams</InputLabel>
+          <FormControl size="small" sx={{ minWidth: { xs: 160, sm: 180 } }}>
+            <InputLabel sx={{ fontSize: { xs: typography.size.body.xs, sm: typography.size.body.sm } }}>All Teams</InputLabel>
             <Select
               value={selectedTeam}
               label="All Teams"
               onChange={(e) => setSelectedTeam(e.target.value)}
-              sx={{ borderRadius: borderRadius.sm }}
+              sx={{ 
+                borderRadius: borderRadius.sm,
+                fontSize: { xs: typography.size.body.xs, sm: typography.size.body.sm },
+              }}
             >
               <MenuItem value="All Teams">All Teams</MenuItem>
               {uniqueTeams.map(team => (
@@ -244,13 +258,16 @@ const Players = () => {
             </Select>
           </FormControl>
 
-          <FormControl size="small" sx={{ minWidth: 150 }}>
-            <InputLabel>All Positions</InputLabel>
+          <FormControl size="small" sx={{ minWidth: { xs: 140, sm: 150 } }}>
+            <InputLabel sx={{ fontSize: { xs: typography.size.body.xs, sm: typography.size.body.sm } }}>All Positions</InputLabel>
             <Select
               value={selectedPosition}
               label="All Positions"
               onChange={(e) => setSelectedPosition(e.target.value)}
-              sx={{ borderRadius: borderRadius.sm }}
+              sx={{ 
+                borderRadius: borderRadius.sm,
+                fontSize: { xs: typography.size.body.xs, sm: typography.size.body.sm },
+              }}
             >
               <MenuItem value="All Positions">All Positions</MenuItem>
               <MenuItem value="Guard">Guard</MenuItem>
@@ -262,8 +279,12 @@ const Players = () => {
       </Box>
 
       {/* Pagination Info */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="body2" color="text.secondary">
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, minHeight: { xs: 40, sm: 48 }, flexWrap: 'wrap', gap: 1 }}>
+        <Typography 
+          variant="body2" 
+          color="text.secondary"
+          sx={{ fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm } }}
+        >
           {filteredRoster.length} Rows • Page {currentPage} of {totalPages || 1}
         </Typography>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -271,14 +292,21 @@ const Players = () => {
             size="small"
             onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
             disabled={currentPage === 1}
+            sx={{ 
+              minWidth: { xs: 44, sm: 32 },
+              minHeight: { xs: 44, sm: 32 },
+            }}
           >
             <NavigateBefore />
           </IconButton>
-          <FormControl size="small" sx={{ minWidth: 80 }}>
+          <FormControl size="small" sx={{ minWidth: { xs: 70, sm: 80 } }}>
             <Select
               value={currentPage}
               onChange={(e) => setCurrentPage(Number(e.target.value))}
-              sx={{ borderRadius: borderRadius.sm }}
+              sx={{ 
+                borderRadius: borderRadius.sm,
+                fontSize: { xs: typography.size.body.xs, sm: typography.size.body.sm },
+              }}
             >
               {Array.from({ length: totalPages || 1 }, (_, i) => i + 1).map(page => (
                 <MenuItem key={page} value={page}>{page}</MenuItem>
@@ -289,6 +317,10 @@ const Players = () => {
             size="small"
             onClick={() => setCurrentPage(prev => Math.min(totalPages || 1, prev + 1))}
             disabled={currentPage >= (totalPages || 1)}
+            sx={{ 
+              minWidth: { xs: 44, sm: 32 },
+              minHeight: { xs: 44, sm: 32 },
+            }}
           >
             <NavigateNext />
           </IconButton>
@@ -297,35 +329,45 @@ const Players = () => {
 
       {/* Table */}
       {rosterLoading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-          <CircularProgress />
+        <Box sx={{ minHeight: { xs: 400, sm: 500 } }}>
+          <Skeleton variant="rectangular" height={60} sx={{ borderRadius: borderRadius.md, mb: 1 }} />
+          {[...Array(10)].map((_, index) => (
+            <Skeleton key={index} variant="rectangular" height={56} sx={{ borderRadius: borderRadius.sm, mb: 0.5 }} />
+          ))}
         </Box>
       ) : roster.length === 0 ? (
-        <Alert severity="info">No roster data available. Please try again later.</Alert>
+        <Alert severity="info" sx={{ borderRadius: borderRadius.sm }}>
+          No roster data available. Please try again later.
+        </Alert>
       ) : filteredRoster.length === 0 ? (
-        <Alert severity="info">No players found matching the filters.</Alert>
+        <Alert severity="info" sx={{ borderRadius: borderRadius.sm }}>
+          No players found matching the filters.
+        </Alert>
       ) : (
-        <TableContainer
-          component={Paper}
-          elevation={0}
-          sx={{
-            border: '1px solid',
-            borderColor: 'divider',
-            borderRadius: borderRadius.md,
-            backgroundColor: 'background.paper',
-          }}
-        >
-          <Table>
+        <Box sx={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+          <TableContainer
+            component={Paper}
+            elevation={0}
+            sx={{
+              border: '1px solid',
+              borderColor: 'divider',
+              borderRadius: borderRadius.md,
+              backgroundColor: 'background.paper',
+              minHeight: { xs: 400, sm: 500 },
+              minWidth: { xs: 600, sm: 'auto' }, // Ensure table doesn't get too narrow on mobile
+            }}
+          >
+            <Table sx={{ minWidth: { xs: 600, sm: 'auto' } }}>
             <TableHead>
               <TableRow sx={{ backgroundColor: 'background.paper' }}>
-                <TableCell sx={{ fontWeight: typography.weight.bold, backgroundColor: 'background.paper' }}>Player</TableCell>
-                <TableCell sx={{ fontWeight: typography.weight.bold, backgroundColor: 'background.paper' }}>Team</TableCell>
-                <TableCell sx={{ fontWeight: typography.weight.bold, backgroundColor: 'background.paper' }}>Number</TableCell>
-                <TableCell sx={{ fontWeight: typography.weight.bold, backgroundColor: 'background.paper' }}>Position</TableCell>
-                <TableCell sx={{ fontWeight: typography.weight.bold, backgroundColor: 'background.paper' }}>Height</TableCell>
-                <TableCell sx={{ fontWeight: typography.weight.bold, backgroundColor: 'background.paper' }}>Weight</TableCell>
-                <TableCell sx={{ fontWeight: typography.weight.bold, backgroundColor: 'background.paper' }}>Last Attended</TableCell>
-                <TableCell sx={{ fontWeight: typography.weight.bold, backgroundColor: 'background.paper' }}>Country</TableCell>
+                <TableCell sx={{ fontWeight: typography.weight.bold, backgroundColor: 'background.paper', fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm } }}>Player</TableCell>
+                <TableCell sx={{ fontWeight: typography.weight.bold, backgroundColor: 'background.paper', fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm } }}>Team</TableCell>
+                <TableCell sx={{ fontWeight: typography.weight.bold, backgroundColor: 'background.paper', fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm } }}>Number</TableCell>
+                <TableCell sx={{ fontWeight: typography.weight.bold, backgroundColor: 'background.paper', fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm } }}>Position</TableCell>
+                <TableCell sx={{ fontWeight: typography.weight.bold, backgroundColor: 'background.paper', fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm } }}>Height</TableCell>
+                <TableCell sx={{ fontWeight: typography.weight.bold, backgroundColor: 'background.paper', fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm } }}>Weight</TableCell>
+                <TableCell sx={{ fontWeight: typography.weight.bold, backgroundColor: 'background.paper', fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm } }}>Last Attended</TableCell>
+                <TableCell sx={{ fontWeight: typography.weight.bold, backgroundColor: 'background.paper', fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm } }}>Country</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -367,6 +409,7 @@ const Players = () => {
                             sx={{
                               fontWeight: typography.weight.semibold,
                               color: 'primary.main',
+                              fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm },
                             }}
                           >
                             {player.PLAYER_FIRST_NAME}
@@ -376,6 +419,7 @@ const Players = () => {
                             sx={{
                               fontWeight: typography.weight.semibold,
                               color: 'primary.main',
+                              fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm },
                             }}
                           >
                             {player.PLAYER_LAST_NAME}
@@ -384,37 +428,37 @@ const Players = () => {
                       </Box>
                     </TableCell>
                     <TableCell>
-                      <Typography variant="body2" sx={{ color: 'primary.main' }}>
+                      <Typography variant="body2" sx={{ color: 'primary.main', fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm } }}>
                         {player.TEAM_ABBREVIATION || '—'}
                       </Typography>
                     </TableCell>
                     <TableCell>
-                      <Typography variant="body2">
+                      <Typography variant="body2" sx={{ fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm } }}>
                         {player.JERSEY_NUMBER || '—'}
                       </Typography>
                     </TableCell>
                     <TableCell>
-                      <Typography variant="body2">
+                      <Typography variant="body2" sx={{ fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm } }}>
                         {player.POSITION || '—'}
                       </Typography>
                     </TableCell>
                     <TableCell>
-                      <Typography variant="body2">
+                      <Typography variant="body2" sx={{ fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm } }}>
                         {player.HEIGHT || '—'}
                       </Typography>
                     </TableCell>
                     <TableCell>
-                      <Typography variant="body2">
+                      <Typography variant="body2" sx={{ fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm } }}>
                         {player.WEIGHT ? `${player.WEIGHT} lbs` : '—'}
                       </Typography>
                     </TableCell>
                     <TableCell>
-                      <Typography variant="body2">
+                      <Typography variant="body2" sx={{ fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm } }}>
                         {player.COLLEGE || '—'}
                       </Typography>
                     </TableCell>
                     <TableCell>
-                      <Typography variant="body2">
+                      <Typography variant="body2" sx={{ fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm } }}>
                         {player.COUNTRY || '—'}
                       </Typography>
                     </TableCell>
@@ -424,20 +468,24 @@ const Players = () => {
             </TableBody>
           </Table>
         </TableContainer>
+        </Box>
       )}
     </Box>
   );
 
   const renderSeasonLeaders = () => (
-    <Box>
-      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'flex-end' }}>
-        <FormControl size="small" sx={{ minWidth: 180 }}>
-          <InputLabel>Season</InputLabel>
+    <Box sx={{ minHeight: { xs: 400, sm: 500 } }}>
+      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'flex-end', minHeight: { xs: 40, sm: 48 } }}>
+        <FormControl size="small" sx={{ minWidth: { xs: 160, sm: 180 } }}>
+          <InputLabel sx={{ fontSize: { xs: typography.size.body.xs, sm: typography.size.body.sm } }}>Season</InputLabel>
           <Select
             value={season}
             label="Season"
             onChange={(e) => handleSeasonChange(e.target.value)}
-            sx={{ borderRadius: borderRadius.sm }}
+            sx={{ 
+              borderRadius: borderRadius.sm,
+              fontSize: { xs: typography.size.body.xs, sm: typography.size.body.sm },
+            }}
           >
             {seasonOptions.map(seasonOption => (
               <MenuItem key={seasonOption} value={seasonOption}>
@@ -449,8 +497,11 @@ const Players = () => {
       </Box>
 
       {loading || !seasonLeaders ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-          <CircularProgress />
+        <Box sx={{ minHeight: { xs: 400, sm: 500 } }}>
+          <Skeleton variant="rectangular" height={60} sx={{ borderRadius: borderRadius.md, mb: 2 }} />
+          {[...Array(5)].map((_, index) => (
+            <Skeleton key={index} variant="rectangular" height={120} sx={{ borderRadius: borderRadius.md, mb: 2 }} />
+          ))}
         </Box>
       ) : (
         <SeasonLeaders data={seasonLeaders} />
@@ -461,31 +512,32 @@ const Players = () => {
   return (
     <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default', display: 'flex', flexDirection: 'column' }}>
       <Navbar />
-      <PageLayout sidebar={<UniversalSidebar />}>
-        <Box sx={{ mb: { xs: 3, sm: 4 } }}>
-              <Typography
-                variant="h4"
-                sx={{
-                  fontWeight: typography.weight.bold,
-                  fontSize: { xs: typography.size.h5, sm: typography.size.h4 },
-                  color: 'text.primary',
-                  mb: 0.5,
-                  letterSpacing: '-0.02em',
-                }}
-              >
-                Players
-              </Typography>
-              <Typography 
-                variant="body2" 
-                color="text.secondary"
-                sx={{ fontSize: { xs: '0.875rem', sm: '0.9375rem' } }}
-              >
-                Browse all NBA players and season leaders
-              </Typography>
-            </Box>
+      <Box sx={{ maxWidth: '1400px', mx: 'auto', px: responsiveSpacing.container, py: responsiveSpacing.containerVertical }}>
+        <Box sx={{ mb: responsiveSpacing.section, minHeight: { xs: 80, sm: 90 } }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
+            <Typography
+              variant="h4"
+              sx={{
+                fontWeight: typography.weight.bold,
+                fontSize: { xs: typography.size.h5.xs, sm: typography.size.h5.sm, md: typography.size.h4.md },
+                color: 'text.primary',
+                letterSpacing: typography.letterSpacing.tight,
+              }}
+            >
+              Players
+            </Typography>
+          </Box>
+          <Typography 
+            variant="body2" 
+            color="text.secondary"
+            sx={{ fontSize: { xs: typography.size.body.xs, sm: typography.size.body.sm }, ml: 5.5 }}
+          >
+            Browse all NBA players and season leaders
+          </Typography>
+        </Box>
 
         {/* Tabs */}
-        <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+        <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3, minHeight: { xs: 48, sm: 56 } }}>
           <Tabs
             value={activeTab}
             onChange={handleTabChange}
@@ -493,8 +545,9 @@ const Players = () => {
               '& .MuiTab-root': {
                 textTransform: 'none',
                 fontWeight: typography.weight.semibold,
-                fontSize: typography.size.body,
-                minHeight: 48,
+                fontSize: { xs: typography.size.body.xs, sm: typography.size.body.sm },
+                minHeight: { xs: 48, sm: 56 },
+                transition: transitions.normal,
               },
             }}
           >
@@ -506,7 +559,7 @@ const Players = () => {
         {/* Tab Content */}
         {activeTab === 'roster' && renderLeagueRoster()}
         {activeTab === 'leaders' && renderSeasonLeaders()}
-      </PageLayout>
+      </Box>
     </Box>
   );
 };
