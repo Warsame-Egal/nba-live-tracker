@@ -4,6 +4,7 @@ import math
 import json
 import time
 import re
+from collections import OrderedDict
 from typing import Optional, Dict, Tuple, List, Any
 
 from fastapi import HTTPException
@@ -113,8 +114,10 @@ def fix_unterminated_strings(json_str: str) -> str:
 
 # Cache for predictions: key = "{date}_{season}", value = {"response": PredictionsResponse, "timestamp": float}
 # Predictions are cached for 30 minutes to avoid duplicate Groq calls while allowing updates
-_predictions_cache: Dict[str, Dict] = {}
+# Limited to 100 entries with LRU eviction to prevent unbounded growth
+_predictions_cache = OrderedDict()
 PREDICTIONS_CACHE_TTL = 1800.0  # 30 minutes
+PREDICTIONS_CACHE_MAX_SIZE = 100  # Maximum 100 date+season combinations
 
 # Cache for team statistics: key = "{season}", value = (team_stats dict, timestamp)
 # Team stats are cached for 1 hour to reduce API calls while still allowing updates
@@ -972,14 +975,17 @@ async def predict_games_for_date(date: str, season: str) -> PredictionsResponse:
     current_time = time.time()
     
     if cache_key in _predictions_cache:
-        entry = _predictions_cache[cache_key]
+        # Move to end (most recently used) for LRU eviction
+        entry = _predictions_cache.pop(cache_key)
+        _predictions_cache[cache_key] = entry
+        
         # Check if entry is still valid
         if current_time - entry.get("timestamp", 0) < PREDICTIONS_CACHE_TTL:
             logger.info(f"Returning cached predictions for {date} (season {season}) - skipping Groq calls")
             return entry["response"]
         else:
-            # Entry expired, remove it
-            _predictions_cache.pop(cache_key, None)
+            # Entry expired, remove it (already popped above, just don't re-add)
+            logger.debug(f"Predictions cache entry expired for {cache_key}")
     
     try:
         # Get games for the date (with timeout)
@@ -1253,11 +1259,22 @@ async def predict_games_for_date(date: str, season: str) -> PredictionsResponse:
             season=season
         )
         
-        # Cache the predictions with TTL
+        # Cache the predictions with TTL and LRU eviction
+        # If key exists, move to end (most recently used) and update
+        if cache_key in _predictions_cache:
+            _predictions_cache.move_to_end(cache_key)
+        
+        # Update or add entry
         _predictions_cache[cache_key] = {
             "response": response,
             "timestamp": time.time()
         }
+        
+        # Enforce size limit with LRU eviction
+        if len(_predictions_cache) > PREDICTIONS_CACHE_MAX_SIZE:
+            oldest_key, _ = _predictions_cache.popitem(last=False)
+            logger.debug(f"LRU eviction: removed oldest predictions cache entry {oldest_key}")
+        
         logger.info(f"Generated and cached {len(predictions)} predictions for {date} (season {season})")
         
         return response

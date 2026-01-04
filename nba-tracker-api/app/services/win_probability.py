@@ -23,10 +23,10 @@ logger = logging.getLogger(__name__)
 
 # Cache for win probability data per game
 # Stores the latest win probability for each game
-# Limited to 50 active games with LRU eviction
+# Limited to 20 active games with LRU eviction (max 15 games/day in NBA)
 _win_probability_cache = OrderedDict()
 WIN_PROBABILITY_CACHE_TTL = 3600.0  # 1 hour for active games
-WIN_PROBABILITY_CACHE_MAX_SIZE = 50  # Maximum 50 active games
+WIN_PROBABILITY_CACHE_MAX_SIZE = 20  # Maximum 20 active games (max 15 games/day in NBA)
 
 
 async def get_win_probability(game_id: str) -> Optional[dict]:

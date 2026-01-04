@@ -70,13 +70,13 @@ If 10 people are watching the scoreboard, we don't make 10 API calls. We make 1 
 **Data Cache:**
 
 - Scoreboard: Polled at fixed intervals (e.g., ~8 seconds), cached in memory
-- Play-by-play: Polled at fixed intervals (e.g., ~5 seconds) per game, cached in memory (limited to 50 active games)
+- Play-by-play: Polled at fixed intervals (e.g., ~5 seconds) per game, cached in memory (limited to 20 active games)
 - WebSocket clients read from cache (no direct API calls)
 
 **Insights Cache:**
 
-- Batched insights: 60 seconds TTL
-- Lead change explanations: 60 seconds TTL per game
+- Batched insights: 60 seconds TTL, limited to 50 entries
+- Lead change explanations: 60 seconds TTL per game, limited to 20 entries
 - Reduces Groq API calls
 
 ## WebSocket Message Types

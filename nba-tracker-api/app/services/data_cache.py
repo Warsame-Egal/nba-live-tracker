@@ -84,7 +84,7 @@ class DataCache:
     
     def __init__(self):
         self._scoreboard_cache: Optional[ScoreboardResponse] = None
-        self._playbyplay_cache = LRUCache(max_size=50)  # Limit to 50 active games
+        self._playbyplay_cache = LRUCache(max_size=20)  # Limit to 20 active games (max 15 games/day in NBA)
         self._lock = asyncio.Lock()
         self._active_game_ids: set = set()
         

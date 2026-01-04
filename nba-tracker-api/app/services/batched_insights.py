@@ -31,6 +31,8 @@ class BatchedInsightsCache:
         self.lead_change_cache: Dict[str, Tuple[Dict, float]] = {}  # game_id -> (data, timestamp)
         self.last_scores: Dict[str, Tuple[int, int]] = {}  # game_id -> (home_score, away_score)
         self.cache_ttl = 60.0  # 60 seconds TTL
+        self.batched_insights_max_size = 50  # Maximum 50 cached insight batches
+        self.lead_change_cache_max_size = 20  # Maximum 20 games (matches play-by-play cache)
     
     def get_batched_insights(self, cache_key: str) -> Optional[Dict]:
         """Get cached batched insights if still valid."""
@@ -43,8 +45,16 @@ class BatchedInsightsCache:
         return None
     
     def set_batched_insights(self, cache_key: str, data: Dict):
-        """Cache batched insights."""
+        """Cache batched insights with size limit enforcement."""
         self.batched_insights[cache_key] = (data, time.time())
+        
+        # Enforce size limit (remove oldest entries if over limit)
+        if len(self.batched_insights) > self.batched_insights_max_size:
+            # Remove oldest entry (simple: remove first key found)
+            # In practice, TTL cleanup handles most eviction, but this prevents unbounded growth
+            oldest_key = next(iter(self.batched_insights))
+            self.batched_insights.pop(oldest_key, None)
+            logger.debug(f"Batched insights cache size limit: removed entry {oldest_key}")
     
     def get_lead_change_explanation(self, game_id: str) -> Optional[Dict]:
         """Get cached lead change explanation if still valid."""
@@ -57,8 +67,16 @@ class BatchedInsightsCache:
         return None
     
     def set_lead_change_explanation(self, game_id: str, data: Dict):
-        """Cache lead change explanation."""
+        """Cache lead change explanation with size limit enforcement."""
         self.lead_change_cache[game_id] = (data, time.time())
+        
+        # Enforce size limit (remove oldest entries if over limit)
+        if len(self.lead_change_cache) > self.lead_change_cache_max_size:
+            # Remove oldest entry (simple: remove first key found)
+            # In practice, TTL cleanup handles most eviction, but this prevents unbounded growth
+            oldest_key = next(iter(self.lead_change_cache))
+            self.lead_change_cache.pop(oldest_key, None)
+            logger.debug(f"Lead change cache size limit: removed entry {oldest_key}")
     
     def detect_lead_change(self, game_id: str, home_score: int, away_score: int) -> bool:
         """Detect if lead changed and update tracking."""
