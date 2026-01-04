@@ -620,8 +620,15 @@ const Scoreboard = () => {
    * Always reads from persistent prediction cache, never from fetch state.
    * Predictions persist across loading states, errors, and refetches.
    */
+  /**
+   * Filter predictions to only show upcoming games.
+   * 
+   * This memo keeps predictions stable and prevents flickering. It only recalculates
+   * when game statuses actually change, not on every render.
+   */
   const filteredPredictions = useMemo(() => {
     // Always read from persistent cache, never from fetch state
+    // This ensures predictions never disappear during data refreshes
     const cachedPredictions = Array.from(predictionCache.values());
     
     // If cache is empty, return empty array (stable reference)
@@ -630,6 +637,7 @@ const Scoreboard = () => {
     }
     
     // Build a map of current game statuses (only for games that match predictions)
+    // We only care about games that have predictions, not all games
     const currentGameStatuses = new Map<string, string>();
     const relevantGameIds = new Set(cachedPredictions.map(p => p.game_id));
     
@@ -642,7 +650,8 @@ const Scoreboard = () => {
       }
     });
     
-    // Check if any relevant game statuses actually changed (only filter if status changed)
+    // Check if any relevant game statuses actually changed
+    // We only need to recalculate if a game went from upcoming to live/final
     let statusChanged = false;
     if (currentGameStatuses.size !== previousGameStatusesRef.current.size) {
       statusChanged = true;
@@ -656,6 +665,7 @@ const Scoreboard = () => {
     }
     
     // If no status changes, return last filtered predictions to avoid re-render
+    // This prevents unnecessary recalculations and keeps the UI stable
     if (!statusChanged && lastFilteredPredictionsRef.current.length > 0) {
       return lastFilteredPredictionsRef.current;
     }
@@ -698,17 +708,16 @@ const Scoreboard = () => {
     });
     
     // Generate stable ID string for comparison
+    // This lets us quickly check if the list of predictions actually changed
     const newIds = upcomingPredictions.map(p => p.game_id).sort().join(',');
     const previousIds = previousFilteredPredictionIdsRef.current;
     
-    // Only update if the filtered list actually changed (avoid unnecessary re-renders)
-    // Preserve existing predictions if filtering returns empty during rapid updates
+    // Only update if the filtered list actually changed
     if (newIds !== previousIds) {
       // If filtering returns empty but we have cached predictions, preserve current predictions
-      // This prevents clearing during rapid game state transitions
+      // This prevents clearing during rapid game state transitions (game might temporarily
+      // appear live during status updates, but we still want to show the prediction)
       if (upcomingPredictions.length === 0 && cachedPredictions.length > 0 && previousIds !== '') {
-        // During rapid updates, games might temporarily be in a state where they appear live
-        // but predictions should still be shown. Preserve existing predictions to prevent flickering.
         const preserved = lastFilteredPredictionsRef.current.length > 0 
           ? lastFilteredPredictionsRef.current 
           : upcomingPredictions;

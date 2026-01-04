@@ -195,6 +195,7 @@ When live games are detected:
 
 - **Scoreboard:** Polled every 8 seconds from NBA API, cached in memory
 - **Play-by-Play:** Polled every 5 seconds from NBA API per active game, cached in memory
+- **Play-by-Play cache:** Limited to 50 active games, finished games removed immediately, old games cleaned up after 24 hours
 - **WebSocket clients read from cache** (no direct API calls)
 - Only active games (gameStatus == 2) are polled for play-by-play
 
@@ -203,14 +204,14 @@ When live games are detected:
 - **Batched insights:** 60 seconds TTL
 - **Lead change explanations:** 60 seconds TTL per game
 - **Key moments:** Cached for 5 minutes per game (recent moments only)
-- **Key moments context:** Cached permanently (until server restart) per moment
+- **Key moments context:** Limited to 1000 entries (oldest removed when full)
 - Reduces Groq API calls
 
 ### Predictions Cache
 
-- **Predictions:** Cached permanently (until server restart) by date+season
+- **Predictions:** 30 minutes TTL by date+season
 - **Team statistics:** 1 hour TTL by season (used for predictions)
-- Once generated for a date+season, same predictions returned for all requests
+- Once generated for a date+season, same predictions returned for all requests within the TTL window
 - Reduces Groq API calls for prediction explanations
 
 ### League Leaders Cache
@@ -222,6 +223,7 @@ When live games are detected:
 
 - Cached per game in memory
 - Updated every 8 seconds for live games
+- 1 hour TTL, limited to 50 active games
 - Cleared when game ends
 
 ```

@@ -795,19 +795,44 @@ const GameRow: React.FC<GameRowProps> = ({
         >
           <LiveAIInsight
             insight={insight && insight.type !== 'none' && insight.text ? insight : null}
-            onWhyClick={insight?.type === 'lead_change' ? async () => {
-              try {
-                const response = await fetchJson<LeadChangeExplanation>(
-                  `${API_BASE_URL}/api/v1/scoreboard/game/${gameId}/lead-change`
-                );
-                if (response) {
-                  setLeadChangeExplanation(response);
-                  setLeadChangeDialogOpen(true);
-                }
-              } catch (error) {
-                console.error('Failed to fetch lead change explanation:', error);
+            onWhyClick={(() => {
+              // Show "Why?" button if insight is about a lead change
+              // Check both type and text content (AI sometimes uses different types)
+              if (!insight || !insight.text) return undefined;
+              
+              const isLeadChangeType = insight.type === 'lead_change';
+              const text = insight.text.toLowerCase();
+              const hasLeadKeywords = [
+                'took the lead',
+                'takes the lead',
+                'taken the lead',
+                'took a lead',
+                'takes a lead',
+                'regained the lead',
+                'retook the lead',
+                'lead changed',
+                'lead changes',
+                'now leads',
+                'leading',
+              ].some(keyword => text.includes(keyword));
+              
+              if (isLeadChangeType || hasLeadKeywords) {
+                return async () => {
+                  try {
+                    const response = await fetchJson<LeadChangeExplanation>(
+                      `${API_BASE_URL}/api/v1/scoreboard/game/${gameId}/lead-change`
+                    );
+                    if (response) {
+                      setLeadChangeExplanation(response);
+                      setLeadChangeDialogOpen(true);
+                    }
+                  } catch (error) {
+                    console.error('Failed to fetch lead change explanation:', error);
+                  }
+                };
               }
-            } : undefined}
+              return undefined;
+            })()}
           />
         </Box>
       )}

@@ -18,6 +18,7 @@ from app.services.groq_prompts import (
     build_lead_change_prompt,
 )
 from app.config import get_groq_api_key
+from app.services.data_cache import data_cache
 
 logger = logging.getLogger(__name__)
 
@@ -79,6 +80,73 @@ class BatchedInsightsCache:
     def get_previous_scores(self, game_id: str) -> Optional[Tuple[int, int]]:
         """Get previous scores for a game if available."""
         return self.last_scores.get(game_id)
+    
+    async def cleanup_finished_games(self):
+        """Remove finished games from all caches."""
+        try:
+            scoreboard_data = await data_cache.get_scoreboard()
+            if not scoreboard_data or not scoreboard_data.scoreboard:
+                return
+            
+            finished_game_ids = [
+                game.gameId 
+                for game in scoreboard_data.scoreboard.games
+                if game.gameStatus == 3  # Final
+            ]
+            
+            removed_insights = 0
+            removed_lead_changes = 0
+            removed_scores = 0
+            
+            for game_id in finished_game_ids:
+                # Remove from batched insights (check all keys)
+                keys_to_remove = [
+                    key for key in self.batched_insights.keys()
+                    if game_id in key
+                ]
+                for key in keys_to_remove:
+                    self.batched_insights.pop(key, None)
+                    removed_insights += 1
+                
+                # Remove from lead change cache
+                if game_id in self.lead_change_cache:
+                    self.lead_change_cache.pop(game_id, None)
+                    removed_lead_changes += 1
+                
+                # Remove from last_scores
+                if game_id in self.last_scores:
+                    self.last_scores.pop(game_id, None)
+                    removed_scores += 1
+            
+            if removed_insights > 0 or removed_lead_changes > 0 or removed_scores > 0:
+                logger.info(f"Cleaned up finished games: {removed_insights} insights, "
+                           f"{removed_lead_changes} lead changes, {removed_scores} scores")
+        except Exception as e:
+            logger.error(f"Error cleaning up finished games in batched insights cache: {e}")
+    
+    def cleanup_expired_entries(self):
+        """Remove expired entries from all caches (not just on access)."""
+        current_time = time.time()
+        
+        # Clean batched insights
+        expired_insights = [
+            key for key, (_, timestamp) in self.batched_insights.items()
+            if current_time - timestamp > self.cache_ttl
+        ]
+        for key in expired_insights:
+            self.batched_insights.pop(key, None)
+        
+        # Clean lead change cache
+        expired_lead_changes = [
+            game_id for game_id, (_, timestamp) in self.lead_change_cache.items()
+            if current_time - timestamp > self.cache_ttl
+        ]
+        for game_id in expired_lead_changes:
+            self.lead_change_cache.pop(game_id, None)
+        
+        if expired_insights or expired_lead_changes:
+            logger.debug(f"Cleaned up {len(expired_insights)} expired insights, "
+                        f"{len(expired_lead_changes)} expired lead changes")
 
 
 _insights_cache = BatchedInsightsCache()
@@ -118,6 +186,10 @@ async def generate_batched_insights(games: List[Dict[str, Any]]) -> Dict[str, An
         away_score = game.get("away_score", 0)
         cache_key_parts.append(f"{game_id}:{home_score}-{away_score}")
     cache_key = "|".join(sorted(cache_key_parts))
+    
+    # Clean up finished games and expired entries periodically
+    _insights_cache.cleanup_expired_entries()
+    await _insights_cache.cleanup_finished_games()
     
     # Check cache
     cached = _insights_cache.get_batched_insights(cache_key)

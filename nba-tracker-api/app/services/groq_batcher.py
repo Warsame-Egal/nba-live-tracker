@@ -37,6 +37,7 @@ logger = logging.getLogger(__name__)
 
 # Generic cache for batched responses
 _batch_cache: Dict[str, tuple] = {}  # cache_key -> (data, timestamp)
+BATCH_CACHE_MAX_SIZE = 1000  # Maximum 1000 cached responses
 
 
 T = TypeVar('T')  # Input item type
@@ -92,6 +93,10 @@ async def generate_batched_groq_responses(
     """
     if not items:
         return empty_result or {}
+    
+    # Clean up expired entries periodically
+    if len(_batch_cache) > BATCH_CACHE_MAX_SIZE * 0.9:  # Clean when 90% full
+        cleanup_batch_cache()
     
     # Check cache if cache_key_fn provided
     cache_key = None
@@ -169,6 +174,36 @@ async def generate_batched_groq_responses(
     except Exception as e:
         logger.warning(f"Error generating batched Groq responses: {e}", exc_info=True)
         return empty_result or {}
+
+
+def cleanup_batch_cache():
+    """Remove expired entries and enforce size limit."""
+    current_time = time.time()
+    
+    # Remove expired entries
+    expired_keys = [
+        key for key, (_, timestamp) in _batch_cache.items()
+        if current_time - timestamp > 3600.0  # 1 hour default TTL
+    ]
+    for key in expired_keys:
+        _batch_cache.pop(key, None)
+    
+    # Enforce size limit (remove oldest entries)
+    if len(_batch_cache) > BATCH_CACHE_MAX_SIZE:
+        # Sort by timestamp and remove oldest
+        sorted_entries = sorted(
+            _batch_cache.items(),
+            key=lambda x: x[1][1]  # Sort by timestamp
+        )
+        keys_to_remove = [
+            key for key, _ in sorted_entries[:len(_batch_cache) - BATCH_CACHE_MAX_SIZE]
+        ]
+        for key in keys_to_remove:
+            _batch_cache.pop(key, None)
+        logger.debug(f"LRU eviction: removed {len(keys_to_remove)} old entries from batch cache")
+    
+    if expired_keys:
+        logger.debug(f"Cleaned up {len(expired_keys)} expired entries from batch cache")
 
 
 def clear_batch_cache():

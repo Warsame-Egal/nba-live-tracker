@@ -96,7 +96,7 @@ Key moments are automatically detected important plays in live games.
 
 **Caching:**
 - Key moments: 5 minutes per game (recent moments only)
-- Key moments context: Permanent (until server restart) per moment
+- Key moments context: Limited to 1000 entries (oldest removed when full)
 
 ## Predictions
 
@@ -120,7 +120,7 @@ Predictions calculate win probabilities and generate AI explanations.
 - Simple statistical formula
 
 **Caching:**
-- Predictions: Permanent (until server restart) by date+season
+- Predictions: 30 minutes TTL by date+season
 - Team statistics: 1 hour TTL by season
 
 ## Rate Limiting

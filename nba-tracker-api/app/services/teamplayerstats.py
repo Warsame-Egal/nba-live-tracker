@@ -74,6 +74,9 @@ async def get_team_player_stats(team_id: int, season: str = "2024-25") -> TeamPl
         
         team_stats = stats_data[stats_data["TEAM_ID"] == team_id].copy()
         
+        # Delete original DataFrame after filtering
+        del stats_data
+        
         if team_stats.empty:
             logger.info(f"No players found for team {team_id} in season {season}")
             return TeamPlayerStatsResponse(team_id=team_id, season=season, players=[])
@@ -81,8 +84,12 @@ async def get_team_player_stats(team_id: int, season: str = "2024-25") -> TeamPl
         # Replace NaN values
         team_stats = team_stats.fillna(0)
         
+        # Convert to native Python types immediately
+        players_data = team_stats.to_dict(orient="records")
+        del team_stats  # Delete DataFrame after conversion
+        
         players = []
-        for _, row in team_stats.iterrows():
+        for row in players_data:
             try:
                 # Calculate assist to turnover ratio
                 ast_to = None

@@ -25,6 +25,7 @@ from app.services.websockets_manager import (
     playbyplay_websocket_manager,
     scoreboard_websocket_manager,
 )
+from app.services.key_moments import start_cleanup_task, stop_cleanup_task
 
 logging.basicConfig(
     level=logging.INFO,
@@ -50,9 +51,16 @@ async def lifespan(app: FastAPI):
     # Start background polling tasks that fetch data from NBA API
     data_cache.start_polling()
     
+    # Start key moments cleanup task
+    start_cleanup_task()
+    
     # Start WebSocket broadcast tasks that read from cache
     scoreboard_task = asyncio.create_task(scoreboard_websocket_manager.broadcast_updates())
     playbyplay_task = asyncio.create_task(playbyplay_websocket_manager.broadcast_playbyplay_updates())
+    
+    # Start WebSocket cleanup tasks
+    scoreboard_websocket_manager.start_cleanup_task()
+    playbyplay_websocket_manager.start_cleanup_task()
     
     try:
         yield
@@ -60,6 +68,10 @@ async def lifespan(app: FastAPI):
         logger.info("Shutting down background tasks...")
         
         await data_cache.stop_polling()
+        await stop_cleanup_task()
+        
+        await scoreboard_websocket_manager.stop_cleanup_task()
+        await playbyplay_websocket_manager.stop_cleanup_task()
         
         scoreboard_task.cancel()
         playbyplay_task.cancel()

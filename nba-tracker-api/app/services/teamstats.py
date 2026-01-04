@@ -77,17 +77,22 @@ async def get_team_stats(season: str = "2024-25") -> TeamStatsResponse:
             else:
                 sorted_df = df_filtered.nlargest(top_n, stat_col)
             
+            # Convert to native Python types immediately
+            teams_data = sorted_df.to_dict(orient="records")
+            del sorted_df  # Delete sorted DataFrame
+            del df_filtered  # Delete filtered DataFrame
+            
             teams = []
-            for _, row in sorted_df.iterrows():
-                team_name = str(row.get("TEAM_NAME", "")).strip()
-                value = float(row.get(stat_col, 0)) if pd.notna(row.get(stat_col)) else 0.0
-                team_id = int(row.get("TEAM_ID", 0))
+            for team in teams_data:
+                team_name = str(team.get("TEAM_NAME", "")).strip()
+                value = float(team.get(stat_col, 0)) if pd.notna(team.get(stat_col)) else 0.0
+                team_id = int(team.get("TEAM_ID", 0))
                 
                 if team_name and team_id:
                     teams.append(TeamStatSummary(
                         team_id=team_id,
                         team_name=team_name,
-                        team_abbreviation=row.get("TEAM_ABBREVIATION"),
+                        team_abbreviation=team.get("TEAM_ABBREVIATION"),
                         value=round(value, 1) if stat_col not in ["FG_PCT", "FG3_PCT", "W_PCT"] else round(value * 100, 1)
                     ))
             
@@ -95,6 +100,9 @@ async def get_team_stats(season: str = "2024-25") -> TeamStatsResponse:
         
         categories = []
         categories.append(create_category(stats_data, "NET_RTG", "Net Rating", top_n=30))
+        
+        # Delete original DataFrame after processing
+        del stats_data
         
         return TeamStatsResponse(season=season, categories=categories)
         

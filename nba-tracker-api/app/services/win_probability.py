@@ -7,20 +7,26 @@ Win probability shows the likelihood of each team winning at any given moment.
 
 import asyncio
 import logging
+import time
 from typing import Dict, Optional, List
 from datetime import datetime
+from collections import OrderedDict
 
 from fastapi import HTTPException
 from nba_api.stats.endpoints import winprobabilitypbp
 
 from app.config import get_api_kwargs
 from app.utils.rate_limiter import rate_limit
+from app.services.data_cache import data_cache
 
 logger = logging.getLogger(__name__)
 
 # Cache for win probability data per game
 # Stores the latest win probability for each game
-_win_probability_cache: Dict[str, dict] = {}
+# Limited to 50 active games with LRU eviction
+_win_probability_cache = OrderedDict()
+WIN_PROBABILITY_CACHE_TTL = 3600.0  # 1 hour for active games
+WIN_PROBABILITY_CACHE_MAX_SIZE = 50  # Maximum 50 active games
 
 
 async def get_win_probability(game_id: str) -> Optional[dict]:
@@ -45,14 +51,23 @@ async def get_win_probability(game_id: str) -> Optional[dict]:
         HTTPException: If API error occurs
     """
     try:
+        # Clean up finished games first
+        await _cleanup_finished_games()
+        
         # Check cache first
+        current_time = time.time()
         if game_id in _win_probability_cache:
             cached_data = _win_probability_cache[game_id]
-            # Return cached data if it's recent (within last 30 seconds)
-            if cached_data.get("timestamp"):
-                # For now, always fetch fresh data for live games
-                # Cache will be updated by WebSocket polling
-                pass
+            # Move to end (most recently used)
+            _win_probability_cache.move_to_end(game_id)
+            
+            # Check if entry is still valid (within TTL)
+            if current_time - cached_data.get("timestamp_unix", 0) < WIN_PROBABILITY_CACHE_TTL:
+                # For live games, we may want fresh data, but return cached if recent
+                return cached_data
+            else:
+                # Entry expired, remove it
+                _win_probability_cache.pop(game_id, None)
         
         # Fetch win probability data from NBA API
         api_kwargs = get_api_kwargs()
@@ -149,12 +164,20 @@ async def get_win_probability(game_id: str) -> Optional[dict]:
         result = {
             "home_win_prob": home_win_prob,
             "away_win_prob": away_win_prob,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.utcnow().isoformat(),  # ISO timestamp for API response
+            "timestamp_unix": time.time(),  # Unix timestamp for TTL checking
             "probability_history": probability_history,
         }
         
-        # Update cache
+        # Update cache with LRU eviction
+        if game_id in _win_probability_cache:
+            _win_probability_cache.move_to_end(game_id)
         _win_probability_cache[game_id] = result
+        
+        # Enforce size limit
+        if len(_win_probability_cache) > WIN_PROBABILITY_CACHE_MAX_SIZE:
+            oldest_key, _ = _win_probability_cache.popitem(last=False)
+            logger.debug(f"LRU eviction: removed game {oldest_key} from win probability cache")
         
         return result
         
@@ -195,6 +218,31 @@ async def get_win_probability_for_multiple_games(game_ids: List[str]) -> Dict[st
     return results
 
 
+async def _cleanup_finished_games():
+    """Remove finished games from win probability cache immediately."""
+    try:
+        scoreboard_data = await data_cache.get_scoreboard()
+        if not scoreboard_data or not scoreboard_data.scoreboard:
+            return
+        
+        finished_game_ids = [
+            game.gameId 
+            for game in scoreboard_data.scoreboard.games
+            if game.gameStatus == 3  # Final
+        ]
+        
+        removed_count = 0
+        for game_id in finished_game_ids:
+            if game_id in _win_probability_cache:
+                _win_probability_cache.pop(game_id, None)
+                removed_count += 1
+        
+        if removed_count > 0:
+            logger.info(f"Cleaned up {removed_count} finished games from win probability cache")
+    except Exception as e:
+        logger.error(f"Error cleaning up finished games from win probability cache: {e}")
+
+
 def get_cached_win_probability(game_id: str) -> Optional[dict]:
     """
     Get cached win probability data without making an API call.
@@ -205,7 +253,10 @@ def get_cached_win_probability(game_id: str) -> Optional[dict]:
     Returns:
         Cached win probability data or None if not cached
     """
-    return _win_probability_cache.get(game_id)
+    if game_id in _win_probability_cache:
+        _win_probability_cache.move_to_end(game_id)  # Move to end (most recently used)
+        return _win_probability_cache[game_id]
+    return None
 
 
 def clear_win_probability_cache(game_id: Optional[str] = None):

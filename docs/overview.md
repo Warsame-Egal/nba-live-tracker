@@ -70,7 +70,7 @@ If 10 people are watching the scoreboard, we don't make 10 API calls. We make 1 
 **Data Cache:**
 
 - Scoreboard: Polled at fixed intervals (e.g., ~8 seconds), cached in memory
-- Play-by-play: Polled at fixed intervals (e.g., ~5 seconds) per game, cached in memory
+- Play-by-play: Polled at fixed intervals (e.g., ~5 seconds) per game, cached in memory (limited to 50 active games)
 - WebSocket clients read from cache (no direct API calls)
 
 **Insights Cache:**
@@ -96,52 +96,4 @@ The frontend handles them separately. Scoreboard updates go to the game list. In
 The backend periodically polls the NBA API and caches the data in `data_cache.py`. WebSocket clients read from this cache, so multiple clients don't trigger multiple API calls. When live games are detected, the backend generates AI insights using Groq and sends them via WebSocket.
 
 **Important:** WebSockets never call the NBA API directly. They read from the cache. This means 100 people watching = 1 API call, not 100.
-
-## Project Structure
-
-```
-
-nba-live-tracker/
-├── nba-tracker/ # Frontend React app
-│ ├── src/
-│ │ ├── components/ # UI components
-│ │ │ ├── GameRow.tsx
-│ │ │ ├── LiveAIInsight.tsx
-│ │ │ ├── KeyMomentBadge.tsx
-│ │ │ ├── MomentumChart.tsx
-│ │ │ ├── WinProbabilityTracker.tsx
-│ │ │ └── ...
-│ │ ├── pages/ # Page components
-│ │ │ ├── Scoreboard.tsx
-│ │ │ ├── Predictions.tsx
-│ │ │ ├── Players.tsx
-│ │ │ ├── Teams.tsx
-│ │ │ └── Standings.tsx
-│ │ ├── services/ # API services & WebSockets
-│ │ │ ├── websocketService.ts
-│ │ │ └── PlayByPlayWebSocketService.ts
-│ │ └── types/ # TypeScript types
-│ └── public/ # Static assets
-└── nba-tracker-api/ # Backend FastAPI app
-└── app/
-├── routers/ # API routes
-│ ├── scoreboard.py
-│ ├── players.py
-│ ├── teams.py
-│ └── predictions.py
-├── services/ # Business logic
-│ ├── batched_insights.py # Batched AI insights (one call for all games)
-│ ├── groq_client.py # Groq API client & rate limiter
-│ ├── groq_prompts.py # AI prompt templates
-│ ├── predictions.py # Game predictions with AI
-│ ├── websockets_manager.py # WebSocket broadcasting (reads from cache)
-│ ├── data_cache.py # Data caching (WebSockets don't call API directly)
-│ ├── key_moments.py # Key moments detection
-│ ├── win_probability.py # Win probability service
-│ └── groq_batcher.py # Reusable Groq batching utility
-└── schemas/ # Data models
-
-```
-
-**Key point:** WebSockets don't call the NBA API directly. They read from `data_cache.py`, which polls the API in the background. This means 100 people watching the scoreboard = 1 API call, not 100.
 ```
