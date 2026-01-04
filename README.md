@@ -2,7 +2,7 @@
 
 Real-time NBA scoreboard and stats tracker. Watch live games with play-by-play updates, AI-powered insights, and stat-based predictions.
 
-**Live Demo:** [https://nba-live-tracker-one.vercel.app](https://nba-live-tracker-one.vercel.app)
+**Live Demo:** [https://nba-live-tracker-one.vercel.app](https://nba-live-tracker-delta.vercel.app)
 
 ## What It Does
 
@@ -25,10 +25,6 @@ A web app that shows live NBA game scores, player stats, team information, and g
 
 <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;">
   <img src="nba-tracker/public/screenshots/Scoreboard.png" alt="Live Scoreboard" width="280" />
-  <img src="nba-tracker/public/screenshots/Predictions3.png" alt="Predictions" width="280" />
-  <img src="nba-tracker/public/screenshots/Predictions1.png" alt="Game Predictions" width="280" />
-  <img src="nba-tracker/public/screenshots/Predictions2.png" alt="League Standings" width="280" />
-  <img src="nba-tracker/public/screenshots/Player.png" alt="Player Profile" width="280" />
 </div>
 
 ## Quick Start
