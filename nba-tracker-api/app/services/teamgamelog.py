@@ -40,8 +40,13 @@ async def get_team_game_log(team_id: str, season: str = "2024-25") -> TeamGameLo
             if not game_finder_data.empty:
                 # Convert LeagueGameFinder DataFrame to game log format
                 logger.info(f"Found {len(game_finder_data)} games via LeagueGameFinder for team {team_id}, season {season}")
+                
+                # Convert to native Python types immediately
+                games_data = game_finder_data.to_dict(orient="records")
+                del game_finder_data  # Delete DataFrame after conversion
+                
                 games = []
-                for _, row in game_finder_data.iterrows():
+                for row in games_data:
                     try:
                         game_entry = TeamGameLogEntry(
                             game_id=str(row.get("GAME_ID", "")),

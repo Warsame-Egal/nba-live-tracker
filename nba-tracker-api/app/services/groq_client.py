@@ -49,30 +49,35 @@ class GroqRateLimiter:
         async with self._lock:
             current_time = time.time()
             
-            # Remove entries older than 60 seconds
+            # Remove entries older than 60 seconds (rolling window)
+            # We only care about requests/tokens in the last minute
             while self.request_history and current_time - self.request_history[0] > 60:
                 self.request_history.popleft()
             while self.token_history and current_time - self.token_history[0][0] > 60:
                 self.token_history.popleft()
             
-            # Calculate requests and tokens used in the last 60 seconds
+            # Calculate how many requests and tokens we've used in the last 60 seconds
             requests_used = len(self.request_history)
             tokens_used = sum(tokens for _, tokens in self.token_history)
             
             # Check if we need to wait (either limit would be exceeded)
             wait_time = 0
             
-            # Check RPM limit (more conservative: wait if we're at 90% of limit)
+            # Check RPM limit - wait if we're at 90% of limit
+            # We wait until the oldest request is 60 seconds old (so it falls out of the window)
             if requests_used >= int(self.max_requests_per_minute * 0.9):
                 if self.request_history:
                     oldest_time = self.request_history[0]
+                    # Wait until oldest request is 60 seconds old, plus 1 second buffer
                     wait_time = max(wait_time, 60 - (current_time - oldest_time) + 1)
             
-            # Check TPM limit (more conservative: wait if we're at 85% of limit to leave more buffer)
+            # Check TPM limit - wait if we're at 85% of limit (more conservative for tokens)
+            # Same logic: wait until oldest token usage is 60 seconds old
             if tokens_used + estimated_tokens > int(self.max_tokens_per_minute * 0.85):
                 if self.token_history:
                     oldest_time = self.token_history[0][0]
-                    wait_time = max(wait_time, 60 - (current_time - oldest_time) + 2)  # Add 2s buffer
+                    # Wait until oldest token usage is 60 seconds old, plus 2 second buffer
+                    wait_time = max(wait_time, 60 - (current_time - oldest_time) + 2)
             
             # Wait if needed
             if wait_time > 0:

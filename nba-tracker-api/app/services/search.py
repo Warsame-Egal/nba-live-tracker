@@ -54,8 +54,13 @@ async def search_entities(query: str) -> SearchResults:
                 | player_index_df["PLAYER_LAST_NAME"].str.lower().str.contains(search_lower, na=False)
             ].head(10)  # Limit to 10 players
 
+            # Convert to native Python types immediately
+            players_data = filtered_players.to_dict(orient="records")
+            del filtered_players  # Delete filtered DataFrame
+            del player_index_df  # Delete original DataFrame
+
             # Convert each player to our format
-            for _, row in filtered_players.iterrows():
+            for row in players_data:
                 player_results.append(
                     PlayerResult(
                         id=int(row["PERSON_ID"]),

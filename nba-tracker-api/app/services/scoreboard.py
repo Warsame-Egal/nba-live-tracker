@@ -1,7 +1,9 @@
 import asyncio
 import logging
 import re
-from typing import List
+import time
+from typing import List, Dict
+from collections import OrderedDict
 
 from fastapi import HTTPException
 from nba_api.live.nba.endpoints import boxscore, playbyplay, scoreboard
@@ -30,7 +32,35 @@ from app.utils.rate_limiter import rate_limit
 logger = logging.getLogger(__name__)
 
 # Cache for player season averages to avoid repeated API calls
-_player_stats_cache = {}
+# Structure: {player_id: {"stats": dict, "timestamp": float}}
+_player_stats_cache: Dict[int, Dict] = {}
+PLAYER_STATS_CACHE_TTL = 3600.0  # 1 hour
+PLAYER_STATS_CACHE_MAX_SIZE = 500  # Maximum 500 entries
+
+
+def _cleanup_player_stats_cache():
+    """Remove expired entries and enforce size limit with LRU eviction."""
+    current_time = time.time()
+    expired_keys = [
+        player_id for player_id, entry in _player_stats_cache.items()
+        if current_time - entry.get("timestamp", 0) > PLAYER_STATS_CACHE_TTL
+    ]
+    for key in expired_keys:
+        _player_stats_cache.pop(key, None)
+    
+    # Enforce size limit with LRU eviction (simple: remove oldest entries)
+    if len(_player_stats_cache) > PLAYER_STATS_CACHE_MAX_SIZE:
+        # Sort by timestamp and remove oldest
+        sorted_entries = sorted(
+            _player_stats_cache.items(),
+            key=lambda x: x[1].get("timestamp", 0)
+        )
+        keys_to_remove = [
+            key for key, _ in sorted_entries[:len(_player_stats_cache) - PLAYER_STATS_CACHE_MAX_SIZE]
+        ]
+        for key in keys_to_remove:
+            _player_stats_cache.pop(key, None)
+        logger.debug(f"LRU eviction: removed {len(keys_to_remove)} old entries from player stats cache")
 
 
 async def get_player_season_averages(player_id: int) -> dict:
@@ -38,8 +68,19 @@ async def get_player_season_averages(player_id: int) -> dict:
     Get season averages for a player from the player index.
     Returns a dict with PTS, REB, AST averages.
     """
+    # Clean up expired entries periodically
+    if len(_player_stats_cache) > PLAYER_STATS_CACHE_MAX_SIZE * 0.9:  # Clean when 90% full
+        _cleanup_player_stats_cache()
+    
+    current_time = time.time()
     if player_id in _player_stats_cache:
-        return _player_stats_cache[player_id]
+        entry = _player_stats_cache[player_id]
+        # Check if entry is still valid
+        if current_time - entry.get("timestamp", 0) < PLAYER_STATS_CACHE_TTL:
+            return entry["stats"]
+        else:
+            # Entry expired, remove it
+            _player_stats_cache.pop(player_id, None)
     
     try:
         # Get player index data
@@ -65,8 +106,18 @@ async def get_player_season_averages(player_id: int) -> dict:
                 "JERSEY_NUMBER": player_data.get("JERSEY_NUMBER"),
                 "POSITION": player_data.get("POSITION"),
             }
-            _player_stats_cache[player_id] = stats
+            _player_stats_cache[player_id] = {
+                "stats": stats,
+                "timestamp": time.time()
+            }
+            # Delete DataFrames after extracting data
+            del player_row
+            del player_index_df
             return stats
+        
+        # Delete DataFrames if player not found
+        del player_row
+        del player_index_df
     except Exception as e:
         logger.warning(f"Error fetching season averages for player {player_id}: {e}")
     

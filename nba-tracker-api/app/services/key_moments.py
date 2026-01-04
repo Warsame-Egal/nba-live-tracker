@@ -17,9 +17,10 @@ when detected.
 import asyncio
 import logging
 import re
+import time
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple, Any
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 
 from app.services.data_cache import data_cache
 from app.services.groq_client import call_groq_api
@@ -36,9 +37,9 @@ _key_moments_cache: Dict[str, List[Dict]] = {}
 _last_checked_plays: Dict[str, int] = {}  # game_id -> last action_number checked
 
 # Cache for AI context of key moments: key = moment_id, value = context string
-# Context is cached permanently (until server restart) to avoid duplicate Groq calls.
-# Once generated for a moment_id, same context is returned for all requests.
-_moment_context_cache: Dict[str, str] = {}
+# Limited to 1000 entries with LRU eviction to prevent unbounded growth
+_moment_context_cache = OrderedDict()
+_MOMENT_CONTEXT_MAX_SIZE = 1000
 
 
 class KeyMomentType:
@@ -48,6 +49,108 @@ class KeyMomentType:
     SCORING_RUN = "scoring_run"
     CLUTCH_PLAY = "clutch_play"
     BIG_SHOT = "big_shot"
+
+
+def _get_moment_context(moment_id: str) -> Optional[str]:
+    """Get moment context from LRU cache, moving to end."""
+    if moment_id in _moment_context_cache:
+        _moment_context_cache.move_to_end(moment_id)
+        return _moment_context_cache[moment_id]
+    return None
+
+
+def _set_moment_context(moment_id: str, context: str):
+    """Set moment context in LRU cache, evicting oldest if at capacity."""
+    if moment_id in _moment_context_cache:
+        _moment_context_cache.move_to_end(moment_id)
+    _moment_context_cache[moment_id] = context
+    
+    # Evict oldest if over limit
+    if len(_moment_context_cache) > _MOMENT_CONTEXT_MAX_SIZE:
+        oldest_key, _ = _moment_context_cache.popitem(last=False)
+        logger.debug(f"LRU eviction: removed moment context {oldest_key}")
+
+
+async def _cleanup_finished_games():
+    """Remove finished games from all key moments caches immediately."""
+    try:
+        scoreboard_data = await data_cache.get_scoreboard()
+        if not scoreboard_data or not scoreboard_data.scoreboard:
+            return
+        
+        finished_game_ids = [
+            game.gameId 
+            for game in scoreboard_data.scoreboard.games
+            if game.gameStatus == 3  # Final
+        ]
+        
+        removed_moments = 0
+        removed_contexts = 0
+        
+        for game_id in finished_game_ids:
+            # Remove from key moments cache
+            if game_id in _key_moments_cache:
+                removed_moments += len(_key_moments_cache[game_id])
+                del _key_moments_cache[game_id]
+            
+            # Remove from last checked plays
+            _last_checked_plays.pop(game_id, None)
+            
+            # Remove moment contexts for this game
+            moment_ids_to_remove = [
+                moment_id for moment_id in _moment_context_cache.keys()
+                if moment_id.startswith(f"{game_id}:")
+            ]
+            for moment_id in moment_ids_to_remove:
+                _moment_context_cache.pop(moment_id, None)
+                removed_contexts += 1
+        
+        if removed_moments > 0 or removed_contexts > 0:
+            logger.info(f"Cleaned up finished games: {len(finished_game_ids)} games, "
+                       f"{removed_moments} moments, {removed_contexts} contexts")
+    except Exception as e:
+        logger.error(f"Error cleaning up finished games: {e}")
+
+
+async def _periodic_cleanup():
+    """Periodic cleanup task that runs every 5 minutes."""
+    logger.info("Periodic key moments cleanup started")
+    
+    while True:
+        try:
+            await asyncio.sleep(300)  # 5 minutes
+            
+            # Clean up finished games
+            await _cleanup_finished_games()
+            
+            # Remove old moments (older than 24 hours)
+            current_time = datetime.utcnow().timestamp()
+            cutoff_time = current_time - 86400  # 24 hours ago
+            
+            removed_moments = 0
+            for game_id in list(_key_moments_cache.keys()):
+                moments = _key_moments_cache[game_id]
+                original_count = len(moments)
+                _key_moments_cache[game_id] = [
+                    m for m in moments
+                    if datetime.fromisoformat(m["timestamp"]).timestamp() > cutoff_time
+                ]
+                removed_moments += original_count - len(_key_moments_cache[game_id])
+                
+                # Remove game entry if no moments left
+                if not _key_moments_cache[game_id]:
+                    del _key_moments_cache[game_id]
+                    _last_checked_plays.pop(game_id, None)
+            
+            if removed_moments > 0:
+                logger.info(f"Removed {removed_moments} old moments (older than 24 hours)")
+            
+        except asyncio.CancelledError:
+            logger.info("Periodic key moments cleanup cancelled")
+            raise
+        except Exception as e:
+            logger.error(f"Error in periodic key moments cleanup: {e}")
+            await asyncio.sleep(60)  # Wait 1 minute before retrying
 
 
 def parse_clock(clock_str: str) -> Optional[Tuple[int, int]]:
@@ -498,12 +601,16 @@ async def generate_batched_moment_contexts(moments_with_game_info: List[Dict[str
     
     for item in moments_with_game_info:
         moment_id = item.get("moment_id", "")
-        if moment_id and moment_id in _moment_context_cache:
-            # Context already exists in cache
-            cached_contexts[moment_id] = _moment_context_cache[moment_id]
-            logger.debug(f"Using cached context for moment {moment_id}")
+        if moment_id:
+            cached_context = _get_moment_context(moment_id)
+            if cached_context:
+                # Context already exists in cache
+                cached_contexts[moment_id] = cached_context
+                logger.debug(f"Using cached context for moment {moment_id}")
+            else:
+                # Need to generate context
+                moments_needing_context.append(item)
         else:
-            # Need to generate context
             moments_needing_context.append(item)
     
     # If all moments are cached, return immediately (no Groq call)
@@ -559,8 +666,8 @@ async def generate_batched_moment_contexts(moments_with_game_info: List[Dict[str
                             moment_id = item["moment_id"]
                             context = item["context"]
                             newly_generated_contexts[moment_id] = context
-                            # Cache the newly generated context
-                            _moment_context_cache[moment_id] = context
+                            # Cache the newly generated context with LRU eviction
+                            _set_moment_context(moment_id, context)
                             logger.debug(f"Cached context for moment {moment_id}")
                 
                 logger.info(f"Generated and cached context for {len(newly_generated_contexts)} moments")
@@ -606,9 +713,11 @@ async def generate_moment_context(moment: Dict, game_info: Dict) -> Optional[str
     moment_id = f"{game_id}:{timestamp}" if game_id and timestamp else None
     
     # Check cache first
-    if moment_id and moment_id in _moment_context_cache:
-        logger.debug(f"Returning cached context for moment {moment_id}")
-        return _moment_context_cache[moment_id]
+    if moment_id:
+        cached_context = _get_moment_context(moment_id)
+        if cached_context:
+            logger.debug(f"Returning cached context for moment {moment_id}")
+            return cached_context
     
     try:
         api_key = get_groq_api_key()
@@ -641,7 +750,7 @@ async def generate_moment_context(moment: Dict, game_info: Dict) -> Optional[str
         
         # Cache the context if we have a moment_id and context was generated
         if moment_id and context:
-            _moment_context_cache[moment_id] = context
+            _set_moment_context(moment_id, context)
             logger.debug(f"Cached context for moment {moment_id}")
         
         return context
@@ -741,16 +850,31 @@ async def process_live_games():
     This should be called periodically (e.g., every 5-10 seconds) while games are live.
     """
     try:
+        # Clean up finished games before processing
+        await _cleanup_finished_games()
+        
         scoreboard_data = await data_cache.get_scoreboard()
         if not scoreboard_data:
             return
         
-        # Get all live games
+        # Get all live games (only gameStatus == 2)
         live_games = [
             game.gameId
             for game in scoreboard_data.scoreboard.games
             if game.gameStatus == 2
         ]
+        
+        # Clean up caches for games that are no longer live
+        cached_game_ids = set(_key_moments_cache.keys())
+        for game_id in cached_game_ids:
+            game = next(
+                (g for g in scoreboard_data.scoreboard.games if g.gameId == game_id),
+                None
+            )
+            # Remove if game not found or game is finished
+            if not game or game.gameStatus != 2:
+                _key_moments_cache.pop(game_id, None)
+                _last_checked_plays.pop(game_id, None)
         
         # Detect moments for each live game
         all_moments_needing_context = []
@@ -810,4 +934,28 @@ async def process_live_games():
     
     except Exception as e:
         logger.error(f"Error processing live games for key moments: {e}")
+
+
+# Global variable to track cleanup task
+_cleanup_task: Optional[asyncio.Task] = None
+
+
+def start_cleanup_task():
+    """Start the periodic cleanup task. Called once on app startup."""
+    global _cleanup_task
+    if _cleanup_task is None or _cleanup_task.done():
+        _cleanup_task = asyncio.create_task(_periodic_cleanup())
+        logger.info("Started periodic key moments cleanup task")
+
+
+async def stop_cleanup_task():
+    """Stop the periodic cleanup task. Called on app shutdown."""
+    global _cleanup_task
+    if _cleanup_task and not _cleanup_task.done():
+        _cleanup_task.cancel()
+        try:
+            await _cleanup_task
+        except asyncio.CancelledError:
+            pass
+        logger.info("Stopped periodic key moments cleanup task")
 

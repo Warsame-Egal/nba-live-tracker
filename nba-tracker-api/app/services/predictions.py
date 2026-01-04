@@ -4,6 +4,7 @@ import math
 import json
 import time
 import re
+from collections import OrderedDict
 from typing import Optional, Dict, Tuple, List, Any
 
 from fastapi import HTTPException
@@ -23,6 +24,9 @@ def fix_unterminated_strings(json_str: str) -> str:
     """
     Fix unterminated strings in JSON by finding and closing incomplete strings.
     
+    Sometimes Groq returns JSON with strings that aren't properly closed. This function
+    finds those strings and closes them so we can parse the JSON.
+    
     Args:
         json_str: JSON string that may contain unterminated strings
         
@@ -36,9 +40,9 @@ def fix_unterminated_strings(json_str: str) -> str:
     except json.JSONDecodeError:
         pass  # Continue to fix it
     
-    # Track string state to find unterminated strings
+    # Track whether we're inside a string and handle escape characters
     in_string = False
-    escape_next = False
+    escape_next = False  # Next character is escaped (like \")
     string_start = -1
     result = []
     i = 0
@@ -52,12 +56,14 @@ def fix_unterminated_strings(json_str: str) -> str:
             i += 1
             continue
         
+        # Handle escape characters (like \" or \\)
         if char == '\\':
             result.append(char)
-            escape_next = True
+            escape_next = True  # Next character is escaped, don't treat it as special
             i += 1
             continue
         
+        # Handle quote characters (start or end of strings)
         if char == '"':
             if not in_string:
                 # Starting a new string
@@ -86,22 +92,17 @@ def fix_unterminated_strings(json_str: str) -> str:
     if in_string and string_start >= 0:
         # Close the unterminated string
         result.append('"')
-        # Try to close any incomplete structures after the string
-        # Look for incomplete object/array structures
-        remaining = json_str[i:] if i < len(json_str) else ""
-        # Remove any trailing incomplete content after the string
-        # and try to close the JSON structure properly
         fixed = ''.join(result)
         
-        # Try to find where we should end - look for the last complete structure
-        # Count braces to see if we need to close anything
+        # Count open brackets and braces to see if we need to close them
+        # This handles cases where the JSON structure was also incomplete
         open_braces = fixed.count('{') - fixed.count('}')
         open_brackets = fixed.count('[') - fixed.count(']')
         
-        # Remove any trailing comma before closing
+        # Remove any trailing comma before closing (invalid JSON)
         fixed = fixed.rstrip().rstrip(',')
         
-        # Close brackets first, then braces
+        # Close brackets first, then braces (proper JSON structure)
         if open_brackets > 0:
             fixed += ']' * open_brackets
         if open_braces > 0:
@@ -111,15 +112,19 @@ def fix_unterminated_strings(json_str: str) -> str:
     
     return ''.join(result)
 
-# Cache for predictions: key = "{date}_{season}", value = PredictionsResponse
-# Predictions are cached permanently (until server restart) to avoid duplicate Groq calls.
-# Once generated for a date+season, same predictions are returned for all requests.
-_predictions_cache: Dict[str, PredictionsResponse] = {}
+# Cache for predictions: key = "{date}_{season}", value = {"response": PredictionsResponse, "timestamp": float}
+# Predictions are cached for 30 minutes to avoid duplicate Groq calls while allowing updates
+# Limited to 100 entries with LRU eviction to prevent unbounded growth
+_predictions_cache = OrderedDict()
+PREDICTIONS_CACHE_TTL = 1800.0  # 30 minutes
+PREDICTIONS_CACHE_MAX_SIZE = 100  # Maximum 100 date+season combinations
 
-# Cache for team statistics: key = "{season}", value = team_stats dict
+# Cache for team statistics: key = "{season}", value = (team_stats dict, timestamp)
 # Team stats are cached for 1 hour to reduce API calls while still allowing updates
+# Limited to last 3 seasons to prevent unbounded growth
 _team_stats_cache: Dict[str, Tuple[dict, float]] = {}
 TEAM_STATS_CACHE_TTL = 3600.0  # 1 hour
+MAX_SEASONS_CACHED = 3  # Keep only last 3 seasons
 
 
 def calculate_win_probability(
@@ -892,8 +897,12 @@ async def get_team_statistics(season: str) -> dict:
         
         team_stats = {}
         
+        # Convert standings DataFrame to native Python types immediately
+        standings_data = standings_df.to_dict(orient="records")
+        del standings_df  # Delete DataFrame after conversion
+        
         # Process standings for win percentages and team names
-        for _, row in standings_df.iterrows():
+        for row in standings_data:
             team_id = int(row.get("TeamID", 0))
             if team_id:
                 team_city = str(row.get("TeamCity", "")).strip()
@@ -906,7 +915,11 @@ async def get_team_statistics(season: str) -> dict:
         
         # Process net ratings (if available)
         if stats_df is not None and not stats_df.empty:
-            for _, row in stats_df.iterrows():
+            # Convert stats DataFrame to native Python types immediately
+            stats_data = stats_df.to_dict(orient="records")
+            del stats_df  # Delete DataFrame after conversion
+            
+            for row in stats_data:
                 team_id = int(row.get("TEAM_ID", 0))
                 if team_id in team_stats:
                     plus_minus = row.get("PLUS_MINUS", 0)
@@ -916,6 +929,20 @@ async def get_team_statistics(season: str) -> dict:
         # Cache the team statistics
         _team_stats_cache[season] = (team_stats, time.time())
         logger.debug(f"Cached team statistics for season {season}")
+        
+        # Clean up old seasons (keep only last MAX_SEASONS_CACHED seasons)
+        if len(_team_stats_cache) > MAX_SEASONS_CACHED:
+            # Sort by timestamp and remove oldest
+            sorted_seasons = sorted(
+                _team_stats_cache.items(),
+                key=lambda x: x[1][1]  # Sort by timestamp
+            )
+            keys_to_remove = [
+                key for key, _ in sorted_seasons[:len(_team_stats_cache) - MAX_SEASONS_CACHED]
+            ]
+            for key in keys_to_remove:
+                _team_stats_cache.pop(key, None)
+            logger.debug(f"Cleaned up {len(keys_to_remove)} old seasons from team stats cache")
         
         return team_stats
     except Exception as e:
@@ -943,11 +970,22 @@ async def predict_games_for_date(date: str, season: str) -> PredictionsResponse:
     Returns:
         PredictionsResponse: Predictions for all games
     """
-    # Check cache first - if predictions exist, return immediately (no Groq calls)
+    # Check cache first - if predictions exist and are still valid, return immediately (no Groq calls)
     cache_key = f"{date}_{season}"
+    current_time = time.time()
+    
     if cache_key in _predictions_cache:
-        logger.info(f"Returning cached predictions for {date} (season {season}) - skipping Groq calls")
-        return _predictions_cache[cache_key]
+        # Move to end (most recently used) for LRU eviction
+        entry = _predictions_cache.pop(cache_key)
+        _predictions_cache[cache_key] = entry
+        
+        # Check if entry is still valid
+        if current_time - entry.get("timestamp", 0) < PREDICTIONS_CACHE_TTL:
+            logger.info(f"Returning cached predictions for {date} (season {season}) - skipping Groq calls")
+            return entry["response"]
+        else:
+            # Entry expired, remove it (already popped above, just don't re-add)
+            logger.debug(f"Predictions cache entry expired for {cache_key}")
     
     try:
         # Get games for the date (with timeout)
@@ -1221,8 +1259,22 @@ async def predict_games_for_date(date: str, season: str) -> PredictionsResponse:
             season=season
         )
         
-        # Cache the predictions before returning (permanent cache until server restart)
-        _predictions_cache[cache_key] = response
+        # Cache the predictions with TTL and LRU eviction
+        # If key exists, move to end (most recently used) and update
+        if cache_key in _predictions_cache:
+            _predictions_cache.move_to_end(cache_key)
+        
+        # Update or add entry
+        _predictions_cache[cache_key] = {
+            "response": response,
+            "timestamp": time.time()
+        }
+        
+        # Enforce size limit with LRU eviction
+        if len(_predictions_cache) > PREDICTIONS_CACHE_MAX_SIZE:
+            oldest_key, _ = _predictions_cache.popitem(last=False)
+            logger.debug(f"LRU eviction: removed oldest predictions cache entry {oldest_key}")
+        
         logger.info(f"Generated and cached {len(predictions)} predictions for {date} (season {season})")
         
         return response

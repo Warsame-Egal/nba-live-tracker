@@ -10,7 +10,7 @@ import copy
 import json
 import logging
 import time
-from typing import Dict, List, Set
+from typing import Dict, List, Set, Optional
 
 from fastapi import WebSocket
 
@@ -31,6 +31,7 @@ class ScoreboardWebSocketManager:
         self._lock = asyncio.Lock()
         self.last_update_timestamp: Dict[str, float] = {}
         self.last_win_prob_update: float = 0.0  # Track when we last sent win probability updates
+        self._cleanup_task: Optional[asyncio.Task] = None
     
     async def connect(self, websocket: WebSocket):
         """Add a new client connection."""
@@ -47,7 +48,57 @@ class ScoreboardWebSocketManager:
             pass
         finally:
             self.active_connections.discard(websocket)
+            # Clear connection-specific state immediately
+            # Remove timestamps for games that no longer have active connections
+            if not self.active_connections:
+                self.last_update_timestamp.clear()
             logger.info(f"Client disconnected from scoreboard: {websocket.client}")
+    
+    async def _periodic_cleanup(self):
+        """Periodic cleanup task that runs every 10 minutes to remove stale timestamps."""
+        logger.info("Scoreboard WebSocket cleanup task started")
+        
+        while True:
+            try:
+                await asyncio.sleep(600)  # 10 minutes
+                
+                current_time = time.time()
+                stale_threshold = 3600.0  # 1 hour
+                
+                # Remove stale timestamps older than 1 hour
+                stale_keys = [
+                    game_id for game_id, timestamp in self.last_update_timestamp.items()
+                    if current_time - timestamp > stale_threshold
+                ]
+                
+                for key in stale_keys:
+                    self.last_update_timestamp.pop(key, None)
+                
+                if stale_keys:
+                    logger.debug(f"Cleaned up {len(stale_keys)} stale timestamps from scoreboard WebSocket manager")
+                
+            except asyncio.CancelledError:
+                logger.info("Scoreboard WebSocket cleanup task cancelled")
+                raise
+            except Exception as e:
+                logger.error(f"Error in scoreboard WebSocket cleanup: {e}")
+                await asyncio.sleep(60)  # Wait 1 minute before retrying
+    
+    def start_cleanup_task(self):
+        """Start the periodic cleanup task. Called once on app startup."""
+        if self._cleanup_task is None or self._cleanup_task.done():
+            self._cleanup_task = asyncio.create_task(self._periodic_cleanup())
+            logger.info("Started scoreboard WebSocket cleanup task")
+    
+    async def stop_cleanup_task(self):
+        """Stop the periodic cleanup task. Called on app shutdown."""
+        if self._cleanup_task and not self._cleanup_task.done():
+            self._cleanup_task.cancel()
+            try:
+                await self._cleanup_task
+            except asyncio.CancelledError:
+                pass
+            logger.info("Stopped scoreboard WebSocket cleanup task")
     
     async def send_initial_scoreboard(self, websocket: WebSocket):
         """Send latest cached scoreboard data to a newly connected client."""
@@ -300,6 +351,7 @@ class PlayByPlayWebSocketManager:
         self.current_playbyplay: Dict[str, List[Dict]] = {}
         self._lock = asyncio.Lock()
         self.last_update_timestamp: Dict[str, float] = {}
+        self._cleanup_task: Optional[asyncio.Task] = None
     
     async def connect(self, websocket: WebSocket, game_id: str):
         """Add a new client connection for a specific game."""
@@ -328,6 +380,9 @@ class PlayByPlayWebSocketManager:
                     del self.active_connections[game_id]
                     if game_id in self.current_playbyplay:
                         del self.current_playbyplay[game_id]
+                    # Clear connection-specific state immediately
+                    if game_id in self.last_update_timestamp:
+                        self.last_update_timestamp.pop(game_id, None)
     
     async def send_initial_playbyplay(self, websocket: WebSocket, game_id: str):
         """Send latest cached play-by-play data to a newly connected client."""
@@ -407,6 +462,61 @@ class PlayByPlayWebSocketManager:
             except Exception as e:
                 logger.error(f"Error in play-by-play broadcast: {e}")
                 await asyncio.sleep(5)
+    
+    async def _periodic_cleanup(self):
+        """Periodic cleanup task that runs every 10 minutes to remove stale timestamps."""
+        logger.info("Play-by-play WebSocket cleanup task started")
+        
+        while True:
+            try:
+                await asyncio.sleep(600)  # 10 minutes
+                
+                current_time = time.time()
+                stale_threshold = 3600.0  # 1 hour
+                
+                # Remove stale timestamps older than 1 hour
+                stale_keys = [
+                    key for key, timestamp in self.last_update_timestamp.items()
+                    if current_time - timestamp > stale_threshold
+                ]
+                
+                for key in stale_keys:
+                    self.last_update_timestamp.pop(key, None)
+                
+                # Also clean up play-by-play data for games with no active connections
+                games_to_remove = [
+                    game_id for game_id in self.current_playbyplay.keys()
+                    if game_id not in self.active_connections or not self.active_connections.get(game_id)
+                ]
+                for game_id in games_to_remove:
+                    self.current_playbyplay.pop(game_id, None)
+                
+                if stale_keys or games_to_remove:
+                    logger.debug(f"Cleaned up {len(stale_keys)} stale timestamps, "
+                               f"{len(games_to_remove)} inactive games from play-by-play WebSocket manager")
+                
+            except asyncio.CancelledError:
+                logger.info("Play-by-play WebSocket cleanup task cancelled")
+                raise
+            except Exception as e:
+                logger.error(f"Error in play-by-play WebSocket cleanup: {e}")
+                await asyncio.sleep(60)  # Wait 1 minute before retrying
+    
+    def start_cleanup_task(self):
+        """Start the periodic cleanup task. Called once on app startup."""
+        if self._cleanup_task is None or self._cleanup_task.done():
+            self._cleanup_task = asyncio.create_task(self._periodic_cleanup())
+            logger.info("Started play-by-play WebSocket cleanup task")
+    
+    async def stop_cleanup_task(self):
+        """Stop the periodic cleanup task. Called on app shutdown."""
+        if self._cleanup_task and not self._cleanup_task.done():
+            self._cleanup_task.cancel()
+            try:
+                await self._cleanup_task
+            except asyncio.CancelledError:
+                pass
+            logger.info("Stopped play-by-play WebSocket cleanup task")
 
 
 # Single instances used by the whole app

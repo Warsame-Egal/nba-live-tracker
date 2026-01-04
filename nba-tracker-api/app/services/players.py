@@ -35,9 +35,15 @@ async def getPlayer(player_id: str) -> PlayerSummary:
         player_row = player_index_df[player_index_df["PERSON_ID"] == player_id_int]
 
         if player_row.empty:
+            del player_index_df
+            del player_row
             raise HTTPException(status_code=404, detail=f"Player not found with ID: {player_id}")
 
         player_data = player_row.iloc[0].to_dict()
+        
+        # Delete DataFrames after extracting data
+        del player_row
+        del player_index_df
 
         roster_status = player_data.get("ROSTER_STATUS")
         if isinstance(roster_status, float):
@@ -168,15 +174,21 @@ async def search_players(search_term: str) -> List[PlayerSummary]:
 
         # If no players found, return 404 error
         if filtered_players.empty:
+            del player_index_df
+            del filtered_players
             raise HTTPException(status_code=404, detail="No players found matching the search term")
 
         # Limit to 20 results so we don't return too much data
         filtered_players = filtered_players.head(20)
 
+        # Convert to native Python types immediately
+        players_data = filtered_players.to_dict(orient="records")
+        del filtered_players  # Delete filtered DataFrame
+        del player_index_df  # Delete original DataFrame
+
         # Convert each player to our PlayerSummary format
         player_summaries: List[PlayerSummary] = []
-        for _, row in filtered_players.iterrows():
-            player_data = row.to_dict()
+        for player_data in players_data:
             roster_status = player_data.get("ROSTER_STATUS")
             if isinstance(roster_status, float):
                 roster_status = str(roster_status)
@@ -266,10 +278,16 @@ async def get_top_players_by_stat(season: str, stat: str, top_n: int = 10) -> Li
         stats_data = stats_data[stats_data.get("GP", 0) > 0].copy()
         
         if stat_col not in stats_data.columns:
+            del stats_data
             return []
         
         stats_data[stat_col] = pd.to_numeric(stats_data[stat_col], errors='coerce').fillna(0)
         sorted_df = stats_data.nlargest(top_n, stat_col)
+        
+        # Convert to native Python types immediately
+        players_stats_data = sorted_df.to_dict(orient="records")
+        del sorted_df  # Delete sorted DataFrame
+        del stats_data  # Delete original DataFrame
         
         await rate_limit()
         player_index_data = await asyncio.wait_for(
@@ -280,8 +298,17 @@ async def get_top_players_by_stat(season: str, stat: str, top_n: int = 10) -> Li
         )
         player_index_df = player_index_data.get_data_frames()[0]
         
+        # Convert player index to dict for faster lookup
+        player_index_dict = {}
+        for _, idx_row in player_index_df.iterrows():
+            player_id = int(idx_row.get("PERSON_ID", 0))
+            if player_id:
+                player_index_dict[player_id] = idx_row.to_dict()
+        
+        del player_index_df  # Delete player index DataFrame
+        
         player_summaries: List[PlayerSummary] = []
-        for _, row in sorted_df.iterrows():
+        for row in players_stats_data:
             player_id = int(row.get("PLAYER_ID", 0))
             player_name = str(row.get("PLAYER_NAME", "")).strip()
             
@@ -289,10 +316,9 @@ async def get_top_players_by_stat(season: str, stat: str, top_n: int = 10) -> Li
                 continue
             
             # Try to get additional info from player index
-            player_row = player_index_df[player_index_df["PERSON_ID"] == player_id]
+            player_data = player_index_dict.get(player_id)
             
-            if not player_row.empty:
-                player_data = player_row.iloc[0].to_dict()
+            if player_data:
                 roster_status = player_data.get("ROSTER_STATUS")
                 if isinstance(roster_status, float):
                     roster_status = str(roster_status)
@@ -414,8 +440,13 @@ async def get_season_leaders(season: str = "2024-25") -> SeasonLeadersResponse:
             
             sorted_df = df_filtered.nlargest(top_n, stat_col)
             
+            # Convert to native Python types immediately
+            leaders_data = sorted_df.to_dict(orient="records")
+            del sorted_df  # Delete sorted DataFrame
+            del df_filtered  # Delete filtered DataFrame
+            
             leaders = []
-            for _, row in sorted_df.iterrows():
+            for row in leaders_data:
                 player_name = str(row.get("PLAYER_NAME", "")).strip()
                 value = float(row.get(stat_col, 0)) if pd.notna(row.get(stat_col)) else 0.0
                 
@@ -447,6 +478,9 @@ async def get_season_leaders(season: str = "2024-25") -> SeasonLeadersResponse:
         categories.append(create_leaders(stats_data, "FG_PCT", "Field Goal Percentage", is_percentage=True))
         categories.append(create_leaders(stats_data, "FG3M", "Three Pointers Made", is_whole_number=True))
         categories.append(create_leaders(stats_data, "FG3_PCT", "Three Point Percentage", is_percentage=True))
+        
+        # Delete original DataFrame after processing
+        del stats_data
         
         return SeasonLeadersResponse(season=season, categories=categories)
         
@@ -552,11 +586,15 @@ async def get_league_roster() -> List[PlayerSummary]:
             except (ValueError, TypeError):
                 return default
         
+        # Convert to native Python types immediately
+        players_data = active_players.to_dict(orient="records")
+        del active_players  # Delete filtered DataFrame
+        del player_index_df  # Delete original DataFrame
+        
         # Convert to PlayerSummary list
         player_summaries: List[PlayerSummary] = []
-        for _, row in active_players.iterrows():
+        for player_data in players_data:
             try:
-                player_data = row.to_dict()
                 roster_status = player_data.get("ROSTER_STATUS")
                 if isinstance(roster_status, float):
                     roster_status = str(roster_status)

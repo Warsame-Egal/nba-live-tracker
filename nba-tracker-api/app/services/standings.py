@@ -67,9 +67,13 @@ async def getSeasonStandings(season: str, max_retries: int = 3) -> StandingsResp
             # Replace NaN (not a number) values with None so they become null in JSON
             df.replace({np.nan: None}, inplace=True)
 
+            # Convert to native Python types immediately
+            teams_data = df.to_dict(orient="records")
+            del df  # Delete DataFrame to free memory
+
             # Convert each team's data to our StandingRecord format
             standings_list = []
-            for team in df.to_dict(orient="records"):
+            for team in teams_data:
                 # Get PPG, OPP PPG, and DIFF if available (may not exist in all seasons)
                 ppg = None
                 opp_ppg = None

@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 # Cache for league leaders data
 _league_leaders_cache: Dict[str, Dict] = {}
 CACHE_DURATION = 300  # 5 minutes
+MAX_SEASONS_CACHED = 10  # Keep only last 10 seasons
 
 
 async def get_league_leaders(
@@ -110,10 +111,16 @@ async def get_league_leaders(
         if leaders_data.empty:
             logger.warning(f"No league leaders data found for {stat_category} in {season}")
             return []
-        
+
+        # Get top N players and convert to native types immediately
+        top_leaders_df = leaders_data.head(top_n)
+        leaders_data_list = top_leaders_df.to_dict(orient="records")
+        del top_leaders_df  # Delete filtered DataFrame
+        del leaders_data  # Delete original DataFrame
+
         # Get top N players
         leaders_list = []
-        for idx, row in leaders_data.head(top_n).iterrows():
+        for idx, row in enumerate(leaders_data_list):
             try:
                 player_id = int(row.get("PLAYER_ID", 0))
                 player_name = str(row.get("PLAYER", "")).strip()
@@ -153,6 +160,28 @@ async def get_league_leaders(
             "data": leaders_list,
             "timestamp": current_time,
         }
+        
+        # Clean up old seasons (keep only last MAX_SEASONS_CACHED seasons)
+        # Extract unique seasons from cache keys
+        seasons_in_cache = set()
+        for key in _league_leaders_cache.keys():
+            # Cache key format: "{stat_category}_{season}_{top_n}"
+            parts = key.split("_")
+            if len(parts) >= 2:
+                seasons_in_cache.add(parts[1])  # Extract season
+        
+        if len(seasons_in_cache) > MAX_SEASONS_CACHED:
+            # Sort seasons and remove oldest
+            sorted_seasons = sorted(seasons_in_cache)
+            seasons_to_remove = sorted_seasons[:len(seasons_in_cache) - MAX_SEASONS_CACHED]
+            
+            keys_to_remove = [
+                key for key in _league_leaders_cache.keys()
+                if any(season in key for season in seasons_to_remove)
+            ]
+            for key in keys_to_remove:
+                _league_leaders_cache.pop(key, None)
+            logger.debug(f"Cleaned up {len(keys_to_remove)} old season entries from league leaders cache")
         
         logger.info(f"Fetched {len(leaders_list)} league leaders for {stat_category} in {season}")
         return leaders_list

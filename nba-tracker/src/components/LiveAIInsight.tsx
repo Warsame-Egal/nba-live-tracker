@@ -40,6 +40,36 @@ const parseInsightText = (text: string): string[] => {
 };
 
 /**
+ * Check if an insight is about a lead change based on text content.
+ * Sometimes the AI returns lead change insights with type "momentum" or "run"
+ * instead of "lead_change", so we check the text for lead-related keywords.
+ */
+const isLeadChangeInsight = (insight: GameInsightData | null): boolean => {
+  if (!insight || !insight.text) return false;
+  
+  // Check if type is explicitly lead_change
+  if (insight.type === 'lead_change') return true;
+  
+  // Check if text mentions lead changes (case-insensitive)
+  const text = insight.text.toLowerCase();
+  const leadKeywords = [
+    'took the lead',
+    'takes the lead',
+    'taken the lead',
+    'took a lead',
+    'takes a lead',
+    'regained the lead',
+    'retook the lead',
+    'lead changed',
+    'lead changes',
+    'now leads',
+    'leading',
+  ];
+  
+  return leadKeywords.some(keyword => text.includes(keyword));
+};
+
+/**
  * Minimal inline AI insight for live game status bar.
  * Play-by-play style: short, declarative statements with clean rhythm.
  * ESPN/Apple Sports style: calm, informative, contextual commentary.
@@ -54,6 +84,9 @@ const LiveAIInsight: React.FC<LiveAIInsightProps> = ({ insight, onWhyClick }) =>
     if (!hasInsight || !insight.text) return [];
     return parseInsightText(insight.text);
   }, [hasInsight, insight?.text]);
+  
+  // Check if this insight is about a lead change (for showing "Why?" button)
+  const isLeadChange = useMemo(() => isLeadChangeInsight(insight), [insight]);
   
   // Muted accent color (low saturation)
   const accentColor = alpha(theme.palette.primary.main, 0.6);
@@ -118,7 +151,7 @@ const LiveAIInsight: React.FC<LiveAIInsightProps> = ({ insight, onWhyClick }) =>
                 }}
               >
                 {statement}
-                {index === statements.length - 1 && insight.type === 'lead_change' && onWhyClick && (
+                {index === statements.length - 1 && isLeadChange && onWhyClick && (
                   <>
                     {' '}
                     <Link
