@@ -81,10 +81,25 @@ app = FastAPI(
 )
 
 # CORS configuration for frontend
+# Allow both local development and production URLs
 frontend_url = os.getenv("FRONTEND_URL", "*")
+allowed_origins = ["*"]  # Default to allow all
+
+if frontend_url != "*":
+    # Add production URL
+    allowed_origins = [frontend_url]
+    # Always allow localhost for local development
+    if "localhost" not in frontend_url and "127.0.0.1" not in frontend_url:
+        allowed_origins.extend([
+            "http://localhost:3000",
+            "http://localhost:5173",  # Vite default port
+            "http://127.0.0.1:3000",
+            "http://127.0.0.1:5173",
+        ])
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[frontend_url] if frontend_url != "*" else ["*"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

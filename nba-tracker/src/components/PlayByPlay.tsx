@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { Box, Typography, Chip, Paper, Divider, CircularProgress } from '@mui/material';
+import { Box, Typography, Chip, Paper, Divider, Skeleton } from '@mui/material';
 import { Sports, FiberManualRecord } from '@mui/icons-material';
 import PlayByPlayWebSocketService from '../services/PlayByPlayWebSocketService';
 import { PlayByPlayResponse, PlayByPlayEvent } from '../types/playbyplay';
@@ -71,11 +71,13 @@ const PlayByPlay = ({ gameId, isLiveGame = false }: { gameId: string; isLiveGame
     };
   }, [gameId, isLiveGame]);
 
-  // Show loading state
+  // Show loading state with skeleton
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: { xs: 6, sm: 8 } }}>
-        <CircularProgress />
+      <Box sx={{ minHeight: 300, display: 'flex', flexDirection: 'column', gap: 1, py: { xs: 2, sm: 3 } }}>
+        {[...Array(5)].map((_, i) => (
+          <Skeleton key={i} variant="rectangular" height={60} sx={{ borderRadius: 1 }} />
+        ))}
       </Box>
     );
   }

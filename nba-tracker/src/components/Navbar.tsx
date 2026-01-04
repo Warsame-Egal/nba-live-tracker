@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link as RouterLink, useLocation } from 'react-router-dom';
-import { AppBar, Toolbar, Button, Box, Typography, IconButton, Tooltip, TextField, InputAdornment, Paper, List, ListItem, ListItemText, CircularProgress, Drawer, Divider, useMediaQuery, useTheme } from '@mui/material';
+import { AppBar, Toolbar, Button, Box, Typography, IconButton, Tooltip, TextField, InputAdornment, Paper, List, ListItem, ListItemText, CircularProgress, Drawer, Divider, useMediaQuery, useTheme, alpha } from '@mui/material';
 import { LightMode, DarkMode, Search, Close, Menu } from '@mui/icons-material';
 import { useThemeMode } from '../contexts/ThemeContext';
 import { SearchResults } from '../types/search';
@@ -26,13 +26,18 @@ const Navbar = ({ searchProps }: { searchProps?: NavbarSearchProps }) => {
 
   const navItems = [
     { label: 'Scoreboard', path: '/' },
-    { label: 'Standings', path: '/standings' },
-    { label: 'Players', path: '/players' },
-    { label: 'Teams', path: '/teams' },
     { label: 'Predictions', path: '/predictions' },
+    { label: 'Standings', path: '/standings' },
+    { label: 'Teams', path: '/teams' },
+    { label: 'Players', path: '/players' },
   ];
 
-  const isActive = (path: string) => location.pathname === path;
+  const isActive = (path: string) => {
+    if (path === '/') {
+      return location.pathname === '/';
+    }
+    return location.pathname.startsWith(path);
+  };
 
   const handleMobileMenuClose = () => {
     setMobileMenuOpen(false);
@@ -54,10 +59,11 @@ const Navbar = ({ searchProps }: { searchProps?: NavbarSearchProps }) => {
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          px: { xs: 2, sm: 3, md: 4 },
-          py: { xs: 1, sm: 1.25 }, // Compact height
-          minHeight: { xs: 56, sm: 64 }, // Smaller, consistent height
-          gap: 2,
+          px: { xs: 3, sm: 4, md: 5 },
+          py: { xs: 1.25, sm: 1.5 },
+          minHeight: { xs: 64, sm: 72 },
+          height: { xs: 64, sm: 72 },
+          gap: 3,
           maxWidth: '100%',
         }}
       >
@@ -74,14 +80,14 @@ const Navbar = ({ searchProps }: { searchProps?: NavbarSearchProps }) => {
             component={RouterLink}
             to="/"
             sx={{
-              fontWeight: 600,
-              fontSize: { xs: '1rem', sm: '1.125rem', md: '1.25rem' },
-              color: 'text.primary', // Neutral dark in light mode, neutral light in dark mode
+              fontWeight: typography.weight.bold,
+              fontSize: typography.editorial.pageTitle.xs,
+              color: 'text.primary',
               textDecoration: 'none',
-              letterSpacing: '-0.01em',
-              transition: 'color 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+              letterSpacing: typography.letterSpacing.tight,
+              transition: transitions.smooth,
               '&:hover': {
-                color: 'primary.main', // Blue only on hover (primary action)
+                color: 'primary.main',
               },
             }}
           >
@@ -92,38 +98,29 @@ const Navbar = ({ searchProps }: { searchProps?: NavbarSearchProps }) => {
         {/* Navigation links, search, and theme toggle */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, sm: 1 }, flexShrink: 0, flex: 1, justifyContent: 'flex-end' }}>
           {/* Desktop Navigation links */}
-          <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: { xs: 0.25, sm: 0.5 } }}>
+          <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: { xs: 0.5, sm: 1 } }}>
             {navItems.map(item => (
               <Button
                 key={item.path}
                 component={RouterLink}
                 to={item.path}
                 sx={{
-                  color: isActive(item.path) ? 'primary.main' : 'text.primary',
-                  fontWeight: isActive(item.path) ? 600 : 500,
-                  fontSize: { xs: '0.875rem', sm: '0.9375rem' },
+                  color: isActive(item.path) ? 'primary.main' : 'text.secondary',
+                  fontWeight: isActive(item.path) ? typography.weight.semibold : typography.weight.medium,
+                  fontSize: typography.editorial.helper.xs,
                   px: { xs: 1.5, sm: 2 },
                   py: { xs: 0.75, sm: 1 },
-                  position: 'relative',
                   transition: transitions.smooth,
                   borderRadius: borderRadius.sm,
                   backgroundColor: 'transparent',
-                  minHeight: 40, // Better touch target
+                  minHeight: 40,
                   ...(isActive(item.path) && {
-                    '&::after': {
-                      content: '""',
-                      position: 'absolute',
-                      bottom: 0,
-                      left: '50%',
-                      transform: 'translateX(-50%)',
-                      width: '60%',
-                      height: 2,
-                      backgroundColor: 'primary.main',
-                      borderRadius: 0,
-                    },
+                    backgroundColor: alpha(theme.palette.primary.main, 0.08),
                   }),
                   '&:hover': {
-                    backgroundColor: 'action.hover',
+                    backgroundColor: isActive(item.path) 
+                      ? alpha(theme.palette.primary.main, 0.12)
+                      : 'action.hover',
                     color: isActive(item.path) ? 'primary.main' : 'text.primary',
                   },
                 }}
@@ -161,17 +158,7 @@ const Navbar = ({ searchProps }: { searchProps?: NavbarSearchProps }) => {
             }}
           >
             <Box sx={{ px: 2, pb: 1 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography
-                  variant="h6"
-                  sx={{
-                    fontWeight: typography.weight.bold,
-                    fontSize: typography.size.h6,
-                    color: 'text.primary',
-                  }}
-                >
-                  Menu
-                </Typography>
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', mb: 1 }}>
                 <IconButton 
                   onClick={handleMobileMenuClose} 
                   size="small"
@@ -183,7 +170,6 @@ const Navbar = ({ searchProps }: { searchProps?: NavbarSearchProps }) => {
                   <Close />
                 </IconButton>
               </Box>
-              <Divider sx={{ mb: 2 }} />
             </Box>
             <List sx={{ px: 1 }}>
               {navItems.map(item => (
@@ -195,9 +181,9 @@ const Navbar = ({ searchProps }: { searchProps?: NavbarSearchProps }) => {
                   sx={{
                     borderRadius: borderRadius.sm,
                     mb: 0.5,
-                    minHeight: 48, // Better touch target for mobile
+                    minHeight: 48,
                     py: 1.5,
-                    backgroundColor: isActive(item.path) ? 'action.selected' : 'transparent',
+                    backgroundColor: isActive(item.path) ? alpha(theme.palette.primary.main, 0.08) : 'transparent',
                     color: isActive(item.path) ? 'primary.main' : 'text.primary',
                     fontWeight: isActive(item.path) ? typography.weight.semibold : typography.weight.regular,
                     transition: transitions.smooth,
@@ -241,8 +227,8 @@ const Navbar = ({ searchProps }: { searchProps?: NavbarSearchProps }) => {
             </Box>
           </Drawer>
 
-          {/* Search input - only show on scoreboard page */}
-          {searchProps && location.pathname === '/' && (
+          {/* Search input - always reserve space, hide when not on scoreboard */}
+          {searchProps && (
             <Box
               ref={searchProps.searchContainerRef}
               sx={{
@@ -251,6 +237,8 @@ const Navbar = ({ searchProps }: { searchProps?: NavbarSearchProps }) => {
                 minWidth: { xs: 120, sm: 180 },
                 ml: { xs: 0.5, sm: 1 },
                 flexShrink: 0,
+                visibility: location.pathname === '/' ? 'visible' : 'hidden',
+                pointerEvents: location.pathname === '/' ? 'auto' : 'none',
               }}
             >
               <TextField
@@ -260,13 +248,14 @@ const Navbar = ({ searchProps }: { searchProps?: NavbarSearchProps }) => {
                 placeholder={isMobile ? "Search" : "Search..."}
                 variant="outlined"
                 size="small"
+                disabled={location.pathname !== '/'}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
                       <Search sx={{ color: 'text.secondary', fontSize: { xs: 16, sm: 18 } }} />
                     </InputAdornment>
                   ),
-                  endAdornment: searchProps.searchInput && (
+                  endAdornment: searchProps.searchInput && location.pathname === '/' && (
                     <InputAdornment position="end">
                       {searchProps.loading ? (
                         <CircularProgress size={16} />
@@ -289,8 +278,8 @@ const Navbar = ({ searchProps }: { searchProps?: NavbarSearchProps }) => {
                   },
                 }}
               />
-              {/* Search results dropdown */}
-              {searchProps.showSearchResults && (searchProps.searchResults.players.length > 0 || searchProps.searchResults.teams.length > 0) && (
+              {/* Search results dropdown - only show on scoreboard */}
+              {location.pathname === '/' && searchProps.showSearchResults && (searchProps.searchResults.players.length > 0 || searchProps.searchResults.teams.length > 0) && (
                 <Paper
                   elevation={3}
                   sx={{

@@ -10,11 +10,11 @@ import {
   Divider,
   Link as MuiLink,
   Button,
-  CircularProgress,
+  Skeleton,
   Paper,
 } from '@mui/material';
 import { FiberManualRecord, Person, Assessment, Timeline } from '@mui/icons-material';
-import { borderRadius, transitions, typography, spacing } from '../theme/designTokens';
+import { borderRadius, transitions, typography, spacing, shadows } from '../theme/designTokens';
 import { PlayByPlayResponse, PlayByPlayEvent } from '../types/playbyplay';
 import PlayByPlayWebSocketService from '../services/PlayByPlayWebSocketService';
 import { fetchJson } from '../utils/apiClient';
@@ -275,22 +275,20 @@ const GameRow: React.FC<GameRowProps> = ({
   }, [showMomentum, gameId, momentumPlays.length]);
 
   return (
-    <Box
+    <Paper
+      elevation={2}
       sx={{
         display: 'flex',
         flexDirection: 'column',
         gap: 0,
-        backgroundColor: 'background.paper',
-        borderRadius: borderRadius.md,
-        border: '1px solid',
-        borderColor: 'divider',
+        borderRadius: borderRadius.lg, // Material 3: 16px
         overflow: 'hidden',
-        // Subtle shadow for depth
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
-        transition: transitions.normal,
+        boxShadow: theme.palette.mode === 'dark' ? shadows.dark.md : shadows.md,
+        transition: transitions.smooth,
         minHeight: { xs: 100, sm: 110 }, // Fixed min height to prevent layout shifts
         '&:hover': onClick ? {
-          boxShadow: '0 2px 6px rgba(0, 0, 0, 0.08)',
+          boxShadow: theme.palette.mode === 'dark' ? shadows.dark.lg : shadows.lg,
+          transform: 'translateY(-2px)',
         } : {},
       }}
     >
@@ -829,8 +827,8 @@ const GameRow: React.FC<GameRowProps> = ({
           }}
         >
           {loadingMomentum ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-              <CircularProgress size={24} />
+            <Box sx={{ minHeight: 300, display: 'flex', justifyContent: 'center', alignItems: 'center', py: 4 }}>
+              <Skeleton variant="rectangular" width="100%" height={300} sx={{ borderRadius: borderRadius.md }} />
             </Box>
           ) : momentumPlays.length > 0 ? (
             <MomentumChart
@@ -865,7 +863,7 @@ const GameRow: React.FC<GameRowProps> = ({
         homeTeam={homeTeam || ''}
         awayTeam={awayTeam || ''}
       />
-    </Box>
+    </Paper>
   );
 };
 

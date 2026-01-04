@@ -25,6 +25,7 @@ A web app that shows live NBA game scores, player stats, team information, and g
 
 <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;">
   <img src="nba-tracker/public/screenshots/Scoreboard.png" alt="Live Scoreboard" width="280" />
+  <img src="nba-tracker/public/screenshots/Predictions3.png" alt="Predictions" width="280" />
   <img src="nba-tracker/public/screenshots/Predictions1.png" alt="Game Predictions" width="280" />
   <img src="nba-tracker/public/screenshots/Predictions2.png" alt="League Standings" width="280" />
   <img src="nba-tracker/public/screenshots/Player.png" alt="Player Profile" width="280" />
@@ -53,8 +54,7 @@ Then open:
 ```bash
 cd nba-tracker-api
 python -m venv venv
-venv\Scripts\activate  # On Windows
-# source venv/bin/activate  # On Mac/Linux
+venv\Scripts\activate
 pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
@@ -79,9 +79,8 @@ The frontend will run on http://localhost:3000 (or the next available port).
 
 ## Deployment
 
-- **Frontend:** Vercel (automatic HTTPS, global CDN)
-- **Backend:** Oracle Cloud Infrastructure free tier (Ubuntu VM)
-- **Tunnel:** Cloudflare Tunnel for secure HTTPS access to backend
+- **Frontend:** Vercel
+- **Backend:** Google Cloud (GCP)
 
 See [DEPLOYMENT.local.md](DEPLOYMENT.local.md) for detailed setup instructions.
 

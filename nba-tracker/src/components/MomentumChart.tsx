@@ -15,7 +15,7 @@
  */
 
 import React, { useMemo } from 'react';
-import { Box, Typography, Paper, useTheme } from '@mui/material';
+import { Box, Typography, Paper, useTheme, alpha, Chip } from '@mui/material';
 import {
   Area,
   ComposedChart,
@@ -25,7 +25,9 @@ import {
   Tooltip,
   ResponsiveContainer,
   ReferenceLine,
+  ReferenceArea,
   Scatter,
+  Label,
 } from 'recharts';
 import { PlayByPlayEvent } from '../types/playbyplay';
 import { typography, borderRadius } from '../theme/designTokens';
@@ -385,6 +387,62 @@ const MomentumChart: React.FC<MomentumChartProps> = ({ plays, homeTeam, awayTeam
     10 // Minimum range of 10
   );
 
+  // Detect edge cases
+  const hasHomeData = chartData.some(d => d.differential > 0);
+  const hasAwayData = chartData.some(d => d.differential < 0);
+  const hasOnlyHomeData = hasHomeData && !hasAwayData;
+  const hasOnlyAwayData = hasAwayData && !hasHomeData;
+  const isTiedGame = chartData.every(d => d.differential === 0);
+
+  // Determine current leader from last data point
+  const lastDataPoint = chartData[chartData.length - 1];
+  const currentLeader = lastDataPoint
+    ? lastDataPoint.differential > 0
+      ? { team: homeTeam, lead: lastDataPoint.differential }
+      : lastDataPoint.differential < 0
+      ? { team: awayTeam, lead: Math.abs(lastDataPoint.differential) }
+      : { team: null, lead: 0 }
+    : null;
+
+  // Find lead change points for annotations
+  const leadChangePoints = useMemo(() => {
+    const changes: Array<{ index: number; team: string; time: string }> = [];
+    for (let i = 0; i < chartData.length; i++) {
+      if (chartData[i].isLeadChange) {
+        const team = chartData[i].differential > 0 ? homeTeam : awayTeam;
+        changes.push({
+          index: i,
+          team,
+          time: chartData[i].time,
+        });
+      }
+    }
+    return changes;
+  }, [chartData, homeTeam, awayTeam]);
+
+  // Group data points by leading team for background shading
+  const leadingSections = useMemo(() => {
+    const sections: Array<{ start: number; end: number; team: 'home' | 'away' | 'tied' }> = [];
+    let currentTeam: 'home' | 'away' | 'tied' = chartData[0]?.differential > 0 ? 'home' : chartData[0]?.differential < 0 ? 'away' : 'tied';
+    let sectionStart = 0;
+
+    for (let i = 1; i < chartData.length; i++) {
+      const newTeam: 'home' | 'away' | 'tied' = chartData[i].differential > 0 ? 'home' : chartData[i].differential < 0 ? 'away' : 'tied';
+      if (newTeam !== currentTeam) {
+        if (currentTeam !== 'tied') {
+          sections.push({ start: sectionStart, end: i - 1, team: currentTeam });
+        }
+        sectionStart = i;
+        currentTeam = newTeam;
+      }
+    }
+    // Add final section
+    if (currentTeam !== 'tied' && sectionStart < chartData.length) {
+      sections.push({ start: sectionStart, end: chartData.length - 1, team: currentTeam });
+    }
+    return sections;
+  }, [chartData]);
+
   return (
     <Paper
       elevation={0}
@@ -396,16 +454,80 @@ const MomentumChart: React.FC<MomentumChartProps> = ({ plays, homeTeam, awayTeam
         borderRadius: borderRadius.md,
       }}
     >
-      <Typography
-        variant="subtitle2"
-        sx={{
-          mb: 2,
-          fontWeight: typography.weight.semibold,
-          color: 'text.primary',
-        }}
-      >
-        Game Momentum
-      </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
+        <Typography
+          variant="subtitle2"
+          sx={{
+            fontWeight: typography.weight.semibold,
+            color: 'text.primary',
+          }}
+        >
+          Game Momentum
+        </Typography>
+        {/* Edge case messages */}
+        {hasOnlyHomeData && (
+          <Chip
+            label={`Insufficient data for ${awayTeam}`}
+            size="small"
+            sx={{
+              backgroundColor: alpha(theme.palette.warning.main, 0.1),
+              color: theme.palette.warning.main,
+              fontWeight: typography.weight.medium,
+              fontSize: { xs: typography.size.captionSmall.xs, sm: typography.size.captionSmall.sm },
+            }}
+          />
+        )}
+        {hasOnlyAwayData && (
+          <Chip
+            label={`Insufficient data for ${homeTeam}`}
+            size="small"
+            sx={{
+              backgroundColor: alpha(theme.palette.warning.main, 0.1),
+              color: theme.palette.warning.main,
+              fontWeight: typography.weight.medium,
+              fontSize: { xs: typography.size.captionSmall.xs, sm: typography.size.captionSmall.sm },
+            }}
+          />
+        )}
+        {isTiedGame && (
+          <Chip
+            label="Game tied throughout"
+            size="small"
+            sx={{
+              backgroundColor: alpha(theme.palette.text.secondary, 0.1),
+              color: 'text.secondary',
+              fontWeight: typography.weight.medium,
+              fontSize: { xs: typography.size.captionSmall.xs, sm: typography.size.captionSmall.sm },
+            }}
+          />
+        )}
+        {/* Current Leader Display */}
+        {currentLeader && !isTiedGame && (
+          <Chip
+            label={
+              currentLeader.team
+                ? `${currentLeader.team} leading by ${currentLeader.lead}`
+                : 'Game tied'
+            }
+            size="small"
+            sx={{
+              backgroundColor: currentLeader.team
+                ? currentLeader.lead > 0
+                  ? alpha(homeColor, 0.1)
+                  : alpha(awayColor, 0.1)
+                : alpha(theme.palette.text.secondary, 0.1),
+              color: currentLeader.team
+                ? currentLeader.lead > 0
+                  ? homeColor
+                  : awayColor
+                : 'text.secondary',
+              fontWeight: typography.weight.semibold,
+              fontSize: { xs: typography.size.caption.xs, sm: typography.size.caption.sm },
+              border: `1px solid ${currentLeader.team ? (currentLeader.lead > 0 ? alpha(homeColor, 0.3) : alpha(awayColor, 0.3)) : 'divider'}`,
+            }}
+          />
+        )}
+      </Box>
       
       <Box sx={{ width: '100%', height: { xs: 300, sm: 380 } }}>
         <ResponsiveContainer width="100%" height="100%">
@@ -453,6 +575,24 @@ const MomentumChart: React.FC<MomentumChartProps> = ({ plays, homeTeam, awayTeam
           
           <Tooltip content={<CustomTooltip />} />
           
+          {/* Background shading for leading sections */}
+          {leadingSections.map((section, idx) => {
+            if (section.team === 'tied') return null;
+            const y1 = section.team === 'home' ? 0 : -maxDifferential;
+            const y2 = section.team === 'home' ? maxDifferential : 0;
+            return (
+              <ReferenceArea
+                key={`section-${idx}`}
+                x1={transformedData[section.start]?.time}
+                x2={transformedData[section.end]?.time}
+                y1={y1}
+                y2={y2}
+                fill={section.team === 'home' ? alpha(homeColor, 0.05) : alpha(awayColor, 0.05)}
+                stroke="none"
+              />
+            );
+          })}
+          
           {/* Zero line (tied game) - more prominent but neutral */}
           <ReferenceLine 
             y={0} 
@@ -460,6 +600,33 @@ const MomentumChart: React.FC<MomentumChartProps> = ({ plays, homeTeam, awayTeam
             strokeWidth={1.5}
             strokeDasharray="4 4" 
           />
+          
+          {/* Lead change annotations */}
+          {leadChangePoints.map((change, idx) => {
+            const dataPoint = transformedData[change.index];
+            if (!dataPoint) return null;
+            return (
+              <ReferenceLine
+                key={`lead-change-${idx}`}
+                x={dataPoint.time}
+                stroke={theme.palette.mode === 'dark' ? 'rgba(255, 193, 7, 0.6)' : 'rgba(255, 152, 0, 0.6)'}
+                strokeWidth={1.5}
+                strokeDasharray="2 2"
+                label={
+                  <Label
+                    value={change.team}
+                    position="top"
+                    offset={5}
+                    style={{
+                      fill: theme.palette.mode === 'dark' ? 'rgba(255, 193, 7, 0.9)' : 'rgba(255, 152, 0, 0.9)',
+                      fontSize: 10,
+                      fontWeight: 600,
+                    }}
+                  />
+                }
+              />
+            );
+          })}
           
           {/* Area chart for home team leading (positive values, blue) */}
           <Area
@@ -471,6 +638,8 @@ const MomentumChart: React.FC<MomentumChartProps> = ({ plays, homeTeam, awayTeam
             isAnimationActive={false}
             baseValue={0}
             connectNulls={false}
+            strokeOpacity={hasOnlyAwayData ? 0.3 : 1}
+            fillOpacity={hasOnlyAwayData ? 0.1 : 1}
           />
           
           {/* Area chart for away team leading (negative values, orange) */}
@@ -483,6 +652,8 @@ const MomentumChart: React.FC<MomentumChartProps> = ({ plays, homeTeam, awayTeam
             isAnimationActive={false}
             baseValue={0}
             connectNulls={false}
+            strokeOpacity={hasOnlyHomeData ? 0.3 : 1}
+            fillOpacity={hasOnlyHomeData ? 0.1 : 1}
           />
           
           {/* Subtle markers for lead changes */}

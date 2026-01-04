@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import re
 import time
 from collections import deque
 from typing import Optional
@@ -67,11 +68,11 @@ class GroqRateLimiter:
                     oldest_time = self.request_history[0]
                     wait_time = max(wait_time, 60 - (current_time - oldest_time) + 1)
             
-            # Check TPM limit (more conservative: wait if we're at 90% of limit)
-            if tokens_used + estimated_tokens > int(self.max_tokens_per_minute * 0.9):
+            # Check TPM limit (more conservative: wait if we're at 85% of limit to leave more buffer)
+            if tokens_used + estimated_tokens > int(self.max_tokens_per_minute * 0.85):
                 if self.token_history:
                     oldest_time = self.token_history[0][0]
-                    wait_time = max(wait_time, 60 - (current_time - oldest_time) + 1)
+                    wait_time = max(wait_time, 60 - (current_time - oldest_time) + 2)  # Add 2s buffer
             
             # Wait if needed
             if wait_time > 0:
@@ -103,9 +104,9 @@ class GroqRateLimiter:
 
 
 # Global Groq rate limiter instance
-# Very conservative limits: 20 RPM (below 30) and 5000 TPM (below 6000)
-# This leaves significant buffer for Groq SDK retries and ensures we stay under limits
-_groq_rate_limiter = GroqRateLimiter(max_requests_per_minute=20, max_tokens_per_minute=5000, tokens_per_request=1000)
+# Conservative limits: 20 RPM (below 30) and 5500 TPM (below 6000, leaves 500 buffer)
+# Token estimation increased to 2000 to account for larger batched requests
+_groq_rate_limiter = GroqRateLimiter(max_requests_per_minute=20, max_tokens_per_minute=5500, tokens_per_request=2000)
 
 
 async def call_groq_api(
@@ -164,8 +165,40 @@ async def call_groq_api(
         # If Groq SDK retries fail, check if it's a rate limit error
         error_str = str(groq_error)
         if "429" in error_str or "rate_limit" in error_str.lower() or "Rate limit" in error_str:
-            logger.warning(f"Groq rate limit exceeded after retries")
-            raise  # Re-raise to be caught by outer exception handler
+            # Try to extract wait time from error message
+            wait_time = None
+            if "try again in" in error_str.lower():
+                match = re.search(r'try again in ([\d.]+)s', error_str.lower())
+                if match:
+                    wait_time = float(match.group(1)) + 1  # Add 1 second buffer
+            
+            if wait_time:
+                logger.warning(f"Groq rate limit exceeded. Waiting {wait_time:.1f}s as specified by API...")
+                await asyncio.sleep(wait_time)
+                # Retry once after waiting
+                try:
+                    response = await asyncio.to_thread(
+                        client.chat.completions.create,
+                        model="llama-3.1-8b-instant",
+                        messages=[
+                            {
+                                "role": "system",
+                                "content": system_message
+                            },
+                            {
+                                "role": "user",
+                                "content": user_prompt
+                            }
+                        ],
+                        temperature=0.3,
+                        max_tokens=300,
+                    )
+                except Exception as retry_error:
+                    logger.warning(f"Groq rate limit retry failed: {retry_error}")
+                    raise
+            else:
+                logger.warning(f"Groq rate limit exceeded after retries")
+                raise  # Re-raise to be caught by outer exception handler
         raise  # Re-raise other errors
     
     # Update rate limiter with actual token usage from Groq response

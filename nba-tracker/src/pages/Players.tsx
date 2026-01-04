@@ -26,7 +26,8 @@ import { Search, NavigateBefore, NavigateNext } from '@mui/icons-material';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import SeasonLeaders from '../components/SeasonLeaders';
 import Navbar from '../components/Navbar';
-import { typography, borderRadius, responsiveSpacing, transitions } from '../theme/designTokens';
+import PageHeader from '../components/PageHeader';
+import { typography, borderRadius, transitions, responsiveSpacing } from '../theme/designTokens';
 import { fetchJson } from '../utils/apiClient';
 import { getCurrentSeason, getSeasonOptions } from '../utils/season';
 import { SeasonLeadersResponse } from '../types/seasonleaders';
@@ -90,10 +91,13 @@ const Players = () => {
             { maxRetries: 3, retryDelay: 1000, timeout: 30000 }
           );
           console.log('Fetched roster data:', data?.length || 0, 'players');
-          setRoster(data || []);
+          if (data) {
+            setRoster(data);
+          }
+          // Don't clear roster on error - keep existing data visible
         } catch (err) {
           console.error('Error fetching league roster:', err);
-          setRoster([]);
+          // Don't clear roster on error
         } finally {
           setRosterLoading(false);
         }
@@ -195,14 +199,124 @@ const Players = () => {
     setCurrentPage(1);
   }, [searchQuery, selectedLetter, selectedTeam, selectedPosition]);
 
+  const renderPlayerCard = (player: PlayerSummary) => {
+    const fullName = `${player.PLAYER_FIRST_NAME} ${player.PLAYER_LAST_NAME}`;
+    const playerId = player.PERSON_ID;
+
+    return (
+      <Paper
+        key={playerId}
+        elevation={0}
+        onClick={() => navigate(`/player/${playerId}`)}
+        sx={{
+          p: responsiveSpacing.card,
+          mb: responsiveSpacing.element,
+          cursor: 'pointer',
+          transition: transitions.normal,
+          backgroundColor: 'background.paper',
+          border: '1px solid',
+          borderColor: 'divider',
+          borderRadius: borderRadius.md,
+          minHeight: 200,
+          display: 'flex',
+          flexDirection: 'column',
+          '&:hover': {
+            backgroundColor: 'action.hover',
+            borderColor: 'primary.main',
+          },
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, mb: 1.5 }}>
+          <Avatar
+            src={`https://cdn.nba.com/headshots/nba/latest/1040x760/${playerId}.png`}
+            alt={fullName}
+            sx={{ 
+              width: 80,
+              height: 106.67, // 3/4 aspect ratio
+              aspectRatio: '3/4',
+              border: '1px solid',
+              borderColor: 'divider',
+              flexShrink: 0,
+            }}
+            onError={(e) => {
+              const target = e.currentTarget as HTMLImageElement;
+              target.onerror = null;
+              target.src = '';
+            }}
+          />
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography
+              variant="h6"
+              sx={{
+                fontWeight: typography.weight.bold,
+                color: 'text.primary',
+                fontSize: typography.editorial.metric.xs,
+                mb: 0.5,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {fullName}
+            </Typography>
+            <Typography
+              variant="body2"
+              sx={{
+                color: 'text.secondary',
+                fontSize: typography.editorial.helper.xs,
+                mb: 1.5,
+              }}
+            >
+              {player.TEAM_ABBREVIATION || 'No Team'} • #{player.JERSEY_NUMBER || '—'}
+            </Typography>
+            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1.5 }}>
+              <Box>
+                <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: typography.editorial.helper.xs, textTransform: 'lowercase' }}>
+                  Position
+                </Typography>
+                <Typography variant="body2" sx={{ fontSize: typography.editorial.helper.xs, fontWeight: typography.weight.medium, mt: 0.25 }}>
+                  {player.POSITION || '—'}
+                </Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: typography.editorial.helper.xs, textTransform: 'lowercase' }}>
+                  Height
+                </Typography>
+                <Typography variant="body2" sx={{ fontSize: typography.editorial.helper.xs, fontWeight: typography.weight.medium, mt: 0.25 }}>
+                  {player.HEIGHT || '—'}
+                </Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: typography.editorial.helper.xs, textTransform: 'lowercase' }}>
+                  Weight
+                </Typography>
+                <Typography variant="body2" sx={{ fontSize: typography.editorial.helper.xs, fontWeight: typography.weight.medium, mt: 0.25 }}>
+                  {player.WEIGHT ? `${player.WEIGHT} lbs` : '—'}
+                </Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: typography.editorial.helper.xs, textTransform: 'lowercase' }}>
+                  Country
+                </Typography>
+                <Typography variant="body2" sx={{ fontSize: typography.editorial.helper.xs, fontWeight: typography.weight.medium, mt: 0.25 }}>
+                  {player.COUNTRY || '—'}
+                </Typography>
+              </Box>
+            </Box>
+          </Box>
+        </Box>
+      </Paper>
+    );
+  };
+
   const renderLeagueRoster = () => (
     <Box>
       {/* Search and Filters */}
-      <Box sx={{ mb: 3, minHeight: { xs: 140, sm: 160 } }}>
+      <Box sx={{ mb: { xs: 1, sm: 1.5 }, minHeight: { xs: 140, sm: 160 } }}>
         <TextField
           fullWidth
           size="small"
-          placeholder="Search Players"
+          placeholder="Search players"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           InputProps={{
@@ -213,24 +327,45 @@ const Players = () => {
             ),
           }}
           sx={{ 
-            mb: 2, 
+            mb: responsiveSpacing.element, 
             borderRadius: borderRadius.sm,
             '& .MuiOutlinedInput-root': {
-              fontSize: { xs: typography.size.body.xs, sm: typography.size.body.sm },
+              fontSize: typography.editorial.helper.xs,
             },
           }}
         />
 
-        <Box sx={{ display: 'flex', gap: { xs: 1.5, sm: 2 }, flexWrap: 'wrap', mb: 2 }}>
+        <Box sx={{ display: 'flex', gap: responsiveSpacing.element, flexWrap: 'wrap', mb: { xs: 1, sm: 1.5 } }}>
           <FormControl size="small" sx={{ minWidth: { xs: 140, sm: 150 } }}>
-            <InputLabel sx={{ fontSize: { xs: typography.size.body.xs, sm: typography.size.body.sm } }}>All Players</InputLabel>
+            <InputLabel sx={{ fontSize: typography.editorial.helper.xs }}>All Players</InputLabel>
             <Select
               value={selectedLetter}
               label="All Players"
               onChange={(e) => setSelectedLetter(e.target.value)}
+              MenuProps={{
+                anchorOrigin: {
+                  vertical: 'bottom',
+                  horizontal: 'left',
+                },
+                transformOrigin: {
+                  vertical: 'top',
+                  horizontal: 'left',
+                },
+                PaperProps: {
+                  sx: {
+                    maxHeight: { xs: '60vh', sm: '50vh' },
+                    mt: 0.5,
+                  },
+                },
+                MenuListProps: {
+                  sx: {
+                    py: 0.5,
+                  },
+                },
+              }}
               sx={{ 
                 borderRadius: borderRadius.sm,
-                fontSize: { xs: typography.size.body.xs, sm: typography.size.body.sm },
+                fontSize: typography.editorial.helper.xs,
               }}
             >
               <MenuItem value="All Players">All Players</MenuItem>
@@ -241,14 +376,35 @@ const Players = () => {
           </FormControl>
 
           <FormControl size="small" sx={{ minWidth: { xs: 160, sm: 180 } }}>
-            <InputLabel sx={{ fontSize: { xs: typography.size.body.xs, sm: typography.size.body.sm } }}>All Teams</InputLabel>
+            <InputLabel sx={{ fontSize: typography.editorial.helper.xs }}>All Teams</InputLabel>
             <Select
               value={selectedTeam}
               label="All Teams"
               onChange={(e) => setSelectedTeam(e.target.value)}
+              MenuProps={{
+                anchorOrigin: {
+                  vertical: 'bottom',
+                  horizontal: 'left',
+                },
+                transformOrigin: {
+                  vertical: 'top',
+                  horizontal: 'left',
+                },
+                PaperProps: {
+                  sx: {
+                    maxHeight: { xs: '60vh', sm: '50vh' },
+                    mt: 0.5,
+                  },
+                },
+                MenuListProps: {
+                  sx: {
+                    py: 0.5,
+                  },
+                },
+              }}
               sx={{ 
                 borderRadius: borderRadius.sm,
-                fontSize: { xs: typography.size.body.xs, sm: typography.size.body.sm },
+                fontSize: typography.editorial.helper.xs,
               }}
             >
               <MenuItem value="All Teams">All Teams</MenuItem>
@@ -259,14 +415,35 @@ const Players = () => {
           </FormControl>
 
           <FormControl size="small" sx={{ minWidth: { xs: 140, sm: 150 } }}>
-            <InputLabel sx={{ fontSize: { xs: typography.size.body.xs, sm: typography.size.body.sm } }}>All Positions</InputLabel>
+            <InputLabel sx={{ fontSize: typography.editorial.helper.xs }}>All Positions</InputLabel>
             <Select
               value={selectedPosition}
               label="All Positions"
               onChange={(e) => setSelectedPosition(e.target.value)}
+              MenuProps={{
+                anchorOrigin: {
+                  vertical: 'bottom',
+                  horizontal: 'left',
+                },
+                transformOrigin: {
+                  vertical: 'top',
+                  horizontal: 'left',
+                },
+                PaperProps: {
+                  sx: {
+                    maxHeight: { xs: '60vh', sm: '50vh' },
+                    mt: 0.5,
+                  },
+                },
+                MenuListProps: {
+                  sx: {
+                    py: 0.5,
+                  },
+                },
+              }}
               sx={{ 
                 borderRadius: borderRadius.sm,
-                fontSize: { xs: typography.size.body.xs, sm: typography.size.body.sm },
+                fontSize: typography.editorial.helper.xs,
               }}
             >
               <MenuItem value="All Positions">All Positions</MenuItem>
@@ -283,9 +460,9 @@ const Players = () => {
         <Typography 
           variant="body2" 
           color="text.secondary"
-          sx={{ fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm } }}
+          sx={{ fontSize: typography.editorial.helper.xs }}
         >
-          {filteredRoster.length} Rows • Page {currentPage} of {totalPages || 1}
+          {filteredRoster.length} players • Page {currentPage} of {totalPages || 1}
         </Typography>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <IconButton
@@ -327,149 +504,171 @@ const Players = () => {
         </Box>
       </Box>
 
-      {/* Table */}
-      {rosterLoading ? (
-        <Box sx={{ minHeight: { xs: 400, sm: 500 } }}>
-          <Skeleton variant="rectangular" height={60} sx={{ borderRadius: borderRadius.md, mb: 1 }} />
-          {[...Array(10)].map((_, index) => (
-            <Skeleton key={index} variant="rectangular" height={56} sx={{ borderRadius: borderRadius.sm, mb: 0.5 }} />
-          ))}
-        </Box>
-      ) : roster.length === 0 ? (
-        <Alert severity="info" sx={{ borderRadius: borderRadius.sm }}>
-          No roster data available. Please try again later.
-        </Alert>
-      ) : filteredRoster.length === 0 ? (
-        <Alert severity="info" sx={{ borderRadius: borderRadius.sm }}>
-          No players found matching the filters.
-        </Alert>
-      ) : (
-        <Box sx={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-          <TableContainer
-            component={Paper}
-            elevation={0}
-            sx={{
-              border: '1px solid',
-              borderColor: 'divider',
-              borderRadius: borderRadius.md,
-              backgroundColor: 'background.paper',
-              minHeight: { xs: 400, sm: 500 },
-              minWidth: { xs: 600, sm: 'auto' }, // Ensure table doesn't get too narrow on mobile
-            }}
-          >
-            <Table sx={{ minWidth: { xs: 600, sm: 'auto' } }}>
-            <TableHead>
-              <TableRow sx={{ backgroundColor: 'background.paper' }}>
-                <TableCell sx={{ fontWeight: typography.weight.bold, backgroundColor: 'background.paper', fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm } }}>Player</TableCell>
-                <TableCell sx={{ fontWeight: typography.weight.bold, backgroundColor: 'background.paper', fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm } }}>Team</TableCell>
-                <TableCell sx={{ fontWeight: typography.weight.bold, backgroundColor: 'background.paper', fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm } }}>Number</TableCell>
-                <TableCell sx={{ fontWeight: typography.weight.bold, backgroundColor: 'background.paper', fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm } }}>Position</TableCell>
-                <TableCell sx={{ fontWeight: typography.weight.bold, backgroundColor: 'background.paper', fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm } }}>Height</TableCell>
-                <TableCell sx={{ fontWeight: typography.weight.bold, backgroundColor: 'background.paper', fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm } }}>Weight</TableCell>
-                <TableCell sx={{ fontWeight: typography.weight.bold, backgroundColor: 'background.paper', fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm } }}>Last Attended</TableCell>
-                <TableCell sx={{ fontWeight: typography.weight.bold, backgroundColor: 'background.paper', fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm } }}>Country</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {paginatedRoster.map((player) => {
-                const fullName = `${player.PLAYER_FIRST_NAME} ${player.PLAYER_LAST_NAME}`;
-                const playerId = player.PERSON_ID;
-                return (
-                  <TableRow
-                    key={playerId}
-                    onClick={() => navigate(`/player/${playerId}`)}
-                    sx={{
-                      cursor: 'pointer',
-                      backgroundColor: 'background.paper',
-                      '&:hover': {
-                        backgroundColor: 'action.hover',
-                      },
-                    }}
-                  >
-                    <TableCell>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                        <Avatar
-                          src={`https://cdn.nba.com/headshots/nba/latest/1040x760/${playerId}.png`}
-                          alt={fullName}
-                          sx={{ 
-                            width: 40, 
-                            height: 40,
-                            border: '1px solid',
-                            borderColor: 'divider',
+      {/* Content Container - always rendered with minHeight */}
+      <Box sx={{ minHeight: { xs: 600, sm: 800 } }}>
+        {rosterLoading && roster.length === 0 ? (
+          // Loading skeleton - only show if no data exists
+          <>
+            {/* Mobile skeleton */}
+            <Box sx={{ display: { xs: 'block', sm: 'none' } }}>
+              {[...Array(10)].map((_, index) => (
+                <Skeleton 
+                  key={index} 
+                  variant="rectangular" 
+                  height={200} 
+                  sx={{ borderRadius: borderRadius.md, mb: 1.5 }} 
+                />
+              ))}
+            </Box>
+            {/* Desktop skeleton */}
+            <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
+              <Skeleton variant="rectangular" height={60} sx={{ borderRadius: borderRadius.md, mb: 1 }} />
+              {[...Array(10)].map((_, index) => (
+                <Skeleton 
+                  key={index} 
+                  variant="rectangular" 
+                  height={56} 
+                  sx={{ borderRadius: borderRadius.sm, mb: 0.5 }} 
+                />
+              ))}
+            </Box>
+          </>
+        ) : roster.length === 0 ? (
+          // Empty state
+          <Alert severity="info" sx={{ borderRadius: borderRadius.md }}>
+            No roster data available.
+          </Alert>
+        ) : filteredRoster.length === 0 ? (
+          // No matches
+          <Alert severity="info" sx={{ borderRadius: borderRadius.md }}>
+            No players found matching your filters.
+          </Alert>
+        ) : (
+          // Content - always show if data exists
+          <>
+            {/* Mobile Card View */}
+            <Box sx={{ display: { xs: 'block', sm: 'none' } }}>
+              {paginatedRoster.map(player => renderPlayerCard(player))}
+            </Box>
+            {/* Desktop Table View */}
+            <Box sx={{ display: { xs: 'none', sm: 'block' }, overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+              <TableContainer
+                component={Paper}
+                elevation={0}
+                sx={{
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  borderRadius: borderRadius.md,
+                  backgroundColor: 'background.paper',
+                  minHeight: { xs: 400, sm: 500 },
+                }}
+              >
+                <Table>
+                  <TableHead>
+                    <TableRow sx={{ backgroundColor: 'background.paper' }}>
+                      <TableCell sx={{ fontWeight: typography.weight.semibold, backgroundColor: 'background.paper', fontSize: typography.editorial.helper.xs, py: 2.5, color: 'text.secondary' }}>Player</TableCell>
+                      <TableCell sx={{ fontWeight: typography.weight.semibold, backgroundColor: 'background.paper', fontSize: typography.editorial.helper.xs, py: 2.5, color: 'text.secondary' }}>Team</TableCell>
+                      <TableCell sx={{ fontWeight: typography.weight.semibold, backgroundColor: 'background.paper', fontSize: typography.editorial.helper.xs, py: 2.5, color: 'text.secondary' }}>#</TableCell>
+                      <TableCell sx={{ fontWeight: typography.weight.semibold, backgroundColor: 'background.paper', fontSize: typography.editorial.helper.xs, py: 2.5, color: 'text.secondary' }}>Position</TableCell>
+                      <TableCell sx={{ fontWeight: typography.weight.semibold, backgroundColor: 'background.paper', fontSize: typography.editorial.helper.xs, py: 2.5, color: 'text.secondary' }}>Height</TableCell>
+                      <TableCell sx={{ fontWeight: typography.weight.semibold, backgroundColor: 'background.paper', fontSize: typography.editorial.helper.xs, py: 2.5, color: 'text.secondary' }}>Weight</TableCell>
+                      <TableCell sx={{ fontWeight: typography.weight.semibold, backgroundColor: 'background.paper', fontSize: typography.editorial.helper.xs, py: 2.5, color: 'text.secondary' }}>School</TableCell>
+                      <TableCell sx={{ fontWeight: typography.weight.semibold, backgroundColor: 'background.paper', fontSize: typography.editorial.helper.xs, py: 2.5, color: 'text.secondary' }}>Country</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {paginatedRoster.map((player) => {
+                      const fullName = `${player.PLAYER_FIRST_NAME} ${player.PLAYER_LAST_NAME}`;
+                      const playerId = player.PERSON_ID;
+                      return (
+                        <TableRow
+                          key={playerId}
+                          onClick={() => navigate(`/player/${playerId}`)}
+                          sx={{
+                            cursor: 'pointer',
+                            backgroundColor: 'background.paper',
+                            '&:hover': {
+                              backgroundColor: 'action.hover',
+                            },
                           }}
-                          onError={(e) => {
-                            const target = e.currentTarget as HTMLImageElement;
-                            target.onerror = null;
-                            target.src = '';
-                          }}
-                        />
-                        <Box>
-                          <Typography
-                            variant="body2"
-                            sx={{
-                              fontWeight: typography.weight.semibold,
-                              color: 'primary.main',
-                              fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm },
-                            }}
-                          >
-                            {player.PLAYER_FIRST_NAME}
-                          </Typography>
-                          <Typography
-                            variant="body2"
-                            sx={{
-                              fontWeight: typography.weight.semibold,
-                              color: 'primary.main',
-                              fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm },
-                            }}
-                          >
-                            {player.PLAYER_LAST_NAME}
-                          </Typography>
-                        </Box>
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" sx={{ color: 'primary.main', fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm } }}>
-                        {player.TEAM_ABBREVIATION || '—'}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" sx={{ fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm } }}>
-                        {player.JERSEY_NUMBER || '—'}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" sx={{ fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm } }}>
-                        {player.POSITION || '—'}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" sx={{ fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm } }}>
-                        {player.HEIGHT || '—'}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" sx={{ fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm } }}>
-                        {player.WEIGHT ? `${player.WEIGHT} lbs` : '—'}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" sx={{ fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm } }}>
-                        {player.COLLEGE || '—'}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" sx={{ fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm } }}>
-                        {player.COUNTRY || '—'}
-                      </Typography>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </TableContainer>
-        </Box>
-      )}
+                        >
+                          <TableCell sx={{ py: 2.5 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                              <Avatar
+                                src={`https://cdn.nba.com/headshots/nba/latest/1040x760/${playerId}.png`}
+                                alt={fullName}
+                                sx={{ 
+                                  width: 40, 
+                                  height: 40,
+                                  aspectRatio: '1/1',
+                                  border: '1px solid',
+                                  borderColor: 'divider',
+                                }}
+                                onError={(e) => {
+                                  const target = e.currentTarget as HTMLImageElement;
+                                  target.onerror = null;
+                                  target.src = '';
+                                }}
+                              />
+                              <Box>
+                                <Typography
+                                  variant="body2"
+                                  sx={{
+                                    fontWeight: typography.weight.bold,
+                                    color: 'text.primary',
+                                    fontSize: typography.editorial.helper.xs,
+                                  }}
+                                >
+                                  {fullName}
+                                </Typography>
+                              </Box>
+                            </Box>
+                          </TableCell>
+                          <TableCell sx={{ py: 2.5 }}>
+                            <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: typography.editorial.helper.xs }}>
+                              {player.TEAM_ABBREVIATION || '—'}
+                            </Typography>
+                          </TableCell>
+                          <TableCell sx={{ py: 2.5 }}>
+                            <Typography variant="body2" sx={{ fontSize: typography.editorial.helper.xs, color: 'text.secondary' }}>
+                              {player.JERSEY_NUMBER || '—'}
+                            </Typography>
+                          </TableCell>
+                          <TableCell sx={{ py: 2.5 }}>
+                            <Typography variant="body2" sx={{ fontSize: typography.editorial.helper.xs, color: 'text.secondary' }}>
+                              {player.POSITION || '—'}
+                            </Typography>
+                          </TableCell>
+                          <TableCell sx={{ py: 2.5 }}>
+                            <Typography variant="body2" sx={{ fontSize: typography.editorial.helper.xs, color: 'text.secondary' }}>
+                              {player.HEIGHT || '—'}
+                            </Typography>
+                          </TableCell>
+                          <TableCell sx={{ py: 2.5 }}>
+                            <Typography variant="body2" sx={{ fontSize: typography.editorial.helper.xs, color: 'text.secondary' }}>
+                              {player.WEIGHT ? `${player.WEIGHT} lbs` : '—'}
+                            </Typography>
+                          </TableCell>
+                          <TableCell sx={{ py: 2.5 }}>
+                            <Typography variant="body2" sx={{ fontSize: typography.editorial.helper.xs, color: 'text.secondary' }}>
+                              {player.COLLEGE || '—'}
+                            </Typography>
+                          </TableCell>
+                          <TableCell sx={{ py: 2.5 }}>
+                            <Typography variant="body2" sx={{ fontSize: typography.editorial.helper.xs, color: 'text.secondary' }}>
+                              {player.COUNTRY || '—'}
+                            </Typography>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Box>
+          </>
+        )}
+      </Box>
     </Box>
   );
 
@@ -477,19 +676,19 @@ const Players = () => {
     <Box sx={{ minHeight: { xs: 400, sm: 500 } }}>
       <Box sx={{ mb: 3, display: 'flex', justifyContent: 'flex-end', minHeight: { xs: 40, sm: 48 } }}>
         <FormControl size="small" sx={{ minWidth: { xs: 160, sm: 180 } }}>
-          <InputLabel sx={{ fontSize: { xs: typography.size.body.xs, sm: typography.size.body.sm } }}>Season</InputLabel>
+          <InputLabel sx={{ fontSize: typography.editorial.helper.xs }}>Season</InputLabel>
           <Select
             value={season}
             label="Season"
             onChange={(e) => handleSeasonChange(e.target.value)}
             sx={{ 
               borderRadius: borderRadius.sm,
-              fontSize: { xs: typography.size.body.xs, sm: typography.size.body.sm },
+              fontSize: typography.editorial.helper.xs,
             }}
           >
             {seasonOptions.map(seasonOption => (
               <MenuItem key={seasonOption} value={seasonOption}>
-                {seasonOption} Regular Season
+                {seasonOption}
               </MenuItem>
             ))}
           </Select>
@@ -510,34 +709,28 @@ const Players = () => {
   );
 
   return (
-    <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default', display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ 
+      minHeight: '100vh', 
+      backgroundColor: 'background.default', 
+      display: 'flex', 
+      flexDirection: 'column',
+      maxWidth: '100vw',
+      overflowX: 'hidden',
+      width: '100%',
+    }}>
       <Navbar />
-      <Box sx={{ maxWidth: '1400px', mx: 'auto', px: responsiveSpacing.container, py: responsiveSpacing.containerVertical }}>
-        <Box sx={{ mb: responsiveSpacing.section, minHeight: { xs: 80, sm: 90 } }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
-            <Typography
-              variant="h4"
-              sx={{
-                fontWeight: typography.weight.bold,
-                fontSize: { xs: typography.size.h5.xs, sm: typography.size.h5.sm, md: typography.size.h4.md },
-                color: 'text.primary',
-                letterSpacing: typography.letterSpacing.tight,
-              }}
-            >
-              Players
-            </Typography>
-          </Box>
-          <Typography 
-            variant="body2" 
-            color="text.secondary"
-            sx={{ fontSize: { xs: typography.size.body.xs, sm: typography.size.body.sm }, ml: 5.5 }}
-          >
-            Browse all NBA players and season leaders
-          </Typography>
-        </Box>
+      <Box sx={{ 
+        maxWidth: '1400px', 
+        mx: 'auto', 
+        px: responsiveSpacing.container,
+        py: responsiveSpacing.containerVertical,
+        width: '100%',
+      }}>
+        {/* Page header - always rendered */}
+        <PageHeader title="Players" />
 
-        {/* Tabs */}
-        <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3, minHeight: { xs: 48, sm: 56 } }}>
+        {/* Tabs - always rendered */}
+        <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: responsiveSpacing.section, minHeight: { xs: 48, sm: 56 } }}>
           <Tabs
             value={activeTab}
             onChange={handleTabChange}
@@ -545,18 +738,18 @@ const Players = () => {
               '& .MuiTab-root': {
                 textTransform: 'none',
                 fontWeight: typography.weight.semibold,
-                fontSize: { xs: typography.size.body.xs, sm: typography.size.body.sm },
+                fontSize: typography.editorial.sectionTitle.xs,
                 minHeight: { xs: 48, sm: 56 },
                 transition: transitions.normal,
               },
             }}
           >
-            <Tab label="League Roster" value="roster" />
-            <Tab label="Season Leaders" value="leaders" />
+            <Tab label="Roster" value="roster" />
+            <Tab label="Leaders" value="leaders" />
           </Tabs>
         </Box>
 
-        {/* Tab Content */}
+        {/* Tab Content - always rendered */}
         {activeTab === 'roster' && renderLeagueRoster()}
         {activeTab === 'leaders' && renderSeasonLeaders()}
       </Box>

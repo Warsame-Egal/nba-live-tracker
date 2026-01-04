@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Deployment script for Oracle Cloud backend
+# Deployment script Google Cloud (GCP)
 # Usage: ./deploy-backend.sh
 
 set -e

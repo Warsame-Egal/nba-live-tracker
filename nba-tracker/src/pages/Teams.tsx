@@ -5,10 +5,13 @@ import Navbar from '../components/Navbar';
 import { getCurrentSeason, getSeasonOptions } from '../utils/season';
 import { fetchJson } from '../utils/apiClient';
 import { StandingsResponse, StandingRecord } from '../types/standings';
-import { typography, transitions, responsiveSpacing, borderRadius } from '../theme/designTokens';
+import { typography, transitions, borderRadius } from '../theme/designTokens';
 import { getTeamInfo } from '../utils/teamMappings';
 
 import { API_BASE_URL } from '../utils/apiConfig';
+
+// Helper function for clamp() typography
+const clamp = (min: string, preferred: string, max: string) => `clamp(${min}, ${preferred}, ${max})`;
 
 /**
  * Teams page showing all NBA teams grouped by division.
@@ -40,10 +43,14 @@ const Teams = () => {
           {},
           { maxRetries: 3, retryDelay: 1000, timeout: 30000 }
         );
-        setStandings(standingsData.standings);
+        if (standingsData && standingsData.standings) {
+          setStandings(standingsData.standings);
+        }
+        // Don't clear standings on error - keep existing data visible
       } catch (err) {
         console.error('Error fetching team data:', err);
         setError('Failed to load team data');
+        // Don't clear standings on error
       } finally {
         setLoading(false);
       }
@@ -86,255 +93,279 @@ const Teams = () => {
     return getTeamInfo(fullName).logo;
   };
 
-
-  if (loading) {
-    return (
-      <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default', display: 'flex', flexDirection: 'column' }}>
-        <Navbar />
-        <Box sx={{ maxWidth: '1400px', mx: 'auto', px: responsiveSpacing.container, py: responsiveSpacing.containerVertical, width: '100%' }}>
-          <Box sx={{ mb: responsiveSpacing.section, minHeight: { xs: 80, sm: 90 } }}>
-            <Skeleton variant="text" width={200} height={40} sx={{ mb: 1 }} />
-            <Skeleton variant="text" width={300} height={24} />
-          </Box>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            {[...Array(2)].map((_, index) => (
-              <Box key={index}>
-                <Skeleton variant="text" width={250} height={32} sx={{ mb: 2 }} />
-                <Grid container spacing={2}>
-                  {[...Array(3)].map((_, divIndex) => (
-                    <Grid item xs={12} sm={6} lg={4} key={divIndex}>
-                      <Skeleton variant="rectangular" height={400} sx={{ borderRadius: borderRadius.md }} />
-                    </Grid>
-                  ))}
-                </Grid>
-              </Box>
-            ))}
-          </Box>
-        </Box>
-      </Box>
-    );
-  }
-
-  if (error) {
-    return (
-      <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default', display: 'flex', flexDirection: 'column' }}>
-        <Navbar />
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1 }}>
-          <Typography variant="body1" color="error">{error}</Typography>
-        </Box>
-      </Box>
-    );
-  }
-
   return (
-    <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default', display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ 
+      minHeight: '100vh', 
+      backgroundColor: 'background.default', 
+      display: 'flex', 
+      flexDirection: 'column',
+      maxWidth: '100vw',
+      overflowX: 'hidden',
+      width: '100%',
+    }}>
       <Navbar />
-      <Box sx={{ maxWidth: '1400px', mx: 'auto', px: responsiveSpacing.container, py: responsiveSpacing.containerVertical }}>
-            <Box sx={{ mb: responsiveSpacing.section, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2, minHeight: { xs: 80, sm: 90 } }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                <Typography
-                  variant="h4"
-                  sx={{
-                    fontWeight: typography.weight.bold,
-                    fontSize: { xs: typography.size.h5.xs, sm: typography.size.h5.sm, md: typography.size.h4.md },
-                    color: 'text.primary',
-                    letterSpacing: typography.letterSpacing.tight,
-                  }}
-                >
-                  All Teams
-                </Typography>
-              </Box>
-              <FormControl size="small" sx={{ minWidth: { xs: 160, sm: 180 } }}>
-                <InputLabel sx={{ fontSize: { xs: typography.size.body.xs, sm: typography.size.body.sm } }}>Season</InputLabel>
-                <Select
-                  value={season}
-                  label="Season"
-                  onChange={(e) => handleSeasonChange(e.target.value)}
-                  sx={{ 
-                    borderRadius: borderRadius.sm,
-                    fontSize: { xs: typography.size.body.xs, sm: typography.size.body.sm },
-                  }}
-                >
-                  {seasonOptions.map(seasonOption => (
-                    <MenuItem key={seasonOption} value={seasonOption}>
-                      {seasonOption} Regular Season
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+      <Box sx={{ 
+        maxWidth: '1400px', 
+        mx: 'auto', 
+        px: { xs: 1, sm: 2, md: 3, lg: 4 }, 
+        py: { xs: 2, sm: 3 },
+        width: '100%',
+      }}>
+        {/* Page header - always rendered */}
+        <Box sx={{ 
+          mb: { xs: 2, sm: 3 }, 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          flexWrap: 'wrap', 
+          gap: 2, 
+          minHeight: { xs: 80, sm: 90 } 
+        }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <Typography
+              variant="h4"
+              sx={{
+                fontWeight: typography.weight.bold,
+                fontSize: clamp('1.25rem', '4vw', '1.5rem'),
+                color: 'text.primary',
+                letterSpacing: typography.letterSpacing.tight,
+              }}
+            >
+              All Teams
+            </Typography>
+          </Box>
+          <FormControl size="small" sx={{ minWidth: { xs: 160, sm: 180 } }}>
+            <InputLabel sx={{ fontSize: clamp('0.875rem', '2vw', '1rem') }}>Season</InputLabel>
+            <Select
+              value={season}
+              label="Season"
+              onChange={(e) => handleSeasonChange(e.target.value)}
+              sx={{ 
+                borderRadius: borderRadius.sm,
+                fontSize: clamp('0.875rem', '2vw', '1rem'),
+              }}
+            >
+              {seasonOptions.map(seasonOption => (
+                <MenuItem key={seasonOption} value={seasonOption}>
+                  {seasonOption} Regular Season
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Box>
+
+        {/* Content container - always rendered with minHeight */}
+        <Box sx={{ minHeight: { xs: 600, sm: 800 } }}>
+          {loading && standings.length === 0 ? (
+            // Loading skeleton - only show if no data exists
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+              {[...Array(2)].map((_, index) => (
+                <Box key={index}>
+                  <Skeleton variant="text" width={250} height={32} sx={{ mb: 2 }} />
+                  <Grid container spacing={2}>
+                    {[...Array(3)].map((_, divIndex) => (
+                      <Grid item xs={12} sm={6} lg={4} key={divIndex}>
+                        <Skeleton variant="rectangular" height={400} sx={{ borderRadius: borderRadius.md }} />
+                      </Grid>
+                    ))}
+                  </Grid>
+                </Box>
+              ))}
             </Box>
+          ) : error && standings.length === 0 ? (
+            // Error state - only show if no data exists
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 8 }}>
+              <Typography variant="body1" color="error" sx={{ fontSize: clamp('0.875rem', '2vw', '1rem') }}>
+                {error}
+              </Typography>
+            </Box>
+          ) : standings.length === 0 ? (
+            // Empty state
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 8 }}>
+              <Typography variant="body1" color="text.secondary" sx={{ fontSize: clamp('0.875rem', '2vw', '1rem') }}>
+                No team data available.
+              </Typography>
+            </Box>
+          ) : (
+            // Content - always show if data exists (even during loading/error)
+            <>
+              {(['East', 'West'] as const).map(conference => (
+                <Box key={conference} sx={{ mb: { xs: 3, sm: 4 }, minHeight: { xs: 400, sm: 500 } }}>
+                  <Typography
+                    variant="h5"
+                    sx={{
+                      fontWeight: typography.weight.bold,
+                      mb: 2,
+                      fontSize: clamp('1rem', '3vw', '1.25rem'),
+                      color: 'text.primary',
+                      letterSpacing: typography.letterSpacing.tight,
+                      minHeight: { xs: '1.5rem', sm: '1.75rem' },
+                    }}
+                  >
+                    {conference === 'East' ? 'Eastern Conference' : 'Western Conference'}
+                  </Typography>
 
-            {/* Teams grouped by division */}
-            {(['East', 'West'] as const).map(conference => (
-              <Box key={conference} sx={{ mb: responsiveSpacing.sectionLarge, minHeight: { xs: 400, sm: 500 } }}>
-                <Typography
-                  variant="h5"
-                  sx={{
-                    fontWeight: typography.weight.bold,
-                    mb: 2,
-                    fontSize: { xs: typography.size.h6.xs, sm: typography.size.h6.sm, md: typography.size.h5.md },
-                    color: 'text.primary',
-                    letterSpacing: typography.letterSpacing.tight,
-                  }}
-                >
-                  {conference === 'East' ? 'Eastern Conference' : 'Western Conference'}
-                </Typography>
+                  <Grid container spacing={2} alignItems="flex-start">
+                    {divisions[conference].map(division => {
+                      const teams = teamsByDivision[conference][division] || [];
+                      if (teams.length === 0) return null;
 
-                <Grid container spacing={2} alignItems="flex-start">
-                  {divisions[conference].map(division => {
-                    const teams = teamsByDivision[conference][division] || [];
-                    if (teams.length === 0) return null;
+                      return (
+                        <Grid item xs={12} sm={6} lg={4} key={division}>
+                          <Box sx={{ mb: 3, display: 'flex', flexDirection: 'column', height: '100%' }}>
+                            <Typography
+                              variant="subtitle1"
+                              sx={{
+                                fontWeight: typography.weight.semibold,
+                                mb: 1.5,
+                                fontSize: clamp('0.875rem', '2vw', '1rem'),
+                                color: 'text.secondary',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.5px',
+                                minHeight: { xs: '1.5rem', sm: '1.75rem' },
+                                lineHeight: 1.5,
+                              }}
+                            >
+                              {division}
+                            </Typography>
+                            <Paper
+                              elevation={0}
+                              sx={{
+                                border: '1px solid',
+                                borderColor: 'divider',
+                                borderRadius: borderRadius.md,
+                                overflow: 'hidden',
+                                backgroundColor: 'background.paper',
+                                minHeight: { xs: 300, sm: 400 },
+                              }}
+                            >
+                              {teams.map((team, index) => {
+                                const logo = getTeamLogo(team);
+                                const fullTeamName = `${team.team_city} ${team.team_name}`;
 
-                    return (
-                      <Grid item xs={12} sm={6} lg={4} key={division}>
-                        <Box sx={{ mb: 3, display: 'flex', flexDirection: 'column', height: '100%' }}>
-                          <Typography
-                            variant="subtitle1"
-                            sx={{
-                              fontWeight: typography.weight.semibold,
-                              mb: 1.5,
-                              fontSize: { xs: typography.size.bodyLarge.xs, sm: typography.size.bodyLarge.sm },
-                              color: 'text.secondary',
-                              textTransform: 'uppercase',
-                              letterSpacing: '0.5px',
-                              minHeight: { xs: '1.5rem', sm: '1.75rem' },
-                              lineHeight: 1.5,
-                            }}
-                          >
-                            {division}
-                          </Typography>
-                          <Paper
-                            elevation={0}
-                            sx={{
-                              border: '1px solid',
-                              borderColor: 'divider',
-                              borderRadius: borderRadius.md,
-                              overflow: 'hidden',
-                              backgroundColor: 'background.paper',
-                              minHeight: { xs: 300, sm: 350 },
-                            }}
-                          >
-                            {teams.map((team, index) => {
-                              const logo = getTeamLogo(team);
-                              const fullTeamName = `${team.team_city} ${team.team_name}`;
-
-                              return (
-                                <Box
-                                  key={team.team_id}
-                                  sx={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 1.5,
-                                    p: 2,
-                                    borderBottom: index < teams.length - 1 ? '1px solid' : 'none',
-                                    borderColor: 'divider',
-                                    transition: transitions.normal,
-                                    '&:hover': {
-                                      backgroundColor: 'action.hover',
-                                    },
-                                  }}
-                                >
-                                  <Avatar
-                                    src={logo}
-                                    alt={fullTeamName}
-                                    onClick={() => navigate(`/team/${team.team_id}`)}
+                                return (
+                                  <Box
+                                    key={team.team_id}
                                     sx={{
-                                      width: 40,
-                                      height: 40,
-                                      backgroundColor: 'transparent',
-                                      border: '1px solid',
+                                      display: 'flex',
+                                      alignItems: 'flex-start',
+                                      gap: 1.5,
+                                      p: 2,
+                                      borderBottom: index < teams.length - 1 ? '1px solid' : 'none',
                                       borderColor: 'divider',
-                                      cursor: 'pointer',
                                       transition: transitions.normal,
-                                      flexShrink: 0, // Prevent avatar from shrinking
+                                      minHeight: 120,
                                       '&:hover': {
-                                        borderColor: 'primary.main',
-                                        transform: 'scale(1.05)',
+                                        backgroundColor: 'action.hover',
                                       },
                                     }}
-                                    onError={e => {
-                                      const target = e.currentTarget as HTMLImageElement;
-                                      target.onerror = null;
-                                      target.src = '/logos/default.svg';
-                                    }}
-                                  />
-                                  <Box sx={{ flex: 1, minWidth: 0, overflow: 'hidden', mr: 1 }}>
-                                    <Typography
-                                      variant="body1"
-                                      sx={{
-                                        fontWeight: typography.weight.bold,
-                                        fontSize: { xs: typography.size.body.xs, sm: typography.size.body.sm },
-                                        mb: 0.25,
-                                        overflow: 'hidden',
-                                        textOverflow: 'ellipsis',
-                                        whiteSpace: 'nowrap',
-                                        display: 'block',
-                                      }}
-                                    >
-                                      {fullTeamName}
-                                    </Typography>
-                                  </Box>
-                                  <Box sx={{ display: 'flex', gap: 0.5, flexShrink: 0, ml: 'auto', flexWrap: 'wrap' }}>
-                                    <Button
-                                      size="small"
-                                      variant="text"
+                                  >
+                                    <Avatar
+                                      src={logo}
+                                      alt={fullTeamName}
                                       onClick={() => navigate(`/team/${team.team_id}`)}
                                       sx={{
-                                        textTransform: 'none',
-                                        fontSize: { xs: typography.size.caption.xs, sm: typography.size.caption.sm },
-                                        minWidth: { xs: 44, sm: 'auto' },
-                                        px: { xs: 1, sm: 1 },
-                                        py: { xs: 1, sm: 0.5 },
-                                        whiteSpace: 'nowrap',
-                                        minHeight: { xs: 44, sm: 36 },
+                                        width: 40,
+                                        height: 40,
+                                        aspectRatio: '1/1',
+                                        backgroundColor: 'transparent',
+                                        border: '1px solid',
+                                        borderColor: 'divider',
+                                        cursor: 'pointer',
+                                        transition: transitions.normal,
+                                        flexShrink: 0,
+                                        mt: 0.25, // Align with first line of text
+                                        '&:hover': {
+                                          borderColor: 'primary.main',
+                                          transform: 'scale(1.05)',
+                                        },
                                       }}
-                                    >
-                                      Profile
-                                    </Button>
-                                    <Button
-                                      size="small"
-                                      variant="text"
-                                      onClick={() => navigate(`/team/${team.team_id}?tab=stats`)}
-                                      sx={{
-                                        textTransform: 'none',
-                                        fontSize: { xs: typography.size.caption.xs, sm: typography.size.caption.sm },
-                                        minWidth: { xs: 44, sm: 'auto' },
-                                        px: { xs: 1, sm: 1 },
-                                        py: { xs: 1, sm: 0.5 },
-                                        whiteSpace: 'nowrap',
-                                        minHeight: { xs: 44, sm: 36 },
+                                      onError={e => {
+                                        const target = e.currentTarget as HTMLImageElement;
+                                        target.onerror = null;
+                                        target.src = '/logos/default.svg';
                                       }}
-                                    >
-                                      Stats
-                                    </Button>
-                                    <Button
-                                      size="small"
-                                      variant="text"
-                                      onClick={() => navigate(`/team/${team.team_id}?tab=schedule`)}
-                                      sx={{
-                                        textTransform: 'none',
-                                        fontSize: { xs: typography.size.caption.xs, sm: typography.size.caption.sm },
-                                        minWidth: { xs: 44, sm: 'auto' },
-                                        px: { xs: 1, sm: 1 },
-                                        py: { xs: 1, sm: 0.5 },
-                                        whiteSpace: 'nowrap',
-                                        minHeight: { xs: 44, sm: 36 },
-                                      }}
-                                    >
-                                      Schedule
-                                    </Button>
+                                    />
+                                    <Box sx={{ flex: 1, minWidth: 0, mr: 1, overflow: 'hidden' }}>
+                                      <Typography
+                                        variant="body1"
+                                        sx={{
+                                          fontWeight: typography.weight.bold,
+                                          fontSize: clamp('0.875rem', '2vw', '1rem'),
+                                          mb: 0.25,
+                                          wordBreak: 'break-word',
+                                          overflowWrap: 'break-word',
+                                          display: 'block',
+                                          lineHeight: 1.4,
+                                        }}
+                                      >
+                                        {fullTeamName}
+                                      </Typography>
+                                    </Box>
+                                    <Box sx={{ display: 'flex', gap: 0.5, flexShrink: 0, ml: 'auto', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+                                      <Button
+                                        size="small"
+                                        variant="text"
+                                        onClick={() => navigate(`/team/${team.team_id}`)}
+                                        sx={{
+                                          textTransform: 'none',
+                                          fontSize: clamp('0.7rem', '1.5vw', '0.8125rem'),
+                                          minWidth: { xs: 44, sm: 'auto' },
+                                          px: { xs: 1, sm: 1 },
+                                          py: { xs: 1, sm: 0.5 },
+                                          whiteSpace: 'nowrap',
+                                          minHeight: { xs: 44, sm: 36 },
+                                        }}
+                                      >
+                                        Profile
+                                      </Button>
+                                      <Button
+                                        size="small"
+                                        variant="text"
+                                        onClick={() => navigate(`/team/${team.team_id}?tab=stats`)}
+                                        sx={{
+                                          textTransform: 'none',
+                                          fontSize: clamp('0.7rem', '1.5vw', '0.8125rem'),
+                                          minWidth: { xs: 44, sm: 'auto' },
+                                          px: { xs: 1, sm: 1 },
+                                          py: { xs: 1, sm: 0.5 },
+                                          whiteSpace: 'nowrap',
+                                          minHeight: { xs: 44, sm: 36 },
+                                        }}
+                                      >
+                                        Stats
+                                      </Button>
+                                      <Button
+                                        size="small"
+                                        variant="text"
+                                        onClick={() => navigate(`/team/${team.team_id}?tab=schedule`)}
+                                        sx={{
+                                          textTransform: 'none',
+                                          fontSize: clamp('0.7rem', '1.5vw', '0.8125rem'),
+                                          minWidth: { xs: 44, sm: 'auto' },
+                                          px: { xs: 1, sm: 1 },
+                                          py: { xs: 1, sm: 0.5 },
+                                          whiteSpace: 'nowrap',
+                                          minHeight: { xs: 44, sm: 36 },
+                                        }}
+                                      >
+                                        Schedule
+                                      </Button>
+                                    </Box>
                                   </Box>
-                                </Box>
-                              );
-                            })}
-                          </Paper>
-                        </Box>
-                      </Grid>
-                    );
-                  })}
-                </Grid>
-              </Box>
-            ))}
+                                );
+                              })}
+                            </Paper>
+                          </Box>
+                        </Grid>
+                      );
+                    })}
+                  </Grid>
+                </Box>
+              ))}
+            </>
+          )}
+        </Box>
       </Box>
     </Box>
   );

@@ -10,7 +10,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  CircularProgress,
+  Skeleton,
   Alert,
   Avatar,
   Tabs,
@@ -22,6 +22,7 @@ import {
 } from '@mui/material';
 import { format } from 'date-fns';
 import Navbar from '../components/Navbar';
+import SectionHeader from '../components/SectionHeader';
 import { fetchJson } from '../utils/apiClient';
 import { getCurrentSeason, getSeasonOptions } from '../utils/season';
 import { TeamRoster } from '../types/team';
@@ -215,95 +216,54 @@ const TeamPage = () => {
     fetchTeamData();
   }, [team_id, season]);
 
-  if (loading) {
-    return (
-      <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default', display: 'flex', flexDirection: 'column' }}>
-        <Navbar />
-        <Box sx={{ maxWidth: '1400px', mx: 'auto', px: { xs: 2, sm: 3, md: 4 }, py: { xs: 2, sm: 3 } }}>
-          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
-            <CircularProgress />
-          </Box>
-        </Box>
-      </Box>
-    );
-  }
-
-  if (error) {
-    return (
-      <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default', display: 'flex', flexDirection: 'column' }}>
-        <Navbar />
-        <Box sx={{ maxWidth: '1400px', mx: 'auto', px: { xs: 2, sm: 3, md: 4 }, py: { xs: 2, sm: 3 } }}>
-          <Alert severity="error">{error}</Alert>
-        </Box>
-      </Box>
-    );
-  }
-
-  if (!team) {
-    return (
-      <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default', display: 'flex', flexDirection: 'column' }}>
-        <Navbar />
-        <Box sx={{ maxWidth: '1400px', mx: 'auto', px: { xs: 2, sm: 3, md: 4 }, py: { xs: 2, sm: 3 } }}>
-          <Typography variant="body1" color="text.secondary" textAlign="center">
-            Team not found.
-          </Typography>
-        </Box>
-      </Box>
-    );
-  }
+  // Helper function to get opponent abbreviation
+  const getOpponentAbbreviation = (opponent: string): string => {
+    const teamInfo = getTeamAbbreviation(opponent);
+    return teamInfo || 'default';
+  };
 
   const renderProfileTab = () => (
-      <Box>
-        {/* Season Selector */}
-        <Box sx={{ mb: 3, display: 'flex', justifyContent: 'flex-end' }}>
-          <FormControl size="small" sx={{ minWidth: 180 }}>
-            <InputLabel>Season</InputLabel>
-            <Select
-              value={season}
-              label="Season"
-              onChange={(e) => handleSeasonChange(e.target.value)}
-              sx={{ borderRadius: borderRadius.sm }}
-            >
-              {seasonOptions.map(seasonOption => (
-                <MenuItem key={seasonOption} value={seasonOption}>
-                  {seasonOption} Regular Season
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Box>
-
-        {/* Team Info Grid */}
-        <Paper
-          elevation={0}
-          sx={{
-            p: 3,
-            mb: 3,
-            backgroundColor: 'background.paper',
-            border: '1px solid',
-            borderColor: 'divider',
-            borderRadius: borderRadius.md,
-          }}
-        >
-          <Typography
-            variant="h6"
-            sx={{
-              fontWeight: typography.weight.bold,
-              mb: 3,
-              fontSize: typography.size.h6,
-            }}
+    <Box>
+      {/* Season Selector */}
+      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'flex-end' }}>
+        <FormControl size="small" sx={{ minWidth: 180 }}>
+          <InputLabel>Season</InputLabel>
+          <Select
+            value={season}
+            label="Season"
+            onChange={(e) => handleSeasonChange(e.target.value)}
+            sx={{ borderRadius: borderRadius.sm }}
           >
-            Team Information
-          </Typography>
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' }, gap: 2 }}>
-            <InfoItem label="Founded" value={team.year_founded?.toString() ?? 'N/A'} />
-            <InfoItem label="Arena" value={team.arena ?? 'N/A'} />
-            {team.arena_capacity && <InfoItem label="Arena Capacity" value={team.arena_capacity.toLocaleString()} />}
-            <InfoItem label="Owner" value={team.owner ?? 'N/A'} />
-            <InfoItem label="General Manager" value={team.general_manager ?? 'N/A'} />
-            <InfoItem label="Head Coach" value={team.head_coach ?? 'N/A'} />
-          </Box>
-        </Paper>
+            {seasonOptions.map(seasonOption => (
+              <MenuItem key={seasonOption} value={seasonOption}>
+                {seasonOption}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </Box>
+
+      {/* Team Info Grid */}
+      <Paper
+        elevation={0}
+        sx={{
+          p: 3,
+          mb: 3,
+          backgroundColor: 'background.paper',
+          border: '1px solid',
+          borderColor: 'divider',
+          borderRadius: borderRadius.md,
+        }}
+      >
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' }, gap: 2 }}>
+          <InfoItem label="Founded" value={team?.year_founded?.toString() ?? 'N/A'} />
+          <InfoItem label="Arena" value={team?.arena ?? 'N/A'} />
+          {team?.arena_capacity && <InfoItem label="Capacity" value={team.arena_capacity.toLocaleString()} />}
+          <InfoItem label="Owner" value={team?.owner ?? 'N/A'} />
+          <InfoItem label="GM" value={team?.general_manager ?? 'N/A'} />
+          <InfoItem label="Coach" value={team?.head_coach ?? 'N/A'} />
+        </Box>
+      </Paper>
 
       {/* Roster Table */}
       {roster?.players?.length ? (
@@ -317,83 +277,74 @@ const TeamPage = () => {
             borderRadius: borderRadius.md,
           }}
         >
-          <Typography
-            variant="h6"
-            sx={{
-              fontWeight: typography.weight.bold,
-              mb: 3,
-              fontSize: typography.size.h6,
-            }}
-          >
-            {season} Team Roster
-          </Typography>
+          <SectionHeader title="Roster" />
           <Box sx={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
             <TableContainer sx={{ 
               overflowX: 'auto',
               minWidth: { xs: 600, sm: 'auto' },
             }}>
               <Table size="small" stickyHeader sx={{ minWidth: { xs: 600, sm: 'auto' } }}>
-              <TableHead>
-                <TableRow>
-                  <TableCell sx={{ fontWeight: typography.weight.bold }}>Player</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: typography.weight.bold }}>#</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: typography.weight.bold }}>Pos</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: typography.weight.bold }}>Height</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: typography.weight.bold }}>Weight</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: typography.weight.bold }}>Birthdate</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: typography.weight.bold }}>Age</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: typography.weight.bold }}>Exp</TableCell>
-                  <TableCell sx={{ fontWeight: typography.weight.bold }}>School</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {roster.players.map(player => (
-                  <TableRow
-                    key={player.player_id}
-                    onClick={() => navigate(`/player/${player.player_id}`)}
-                    sx={{
-                      transition: transitions.normal,
-                      cursor: 'pointer',
-                      '&:hover': {
-                        backgroundColor: 'action.hover',
-                      },
-                    }}
-                  >
-                    <TableCell>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                        <Avatar
-                          src={`https://cdn.nba.com/headshots/nba/latest/1040x760/${player.player_id}.png`}
-                          alt={player.name}
-                          sx={{ 
-                            width: 40, 
-                            height: 40,
-                            border: '1px solid',
-                            borderColor: 'divider',
-                          }}
-                          onError={(e) => {
-                            const target = e.currentTarget as HTMLImageElement;
-                            target.onerror = null;
-                            target.src = '';
-                          }}
-                        />
-                        <Typography sx={{ fontWeight: typography.weight.medium }}>{player.name}</Typography>
-                      </Box>
-                    </TableCell>
-                    <TableCell align="center">{player.jersey_number || '—'}</TableCell>
-                    <TableCell align="center">{player.position || '—'}</TableCell>
-                    <TableCell align="center">{player.height || '—'}</TableCell>
-                    <TableCell align="center">{player.weight ? `${player.weight} LBS` : '—'}</TableCell>
-                    <TableCell align="center">
-                      {player.birth_date ? format(new Date(player.birth_date), 'MMM d, yyyy') : '—'}
-                    </TableCell>
-                    <TableCell align="center">{player.age ? `${player.age} years` : '—'}</TableCell>
-                    <TableCell align="center">{player.experience || '—'}</TableCell>
-                    <TableCell>{player.school || '—'}</TableCell>
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: typography.weight.bold }}>Player</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: typography.weight.bold }}>#</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: typography.weight.bold }}>Pos</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: typography.weight.bold }}>Height</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: typography.weight.bold }}>Weight</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: typography.weight.bold }}>Birthdate</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: typography.weight.bold }}>Age</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: typography.weight.bold }}>Exp</TableCell>
+                    <TableCell sx={{ fontWeight: typography.weight.bold }}>School</TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                </TableHead>
+                <TableBody>
+                  {roster.players.map(player => (
+                    <TableRow
+                      key={player.player_id}
+                      onClick={() => navigate(`/player/${player.player_id}`)}
+                      sx={{
+                        transition: transitions.normal,
+                        cursor: 'pointer',
+                        '&:hover': {
+                          backgroundColor: 'action.hover',
+                        },
+                      }}
+                    >
+                      <TableCell>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                          <Avatar
+                            src={`https://cdn.nba.com/headshots/nba/latest/1040x760/${player.player_id}.png`}
+                            alt={player.name}
+                            sx={{ 
+                              width: 40, 
+                              height: 40,
+                              border: '1px solid',
+                              borderColor: 'divider',
+                            }}
+                            onError={(e) => {
+                              const target = e.currentTarget as HTMLImageElement;
+                              target.onerror = null;
+                              target.src = '';
+                            }}
+                          />
+                          <Typography sx={{ fontWeight: typography.weight.medium }}>{player.name}</Typography>
+                        </Box>
+                      </TableCell>
+                      <TableCell align="center">{player.jersey_number || '—'}</TableCell>
+                      <TableCell align="center">{player.position || '—'}</TableCell>
+                      <TableCell align="center">{player.height || '—'}</TableCell>
+                      <TableCell align="center">{player.weight ? `${player.weight} LBS` : '—'}</TableCell>
+                      <TableCell align="center">
+                        {player.birth_date ? format(new Date(player.birth_date), 'MMM d, yyyy') : '—'}
+                      </TableCell>
+                      <TableCell align="center">{player.age ? `${player.age} years` : '—'}</TableCell>
+                      <TableCell align="center">{player.experience || '—'}</TableCell>
+                      <TableCell>{player.school || '—'}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
           </Box>
         </Paper>
       ) : null}
@@ -448,7 +399,7 @@ const TeamPage = () => {
               >
                 {seasonOptions.map(seasonOption => (
                   <MenuItem key={seasonOption} value={seasonOption}>
-                    {seasonOption} Regular Season
+                    {seasonOption}
                   </MenuItem>
                 ))}
               </Select>
@@ -504,134 +455,134 @@ const TeamPage = () => {
           }}
         >
           <TableContainer sx={{ overflowX: 'auto' }}>
-          <Table size="small" stickyHeader>
-            <TableHead>
-              <TableRow>
-                <TableCell sx={{ fontWeight: typography.weight.bold }}>Date</TableCell>
-                <TableCell sx={{ fontWeight: typography.weight.bold }}>Opponent</TableCell>
-                <TableCell align="center" sx={{ fontWeight: typography.weight.bold }}>Result</TableCell>
-                <TableCell align="center" sx={{ fontWeight: typography.weight.bold }}>W-L</TableCell>
-                <TableCell align="center" sx={{ fontWeight: typography.weight.bold }}>Points</TableCell>
-                <TableCell align="center" sx={{ fontWeight: typography.weight.bold }}>Rebounds</TableCell>
-                <TableCell align="center" sx={{ fontWeight: typography.weight.bold }}>Assists</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {[...gameLog.games].reverse().map(game => {
-                const isHome = !game.matchup.includes('@');
-                const opponent = isHome
-                  ? game.matchup.split(/vs\.?/)[1]?.trim() || game.matchup
-                  : game.matchup.split('@')[1]?.trim() || game.matchup;
-                
-                // Format date, fallback to TBD if invalid
-                let gameDate = 'TBD';
-                if (game.game_date && game.game_date.trim() !== '') {
-                  try {
-                    const date = new Date(game.game_date + 'T00:00:00');
-                    if (!isNaN(date.getTime())) {
-                      gameDate = format(date, 'EEE, MMM d');
+            <Table size="small" stickyHeader>
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: typography.weight.semibold, py: 2.5, color: 'text.secondary', fontSize: typography.editorial.helper.xs }}>Date</TableCell>
+                  <TableCell sx={{ fontWeight: typography.weight.semibold, py: 2.5, color: 'text.secondary', fontSize: typography.editorial.helper.xs }}>Opponent</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: typography.weight.semibold, py: 2.5, color: 'text.secondary', fontSize: typography.editorial.helper.xs }}>Result</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: typography.weight.semibold, py: 2.5, color: 'text.secondary', fontSize: typography.editorial.helper.xs }}>Record</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: typography.weight.semibold, py: 2.5, color: 'text.secondary', fontSize: typography.editorial.helper.xs }}>PTS</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: typography.weight.semibold, py: 2.5, color: 'text.secondary', fontSize: typography.editorial.helper.xs }}>REB</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: typography.weight.semibold, py: 2.5, color: 'text.secondary', fontSize: typography.editorial.helper.xs }}>AST</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {[...gameLog.games].reverse().map(game => {
+                  const isHome = !game.matchup.includes('@');
+                  const opponent = isHome
+                    ? game.matchup.split(/vs\.?/)[1]?.trim() || game.matchup
+                    : game.matchup.split('@')[1]?.trim() || game.matchup;
+                  
+                  // Format date, fallback to TBD if invalid
+                  let gameDate = 'TBD';
+                  if (game.game_date && game.game_date.trim() !== '') {
+                    try {
+                      const date = new Date(game.game_date + 'T00:00:00');
+                      if (!isNaN(date.getTime())) {
+                        gameDate = format(date, 'EEE, MMM d');
+                      }
+                    } catch {
+                      gameDate = game.game_date || 'TBD';
                     }
-                  } catch {
-                    gameDate = game.game_date || 'TBD';
                   }
-                }
-                
-                const result = game.win_loss || '—';
-                
-                // Track running W-L record
-                if (result === 'W') wins++;
-                if (result === 'L') losses++;
-                const record = result !== '—' ? `${wins}-${losses}` : '—';
+                  
+                  const result = game.win_loss || '—';
+                  
+                  // Track running W-L record
+                  if (result === 'W') wins++;
+                  if (result === 'L') losses++;
+                  const record = result !== '—' ? `${wins}-${losses}` : '—';
 
-                // Show W/L with points if available
-                let resultDisplay = result;
-                if (result && result !== '—' && game.points > 0) {
-                  resultDisplay = `${result}${game.points}`;
-                }
+                  // Show W/L with points if available
+                  let resultDisplay = result;
+                  if (result && result !== '—' && game.points > 0) {
+                    resultDisplay = `${result}${game.points}`;
+                  }
 
-                return (
-                  <TableRow
-                    key={game.game_id}
-                    sx={{
-                      transition: transitions.normal,
-                      '&:hover': {
-                        backgroundColor: 'action.hover',
-                      },
-                    }}
-                  >
-                    <TableCell>{gameDate}</TableCell>
-                    <TableCell>
-                      <Box
-                        onClick={() => {
-                          const opponentTeamId = getOpponentTeamId(opponent);
-                          if (opponentTeamId) {
-                            navigate(`/team/${opponentTeamId}?tab=schedule`);
-                          }
-                        }}
-                        sx={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 1,
-                          cursor: getOpponentTeamId(opponent) ? 'pointer' : 'default',
-                          transition: transitions.normal,
-                          '&:hover': {
-                            opacity: getOpponentTeamId(opponent) ? 0.7 : 1,
-                          },
-                        }}
-                      >
-                        <Typography
-                          component="span"
-                          sx={{
-                            fontSize: typography.size.caption,
-                            color: 'text.secondary',
-                            mr: 0.5,
-                          }}
-                        >
-                          {isHome ? 'vs' : '@'}
-                        </Typography>
-                        <Avatar
-                          src={`/logos/${getOpponentAbbreviation(opponent)}.svg`}
-                          alt={opponent}
-                          sx={{
-                            width: 24,
-                            height: 24,
-                            backgroundColor: 'transparent',
-                          }}
-                          onError={e => {
-                            const target = e.currentTarget as HTMLImageElement;
-                            target.onerror = null;
-                            target.src = '/logos/default.svg';
-                          }}
-                        />
-                        <Typography variant="body2">{opponent}</Typography>
-                      </Box>
-                    </TableCell>
-                    <TableCell
-                      align="center"
+                  return (
+                    <TableRow
+                      key={game.game_id}
                       sx={{
-                        fontWeight: typography.weight.semibold,
-                        color:
-                          result === 'W' || (result && result[0] === 'W')
-                            ? 'success.main'
-                            : result === 'L' || (result && result[0] === 'L')
-                              ? 'error.main'
-                              : 'text.secondary',
+                        transition: transitions.normal,
+                        '&:hover': {
+                          backgroundColor: 'action.hover',
+                        },
                       }}
                     >
-                      {resultDisplay}
-                    </TableCell>
-                    <TableCell align="center" sx={{ color: 'text.secondary' }}>
-                      {record}
-                    </TableCell>
-                    <TableCell align="center">{game.points || '—'}</TableCell>
-                    <TableCell align="center">{game.rebounds || '—'}</TableCell>
-                    <TableCell align="center">{game.assists || '—'}</TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </TableContainer>
+                      <TableCell>{gameDate}</TableCell>
+                      <TableCell>
+                        <Box
+                          onClick={() => {
+                            const opponentTeamId = getOpponentTeamId(opponent);
+                            if (opponentTeamId) {
+                              navigate(`/team/${opponentTeamId}?tab=schedule`);
+                            }
+                          }}
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1,
+                            cursor: getOpponentTeamId(opponent) ? 'pointer' : 'default',
+                            transition: transitions.normal,
+                            '&:hover': {
+                              opacity: getOpponentTeamId(opponent) ? 0.7 : 1,
+                            },
+                          }}
+                        >
+                          <Typography
+                            component="span"
+                            sx={{
+                              fontSize: typography.size.caption,
+                              color: 'text.secondary',
+                              mr: 0.5,
+                            }}
+                          >
+                            {isHome ? 'vs' : '@'}
+                          </Typography>
+                          <Avatar
+                            src={`/logos/${getOpponentAbbreviation(opponent)}.svg`}
+                            alt={opponent}
+                            sx={{
+                              width: 24,
+                              height: 24,
+                              backgroundColor: 'transparent',
+                            }}
+                            onError={e => {
+                              const target = e.currentTarget as HTMLImageElement;
+                              target.onerror = null;
+                              target.src = '/logos/default.svg';
+                            }}
+                          />
+                          <Typography variant="body2">{opponent}</Typography>
+                        </Box>
+                      </TableCell>
+                      <TableCell
+                        align="center"
+                        sx={{
+                          fontWeight: typography.weight.semibold,
+                          color:
+                            result === 'W' || (result && result[0] === 'W')
+                              ? 'success.main'
+                              : result === 'L' || (result && result[0] === 'L')
+                                ? 'error.main'
+                                : 'text.secondary',
+                        }}
+                      >
+                        {resultDisplay}
+                      </TableCell>
+                      <TableCell align="center" sx={{ color: 'text.secondary' }}>
+                        {record}
+                      </TableCell>
+                      <TableCell align="center">{game.points || '—'}</TableCell>
+                      <TableCell align="center">{game.rebounds || '—'}</TableCell>
+                      <TableCell align="center">{game.assists || '—'}</TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </TableContainer>
         </Paper>
       </Box>
     );
@@ -640,18 +591,6 @@ const TeamPage = () => {
   const renderStatsTab = () => {
     return (
       <Box>
-        {/* Header with title */}
-        <Box sx={{ mb: 3 }}>
-          <Typography
-            variant="h5"
-            sx={{
-              fontWeight: typography.weight.bold,
-              fontSize: { xs: typography.size.h6, sm: typography.size.h5 },
-            }}
-          >
-            {team?.team_city} {team?.team_name} Stats {season}
-          </Typography>
-        </Box>
 
         {/* Season selector */}
         <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -665,7 +604,7 @@ const TeamPage = () => {
             >
               {seasonOptions.map(seasonOption => (
                 <MenuItem key={seasonOption} value={seasonOption}>
-                  {seasonOption} Regular Season
+                  {seasonOption}
                 </MenuItem>
               ))}
             </Select>
@@ -706,24 +645,15 @@ const TeamPage = () => {
           <Paper
             elevation={0}
             sx={{
-              p: 3, // Material 3: 24dp
-              mb: 3, // Material 3: 24dp
-              backgroundColor: 'background.paper', // Material 3: surface
+              p: 3,
+              mb: 3,
+              backgroundColor: 'background.paper',
               border: '1px solid',
-              borderColor: 'divider', // Material 3: outline
-              borderRadius: 1.5, // Material 3: 12dp
+              borderColor: 'divider',
+              borderRadius: borderRadius.md,
             }}
           >
-            <Typography
-              variant="h6"
-              sx={{
-                fontWeight: typography.weight.bold,
-                mb: 3,
-                fontSize: typography.size.h6,
-              }}
-            >
-              Team Leaders
-            </Typography>
+            <SectionHeader title="Team Leaders" />
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(5, 1fr)' }, gap: 2 }}>
               <LeaderCard
                 category="Points"
@@ -771,34 +701,25 @@ const TeamPage = () => {
               borderRadius: borderRadius.md,
             }}
           >
-            <Typography
-              variant="h6"
-              sx={{
-                fontWeight: typography.weight.bold,
-                mb: 3,
-                fontSize: typography.size.h6,
-              }}
-            >
-              Player Stats
-            </Typography>
+            <SectionHeader title="Player Stats" />
             <TableContainer sx={{ overflowX: 'auto' }}>
               <Table size="small" stickyHeader>
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: typography.weight.bold }}>Name</TableCell>
-                    <TableCell align="center" sx={{ fontWeight: typography.weight.bold }}>GP</TableCell>
-                    <TableCell align="center" sx={{ fontWeight: typography.weight.bold }}>GS</TableCell>
-                    <TableCell align="center" sx={{ fontWeight: typography.weight.bold }}>MIN</TableCell>
-                    <TableCell align="center" sx={{ fontWeight: typography.weight.bold }}>PTS</TableCell>
-                    <TableCell align="center" sx={{ fontWeight: typography.weight.bold }}>OR</TableCell>
-                    <TableCell align="center" sx={{ fontWeight: typography.weight.bold }}>DR</TableCell>
-                    <TableCell align="center" sx={{ fontWeight: typography.weight.bold }}>REB</TableCell>
-                    <TableCell align="center" sx={{ fontWeight: typography.weight.bold }}>AST</TableCell>
-                    <TableCell align="center" sx={{ fontWeight: typography.weight.bold }}>STL</TableCell>
-                    <TableCell align="center" sx={{ fontWeight: typography.weight.bold }}>BLK</TableCell>
-                    <TableCell align="center" sx={{ fontWeight: typography.weight.bold }}>TO</TableCell>
-                    <TableCell align="center" sx={{ fontWeight: typography.weight.bold }}>PF</TableCell>
-                    <TableCell align="center" sx={{ fontWeight: typography.weight.bold }}>AST/TO</TableCell>
+                    <TableCell sx={{ fontWeight: typography.weight.semibold, py: 2.5, color: 'text.secondary', fontSize: typography.editorial.helper.xs }}>Player</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: typography.weight.semibold, py: 2.5, color: 'text.secondary', fontSize: typography.editorial.helper.xs }}>GP</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: typography.weight.semibold, py: 2.5, color: 'text.secondary', fontSize: typography.editorial.helper.xs }}>GS</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: typography.weight.semibold, py: 2.5, color: 'text.secondary', fontSize: typography.editorial.helper.xs }}>MIN</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: typography.weight.semibold, py: 2.5, color: 'text.secondary', fontSize: typography.editorial.helper.xs }}>PTS</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: typography.weight.semibold, py: 2.5, color: 'text.secondary', fontSize: typography.editorial.helper.xs }}>OR</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: typography.weight.semibold, py: 2.5, color: 'text.secondary', fontSize: typography.editorial.helper.xs }}>DR</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: typography.weight.semibold, py: 2.5, color: 'text.secondary', fontSize: typography.editorial.helper.xs }}>REB</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: typography.weight.semibold, py: 2.5, color: 'text.secondary', fontSize: typography.editorial.helper.xs }}>AST</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: typography.weight.semibold, py: 2.5, color: 'text.secondary', fontSize: typography.editorial.helper.xs }}>STL</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: typography.weight.semibold, py: 2.5, color: 'text.secondary', fontSize: typography.editorial.helper.xs }}>BLK</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: typography.weight.semibold, py: 2.5, color: 'text.secondary', fontSize: typography.editorial.helper.xs }}>TO</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: typography.weight.semibold, py: 2.5, color: 'text.secondary', fontSize: typography.editorial.helper.xs }}>PF</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: typography.weight.semibold, py: 2.5, color: 'text.secondary', fontSize: typography.editorial.helper.xs }}>AST/TO</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -864,21 +785,21 @@ const TeamPage = () => {
                           </Box>
                         </Box>
                       </TableCell>
-                      <TableCell align="center">{player.games_played}</TableCell>
-                      <TableCell align="center">{player.games_started}</TableCell>
-                      <TableCell align="center">{player.minutes.toFixed(1)}</TableCell>
-                      <TableCell align="center" sx={{ fontWeight: typography.weight.semibold }}>
+                      <TableCell align="center" sx={{ py: 2.5, color: 'text.secondary', fontSize: typography.editorial.helper.xs }}>{player.games_played}</TableCell>
+                      <TableCell align="center" sx={{ py: 2.5, color: 'text.secondary', fontSize: typography.editorial.helper.xs }}>{player.games_started}</TableCell>
+                      <TableCell align="center" sx={{ py: 2.5, color: 'text.secondary', fontSize: typography.editorial.helper.xs }}>{player.minutes.toFixed(1)}</TableCell>
+                      <TableCell align="center" sx={{ py: 2.5, fontWeight: typography.weight.semibold, color: 'text.primary', fontSize: typography.editorial.helper.xs }}>
                         {player.points.toFixed(1)}
                       </TableCell>
-                      <TableCell align="center">{player.offensive_rebounds.toFixed(1)}</TableCell>
-                      <TableCell align="center">{player.defensive_rebounds.toFixed(1)}</TableCell>
-                      <TableCell align="center">{player.rebounds.toFixed(1)}</TableCell>
-                      <TableCell align="center">{player.assists.toFixed(1)}</TableCell>
-                      <TableCell align="center">{player.steals.toFixed(1)}</TableCell>
-                      <TableCell align="center">{player.blocks.toFixed(1)}</TableCell>
-                      <TableCell align="center">{player.turnovers.toFixed(1)}</TableCell>
-                      <TableCell align="center">{player.personal_fouls.toFixed(1)}</TableCell>
-                      <TableCell align="center">
+                      <TableCell align="center" sx={{ py: 2.5, color: 'text.secondary', fontSize: typography.editorial.helper.xs }}>{player.offensive_rebounds.toFixed(1)}</TableCell>
+                      <TableCell align="center" sx={{ py: 2.5, color: 'text.secondary', fontSize: typography.editorial.helper.xs }}>{player.defensive_rebounds.toFixed(1)}</TableCell>
+                      <TableCell align="center" sx={{ py: 2.5, color: 'text.secondary', fontSize: typography.editorial.helper.xs }}>{player.rebounds.toFixed(1)}</TableCell>
+                      <TableCell align="center" sx={{ py: 2.5, color: 'text.secondary', fontSize: typography.editorial.helper.xs }}>{player.assists.toFixed(1)}</TableCell>
+                      <TableCell align="center" sx={{ py: 2.5, color: 'text.secondary', fontSize: typography.editorial.helper.xs }}>{player.steals.toFixed(1)}</TableCell>
+                      <TableCell align="center" sx={{ py: 2.5, color: 'text.secondary', fontSize: typography.editorial.helper.xs }}>{player.blocks.toFixed(1)}</TableCell>
+                      <TableCell align="center" sx={{ py: 2.5, color: 'text.secondary', fontSize: typography.editorial.helper.xs }}>{player.turnovers.toFixed(1)}</TableCell>
+                      <TableCell align="center" sx={{ py: 2.5, color: 'text.secondary', fontSize: typography.editorial.helper.xs }}>{player.personal_fouls.toFixed(1)}</TableCell>
+                      <TableCell align="center" sx={{ py: 2.5, color: 'text.secondary', fontSize: typography.editorial.helper.xs }}>
                         {player.assist_to_turnover !== null && player.assist_to_turnover !== undefined
                           ? player.assist_to_turnover.toFixed(1)
                           : '—'}
@@ -903,11 +824,11 @@ const TeamPage = () => {
               textAlign: 'center',
             }}
           >
-            <Typography variant="body1" color="text.secondary" sx={{ mb: 1 }}>
-              Player statistics are not available for the {season} season.
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 1, fontSize: typography.editorial.helper.xs }}>
+              Player statistics are not available for {season}.
             </Typography>
-            <Typography variant="body2" color="text.secondary">
-              The season may not have started yet or data may not be available in the NBA API.
+            <Typography variant="body2" color="text.secondary" sx={{ fontSize: typography.editorial.helper.xs }}>
+              The season may not have started yet or data may not be available.
             </Typography>
           </Paper>
         )}
@@ -915,11 +836,43 @@ const TeamPage = () => {
     );
   };
 
+  // Always render page structure to prevent layout shifts
   return (
-    <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default', display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ 
+      minHeight: '100vh', 
+      backgroundColor: 'background.default', 
+      display: 'flex', 
+      flexDirection: 'column',
+      maxWidth: '100vw',
+      overflowX: 'hidden',
+      width: '100%',
+    }}>
       <Navbar />
-      <Box sx={{ maxWidth: '1400px', mx: 'auto', px: { xs: 2, sm: 3, md: 4 }, py: { xs: 2, sm: 3 } }}>
-        {team && (
+      <Box sx={{ 
+        maxWidth: '1400px', 
+        mx: 'auto', 
+        px: { xs: 1, sm: 2, md: 3, lg: 4 }, 
+        py: { xs: 2, sm: 3 },
+        width: '100%',
+        overflowX: 'hidden',
+      }}>
+        {loading ? (
+          <Box sx={{ minHeight: 400, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Skeleton variant="rectangular" height={200} sx={{ borderRadius: 2, mb: 2 }} />
+            <Skeleton variant="rectangular" height={100} sx={{ borderRadius: 2 }} />
+            <Skeleton variant="rectangular" height={300} sx={{ borderRadius: 2 }} />
+          </Box>
+        ) : error ? (
+          <Alert severity="error" sx={{ minHeight: 100 }}>{error}</Alert>
+        ) : !team ? (
+          <Box sx={{ minHeight: 400, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Typography variant="body1" color="text.secondary" textAlign="center">
+              Team not found.
+            </Typography>
+          </Box>
+        ) : (
+          <>
+            {team && (
           <TeamBanner
             teamId={team.team_id}
             teamCity={team.team_city}
@@ -962,9 +915,11 @@ const TeamPage = () => {
         </Paper>
 
         {/* Tab Content */}
-        {activeTab === 'profile' && renderProfileTab()}
-        {activeTab === 'schedule' && renderScheduleTab()}
-        {activeTab === 'stats' && renderStatsTab()}
+            {activeTab === 'profile' && renderProfileTab()}
+            {activeTab === 'schedule' && renderScheduleTab()}
+            {activeTab === 'stats' && renderStatsTab()}
+          </>
+        )}
       </Box>
     </Box>
   );
@@ -1076,11 +1031,5 @@ const LeaderCard = ({
   </Box>
   );
 };
-
-
-const getOpponentAbbreviation = (opponent: string): string => {
-  return getTeamAbbreviation(opponent);
-};
-
 
 export default TeamPage;

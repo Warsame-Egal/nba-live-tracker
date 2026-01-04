@@ -10,7 +10,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  CircularProgress,
+  Skeleton,
   Alert,
 } from '@mui/material';
 import { PlayerSummary } from '../types/player';
@@ -79,54 +79,47 @@ const PlayerProfile: React.FC = () => {
     fetchGameLog();
   }, [playerId, season]);
 
-  // Show loading spinner while fetching data
-  if (loading) {
-    return (
-      <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default', display: 'flex', flexDirection: 'column' }}>
-        <Navbar />
-        <Box sx={{ maxWidth: '1400px', mx: 'auto', px: { xs: 2, sm: 3, md: 4 }, py: { xs: 2, sm: 3 } }}>
-          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
-            <CircularProgress />
-          </Box>
-        </Box>
-      </Box>
-    );
-  }
-
-  // Show error message if something went wrong
-  if (error) {
-    return (
-      <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default', display: 'flex', flexDirection: 'column' }}>
-        <Navbar />
-        <Box sx={{ maxWidth: '1400px', mx: 'auto', px: { xs: 2, sm: 3, md: 4 }, py: { xs: 2, sm: 3 } }}>
-          <Alert severity="error">{error}</Alert>
-        </Box>
-      </Box>
-    );
-  }
-
-  // Show message if player not found
-  if (!player) {
-    return (
-      <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default', display: 'flex', flexDirection: 'column' }}>
-        <Navbar />
-        <Box sx={{ maxWidth: '1400px', mx: 'auto', px: { xs: 2, sm: 3, md: 4 }, py: { xs: 2, sm: 3 } }}>
-          <Typography variant="body1" color="text.secondary" textAlign="center">
-            Player not found.
-          </Typography>
-        </Box>
-      </Box>
-    );
-  }
+  // Always render page structure to prevent layout shifts
 
   const experience =
-    player.FROM_YEAR && player.TO_YEAR ? `${player.TO_YEAR - player.FROM_YEAR} Years` : 'N/A';
+    player?.FROM_YEAR && player?.TO_YEAR ? `${player.TO_YEAR - player.FROM_YEAR} Years` : 'N/A';
 
   return (
-    <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default', display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ 
+      minHeight: '100vh', 
+      backgroundColor: 'background.default', 
+      display: 'flex', 
+      flexDirection: 'column',
+      maxWidth: '100vw',
+      overflowX: 'hidden',
+      width: '100%',
+    }}>
       <Navbar />
-      <Box sx={{ maxWidth: '1400px', mx: 'auto', px: { xs: 2, sm: 3, md: 4 }, py: { xs: 2, sm: 3 } }}>
-        <PlayerBanner
+      <Box sx={{ 
+        maxWidth: '1400px', 
+        mx: 'auto', 
+        px: { xs: 1, sm: 2, md: 3, lg: 4 }, 
+        py: { xs: 2, sm: 3 },
+        width: '100%',
+        overflowX: 'hidden',
+      }}>
+        {loading ? (
+          <Box sx={{ minHeight: 400, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Skeleton variant="rectangular" height={200} sx={{ borderRadius: 2, mb: 2 }} />
+            <Skeleton variant="rectangular" height={100} sx={{ borderRadius: 2 }} />
+            <Skeleton variant="rectangular" height={300} sx={{ borderRadius: 2 }} />
+          </Box>
+        ) : error ? (
+          <Alert severity="error" sx={{ minHeight: 100 }}>{error}</Alert>
+        ) : !player ? (
+          <Box sx={{ minHeight: 400, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Typography variant="body1" color="text.secondary" textAlign="center">
+              Player not found.
+            </Typography>
+          </Box>
+        ) : (
+          <>
+            <PlayerBanner
           playerId={player.PERSON_ID}
           firstName={player.PLAYER_FIRST_NAME}
           lastName={player.PLAYER_LAST_NAME}
@@ -178,14 +171,23 @@ const PlayerProfile: React.FC = () => {
               >
                 Game Log
               </Typography>
-              <Box sx={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+              <Box sx={{ 
+                overflowX: 'auto', 
+                WebkitOverflowScrolling: 'touch',
+                width: '100%',
+                maxWidth: '100%',
+              }}>
                 <TableContainer
                   sx={{
                     overflowX: 'auto',
-                    minWidth: { xs: 600, sm: 'auto' },
+                    width: '100%',
+                    maxWidth: '100%',
                   }}
                 >
-                  <Table size="small" sx={{ minWidth: { xs: 600, sm: 'auto' } }}>
+                  <Table size="small" sx={{ 
+                    width: '100%',
+                    tableLayout: { xs: 'fixed', sm: 'auto' },
+                  }}>
                   <TableHead>
                     <TableRow>
                       <TableCell sx={{ fontWeight: typography.weight.bold }}>Date</TableCell>
@@ -296,6 +298,8 @@ const PlayerProfile: React.FC = () => {
               </Box>
             </Paper>
           </Box>
+        )}
+          </>
         )}
       </Box>
     </Box>

@@ -3,6 +3,7 @@ import logging
 import math
 import json
 import time
+import re
 from typing import Optional, Dict, Tuple, List, Any
 
 from fastapi import HTTPException
@@ -16,6 +17,99 @@ from app.services.groq_client import GROQ_AVAILABLE, call_groq_api, get_groq_rat
 from app.services.groq_prompts import get_system_message, build_insight_prompt, build_batched_prediction_insights_prompt, build_enhanced_prediction_prompt
 
 logger = logging.getLogger(__name__)
+
+
+def fix_unterminated_strings(json_str: str) -> str:
+    """
+    Fix unterminated strings in JSON by finding and closing incomplete strings.
+    
+    Args:
+        json_str: JSON string that may contain unterminated strings
+        
+    Returns:
+        Fixed JSON string with all strings properly terminated
+    """
+    # First, try to parse - if it works, return as-is
+    try:
+        json.loads(json_str)
+        return json_str
+    except json.JSONDecodeError:
+        pass  # Continue to fix it
+    
+    # Track string state to find unterminated strings
+    in_string = False
+    escape_next = False
+    string_start = -1
+    result = []
+    i = 0
+    
+    while i < len(json_str):
+        char = json_str[i]
+        
+        if escape_next:
+            result.append(char)
+            escape_next = False
+            i += 1
+            continue
+        
+        if char == '\\':
+            result.append(char)
+            escape_next = True
+            i += 1
+            continue
+        
+        if char == '"':
+            if not in_string:
+                # Starting a new string
+                in_string = True
+                string_start = i
+                result.append(char)
+            else:
+                # Ending a string
+                in_string = False
+                string_start = -1
+                result.append(char)
+            i += 1
+            continue
+        
+        if in_string:
+            # Inside a string, just copy characters
+            result.append(char)
+            i += 1
+            continue
+        
+        # Outside string, copy normally
+        result.append(char)
+        i += 1
+    
+    # If we ended inside a string, we need to close it
+    if in_string and string_start >= 0:
+        # Close the unterminated string
+        result.append('"')
+        # Try to close any incomplete structures after the string
+        # Look for incomplete object/array structures
+        remaining = json_str[i:] if i < len(json_str) else ""
+        # Remove any trailing incomplete content after the string
+        # and try to close the JSON structure properly
+        fixed = ''.join(result)
+        
+        # Try to find where we should end - look for the last complete structure
+        # Count braces to see if we need to close anything
+        open_braces = fixed.count('{') - fixed.count('}')
+        open_brackets = fixed.count('[') - fixed.count(']')
+        
+        # Remove any trailing comma before closing
+        fixed = fixed.rstrip().rstrip(',')
+        
+        # Close brackets first, then braces
+        if open_brackets > 0:
+            fixed += ']' * open_brackets
+        if open_braces > 0:
+            fixed += '}' * open_braces
+        
+        return fixed
+    
+    return ''.join(result)
 
 # Cache for predictions: key = "{date}_{season}", value = PredictionsResponse
 # Predictions are cached permanently (until server restart) to avoid duplicate Groq calls.
@@ -421,6 +515,9 @@ async def generate_batched_prediction_insights(
         elif "```" in content:
             content = content.split("```")[1].split("```")[0].strip()
         
+        # Fix unterminated strings before parsing
+        content = fix_unterminated_strings(content)
+        
         # Robust JSON parsing - handle truncated responses from Groq
         insights_data = None
         try:
@@ -573,20 +670,46 @@ async def generate_enhanced_ai_analysis(predictions_data: List[Dict[str, Any]]) 
         return {}
     
     try:
+        # Get Groq API key
+        groq_api_key = get_groq_api_key()
+        if not groq_api_key:
+            logger.debug("Groq API key not configured for enhanced prediction analysis")
+            return {}
+        
         # Build enhanced prompt
         prompt = build_enhanced_prediction_prompt(predictions_data)
         system_message = get_system_message()
         
-        # Get rate limiter
-        rate_limiter = get_groq_rate_limiter()
+        # Call Groq API with timeout
+        try:
+            response = await asyncio.wait_for(
+                call_groq_api(
+                    api_key=groq_api_key,
+                    system_message=system_message,
+                    user_prompt=prompt,
+                    rate_limiter=get_groq_rate_limiter()
+                ),
+                timeout=30.0  # 30 second timeout for enhanced analysis
+            )
+        except asyncio.TimeoutError:
+            logger.warning("Enhanced prediction analysis generation timeout")
+            return {}
         
-        # Call Groq API
-        logger.info(f"Calling Groq API for enhanced prediction analysis ({len(predictions_data)} games)")
-        response_text = await call_groq_api(prompt, system_message, rate_limiter)
+        # Extract content from response
+        response_text = response.get('content', '') if isinstance(response, dict) else ''
         
         if not response_text:
             logger.warning("Empty response from Groq for enhanced prediction analysis")
             return {}
+        
+        # Try to extract JSON from response (handle markdown code blocks)
+        if "```json" in response_text:
+            response_text = response_text.split("```json")[1].split("```")[0].strip()
+        elif "```" in response_text:
+            response_text = response_text.split("```")[1].split("```")[0].strip()
+        
+        # Fix unterminated strings before parsing
+        response_text = fix_unterminated_strings(response_text)
         
         # Parse JSON response
         try:

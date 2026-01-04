@@ -9,8 +9,10 @@ import {
   Snackbar,
   Alert,
   Button,
+  IconButton,
+  Badge,
 } from '@mui/material';
-import { Event, Notifications, CalendarToday, FilterList, Refresh, Schedule, FiberManualRecord } from '@mui/icons-material';
+import { Event, Notifications, CalendarToday, FilterList, Refresh, Schedule, FiberManualRecord, Insights } from '@mui/icons-material';
 import { ScoreboardResponse, Game, KeyMoment, WinProbability } from '../types/scoreboard';
 import { GamesResponse, GameSummary, GameLeaders } from '../types/schedule';
 import { PredictionsResponse, GamePrediction } from '../types/predictions';
@@ -21,7 +23,7 @@ import Navbar from '../components/Navbar';
 import WeeklyCalendar from '../components/WeeklyCalendar';
 import GameDetailsDrawer from '../components/GameDetailsDrawer';
 import WinProbabilityTracker from '../components/WinProbabilityTracker';
-import PredictionsSummary from '../components/PredictionsSummary';
+import PredictionsSidebar from '../components/PredictionsSidebar';
 import { useSearchParams } from 'react-router-dom';
 import { SearchResults } from '../types/search';
 import debounce from 'lodash/debounce';
@@ -71,6 +73,8 @@ const Scoreboard = () => {
   });
   // Whether we're loading data
   const [loading, setLoading] = useState(false);
+  // Separate loading state for search to prevent page reflow
+  const [searchLoading, setSearchLoading] = useState(false);
   // The game the user clicked on (to show details modal and top sections)
   const [selectedGame, setSelectedGame] = useState<Game | GameSummary | null>(null);
   // The tab to show in the drawer (box score or play-by-play)
@@ -91,6 +95,8 @@ const Scoreboard = () => {
   const [recentlyUpdatedGames, setRecentlyUpdatedGames] = useState<Set<string>>(new Set());
   // Toast notification state
   const [toast, setToast] = useState<{ message: string; severity: 'info' | 'success' | 'warning' | 'error' } | null>(null);
+  // Predictions sidebar open/close state
+  const [predictionsSidebarOpen, setPredictionsSidebarOpen] = useState(false);
 
   // Reference to the search container (to detect clicks outside)
   const searchContainerRef = useRef<HTMLDivElement>(null);
@@ -120,9 +126,9 @@ const Scoreboard = () => {
   // State for win probability - stores current win probability for each live game
   // Win probability shows the likelihood of each team winning at any given moment
   const [gameWinProbabilities, setGameWinProbabilities] = useState<Map<string, WinProbability>>(new Map());
-  // State for predictions - stores predictions for upcoming games on the selected date
-  // Store all fetched predictions (before filtering by game status)
-  const [allPredictions, setAllPredictions] = useState<GamePrediction[]>([]);
+  // State for predictions - persistent cache keyed by game_id
+  // Predictions persist across all fetch cycles, refetches, and errors
+  const [predictionCache, setPredictionCache] = useState<Map<string, GamePrediction>>(new Map());
   const [predictionsLoading, setPredictionsLoading] = useState(false);
   const [predictionsError, setPredictionsError] = useState<string | null>(null);
 
@@ -458,6 +464,7 @@ const Scoreboard = () => {
   /**
    * Search for players and teams as the user types.
    * Uses debouncing to avoid making too many API calls.
+   * Uses separate searchLoading state to prevent page layout reflow.
    */
   useEffect(() => {
     const abortController = new AbortController();
@@ -469,7 +476,7 @@ const Scoreboard = () => {
         setShowSearchResults(false);
         return;
       }
-      setLoading(true);
+      setSearchLoading(true);
       setShowSearchResults(true);
       try {
         const data = await fetchJson<SearchResults>(
@@ -485,7 +492,7 @@ const Scoreboard = () => {
         }
         setSearchResults({ players: [], teams: [] });
       } finally {
-        setLoading(false);
+        setSearchLoading(false);
       }
     }, 300);
     debouncedFetch();
@@ -538,8 +545,31 @@ const Scoreboard = () => {
   }, [selectedDate]);
 
   /**
+   * Update prediction cache with new predictions.
+   * Only adds/updates predictions when valid new data arrives.
+   * Never clears existing predictions - preserves cache across fetch cycles.
+   */
+  const updatePredictionCache = useCallback((newPredictions: GamePrediction[], date: string) => {
+    setPredictionCache(prev => {
+      const updated = new Map(prev);
+      // Only update if we have valid new predictions
+      if (newPredictions && newPredictions.length > 0) {
+        newPredictions.forEach(prediction => {
+          // Only update if prediction is for current date
+          if (prediction.game_date === date) {
+            updated.set(prediction.game_id, prediction);
+          }
+        });
+      }
+      // Never clear - keep existing predictions
+      return updated;
+    });
+  }, []);
+
+  /**
    * Fetch predictions for the selected date (only for today/future dates with upcoming games).
    * Only fetch when date changes, not when games change.
+   * Predictions are persisted in cache and never cleared on error or empty responses.
    */
   useEffect(() => {
     const today = getLocalISODate();
@@ -547,7 +577,8 @@ const Scoreboard = () => {
     
     // Only fetch predictions for today or future dates
     if (!isFutureDate) {
-      setAllPredictions([]);
+      // Only clear for past dates where predictions don't apply
+      setPredictionCache(new Map());
       setPredictionsError(null);
       predictionsInitializedRef.current = false;
       previousFilteredPredictionIdsRef.current = '';
@@ -566,79 +597,41 @@ const Scoreboard = () => {
           { maxRetries: 2, retryDelay: 500, timeout: 120000 }
         );
         
-        // Store all predictions and immediately filter them
-        setAllPredictions(data.predictions);
-        predictionsInitializedRef.current = true;
-        
-        // Immediately filter predictions based on current games (if any)
-        // This ensures predictions show up right away even if games haven't loaded yet
-        if (data.predictions.length > 0) {
-          const upcomingPredictions = data.predictions.filter(prediction => {
-            if (games.length === 0) {
-              return true; // No games loaded yet, show all predictions
-            }
-            
-            const matchingGame = games.find(game => {
-              const gameId = 'gameId' in game ? game.gameId : game.game_id;
-              if (gameId === prediction.game_id) {
-                return true;
-              }
-              const homeId = 'homeTeam' in game ? game.homeTeam?.teamId : game.home_team?.team_id;
-              const awayId = 'awayTeam' in game ? game.awayTeam?.teamId : game.away_team?.team_id;
-              return (
-                (homeId === prediction.home_team_id && awayId === prediction.away_team_id) ||
-                (homeId === prediction.away_team_id && awayId === prediction.home_team_id)
-              );
-            });
-            
-            if (!matchingGame) {
-              return true;
-            }
-            
-            return getGameStatus(matchingGame) === 'upcoming';
-          });
-          
-          // Initialize the refs with the initial filtered predictions and IDs
-          lastFilteredPredictionsRef.current = upcomingPredictions;
-          previousFilteredPredictionIdsRef.current = upcomingPredictions.map(p => p.game_id).sort().join(',');
-        } else {
-          // No predictions, clear the refs
-          lastFilteredPredictionsRef.current = [];
-          previousFilteredPredictionIdsRef.current = '';
+        // Update cache with new predictions (preserves existing ones)
+        if (data && data.predictions) {
+          updatePredictionCache(data.predictions, selectedDate);
+          predictionsInitializedRef.current = true;
         }
       } catch (err) {
         logger.error('Error fetching predictions', err);
         setPredictionsError(err instanceof Error ? err.message : 'Failed to load predictions');
-        setAllPredictions([]);
-        lastFilteredPredictionsRef.current = [];
-        previousFilteredPredictionIdsRef.current = '';
-        predictionsInitializedRef.current = false;
+        // DO NOT clear cache - keep existing predictions visible
+        // Cache persists across errors
       } finally {
         setPredictionsLoading(false);
       }
     };
 
     fetchPredictions();
-  }, [selectedDate, games]);
+  }, [selectedDate, updatePredictionCache]);
   
   /**
    * Filter predictions based on current games (without re-fetching).
-   * Uses memoization and game status tracking to prevent unnecessary re-renders from WebSocket updates.
-   * Only re-filters when game statuses actually change, not on every score update.
+   * Always reads from persistent prediction cache, never from fetch state.
+   * Predictions persist across loading states, errors, and refetches.
    */
   const filteredPredictions = useMemo(() => {
-    // Don't filter if we don't have predictions yet, still loading, or not initialized
-    if (allPredictions.length === 0 || predictionsLoading || !predictionsInitializedRef.current) {
-      // Return last filtered predictions from ref to maintain stability
-      // If ref is empty, return empty array (stable reference) to prevent flashing
-      return lastFilteredPredictionsRef.current.length > 0 
-        ? lastFilteredPredictionsRef.current 
-        : [];
+    // Always read from persistent cache, never from fetch state
+    const cachedPredictions = Array.from(predictionCache.values());
+    
+    // If cache is empty, return empty array (stable reference)
+    if (cachedPredictions.length === 0) {
+      return [];
     }
     
     // Build a map of current game statuses (only for games that match predictions)
     const currentGameStatuses = new Map<string, string>();
-    const relevantGameIds = new Set(allPredictions.map(p => p.game_id));
+    const relevantGameIds = new Set(cachedPredictions.map(p => p.game_id));
     
     games.forEach(game => {
       const gameId = 'gameId' in game ? game.gameId : game.game_id;
@@ -672,7 +665,7 @@ const Scoreboard = () => {
     
     // Filter to only show predictions for upcoming games
     // Show predictions if game doesn't exist yet OR if game exists and is upcoming
-    const upcomingPredictions = allPredictions.filter(prediction => {
+    const upcomingPredictions = cachedPredictions.filter(prediction => {
       // If no games loaded yet, show all predictions (they're for future games)
       if (games.length === 0) {
         return true;
@@ -709,14 +702,13 @@ const Scoreboard = () => {
     const previousIds = previousFilteredPredictionIdsRef.current;
     
     // Only update if the filtered list actually changed (avoid unnecessary re-renders)
-    // Defensive check: preserve existing predictions if filtering returns empty during rapid updates
+    // Preserve existing predictions if filtering returns empty during rapid updates
     if (newIds !== previousIds) {
-      // If filtering returns empty but we have allPredictions, preserve current predictions
+      // If filtering returns empty but we have cached predictions, preserve current predictions
       // This prevents clearing during rapid game state transitions
-      if (upcomingPredictions.length === 0 && allPredictions.length > 0 && previousIds !== '') {
+      if (upcomingPredictions.length === 0 && cachedPredictions.length > 0 && previousIds !== '') {
         // During rapid updates, games might temporarily be in a state where they appear live
-        // but predictions should still be shown. Only clear if we're certain there are no upcoming games.
-        // For now, preserve existing predictions to prevent flickering.
+        // but predictions should still be shown. Preserve existing predictions to prevent flickering.
         const preserved = lastFilteredPredictionsRef.current.length > 0 
           ? lastFilteredPredictionsRef.current 
           : upcomingPredictions;
@@ -734,7 +726,7 @@ const Scoreboard = () => {
     return lastFilteredPredictionsRef.current.length > 0 
       ? lastFilteredPredictionsRef.current 
       : upcomingPredictions;
-  }, [allPredictions, games, predictionsLoading]);
+  }, [predictionCache, games]); // Removed predictionsLoading dependency - cache persists across loading
 
   // Note: We no longer update predictions state here since we use filteredPredictions directly
   // This prevents unnecessary re-renders and flashing
@@ -838,21 +830,30 @@ const Scoreboard = () => {
     icon?: React.ReactNode,
     isFirst?: boolean,
   ) => {
-    if (gameList.length === 0) return null;
-
+    // Always render container, never unmount
     return (
-      <Box sx={{ mb: { xs: 3, sm: 4, md: 5 }, mt: isFirst ? 0 : undefined }}>
-        <Box 
-          sx={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: { xs: 1.5, sm: 2 },
-            mb: { xs: 2, sm: 2.5 },
-            pb: 1,
-            borderBottom: '1px solid',
-            borderColor: 'divider',
-          }}
-        >
+      <Box sx={{ 
+        mb: { xs: 1.5, sm: 2, md: 2.5 }, 
+        mt: isFirst ? 0 : undefined,
+        minHeight: gameList.length === 0 ? 0 : undefined,
+        visibility: gameList.length === 0 ? 'hidden' : 'visible',
+        height: gameList.length === 0 ? 0 : 'auto',
+        overflow: 'hidden',
+      }}>
+        {gameList.length > 0 && (
+          <>
+            <Box 
+              sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: { xs: 1.5, sm: 2 },
+                mb: { xs: 1, sm: 1.5 },
+                pb: 1,
+                borderBottom: '1px solid',
+                borderColor: 'divider',
+                minHeight: 56,
+              }}
+            >
           {icon && (
             <Box sx={{ color: 'primary.main', display: 'flex', alignItems: 'center' }}>
               {icon}
@@ -870,14 +871,15 @@ const Scoreboard = () => {
           >
             {title}
           </Typography>
-        </Box>
-        <Box
-          sx={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: { xs: 2, sm: 2.5, md: 3 }, // Responsive spacing between games
-          }}
-        >
+            </Box>
+            <Box
+              sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: { xs: 2, sm: 2.5, md: 3 },
+                minHeight: { xs: 200, sm: 300 },
+              }}
+            >
           {gameList.map(game => {
             const gameId = 'gameId' in game ? game.gameId : game.game_id;
             const isRecentlyUpdated = recentlyUpdatedGames.has(gameId);
@@ -932,125 +934,145 @@ const Scoreboard = () => {
               />
             );
           })}
-        </Box>
+            </Box>
+          </>
+        )}
       </Box>
     );
   };
 
   // Prepare search props for Navbar
+  // Use searchLoading instead of loading to prevent page reflow
   const searchProps = {
     searchInput,
     setSearchInput,
     searchResults,
     showSearchResults,
     setShowSearchResults,
-    loading,
+    loading: searchLoading,
     searchContainerRef,
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default', display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ 
+      minHeight: '100vh', 
+      backgroundColor: 'background.default', 
+      display: 'flex', 
+      flexDirection: 'column',
+      maxWidth: '100vw',
+      overflowX: 'hidden',
+      width: '100%',
+    }}>
       <Navbar searchProps={searchProps} />
-      <Box sx={{ maxWidth: '1400px', mx: 'auto', px: { xs: 2, sm: 3, md: 4 }, py: { xs: 2, sm: 3 } }}>
-        {/* Scoreboard Page Header: Title and Calendar */}
+      <Box sx={{ 
+        maxWidth: '1400px', 
+        mx: 'auto', 
+        px: { xs: 1, sm: 2, md: 3, lg: 4 }, 
+        pt: { xs: 0.5, sm: 0.75 },
+        pb: { xs: 2, sm: 3 },
+        width: '100%',
+        overflowX: 'hidden',
+      }}>
+        {/* Scoreboard Page Header: Calendar and Predictions */}
         <Box
           sx={{
             display: 'flex',
             flexDirection: { xs: 'column', sm: 'row' },
             alignItems: { xs: 'stretch', sm: 'center' },
             justifyContent: 'space-between',
-            gap: { xs: 2, sm: 3 },
-            mb: { xs: 3, sm: 4, md: 5 },
+            gap: { xs: 1.5, sm: 2 },
+            mb: { xs: 0.25, sm: 0.5 },
+            minHeight: { xs: 48, sm: 56 },
+            flexShrink: 0,
           }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexShrink: 0 }}>
-            <Typography
-              variant="h4"
-              sx={{
-                fontWeight: typography.weight.bold,
-                fontSize: { xs: typography.size.h5, sm: typography.size.h4 },
-                color: 'text.primary',
-                letterSpacing: '-0.02em',
-              }}
-            >
-              NBA Scoreboard
-            </Typography>
-          </Box>
-          <Box sx={{ flexShrink: 0 }}>
-            <WeeklyCalendar selectedDate={selectedDate} setSelectedDate={setSelectedDate} />
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1.5, sm: 2 }, flexShrink: 0, flexWrap: 'wrap' }}>
+            <Box sx={{ flexShrink: 0 }}>
+              <WeeklyCalendar selectedDate={selectedDate} setSelectedDate={setSelectedDate} />
+            </Box>
+            {/* Predictions Toggle Button */}
+            {selectedDate >= getLocalISODate() && (
+              <IconButton
+                onClick={() => setPredictionsSidebarOpen(true)}
+                sx={{
+                  minWidth: 44,
+                  minHeight: 44,
+                  color: 'text.primary',
+                  '&:hover': {
+                    backgroundColor: 'action.hover',
+                  },
+                  transition: transitions.smooth,
+                }}
+                aria-label="Open predictions and insights"
+              >
+                <Badge badgeContent={filteredPredictions.length} color="primary" max={99}>
+                  <Insights />
+                </Badge>
+              </IconButton>
+            )}
           </Box>
         </Box>
 
-        {/* Predictions & Insights Section - Always render when date condition is met */}
-        {selectedDate >= getLocalISODate() && (
-          <Box 
-            sx={{ 
-              mb: 0,
-              minHeight: predictionsLoading ? 180 : undefined,
-              transition: 'min-height 0.3s ease',
-            }}
-          >
-            <PredictionsSummary
-              predictions={filteredPredictions}
-              loading={predictionsLoading}
-              error={predictionsError}
-            />
-          </Box>
-        )}
 
-        {/* Win Probability Insights - Always reserve space to prevent layout shifts */}
-        <Box 
-          sx={{ 
-            mb: 0,
-            minHeight: isToday ? 200 : 0,
-            transition: 'opacity 0.3s ease, min-height 0.3s ease',
-            opacity: isToday && !loading ? 1 : 0,
-            visibility: isToday && !loading ? 'visible' : 'hidden',
-            height: isToday && !loading ? 'auto' : 0,
-            overflow: isToday && !loading ? 'visible' : 'hidden',
-          }}
-        >
-          {isToday && !loading && (() => {
-            // Filter to only live games (Game type with gameStatus === 2)
-            const liveGamesForTracker = games.filter(
-              (g): g is Game => {
-                if (!('homeTeam' in g) || !('gameStatus' in g)) return false;
-                const game = g as Game;
-                return game.gameStatus === 2;
-              }
-            );
-            if (liveGamesForTracker.length > 0 && gameWinProbabilities.size > 0) {
-              return (
+        {/* Win Probability Insights - Only reserve space when visible */}
+        {(() => {
+          // Extract visibility condition to avoid duplication
+          const liveGamesForTracker = isToday && !loading
+            ? games.filter(
+                (g): g is Game => {
+                  if (!('homeTeam' in g) || !('gameStatus' in g)) return false;
+                  const game = g as Game;
+                  return game.gameStatus === 2;
+                }
+              )
+            : [];
+          const shouldShowWinProbability = isToday && !loading && liveGamesForTracker.length > 0 && gameWinProbabilities.size > 0;
+
+          return (
+            <Box 
+              sx={{ 
+                mb: shouldShowWinProbability ? { xs: 0, sm: 0.25 } : 0,
+                mt: 0,
+                minHeight: shouldShowWinProbability ? { xs: 200, sm: 220 } : 0,
+                height: shouldShowWinProbability ? 'auto' : 0,
+                transition: 'opacity 0.3s ease',
+                opacity: shouldShowWinProbability ? 1 : 0,
+                visibility: shouldShowWinProbability ? 'visible' : 'hidden',
+                overflow: 'hidden',
+              }}
+            >
+              {shouldShowWinProbability && (
                 <WinProbabilityTracker
                   games={liveGamesForTracker}
                   winProbabilities={gameWinProbabilities}
                 />
-              );
-            }
-            return null;
-          })()}
-        </Box>
+              )}
+            </Box>
+          );
+        })()}
 
-        {/* Game Statistics Summary Bar */}
-        {loading && isToday ? (
-          <Box sx={{ mb: { xs: 1.5, sm: 2 }, mt: 0, display: 'flex', gap: 2, alignItems: 'center', minHeight: 40 }}>
-            <Skeleton variant="text" width={100} height={24} sx={{ borderRadius: borderRadius.xs }} />
-            <Skeleton variant="text" width={80} height={24} sx={{ borderRadius: borderRadius.xs }} />
-            <Skeleton variant="rectangular" width={200} height={32} sx={{ borderRadius: borderRadius.sm, ml: 'auto' }} />
-          </Box>
-        ) : (
-          games.length > 0 && isToday && (
-            <Box
-              sx={{
-                display: 'flex',
-                gap: { xs: 2, sm: 3 },
-                alignItems: 'center',
-                mb: { xs: 1.5, sm: 2 },
-                mt: 0,
-                flexWrap: 'wrap',
-                minHeight: 40, // Prevent layout shift
-              }}
-            >
+        {/* Game Statistics Summary Bar - Always render container */}
+        <Box
+          sx={{
+            display: 'flex',
+            gap: { xs: 2, sm: 3 },
+            alignItems: 'center',
+            mb: { xs: 0.25, sm: 0.5 },
+            mt: 0,
+            flexWrap: 'wrap',
+            minHeight: 48,
+            visibility: isToday ? 'visible' : 'hidden',
+          }}
+        >
+          {loading && isToday ? (
+            <>
+              <Skeleton variant="text" width={100} height={24} sx={{ borderRadius: borderRadius.xs }} />
+              <Skeleton variant="text" width={80} height={24} sx={{ borderRadius: borderRadius.xs }} />
+              <Skeleton variant="rectangular" width={200} height={32} sx={{ borderRadius: borderRadius.sm, ml: 'auto' }} />
+            </>
+          ) : (
+            games.length > 0 && isToday && (
+              <>
               <Typography 
                 variant="body2" 
                 sx={{ 
@@ -1116,9 +1138,10 @@ const Scoreboard = () => {
                 <ToggleButton value="blowout">Blowout</ToggleButton>
                 <ToggleButton value="overtime">OT</ToggleButton>
               </ToggleButtonGroup>
-            </Box>
-          )
-        )}
+              </>
+            )
+          )}
+        </Box>
 
 
         {/* Games Display */}
@@ -1162,9 +1185,9 @@ const Scoreboard = () => {
                 </Box>
               </Box>
             )}
-            {renderGameSection('Live Games', filteredLiveGames, <FiberManualRecord sx={{ fontSize: { xs: 16, sm: 18 }, color: 'error.main' }} />, filteredLiveGames.length > 0 && filteredUpcomingGames.length === 0 && filteredCompletedGames.length === 0)}
-            {renderGameSection('Upcoming Games', filteredUpcomingGames, <Schedule sx={{ fontSize: { xs: 16, sm: 18 } }} />, filteredLiveGames.length === 0 && filteredUpcomingGames.length > 0)}
-            {renderGameSection('Completed Games', filteredCompletedGames, <Event sx={{ fontSize: { xs: 16, sm: 18 } }} />, filteredLiveGames.length === 0 && filteredUpcomingGames.length === 0 && filteredCompletedGames.length > 0)}
+            {renderGameSection('Live Games', filteredLiveGames, <FiberManualRecord sx={{ fontSize: { xs: 16, sm: 18 }, color: 'error.main' }} />, true)}
+            {renderGameSection('Upcoming Games', filteredUpcomingGames, <Schedule sx={{ fontSize: { xs: 16, sm: 18 } }} />, filteredLiveGames.length === 0)}
+            {renderGameSection('Completed Games', filteredCompletedGames, <Event sx={{ fontSize: { xs: 16, sm: 18 } }} />, filteredLiveGames.length === 0 && filteredUpcomingGames.length === 0)}
           </Box>
         ) : (
           // If viewing past or future date, show appropriate category with filters applied
@@ -1403,6 +1426,18 @@ const Scoreboard = () => {
             {toast?.message}
           </Alert>
         </Snackbar>
+
+        {/* Predictions Sidebar */}
+        {selectedDate >= getLocalISODate() && (
+          <PredictionsSidebar
+            open={predictionsSidebarOpen}
+            onClose={() => setPredictionsSidebarOpen(false)}
+            predictions={filteredPredictions}
+            loading={predictionsLoading}
+            error={predictionsError}
+            isUpdating={predictionsLoading && filteredPredictions.length > 0}
+          />
+        )}
       </Box>
     </Box>
   );

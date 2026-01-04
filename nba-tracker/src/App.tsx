@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Suspense, lazy } from 'react';
-import { Box, CircularProgress } from '@mui/material';
+import { Box, Skeleton } from '@mui/material';
 
 // Lazy load pages to improve initial load time
 // Pages are only loaded when the user navigates to them
@@ -24,13 +24,29 @@ export default function App() {
           fallback={
             <Box
               sx={{
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
                 minHeight: '100vh',
+                backgroundColor: 'background.default',
+                display: 'flex',
+                flexDirection: 'column',
+                maxWidth: '100vw',
+                overflowX: 'hidden',
+                width: '100%',
               }}
             >
-              <CircularProgress />
+              <Box sx={{ 
+                maxWidth: '1400px', 
+                mx: 'auto', 
+                px: { xs: 1, sm: 2, md: 3, lg: 4 }, 
+                py: { xs: 2, sm: 3 },
+                width: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 2,
+              }}>
+                <Skeleton variant="rectangular" height={80} sx={{ borderRadius: 2 }} />
+                <Skeleton variant="rectangular" height={200} sx={{ borderRadius: 2 }} />
+                <Skeleton variant="rectangular" height={400} sx={{ borderRadius: 2 }} />
+              </Box>
             </Box>
           }
         >

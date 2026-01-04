@@ -14,8 +14,8 @@ export const API_BASE_URL = getApiBaseUrl();
 
 /**
  * Centralized WebSocket URL configuration
- * WebSockets need direct connection (can't use Vercel proxy)
- * For HTTPS frontend, use WSS (secure WebSocket) - requires Cloudflare Tunnel or SSL endpoint
+ * WebSockets need direct connection
+ * For HTTPS frontend, use WSS (secure WebSocket)
  */
 export const getWebSocketUrl = (path: string = '/api/v1/ws'): string => {
   const envUrl = import.meta.env.VITE_WS_URL;

@@ -7,7 +7,7 @@ import {
   Box,
   Typography,
   Divider,
-  CircularProgress,
+  Skeleton,
   Chip,
   Paper,
 } from '@mui/material';
@@ -16,6 +16,7 @@ import { BoxScoreResponse, TeamBoxScoreStats, PlayerBoxScoreStats } from '../typ
 import PlayByPlay from './PlayByPlay';
 import { logger } from '../utils/logger';
 import { fetchJson } from '../utils/apiClient';
+import { borderRadius } from '../theme/designTokens';
 
 // Base URL for API calls
 import { API_BASE_URL } from '../utils/apiConfig';
@@ -395,8 +396,10 @@ const GameDetailsDrawer = ({ gameId, open, onClose, initialTab = 'box', gameInfo
           }}
         >
           {loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: { xs: 6, sm: 8 } }}>
-              <CircularProgress />
+            <Box sx={{ minHeight: 400, display: 'flex', flexDirection: 'column', gap: 2, py: { xs: 2, sm: 3 } }}>
+              <Skeleton variant="rectangular" height={60} sx={{ borderRadius: borderRadius.md, mb: 2 }} />
+              <Skeleton variant="rectangular" height={40} width="100%" sx={{ borderRadius: borderRadius.sm }} />
+              <Skeleton variant="rectangular" height={300} width="100%" sx={{ borderRadius: borderRadius.md }} />
             </Box>
           ) : tab === 'box' && boxScore ? (
             // Show box score for both teams

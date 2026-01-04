@@ -10,31 +10,31 @@ export const spacing = {
   xxxl: 6,   // 48px
 } as const;
 
-// Responsive spacing patterns (Material Design 3)
+// Responsive spacing patterns (Editorial, generous spacing)
 // All values in theme spacing units (8px base)
 export const responsiveSpacing = {
-  // Container padding
+  // Container padding - increased for editorial feel
   container: { xs: 2, sm: 3, md: 4 },
   containerVertical: { xs: 3, sm: 4, md: 5 },
   
-  // Section spacing
-  section: { xs: 3, sm: 4, md: 5 },
-  sectionLarge: { xs: 4, sm: 5, md: 6 },
+  // Section spacing - generous separation
+  section: { xs: 4, sm: 5, md: 6 },
+  sectionLarge: { xs: 5, sm: 6, md: 7 },
   
-  // Component padding
-  card: { xs: 2, sm: 2.5, md: 3 },
-  cardCompact: { xs: 1.5, sm: 2 },
-  cardLarge: { xs: 2.5, sm: 3, md: 3.5 },
+  // Component padding - comfortable internal spacing
+  card: { xs: 2.5, sm: 3, md: 3.5 },
+  cardCompact: { xs: 2, sm: 2.5 },
+  cardLarge: { xs: 3, sm: 3.5, md: 4 },
   
-  // Element spacing
-  element: { xs: 1.5, sm: 2 },
-  elementCompact: { xs: 1, sm: 1.5 },
-  elementLarge: { xs: 2.5, sm: 3 },
+  // Element spacing - consistent rhythm
+  element: { xs: 2, sm: 2.5, md: 3 },
+  elementCompact: { xs: 1.5, sm: 2 },
+  elementLarge: { xs: 3, sm: 3.5, md: 4 },
   
-  // Gap spacing
-  gap: { xs: 1.5, sm: 2 },
-  gapCompact: { xs: 1, sm: 1.5 },
-  gapLarge: { xs: 2.5, sm: 3, md: 4 },
+  // Gap spacing - intentional whitespace
+  gap: { xs: 2, sm: 2.5, md: 3 },
+  gapCompact: { xs: 1.5, sm: 2 },
+  gapLarge: { xs: 3, sm: 4, md: 5 },
 } as const;
 
 // Typography scale for consistent font sizes and weights
@@ -79,13 +79,41 @@ export const typography = {
     loose: 1.6,
   },
   
-  // Letter spacing
+  // Letter spacing - refined for editorial readability
   letterSpacing: {
     tight: '-0.02em',
     normal: '-0.01em',
+    relaxed: '0em',
     wide: '0.01em',
     wider: '0.02em',
     widest: '0.08em',
+  },
+  
+  // Editorial typography scale (for clamp() usage)
+  editorial: {
+    // Page titles - large, confident
+    pageTitle: {
+      xs: 'clamp(1.5rem, 5vw, 2.25rem)',
+      sm: 'clamp(1.75rem, 5vw, 2.5rem)',
+      md: 'clamp(2rem, 5vw, 3rem)',
+    },
+    // Section headers - medium, semibold
+    sectionTitle: {
+      xs: 'clamp(1.125rem, 3vw, 1.5rem)',
+      sm: 'clamp(1.25rem, 3vw, 1.75rem)',
+      md: 'clamp(1.5rem, 3vw, 2rem)',
+    },
+    // Primary metrics - prominent, readable
+    metric: {
+      xs: 'clamp(1rem, 2.5vw, 1.25rem)',
+      sm: 'clamp(1.125rem, 2.5vw, 1.5rem)',
+      md: 'clamp(1.25rem, 2.5vw, 1.75rem)',
+    },
+    // Helper text - small, subtle
+    helper: {
+      xs: 'clamp(0.7rem, 1.5vw, 0.75rem)',
+      sm: 'clamp(0.75rem, 1.5vw, 0.8125rem)',
+    },
   },
 } as const;
 

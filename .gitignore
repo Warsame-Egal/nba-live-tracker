@@ -33,23 +33,5 @@ nba-tracker/dist/
 nba-tracker/dist-ssr/
 nba-tracker/.vite/
 
-# Local deployment file with credentials (DO NOT COMMIT)
-DEPLOYMENT.local.md
-*.local.md
-DEPLOYMENT.detailed.md
-*cloudflare*token*
-*cloudflared*token*
-*.cloudflared/credentials.json
-.cloudflared/
 
-# Patch files (not for public repo)
-nba-tracker-api/patch_http.py
-nba-tracker-api/patch_scoreboard.py
-*patch*.py
-
-GROQ_SETUP_GUIDE.md
-RATE_LIMITING_CHANGES.md
-
-system-architecture.md
-groq-ai
-CACHING_RATE_LIMITING_SUMMARY.md
+deploysteps.md
