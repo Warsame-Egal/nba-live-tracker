@@ -1,5 +1,6 @@
 import { PlayByPlayResponse } from '../types/playbyplay';
 import { logger } from '../utils/logger';
+import { getWebSocketUrl } from '../utils/apiConfig';
 
 /**
  * Service for managing WebSocket connections to get live play-by-play updates.
@@ -41,11 +42,8 @@ class PlayByPlayWebSocketService {
     this.shouldReconnect = true;
     this.currentGameId = gameId; // Store game ID for reconnection
     
-    // Build the WebSocket URL based on whether we're using https or http
-    // Use 'wss' for secure connections (https) and 'ws' for regular (http)
-    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-    const baseHost = import.meta.env.VITE_WS_URL?.replace(/^https?:\/\//, '') || 'localhost:8000';
-    const url = `${protocol}://${baseHost}/api/v1/ws/${gameId}/play-by-play`;
+    // Build the WebSocket URL - WebSockets need direct connection (can't use Vercel proxy)
+    const url = getWebSocketUrl(`/api/v1/ws/${gameId}/play-by-play`);
 
     this.socket = new WebSocket(url);
 

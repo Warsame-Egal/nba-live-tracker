@@ -30,12 +30,10 @@ import { responsiveSpacing, borderRadius, typography, transitions } from '../the
 import { fetchJson } from '../utils/apiClient';
 import { getCurrentSeason } from '../utils/season';
 
+import { API_BASE_URL, getWebSocketUrl } from '../utils/apiConfig';
+
 // WebSocket URL for live score updates
-const SCOREBOARD_WEBSOCKET_URL = `${
-  window.location.protocol === 'https:' ? 'wss' : 'ws'
-}://${import.meta.env.VITE_WS_URL || 'localhost:8000'}/api/v1/ws`;
-// Base URL for API calls
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+const SCOREBOARD_WEBSOCKET_URL = getWebSocketUrl('/api/v1/ws');
 
 // Get today's date in YYYY-MM-DD format (local timezone)
 const getLocalISODate = (): string => {

@@ -34,7 +34,7 @@ import TeamPerformanceChart from '../components/TeamPerformanceChart';
 import TeamBanner from '../components/TeamBanner';
 import { getTeamAbbreviation } from '../utils/teamMappings';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+import { API_BASE_URL } from '../utils/apiConfig';
 
 interface TeamDetails {
   team_id: number;

@@ -18,6 +18,7 @@ import { borderRadius, transitions, typography, spacing } from '../theme/designT
 import { PlayByPlayResponse, PlayByPlayEvent } from '../types/playbyplay';
 import PlayByPlayWebSocketService from '../services/PlayByPlayWebSocketService';
 import { fetchJson } from '../utils/apiClient';
+import { API_BASE_URL } from '../utils/apiConfig';
 import { GameInsightData } from './GameInsight';
 import LiveAIInsight from './LiveAIInsight';
 import LeadChangeDialog, { LeadChangeExplanation } from './LeadChangeDialog';
@@ -255,7 +256,6 @@ const GameRow: React.FC<GameRowProps> = ({
     const fetchPlayByPlay = async () => {
       setLoadingMomentum(true);
       try {
-        const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
         const data = await fetchJson<PlayByPlayResponse>(
           `${API_BASE_URL}/api/v1/scoreboard/game/${gameId}/play-by-play`,
           {},
@@ -799,7 +799,6 @@ const GameRow: React.FC<GameRowProps> = ({
             insight={insight && insight.type !== 'none' && insight.text ? insight : null}
             onWhyClick={insight?.type === 'lead_change' ? async () => {
               try {
-                const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
                 const response = await fetchJson<LeadChangeExplanation>(
                   `${API_BASE_URL}/api/v1/scoreboard/game/${gameId}/lead-change`
                 );

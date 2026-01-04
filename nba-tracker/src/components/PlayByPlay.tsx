@@ -6,7 +6,7 @@ import { PlayByPlayResponse, PlayByPlayEvent } from '../types/playbyplay';
 import { fetchJson } from '../utils/apiClient';
 import { logger } from '../utils/logger';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+import { API_BASE_URL } from '../utils/apiConfig';
 
 // Play-by-play timeline for game events
 // Uses WebSocket for live games, REST API for completed games
