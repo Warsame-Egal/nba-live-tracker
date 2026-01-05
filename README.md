@@ -69,9 +69,7 @@ The frontend will run on http://localhost:3000 (or the next available port).
 
 - **API Docs:** http://localhost:8000/docs
 - **Full API Documentation:** [API_DOCUMENTATION.md](nba-tracker-api/app/docs/API_DOCUMENTATION.md)
-- **Architecture:** [docs/architecture.md](docs/architecture.md)
 - **Groq AI:** [docs/groq-ai.md](docs/groq-ai.md)
-- **Technical Details:** [docs/technical-details.md](docs/technical-details.md) - API examples, rate limiting, WebSocket behavior
 
 ## Deployment
 
@@ -80,7 +78,7 @@ The frontend will run on http://localhost:3000 (or the next available port).
 
 See [DEPLOYMENT.local.md](DEPLOYMENT.local.md) for detailed setup instructions.
 
-## Credits
+## Data Source
 
 Uses the [`nba_api`](https://github.com/swar/nba_api) Python package to access NBA.com data.
 
