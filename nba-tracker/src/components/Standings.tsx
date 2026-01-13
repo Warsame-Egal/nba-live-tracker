@@ -815,12 +815,13 @@ const Standings = () => {
 
   return (
     <Box sx={{ 
-      minHeight: '100vh', 
+      minHeight: '100dvh', 
       backgroundColor: 'background.default', 
       display: 'flex', 
       flexDirection: 'column',
       maxWidth: '100vw',
       overflowX: 'hidden',
+      overflowY: 'visible',
       width: '100%',
     }}>
       <Navbar />
