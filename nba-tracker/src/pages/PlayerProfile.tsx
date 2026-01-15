@@ -21,7 +21,7 @@ import PlayerBanner from '../components/PlayerBanner';
 import { fetchJson } from '../utils/apiClient';
 import { getCurrentSeason } from '../utils/season';
 import { PlayerGameLogResponse } from '../types/playergamelog';
-import { typography } from '../theme/designTokens';
+import { typography, borderRadius } from '../theme/designTokens';
 
 import { API_BASE_URL } from '../utils/apiConfig';
 
@@ -155,19 +155,19 @@ const PlayerProfile: React.FC = () => {
             <Paper
               elevation={0}
               sx={{
-                p: 3, // Material 3: 24dp padding
+                p: { xs: 2, sm: 3 }, // Material 3: 24dp padding
                 backgroundColor: 'background.paper', // Material 3: surface
                 border: '1px solid',
                 borderColor: 'divider', // Material 3: outline
-                borderRadius: 1.5, // Material 3: 12dp
+                borderRadius: borderRadius.md,
               }}
             >
               <Typography
                 variant="h6"
                 sx={{
                   fontWeight: typography.weight.bold,
-                  mb: 3,
-                  fontSize: typography.size.h6,
+                  mb: { xs: 2, sm: 3 },
+                  fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.h6 },
                 }}
               >
                 Game Log
@@ -183,50 +183,151 @@ const PlayerProfile: React.FC = () => {
                     overflowX: 'auto',
                     width: '100%',
                     maxWidth: '100%',
+                    minWidth: { xs: 700, sm: 'auto' },
+                    // Hide scrollbar on mobile (touch devices)
+                    '@media (hover: hover)': {
+                      '&::-webkit-scrollbar': {
+                        height: 8,
+                      },
+                      '&::-webkit-scrollbar-track': {
+                        backgroundColor: 'background.default',
+                      },
+                      '&::-webkit-scrollbar-thumb': {
+                        backgroundColor: 'divider',
+                        borderRadius: borderRadius.xs,
+                        '&:hover': {
+                          backgroundColor: 'text.secondary',
+                        },
+                      },
+                    },
                   }}
                 >
                   <Table size="small" sx={{ 
                     width: '100%',
-                    tableLayout: { xs: 'fixed', sm: 'auto' },
+                    tableLayout: 'auto',
                   }}>
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: typography.weight.bold }}>Date</TableCell>
-                      <TableCell sx={{ fontWeight: typography.weight.bold }}>Opponent</TableCell>
-                      <TableCell align="center" sx={{ fontWeight: typography.weight.bold }}>
+                      <TableCell sx={{ 
+                        fontWeight: typography.weight.semibold,
+                        py: { xs: 1.5, sm: 2.5 },
+                        px: { xs: 0.75, sm: 1.5 },
+                        fontSize: { xs: typography.size.caption.xs, sm: typography.editorial.helper.xs },
+                        color: 'text.secondary',
+                      }}>Date</TableCell>
+                      <TableCell sx={{ 
+                        fontWeight: typography.weight.semibold,
+                        py: { xs: 1.5, sm: 2.5 },
+                        px: { xs: 0.75, sm: 1.5 },
+                        fontSize: { xs: typography.size.caption.xs, sm: typography.editorial.helper.xs },
+                        color: 'text.secondary',
+                      }}>Opponent</TableCell>
+                      <TableCell align="center" sx={{ 
+                        fontWeight: typography.weight.semibold,
+                        py: { xs: 1.5, sm: 2.5 },
+                        px: { xs: 0.75, sm: 1.5 },
+                        fontSize: { xs: typography.size.caption.xs, sm: typography.editorial.helper.xs },
+                        color: 'text.secondary',
+                      }}>
                         Result
                       </TableCell>
-                      <TableCell align="center" sx={{ fontWeight: typography.weight.bold }}>
+                      <TableCell align="center" sx={{ 
+                        fontWeight: typography.weight.semibold,
+                        py: { xs: 1.5, sm: 2.5 },
+                        px: { xs: 0.75, sm: 1.5 },
+                        fontSize: { xs: typography.size.caption.xs, sm: typography.editorial.helper.xs },
+                        color: 'text.secondary',
+                      }}>
                         MIN
                       </TableCell>
-                      <TableCell align="center" sx={{ fontWeight: typography.weight.bold }}>
+                      <TableCell align="center" sx={{ 
+                        fontWeight: typography.weight.semibold,
+                        py: { xs: 1.5, sm: 2.5 },
+                        px: { xs: 0.75, sm: 1.5 },
+                        fontSize: { xs: typography.size.caption.xs, sm: typography.editorial.helper.xs },
+                        color: 'text.secondary',
+                      }}>
                         PTS
                       </TableCell>
-                      <TableCell align="center" sx={{ fontWeight: typography.weight.bold }}>
+                      <TableCell align="center" sx={{ 
+                        fontWeight: typography.weight.semibold,
+                        py: { xs: 1.5, sm: 2.5 },
+                        px: { xs: 0.75, sm: 1.5 },
+                        fontSize: { xs: typography.size.caption.xs, sm: typography.editorial.helper.xs },
+                        color: 'text.secondary',
+                      }}>
                         REB
                       </TableCell>
-                      <TableCell align="center" sx={{ fontWeight: typography.weight.bold }}>
+                      <TableCell align="center" sx={{ 
+                        fontWeight: typography.weight.semibold,
+                        py: { xs: 1.5, sm: 2.5 },
+                        px: { xs: 0.75, sm: 1.5 },
+                        fontSize: { xs: typography.size.caption.xs, sm: typography.editorial.helper.xs },
+                        color: 'text.secondary',
+                      }}>
                         AST
                       </TableCell>
-                      <TableCell align="center" sx={{ fontWeight: typography.weight.bold }}>
+                      <TableCell align="center" sx={{ 
+                        fontWeight: typography.weight.semibold,
+                        py: { xs: 1.5, sm: 2.5 },
+                        px: { xs: 0.75, sm: 1.5 },
+                        fontSize: { xs: typography.size.caption.xs, sm: typography.editorial.helper.xs },
+                        color: 'text.secondary',
+                      }}>
                         STL
                       </TableCell>
-                      <TableCell align="center" sx={{ fontWeight: typography.weight.bold }}>
+                      <TableCell align="center" sx={{ 
+                        fontWeight: typography.weight.semibold,
+                        py: { xs: 1.5, sm: 2.5 },
+                        px: { xs: 0.75, sm: 1.5 },
+                        fontSize: { xs: typography.size.caption.xs, sm: typography.editorial.helper.xs },
+                        color: 'text.secondary',
+                      }}>
                         BLK
                       </TableCell>
-                      <TableCell align="center" sx={{ fontWeight: typography.weight.bold }}>
+                      <TableCell align="center" sx={{ 
+                        fontWeight: typography.weight.semibold,
+                        py: { xs: 1.5, sm: 2.5 },
+                        px: { xs: 0.75, sm: 1.5 },
+                        fontSize: { xs: typography.size.caption.xs, sm: typography.editorial.helper.xs },
+                        color: 'text.secondary',
+                      }}>
                         TO
                       </TableCell>
-                      <TableCell align="center" sx={{ fontWeight: typography.weight.bold }}>
+                      <TableCell align="center" sx={{ 
+                        fontWeight: typography.weight.semibold,
+                        py: { xs: 1.5, sm: 2.5 },
+                        px: { xs: 0.75, sm: 1.5 },
+                        fontSize: { xs: typography.size.caption.xs, sm: typography.editorial.helper.xs },
+                        color: 'text.secondary',
+                      }}>
                         FG
                       </TableCell>
-                      <TableCell align="center" sx={{ fontWeight: typography.weight.bold }}>
+                      <TableCell align="center" sx={{ 
+                        fontWeight: typography.weight.semibold,
+                        py: { xs: 1.5, sm: 2.5 },
+                        px: { xs: 0.75, sm: 1.5 },
+                        fontSize: { xs: typography.size.caption.xs, sm: typography.editorial.helper.xs },
+                        color: 'text.secondary',
+                      }}>
                         3P
                       </TableCell>
-                      <TableCell align="center" sx={{ fontWeight: typography.weight.bold }}>
+                      <TableCell align="center" sx={{ 
+                        fontWeight: typography.weight.semibold,
+                        py: { xs: 1.5, sm: 2.5 },
+                        px: { xs: 0.75, sm: 1.5 },
+                        fontSize: { xs: typography.size.caption.xs, sm: typography.editorial.helper.xs },
+                        color: 'text.secondary',
+                      }}>
                         FT
                       </TableCell>
-                      <TableCell align="center" sx={{ fontWeight: typography.weight.bold }}>
+                      <TableCell align="center" sx={{ 
+                        fontWeight: typography.weight.semibold,
+                        py: { xs: 1.5, sm: 2.5 },
+                        px: { xs: 0.75, sm: 1.5 },
+                        fontSize: { xs: typography.size.caption.xs, sm: typography.editorial.helper.xs },
+                        color: 'text.secondary',
+                      }}>
                         +/-
                       </TableCell>
                     </TableRow>
@@ -268,26 +369,87 @@ const PlayerProfile: React.FC = () => {
                             },
                           }}
                         >
-                          <TableCell>{gameDate}</TableCell>
-                          <TableCell sx={{ fontWeight: typography.weight.semibold }}>
+                          <TableCell sx={{ 
+                            py: { xs: 1.5, sm: 2 },
+                            px: { xs: 0.75, sm: 1.5 },
+                            fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm },
+                          }}>{gameDate}</TableCell>
+                          <TableCell sx={{ 
+                            fontWeight: typography.weight.semibold,
+                            py: { xs: 1.5, sm: 2 },
+                            px: { xs: 0.75, sm: 1.5 },
+                            fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm },
+                          }}>
                             {opponent}
                           </TableCell>
-                          <TableCell align="center" sx={{ fontWeight: typography.weight.semibold, color: result === 'W' ? 'success.main' : result === 'L' ? 'error.main' : 'text.secondary' }}>
+                          <TableCell align="center" sx={{ 
+                            fontWeight: typography.weight.semibold,
+                            py: { xs: 1.5, sm: 2 },
+                            px: { xs: 0.75, sm: 1.5 },
+                            fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm },
+                            color: result === 'W' ? 'success.main' : result === 'L' ? 'error.main' : 'text.secondary',
+                          }}>
                             {result}
                           </TableCell>
-                          <TableCell align="center">{game.minutes || '-'}</TableCell>
-                          <TableCell align="center" sx={{ fontWeight: typography.weight.semibold }}>
+                          <TableCell align="center" sx={{ 
+                            py: { xs: 1.5, sm: 2 },
+                            px: { xs: 0.75, sm: 1.5 },
+                            fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm },
+                          }}>{game.minutes || '-'}</TableCell>
+                          <TableCell align="center" sx={{ 
+                            fontWeight: typography.weight.semibold,
+                            py: { xs: 1.5, sm: 2 },
+                            px: { xs: 0.75, sm: 1.5 },
+                            fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm },
+                          }}>
                             {game.points}
                           </TableCell>
-                          <TableCell align="center">{game.rebounds}</TableCell>
-                          <TableCell align="center">{game.assists}</TableCell>
-                          <TableCell align="center">{game.steals}</TableCell>
-                          <TableCell align="center">{game.blocks}</TableCell>
-                          <TableCell align="center">{game.turnovers}</TableCell>
-                          <TableCell align="center">{fgFormatted}</TableCell>
-                          <TableCell align="center">{threeFormatted}</TableCell>
-                          <TableCell align="center">{ftFormatted}</TableCell>
-                          <TableCell align="center" sx={{ color: game.plus_minus && game.plus_minus > 0 ? 'success.main' : game.plus_minus && game.plus_minus < 0 ? 'error.main' : 'text.primary' }}>
+                          <TableCell align="center" sx={{ 
+                            py: { xs: 1.5, sm: 2 },
+                            px: { xs: 0.75, sm: 1.5 },
+                            fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm },
+                          }}>{game.rebounds}</TableCell>
+                          <TableCell align="center" sx={{ 
+                            py: { xs: 1.5, sm: 2 },
+                            px: { xs: 0.75, sm: 1.5 },
+                            fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm },
+                          }}>{game.assists}</TableCell>
+                          <TableCell align="center" sx={{ 
+                            py: { xs: 1.5, sm: 2 },
+                            px: { xs: 0.75, sm: 1.5 },
+                            fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm },
+                          }}>{game.steals}</TableCell>
+                          <TableCell align="center" sx={{ 
+                            py: { xs: 1.5, sm: 2 },
+                            px: { xs: 0.75, sm: 1.5 },
+                            fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm },
+                          }}>{game.blocks}</TableCell>
+                          <TableCell align="center" sx={{ 
+                            py: { xs: 1.5, sm: 2 },
+                            px: { xs: 0.75, sm: 1.5 },
+                            fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm },
+                          }}>{game.turnovers}</TableCell>
+                          <TableCell align="center" sx={{ 
+                            py: { xs: 1.5, sm: 2 },
+                            px: { xs: 0.75, sm: 1.5 },
+                            fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm },
+                          }}>{fgFormatted}</TableCell>
+                          <TableCell align="center" sx={{ 
+                            py: { xs: 1.5, sm: 2 },
+                            px: { xs: 0.75, sm: 1.5 },
+                            fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm },
+                          }}>{threeFormatted}</TableCell>
+                          <TableCell align="center" sx={{ 
+                            py: { xs: 1.5, sm: 2 },
+                            px: { xs: 0.75, sm: 1.5 },
+                            fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm },
+                          }}>{ftFormatted}</TableCell>
+                          <TableCell align="center" sx={{ 
+                            py: { xs: 1.5, sm: 2 },
+                            px: { xs: 0.75, sm: 1.5 },
+                            fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm },
+                            color: game.plus_minus && game.plus_minus > 0 ? 'success.main' : game.plus_minus && game.plus_minus < 0 ? 'error.main' : 'text.primary',
+                          }}>
                             {plusMinus}
                           </TableCell>
                         </TableRow>

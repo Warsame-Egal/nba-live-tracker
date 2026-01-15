@@ -530,7 +530,8 @@ const GameRow: React.FC<GameRowProps> = ({
         <Box
           sx={{
             display: 'flex',
-            gap: { xs: 1.5, sm: 2 },
+            flexDirection: { xs: 'column', sm: 'row' },
+            gap: { xs: 1, sm: 2 },
             pl: { xs: 2, sm: 2.5 },
             pr: { xs: 1.5, sm: 2 },
             pb: { xs: 0.75, sm: 1 },
@@ -543,13 +544,13 @@ const GameRow: React.FC<GameRowProps> = ({
               fontSize: { xs: typography.size.captionSmall.xs, sm: typography.size.captionSmall.sm },
               fontWeight: typography.weight.semibold,
               color: 'text.secondary',
-              minWidth: { xs: 60, sm: 70 },
-              pt: 0.5,
+              minWidth: { xs: 'auto', sm: 70 },
+              pt: { xs: 0, sm: 0.5 },
             }}
           >
             Players to Watch
           </Typography>
-          <Box sx={{ display: 'flex', gap: { xs: 1.5, sm: 2 }, flex: 1, flexWrap: 'wrap' }}>
+          <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: { xs: 1, sm: 2 }, flex: 1, flexWrap: 'wrap' }}>
             {gameLeaders.awayLeaders && gameLeaders.awayLeaders.name && (
               <LeaderPreview leader={gameLeaders.awayLeaders} teamTricode={awayTeam || ''} navigate={navigate} isLive={isLive} isFinal={isFinal} />
             )}
@@ -606,6 +607,13 @@ const GameRow: React.FC<GameRowProps> = ({
                   color: 'text.primary',
                   fontWeight: typography.weight.medium,
                   lineHeight: 1.4,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'normal',
+                  wordBreak: 'break-word',
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical' as const,
                 }}
               >
                 {lastPlay.team_tricode ? `${lastPlay.team_tricode} - ` : ''}{lastPlay.description}
@@ -702,6 +710,7 @@ const GameRow: React.FC<GameRowProps> = ({
               sx={{
                 display: 'flex',
                 flexDirection: { xs: 'row', md: 'row' },
+                flexWrap: { xs: 'wrap', md: 'nowrap' },
                 gap: 1,
                 alignItems: 'center',
                 justifyContent: { xs: 'flex-start', md: 'flex-end' },
@@ -724,7 +733,7 @@ const GameRow: React.FC<GameRowProps> = ({
                     fontSize: { xs: typography.size.caption.xs, sm: typography.size.caption.sm },
                     px: { xs: 1.5, sm: spacing.md },
                     py: { xs: 1, sm: spacing.xs },
-                    minWidth: { xs: 44, sm: 'auto', md: 100 },
+                    minWidth: { xs: 'calc(50% - 4px)', sm: 'auto', md: 100 },
                     minHeight: { xs: 44, sm: 32 },
                   }}
                 >
@@ -746,7 +755,7 @@ const GameRow: React.FC<GameRowProps> = ({
                     fontSize: { xs: typography.size.caption.xs, sm: typography.size.caption.sm },
                     px: { xs: 1.5, sm: spacing.md },
                     py: { xs: 1, sm: spacing.xs },
-                    minWidth: { xs: 44, sm: 'auto', md: 100 },
+                    minWidth: { xs: 'calc(50% - 4px)', sm: 'auto', md: 100 },
                     minHeight: { xs: 44, sm: 32 },
                   }}
                 >
@@ -768,7 +777,7 @@ const GameRow: React.FC<GameRowProps> = ({
                     fontSize: { xs: typography.size.caption.xs, sm: typography.size.caption.sm },
                     px: { xs: 1.5, sm: spacing.md },
                     py: { xs: 1, sm: spacing.xs },
-                    minWidth: { xs: 44, sm: 'auto', md: 120 },
+                    minWidth: { xs: 'calc(50% - 4px)', sm: 'auto', md: 120 },
                     minHeight: { xs: 44, sm: 32 },
                   }}
                 >
@@ -946,8 +955,8 @@ const LeaderPreview: React.FC<LeaderPreviewProps> = ({ leader, teamTricode, navi
             src={avatarUrl}
             alt={leader.name || 'Player'}
             sx={{
-              width: { xs: 28, sm: 32 },
-              height: { xs: 28, sm: 32 },
+              width: { xs: 24, sm: 28, md: 32 },
+              height: { xs: 24, sm: 28, md: 32 },
               border: '1px solid',
               borderColor: 'divider',
             }}
@@ -961,8 +970,8 @@ const LeaderPreview: React.FC<LeaderPreviewProps> = ({ leader, teamTricode, navi
       ) : (
         <Avatar
           sx={{
-            width: { xs: 28, sm: 32 },
-            height: { xs: 28, sm: 32 },
+            width: { xs: 24, sm: 28, md: 32 },
+            height: { xs: 24, sm: 28, md: 32 },
             backgroundColor: 'action.disabledBackground',
             opacity: 0.5,
           }}

@@ -53,13 +53,13 @@ const PredictionHeader: React.FC<PredictionHeaderProps> = ({ prediction }) => {
       }}
     >
       {/* Team logos and matchup */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flex: 1, minWidth: 0 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 1.5 }, flex: 1, minWidth: 0 }}>
         <Avatar
           src={awayLogo}
           alt={awayAbbr}
           sx={{
-            width: 40,
-            height: 40,
+            width: { xs: 32, sm: 40 },
+            height: { xs: 32, sm: 40 },
             aspectRatio: '1/1',
             border: '1px solid',
             borderColor: 'divider',
@@ -88,8 +88,8 @@ const PredictionHeader: React.FC<PredictionHeaderProps> = ({ prediction }) => {
           src={homeLogo}
           alt={homeAbbr}
           sx={{
-            width: 40,
-            height: 40,
+            width: { xs: 32, sm: 40 },
+            height: { xs: 32, sm: 40 },
             aspectRatio: '1/1',
             border: '1px solid',
             borderColor: 'divider',
@@ -109,8 +109,8 @@ const PredictionHeader: React.FC<PredictionHeaderProps> = ({ prediction }) => {
           label={prediction.confidence_tier.charAt(0).toUpperCase() + prediction.confidence_tier.slice(1).toLowerCase()}
           size="small"
           sx={{
-            height: 24,
-            fontSize: '0.6875rem',
+            height: { xs: 22, sm: 24 },
+            fontSize: { xs: '0.625rem', sm: '0.6875rem' },
             fontWeight: typography.weight.semibold,
             letterSpacing: '0.5px',
             backgroundColor: alpha(confidenceColor, 0.15),

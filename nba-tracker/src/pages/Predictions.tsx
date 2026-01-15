@@ -135,7 +135,7 @@ const Predictions = () => {
                 p: { xs: 2, sm: 3 },
                 borderBottom: '1px solid',
                 borderColor: 'divider',
-                backgroundColor: 'action.hover',
+                backgroundColor: 'background.paper',
                 minHeight: { xs: 140, sm: 160 },
               }}
             >

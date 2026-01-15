@@ -187,19 +187,7 @@ const PlayByPlay = ({ gameId, isLiveGame = false }: { gameId: string; isLiveGame
             </Box>
 
             {/* Timeline of plays */}
-            <Box sx={{ position: 'relative', pl: { xs: 2, sm: 3 } }}>
-              {/* Timeline line */}
-              <Box
-                sx={{
-                  position: 'absolute',
-                  left: { xs: 6, sm: 10 },
-                  top: 0,
-                  bottom: 0,
-                  width: 2,
-                  backgroundColor: 'divider',
-                  opacity: 0.5,
-                }}
-              />
+            <Box sx={{ position: 'relative' }}>
 
               {periodPlays.map((play) => {
                 const isScore = play.action_type?.toLowerCase().includes('shot') || 
@@ -213,33 +201,15 @@ const PlayByPlay = ({ gameId, isLiveGame = false }: { gameId: string; isLiveGame
                     sx={{
                       position: 'relative',
                       mb: { xs: 2, sm: 2.5 },
-                      pl: { xs: 3, sm: 4 },
                     }}
                   >
-                    {/* Timeline dot */}
-                    <Box
-                      sx={{
-                        position: 'absolute',
-                        left: { xs: 2, sm: 6 },
-                        top: 4,
-                        width: { xs: 8, sm: 10 },
-                        height: { xs: 8, sm: 10 },
-                        borderRadius: '50%',
-                        backgroundColor: isImportant ? 'primary.main' : 'divider',
-                        border: '2px solid',
-                        borderColor: 'background.default',
-                        zIndex: 1,
-                      }}
-                    />
-
                     {/* Play card */}
                     <Paper
                       elevation={0}
                       sx={{
                         p: { xs: 1.5, sm: 2 },
                         backgroundColor: isImportant ? 'rgba(25, 118, 210, 0.05)' : 'background.paper',
-                        border: '1px solid',
-                        borderColor: 'divider',
+                        border: 'none',
                         borderRadius: 2,
                         transition: 'all 0.2s ease-in-out',
                         '&:hover': {
@@ -251,18 +221,19 @@ const PlayByPlay = ({ gameId, isLiveGame = false }: { gameId: string; isLiveGame
                     >
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                         {/* Header row */}
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 2 }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: { xs: 1.5, sm: 2 }, flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
                           <Box sx={{ flex: 1, minWidth: 0 }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5, flexWrap: 'wrap' }}>
                               {play.team_tricode && (
                                 <Chip
                                   label={play.team_tricode}
                                   size="small"
                                   sx={{
-                                    height: 20,
-                                    fontSize: '0.7rem',
+                                    height: { xs: 18, sm: 20 },
+                                    fontSize: { xs: '0.65rem', sm: '0.7rem' },
                                     fontWeight: 700,
                                     backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                                    lineHeight: 1,
                                   }}
                                 />
                               )}
@@ -272,6 +243,7 @@ const PlayByPlay = ({ gameId, isLiveGame = false }: { gameId: string; isLiveGame
                                   color: 'text.secondary',
                                   fontWeight: 600,
                                   fontSize: { xs: '0.7rem', sm: '0.75rem' },
+                                  whiteSpace: 'nowrap',
                                 }}
                               >
                                 {formatClock(play.clock)}
@@ -282,7 +254,10 @@ const PlayByPlay = ({ gameId, isLiveGame = false }: { gameId: string; isLiveGame
                               sx={{
                                 fontWeight: isImportant ? 600 : 400,
                                 fontSize: { xs: '0.8125rem', sm: '0.875rem' },
-                                lineHeight: 1.4,
+                                lineHeight: 1.5,
+                                whiteSpace: 'normal',
+                                wordBreak: 'break-word',
+                                overflow: 'hidden',
                               }}
                             >
                               {play.description || play.action_type}
@@ -294,9 +269,12 @@ const PlayByPlay = ({ gameId, isLiveGame = false }: { gameId: string; isLiveGame
                               sx={{
                                 display: 'flex',
                                 flexDirection: 'column',
-                                alignItems: 'flex-end',
+                                alignItems: { xs: 'flex-start', sm: 'flex-end' },
                                 gap: 0.5,
                                 flexShrink: 0,
+                                minWidth: { xs: '100%', sm: 'auto' },
+                                width: { xs: '100%', sm: 'auto' },
+                                mt: { xs: 0.5, sm: 0 },
                               }}
                             >
                               <Typography
@@ -305,6 +283,7 @@ const PlayByPlay = ({ gameId, isLiveGame = false }: { gameId: string; isLiveGame
                                   color: 'primary.main',
                                   fontWeight: 700,
                                   fontSize: { xs: '0.75rem', sm: '0.8125rem' },
+                                  whiteSpace: 'nowrap',
                                 }}
                               >
                                 {play.score_away} - {play.score_home}

@@ -88,10 +88,10 @@ const WeeklyCalendar = ({ selectedDate, setSelectedDate }: WeeklyCalendarProps) 
         onClick={handlePrevWeek}
         size="small"
         sx={{
-          minWidth: { xs: 32, sm: 28 },
-          minHeight: { xs: 32, sm: 28 },
-          width: { xs: 32, sm: 28 },
-          height: { xs: 32, sm: 28 },
+          minWidth: { xs: 40, sm: 28 },
+          minHeight: { xs: 40, sm: 28 },
+          width: { xs: 40, sm: 28 },
+          height: { xs: 40, sm: 28 },
           padding: 0,
           borderRadius: borderRadius.sm,
           color: 'text.secondary',
@@ -212,10 +212,10 @@ const WeeklyCalendar = ({ selectedDate, setSelectedDate }: WeeklyCalendarProps) 
         onClick={handleNextWeek}
         size="small"
         sx={{
-          minWidth: { xs: 32, sm: 28 },
-          minHeight: { xs: 32, sm: 28 },
-          width: { xs: 32, sm: 28 },
-          height: { xs: 32, sm: 28 },
+          minWidth: { xs: 40, sm: 28 },
+          minHeight: { xs: 40, sm: 28 },
+          width: { xs: 40, sm: 28 },
+          height: { xs: 40, sm: 28 },
           padding: 0,
           borderRadius: borderRadius.sm,
           color: 'text.secondary',

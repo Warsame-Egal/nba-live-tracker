@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Tooltip, Chip } from '@mui/material';
+import { Box, Typography, Tooltip, Chip, useMediaQuery } from '@mui/material';
 import { useTheme, alpha } from '@mui/material/styles';
 import { typography, borderRadius } from '../../theme/designTokens';
 import { CircularProgress } from '@mui/material';
@@ -16,6 +16,7 @@ interface ConfidenceMeterProps {
  */
 const ConfidenceMeter: React.FC<ConfidenceMeterProps> = ({ confidence, tier, explanation }) => {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
   // Determine tier from confidence if not provided
   const confidenceTier = tier || (confidence >= 0.7 ? 'high' : confidence >= 0.5 ? 'medium' : 'low');
@@ -52,13 +53,13 @@ const ConfidenceMeter: React.FC<ConfidenceMeterProps> = ({ confidence, tier, exp
   const confidencePercent = Math.round(confidence * 100);
   
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1.5, sm: 2 } }}>
       {/* Circular Progress Indicator */}
       <Box sx={{ position: 'relative', display: 'inline-flex' }}>
         <CircularProgress
           variant="determinate"
           value={confidencePercent}
-          size={56}
+          size={isMobile ? 48 : 56}
           thickness={4}
           sx={{
             color: tierColor,
@@ -84,7 +85,7 @@ const ConfidenceMeter: React.FC<ConfidenceMeterProps> = ({ confidence, tier, exp
             component="div"
             sx={{
               fontWeight: typography.weight.bold,
-              fontSize: '0.875rem',
+              fontSize: { xs: '0.75rem', sm: '0.875rem' },
               color: 'text.primary',
             }}
           >
@@ -100,8 +101,8 @@ const ConfidenceMeter: React.FC<ConfidenceMeterProps> = ({ confidence, tier, exp
             label={tierLabel}
             size="small"
             sx={{
-              height: 24,
-              fontSize: '0.75rem',
+              height: { xs: 22, sm: 24 },
+              fontSize: { xs: '0.6875rem', sm: '0.75rem' },
               fontWeight: typography.weight.semibold,
               backgroundColor: alpha(tierColor, 0.15),
               color: tierColor,
@@ -116,8 +117,8 @@ const ConfidenceMeter: React.FC<ConfidenceMeterProps> = ({ confidence, tier, exp
             variant="caption"
             color="text.secondary"
             sx={{
-              fontSize: '0.6875rem',
-              maxWidth: 200,
+              fontSize: { xs: '0.625rem', sm: '0.6875rem' },
+              maxWidth: { xs: 180, sm: 200 },
               lineHeight: 1.3,
             }}
           >

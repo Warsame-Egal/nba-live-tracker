@@ -31,13 +31,13 @@ const SeasonLeaders: React.FC<SeasonLeadersProps> = ({ data }) => {
   };
 
   return (
-    <Grid container spacing={3}>
+    <Grid container spacing={{ xs: 2, sm: 3 }}>
       {data.categories.map((category, idx) => (
         <Grid item xs={12} sm={6} md={4} key={idx}>
           <Paper
             elevation={0}
             sx={{
-              p: 3, // Material 3: 24dp
+              p: { xs: 2, sm: 3 }, // Material 3: 24dp
               backgroundColor: 'background.paper', // Material 3: surface
               border: '1px solid',
               borderColor: 'divider', // Material 3: outline
@@ -49,8 +49,8 @@ const SeasonLeaders: React.FC<SeasonLeadersProps> = ({ data }) => {
               variant="h6"
               sx={{
                 fontWeight: typography.weight.bold,
-                mb: 2.5,
-                fontSize: typography.size.h6,
+                mb: { xs: 2, sm: 2.5 },
+                fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.h6 },
                 color: 'text.primary',
               }}
             >
@@ -103,7 +103,7 @@ const LeaderRow: React.FC<LeaderRowProps> = ({ leader, rank, formattedValue }) =
         justifyContent: 'space-between',
         textDecoration: 'none',
         color: 'text.primary',
-        p: 1.5,
+        p: { xs: 1, sm: 1.5 },
         borderRadius: borderRadius.sm,
         transition: transitions.normal,
         '&:hover': {
@@ -119,7 +119,7 @@ const LeaderRow: React.FC<LeaderRowProps> = ({ leader, rank, formattedValue }) =
             fontWeight: typography.weight.bold,
             color: 'text.secondary',
             minWidth: 24,
-            fontSize: typography.size.bodySmall,
+            fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall },
           }}
         >
           {rank}.
@@ -128,7 +128,7 @@ const LeaderRow: React.FC<LeaderRowProps> = ({ leader, rank, formattedValue }) =
           variant="body2"
           sx={{
             fontWeight: typography.weight.semibold,
-            fontSize: typography.size.bodySmall,
+            fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall },
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
@@ -143,7 +143,7 @@ const LeaderRow: React.FC<LeaderRowProps> = ({ leader, rank, formattedValue }) =
               component="span"
               sx={{
                 fontWeight: typography.weight.semibold,
-                fontSize: typography.size.bodySmall,
+                fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall },
                 color: 'primary.main',
                 ml: 0.5,
               }}
@@ -158,7 +158,7 @@ const LeaderRow: React.FC<LeaderRowProps> = ({ leader, rank, formattedValue }) =
         sx={{
           fontWeight: typography.weight.bold,
           color: 'primary.main',
-          fontSize: typography.size.bodySmall,
+          fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall },
           ml: 1,
         }}
       >

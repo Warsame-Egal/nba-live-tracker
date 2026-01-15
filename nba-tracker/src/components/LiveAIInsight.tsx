@@ -103,8 +103,8 @@ const LiveAIInsight: React.FC<LiveAIInsightProps> = ({ insight, onWhyClick }) =>
         alignItems: 'flex-start',
         flex: 1,
         minWidth: 0,
-        px: 2,
-        py: 1,
+        px: { xs: 1, sm: 2 },
+        py: { xs: 1, sm: 1 },
       }}
     >
       <Fade in={true} timeout={300}>
@@ -146,8 +146,11 @@ const LiveAIInsight: React.FC<LiveAIInsightProps> = ({ insight, onWhyClick }) =>
                   fontSize: { xs: '0.8125rem', sm: '0.875rem' },
                   color: 'text.primary',
                   fontWeight: typography.weight.regular,
-                  lineHeight: 1.4,
+                  lineHeight: 1.5,
                   letterSpacing: typography.letterSpacing.normal,
+                  whiteSpace: 'normal',
+                  wordBreak: 'break-word',
+                  overflow: 'hidden',
                 }}
               >
                 {statement}

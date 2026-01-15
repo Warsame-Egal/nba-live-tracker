@@ -174,7 +174,7 @@ const Standings = () => {
           borderRadius: borderRadius.md,
           borderLeft: isTopSeed ? '3px solid' : 'none',
           borderLeftColor: isTopSeed ? 'primary.main' : 'transparent',
-          minHeight: 140,
+          minHeight: { xs: 120, sm: 140 },
           '&:hover': {
             backgroundColor: 'action.hover',
             borderColor: 'primary.main',
@@ -182,16 +182,16 @@ const Standings = () => {
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flex: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 1.5 }, flex: 1 }}>
             {showRank && (
               <Chip
                 label={team.playoff_rank}
                 size="small"
                 sx={{
-                  height: 28,
-                  minWidth: 28,
+                  height: { xs: 24, sm: 28 },
+                  minWidth: { xs: 24, sm: 28 },
                   fontWeight: typography.weight.bold,
-                  fontSize: typography.editorial.helper.xs,
+                  fontSize: { xs: typography.size.caption.xs, sm: typography.editorial.helper.xs },
                   backgroundColor: isTopSeed
                     ? 'primary.main'
                     : isPlayoffTeam
@@ -207,8 +207,8 @@ const Standings = () => {
               src={logo}
               alt={fullTeamName}
               sx={{
-                width: 44,
-                height: 44,
+                width: { xs: 36, sm: 44 },
+                height: { xs: 36, sm: 44 },
                 aspectRatio: '1/1',
                 backgroundColor: 'transparent',
                 border: '1px solid',
@@ -220,7 +220,7 @@ const Standings = () => {
                 variant="body1"
                 sx={{
                   fontWeight: typography.weight.bold,
-                  fontSize: typography.editorial.metric.xs,
+                  fontSize: { xs: typography.size.bodySmall.xs, sm: typography.editorial.metric.xs },
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
@@ -229,7 +229,7 @@ const Standings = () => {
               >
                 {abbreviation || team.team_city}
                 {!showRank && (
-                  <Typography component="span" sx={{ color: 'text.secondary', ml: 0.5, fontSize: typography.editorial.helper.xs }}>
+                  <Typography component="span" sx={{ color: 'text.secondary', ml: 0.5, fontSize: { xs: typography.size.caption.xs, sm: typography.editorial.helper.xs } }}>
                     ({team.playoff_rank})
                   </Typography>
                 )}
@@ -238,7 +238,7 @@ const Standings = () => {
                 variant="caption"
                 sx={{
                   color: 'text.secondary',
-                  fontSize: typography.editorial.helper.xs,
+                  fontSize: { xs: typography.size.caption.xs, sm: typography.editorial.helper.xs },
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
@@ -253,7 +253,7 @@ const Standings = () => {
               variant="h6"
               sx={{
                 fontWeight: typography.weight.bold,
-                fontSize: typography.editorial.metric.xs,
+                fontSize: { xs: typography.size.bodySmall.xs, sm: typography.editorial.metric.xs },
                 color: 'text.primary',
               }}
             >
@@ -263,7 +263,7 @@ const Standings = () => {
               variant="body2"
               sx={{
                 fontWeight: typography.weight.medium,
-                fontSize: typography.editorial.helper.xs,
+                fontSize: { xs: typography.size.bodySmall.xs, sm: typography.editorial.helper.xs },
                 color: 'text.secondary',
               }}
             >
@@ -271,28 +271,28 @@ const Standings = () => {
             </Typography>
           </Box>
         </Box>
-        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1.5, mt: 2 }}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: { xs: 1, sm: 1.5 }, mt: 2 }}>
           <Box>
-            <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: typography.editorial.helper.xs, textTransform: 'lowercase' }}>
+            <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: { xs: typography.size.captionSmall.xs, sm: typography.editorial.helper.xs }, textTransform: 'lowercase' }}>
               GB
             </Typography>
-            <Typography variant="body2" sx={{ fontSize: typography.editorial.helper.xs, fontWeight: typography.weight.medium, mt: 0.25 }}>
+            <Typography variant="body2" sx={{ fontSize: { xs: typography.size.bodySmall.xs, sm: typography.editorial.helper.xs }, fontWeight: typography.weight.medium, mt: 0.25 }}>
               {gamesBack}
             </Typography>
           </Box>
           <Box>
-            <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: typography.editorial.helper.xs, textTransform: 'lowercase' }}>
+            <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: { xs: typography.size.captionSmall.xs, sm: typography.editorial.helper.xs }, textTransform: 'lowercase' }}>
               Home
             </Typography>
-            <Typography variant="body2" sx={{ fontSize: typography.editorial.helper.xs, fontWeight: typography.weight.medium, mt: 0.25 }}>
+            <Typography variant="body2" sx={{ fontSize: { xs: typography.size.bodySmall.xs, sm: typography.editorial.helper.xs }, fontWeight: typography.weight.medium, mt: 0.25 }}>
               {team.home_record}
             </Typography>
           </Box>
           <Box>
-            <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: typography.editorial.helper.xs, textTransform: 'lowercase' }}>
+            <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: { xs: typography.size.captionSmall.xs, sm: typography.editorial.helper.xs }, textTransform: 'lowercase' }}>
               Away
             </Typography>
-            <Typography variant="body2" sx={{ fontSize: typography.editorial.helper.xs, fontWeight: typography.weight.medium, mt: 0.25 }}>
+            <Typography variant="body2" sx={{ fontSize: { xs: typography.size.bodySmall.xs, sm: typography.editorial.helper.xs }, fontWeight: typography.weight.medium, mt: 0.25 }}>
               {team.road_record}
             </Typography>
           </Box>
@@ -560,17 +560,20 @@ const Standings = () => {
           backgroundColor: 'background.paper',
           overflowX: 'auto',
           minHeight: { xs: 400, sm: 500 },
-          '&::-webkit-scrollbar': {
-            height: 8,
-          },
-          '&::-webkit-scrollbar-track': {
-            backgroundColor: 'background.default',
-          },
-          '&::-webkit-scrollbar-thumb': {
-            backgroundColor: 'divider',
-            borderRadius: borderRadius.xs,
-            '&:hover': {
-              backgroundColor: 'text.secondary',
+          // Hide scrollbar on mobile (touch devices)
+          '@media (hover: hover)': {
+            '&::-webkit-scrollbar': {
+              height: 8,
+            },
+            '&::-webkit-scrollbar-track': {
+              backgroundColor: 'background.default',
+            },
+            '&::-webkit-scrollbar-thumb': {
+              backgroundColor: 'divider',
+              borderRadius: borderRadius.xs,
+              '&:hover': {
+                backgroundColor: 'text.secondary',
+              },
             },
           },
         }}
@@ -784,7 +787,7 @@ const Standings = () => {
           if (teams.length === 0) return null;
 
           return (
-            <Box key={div} sx={{ mb: 3, minHeight: { xs: 200, sm: 250 } }}>
+            <Box key={div} sx={{ mb: { xs: 2, sm: 3 }, minHeight: { xs: 200, sm: 250 } }}>
               <Typography
                 variant="h6"
                 sx={{

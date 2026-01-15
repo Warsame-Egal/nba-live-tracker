@@ -55,8 +55,8 @@ const PredictionCard: React.FC<PredictionCardProps> = ({ prediction, onClick }) 
       }}
     >
       {/* Team Matchup */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2, gap: { xs: 1, sm: 0 } }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 1.5 } }}>
           <Avatar
             src={awayLogo}
             sx={{
@@ -80,14 +80,14 @@ const PredictionCard: React.FC<PredictionCardProps> = ({ prediction, onClick }) 
           variant="body2"
           sx={{
             fontWeight: typography.weight.semibold,
-            fontSize: typography.size.bodySmall,
+            fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm },
             color: 'text.secondary',
-            px: 1,
+            px: { xs: 0.5, sm: 1 },
           }}
         >
           @
         </Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 1.5 } }}>
           <Typography
             variant="body1"
             sx={{
@@ -115,7 +115,7 @@ const PredictionCard: React.FC<PredictionCardProps> = ({ prediction, onClick }) 
           <Typography
             variant="caption"
             sx={{
-              fontSize: typography.size.caption,
+              fontSize: { xs: typography.size.captionSmall.xs, sm: typography.size.caption.sm },
               color: 'text.secondary',
               fontWeight: typography.weight.medium,
               textTransform: 'uppercase',
@@ -128,8 +128,9 @@ const PredictionCard: React.FC<PredictionCardProps> = ({ prediction, onClick }) 
             variant="body2"
             sx={{
               fontWeight: typography.weight.bold,
-              fontSize: typography.size.bodySmall,
+              fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm },
               color: 'primary.main',
+              whiteSpace: 'nowrap',
             }}
           >
             {favoredTeam === 'home' ? homeAbbr : awayAbbr} {favoredProb.toFixed(0)}%
@@ -160,7 +161,7 @@ const PredictionCard: React.FC<PredictionCardProps> = ({ prediction, onClick }) 
         <Typography
           variant="caption"
           sx={{
-            fontSize: typography.size.caption,
+            fontSize: { xs: typography.size.captionSmall.xs, sm: typography.size.caption.sm },
             color: 'text.secondary',
             fontWeight: typography.weight.medium,
             textTransform: 'uppercase',
@@ -178,6 +179,8 @@ const PredictionCard: React.FC<PredictionCardProps> = ({ prediction, onClick }) 
             fontSize: { xs: typography.size.body.xs, sm: typography.size.body.sm },
             color: 'text.primary',
             lineHeight: typography.lineHeight.tight,
+            wordBreak: 'break-word',
+            overflowWrap: 'break-word',
           }}
         >
           {awayAbbr} {prediction.predicted_away_score} - {prediction.predicted_home_score} {homeAbbr}
@@ -233,7 +236,7 @@ const PredictionsSidebar: React.FC<PredictionsSidebarProps> = ({ open, onClose, 
             flexShrink: 0,
           }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flex: 1, minWidth: 0 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flex: 1, minWidth: 0, overflow: 'hidden' }}>
             <Insights sx={{ color: 'primary.main', fontSize: { xs: 24, sm: 28 }, flexShrink: 0 }} />
             <Typography
               variant="h6"
@@ -243,6 +246,9 @@ const PredictionsSidebar: React.FC<PredictionsSidebarProps> = ({ open, onClose, 
                 color: 'text.primary',
                 letterSpacing: typography.letterSpacing.tight,
                 flexShrink: 0,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
               }}
             >
               Predictions & Insights
@@ -286,8 +292,8 @@ const PredictionsSidebar: React.FC<PredictionsSidebarProps> = ({ open, onClose, 
           <IconButton
             onClick={onClose}
             sx={{
-              minWidth: 40,
-              minHeight: 40,
+              minWidth: { xs: 44, sm: 40 },
+              minHeight: { xs: 44, sm: 40 },
               color: 'text.secondary',
               '&:hover': {
                 backgroundColor: 'action.hover',
@@ -306,21 +312,23 @@ const PredictionsSidebar: React.FC<PredictionsSidebarProps> = ({ open, onClose, 
             flex: 1,
             overflowY: 'auto',
             p: { xs: 2, sm: 2.5 },
-            // Material 3 scrollbar styling
-            scrollbarWidth: 'thin',
-            scrollbarColor: `${theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.4)'} ${theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
-            '&::-webkit-scrollbar': {
-              width: '8px',
-            },
-            '&::-webkit-scrollbar-track': {
-              background: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
-              borderRadius: borderRadius.xs,
-            },
-            '&::-webkit-scrollbar-thumb': {
-              backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.4)',
-              borderRadius: borderRadius.xs,
-              '&:hover': {
-                backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.6)' : 'rgba(0, 0, 0, 0.6)',
+            // Hide scrollbar on mobile (touch devices)
+            '@media (hover: hover)': {
+              scrollbarWidth: 'thin',
+              scrollbarColor: `${theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.4)'} ${theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
+              '&::-webkit-scrollbar': {
+                width: '8px',
+              },
+              '&::-webkit-scrollbar-track': {
+                background: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+                borderRadius: borderRadius.xs,
+              },
+              '&::-webkit-scrollbar-thumb': {
+                backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.4)',
+                borderRadius: borderRadius.xs,
+                '&:hover': {
+                  backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.6)' : 'rgba(0, 0, 0, 0.6)',
+                },
               },
             },
           }}
@@ -370,7 +378,7 @@ const PredictionsSidebar: React.FC<PredictionsSidebarProps> = ({ open, onClose, 
                 textAlign: 'center',
               }}
             >
-              <Insights sx={{ fontSize: 64, color: 'text.disabled', opacity: 0.3, mb: 2 }} />
+              <Insights sx={{ fontSize: { xs: 48, sm: 64 }, color: 'text.disabled', opacity: 0.3, mb: 2 }} />
               <Typography
                 variant="body1"
                 sx={{
