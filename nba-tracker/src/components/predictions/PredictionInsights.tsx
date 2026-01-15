@@ -84,6 +84,8 @@ const PredictionInsights: React.FC<PredictionInsightsProps> = ({ prediction }) =
           size="small"
           sx={{
             p: 0.5,
+            minWidth: { xs: 44, sm: 32 },
+            minHeight: { xs: 44, sm: 32 },
             color: 'text.secondary',
             transition: 'transform 0.2s ease-in-out',
             transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',

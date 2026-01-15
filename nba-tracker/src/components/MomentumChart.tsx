@@ -15,7 +15,7 @@
  */
 
 import React, { useMemo } from 'react';
-import { Box, Typography, Paper, useTheme, alpha, Chip } from '@mui/material';
+import { Box, Typography, Paper, useTheme, alpha, Chip, useMediaQuery } from '@mui/material';
 import {
   Area,
   ComposedChart,
@@ -176,6 +176,7 @@ const detectScoringRuns = (dataPoints: MomentumDataPoint[]): Set<number> => {
  */
 const MomentumChart: React.FC<MomentumChartProps> = ({ plays, homeTeam, awayTeam }) => {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   // Process play-by-play data into chart data points
   // This memoization ensures we only recalculate when plays change
@@ -236,6 +237,10 @@ const MomentumChart: React.FC<MomentumChartProps> = ({ plays, homeTeam, awayTeam
     return dataPoints;
   }, [plays]);
 
+  // Define colors early for use in CustomTooltip
+  const homeColor = theme.palette.primary.main; // Blue for home team leading
+  const awayColor = theme.palette.warning.main || '#ff9800'; // Orange for away team leading
+
   // Custom tooltip component - broadcast-quality design
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
@@ -248,7 +253,7 @@ const MomentumChart: React.FC<MomentumChartProps> = ({ plays, homeTeam, awayTeam
         <Paper
           elevation={8}
           sx={{
-            p: 2,
+            p: { xs: 1.5, sm: 2 },
             backgroundColor: theme.palette.mode === 'dark' 
               ? 'rgba(18, 18, 18, 0.95)' 
               : 'rgba(255, 255, 255, 0.98)',
@@ -259,6 +264,7 @@ const MomentumChart: React.FC<MomentumChartProps> = ({ plays, homeTeam, awayTeam
               ? '0 8px 32px rgba(0, 0, 0, 0.6)'
               : '0 8px 32px rgba(0, 0, 0, 0.15)',
             backdropFilter: 'blur(10px)',
+            maxWidth: { xs: 280, sm: 'none' },
           }}
         >
           <Typography 
@@ -267,14 +273,23 @@ const MomentumChart: React.FC<MomentumChartProps> = ({ plays, homeTeam, awayTeam
               fontWeight: typography.weight.bold, 
               display: 'block', 
               mb: 1,
-              fontSize: '0.8125rem',
+              fontSize: { xs: '0.75rem', sm: '0.8125rem' },
               color: 'text.primary',
             }}
           >
             {data.time}
           </Typography>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-            <Typography variant="caption" sx={{ color: 'text.primary', display: 'block', fontWeight: typography.weight.medium }}>
+            <Typography 
+              variant="caption" 
+              sx={{ 
+                color: 'text.primary', 
+                display: 'block', 
+                fontWeight: typography.weight.medium,
+                fontSize: { xs: '0.7rem', sm: '0.75rem' },
+                wordBreak: 'break-word',
+              }}
+            >
               {homeTeam}: <strong>{data.homeScore}</strong> | {awayTeam}: <strong>{data.awayScore}</strong>
             </Typography>
             {!isTied && (
@@ -368,9 +383,6 @@ const MomentumChart: React.FC<MomentumChartProps> = ({ plays, homeTeam, awayTeam
     );
   }
 
-  const homeColor = theme.palette.primary.main; // Blue for home team leading
-  // Use orange color for away team leading (warning color is typically orange)
-  const awayColor = theme.palette.warning.main || '#ff9800';
   const gridColor = theme.palette.divider;
   const textColor = theme.palette.text.secondary;
 
@@ -447,93 +459,114 @@ const MomentumChart: React.FC<MomentumChartProps> = ({ plays, homeTeam, awayTeam
     <Paper
       elevation={0}
       sx={{
-        p: 2,
+        p: { xs: 1.5, sm: 2 },
         backgroundColor: 'background.paper',
         border: '1px solid',
         borderColor: 'divider',
         borderRadius: borderRadius.md,
       }}
     >
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
+      <Box sx={{ 
+        display: 'flex', 
+        flexDirection: { xs: 'column', sm: 'row' },
+        justifyContent: 'space-between', 
+        alignItems: { xs: 'flex-start', sm: 'center' }, 
+        mb: 2, 
+        gap: 1 
+      }}>
         <Typography
           variant="subtitle2"
           sx={{
             fontWeight: typography.weight.semibold,
             color: 'text.primary',
+            fontSize: { xs: '0.875rem', sm: '1rem' },
           }}
         >
           Game Momentum
         </Typography>
-        {/* Edge case messages */}
-        {hasOnlyHomeData && (
-          <Chip
-            label={`Insufficient data for ${awayTeam}`}
-            size="small"
-            sx={{
-              backgroundColor: alpha(theme.palette.warning.main, 0.1),
-              color: theme.palette.warning.main,
-              fontWeight: typography.weight.medium,
-              fontSize: { xs: typography.size.captionSmall.xs, sm: typography.size.captionSmall.sm },
-            }}
-          />
-        )}
-        {hasOnlyAwayData && (
-          <Chip
-            label={`Insufficient data for ${homeTeam}`}
-            size="small"
-            sx={{
-              backgroundColor: alpha(theme.palette.warning.main, 0.1),
-              color: theme.palette.warning.main,
-              fontWeight: typography.weight.medium,
-              fontSize: { xs: typography.size.captionSmall.xs, sm: typography.size.captionSmall.sm },
-            }}
-          />
-        )}
-        {isTiedGame && (
-          <Chip
-            label="Game tied throughout"
-            size="small"
-            sx={{
-              backgroundColor: alpha(theme.palette.text.secondary, 0.1),
-              color: 'text.secondary',
-              fontWeight: typography.weight.medium,
-              fontSize: { xs: typography.size.captionSmall.xs, sm: typography.size.captionSmall.sm },
-            }}
-          />
-        )}
-        {/* Current Leader Display */}
-        {currentLeader && !isTiedGame && (
-          <Chip
-            label={
-              currentLeader.team
-                ? `${currentLeader.team} leading by ${currentLeader.lead}`
-                : 'Game tied'
-            }
-            size="small"
-            sx={{
-              backgroundColor: currentLeader.team
-                ? currentLeader.lead > 0
-                  ? alpha(homeColor, 0.1)
-                  : alpha(awayColor, 0.1)
-                : alpha(theme.palette.text.secondary, 0.1),
-              color: currentLeader.team
-                ? currentLeader.lead > 0
-                  ? homeColor
-                  : awayColor
-                : 'text.secondary',
-              fontWeight: typography.weight.semibold,
-              fontSize: { xs: typography.size.caption.xs, sm: typography.size.caption.sm },
-              border: `1px solid ${currentLeader.team ? (currentLeader.lead > 0 ? alpha(homeColor, 0.3) : alpha(awayColor, 0.3)) : 'divider'}`,
-            }}
-          />
-        )}
+        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', width: { xs: '100%', sm: 'auto' } }}>
+          {/* Edge case messages */}
+          {hasOnlyHomeData && (
+            <Chip
+              label={isMobile ? `No ${awayTeam} data` : `Insufficient data for ${awayTeam}`}
+              size="small"
+              sx={{
+                backgroundColor: alpha(theme.palette.warning.main, 0.1),
+                color: theme.palette.warning.main,
+                fontWeight: typography.weight.medium,
+                fontSize: { xs: typography.size.captionSmall.xs, sm: typography.size.captionSmall.sm },
+                maxWidth: { xs: '100%', sm: 'none' },
+              }}
+            />
+          )}
+          {hasOnlyAwayData && (
+            <Chip
+              label={isMobile ? `No ${homeTeam} data` : `Insufficient data for ${homeTeam}`}
+              size="small"
+              sx={{
+                backgroundColor: alpha(theme.palette.warning.main, 0.1),
+                color: theme.palette.warning.main,
+                fontWeight: typography.weight.medium,
+                fontSize: { xs: typography.size.captionSmall.xs, sm: typography.size.captionSmall.sm },
+                maxWidth: { xs: '100%', sm: 'none' },
+              }}
+            />
+          )}
+          {isTiedGame && (
+            <Chip
+              label="Game tied throughout"
+              size="small"
+              sx={{
+                backgroundColor: alpha(theme.palette.text.secondary, 0.1),
+                color: 'text.secondary',
+                fontWeight: typography.weight.medium,
+                fontSize: { xs: typography.size.captionSmall.xs, sm: typography.size.captionSmall.sm },
+                maxWidth: { xs: '100%', sm: 'none' },
+              }}
+            />
+          )}
+          {/* Current Leader Display */}
+          {currentLeader && !isTiedGame && (
+            <Chip
+              label={
+                currentLeader.team
+                  ? isMobile
+                    ? `${currentLeader.team} +${currentLeader.lead}`
+                    : `${currentLeader.team} leading by ${currentLeader.lead}`
+                  : 'Game tied'
+              }
+              size="small"
+              sx={{
+                backgroundColor: currentLeader.team
+                  ? currentLeader.lead > 0
+                    ? alpha(homeColor, 0.1)
+                    : alpha(awayColor, 0.1)
+                  : alpha(theme.palette.text.secondary, 0.1),
+                color: currentLeader.team
+                  ? currentLeader.lead > 0
+                    ? homeColor
+                    : awayColor
+                  : 'text.secondary',
+                fontWeight: typography.weight.semibold,
+                fontSize: { xs: typography.size.caption.xs, sm: typography.size.caption.sm },
+                border: `1px solid ${currentLeader.team ? (currentLeader.lead > 0 ? alpha(homeColor, 0.3) : alpha(awayColor, 0.3)) : 'divider'}`,
+                maxWidth: { xs: '100%', sm: 'none' },
+              }}
+            />
+          )}
+        </Box>
       </Box>
       
       <Box sx={{ width: '100%', height: { xs: 300, sm: 380 } }}>
         <ResponsiveContainer width="100%" height="100%">
         <ComposedChart
           data={transformedData}
-          margin={{ top: 15, right: 15, left: 15, bottom: 50 }}
+          margin={{ 
+            top: 15, 
+            right: isMobile ? 10 : 15, 
+            left: isMobile ? 10 : 15, 
+            bottom: isMobile ? 70 : 50 
+          }}
         >
           <defs>
             <linearGradient id="homeGradient" x1="0" y1="0" x2="0" y2="1">
@@ -553,23 +586,29 @@ const MomentumChart: React.FC<MomentumChartProps> = ({ plays, homeTeam, awayTeam
           <XAxis
             dataKey="time"
             stroke={textColor}
-            tick={{ fill: textColor, fontSize: 11 }}
+            tick={{ fill: textColor, fontSize: isMobile ? 10 : 11 }}
             angle={-45}
             textAnchor="end"
-            height={60}
-            interval={Math.max(0, Math.floor((transformedData.length - 1) / 6))}
-            tickCount={7}
+            height={isMobile ? 80 : 60}
+            interval={(() => {
+              if (isMobile) {
+                const maxTicks = 4;
+                return Math.max(0, Math.floor((transformedData.length - 1) / maxTicks));
+              }
+              return Math.max(0, Math.floor((transformedData.length - 1) / 6));
+            })()}
+            tickCount={isMobile ? 5 : 7}
           />
           
           <YAxis
             stroke={textColor}
-            tick={{ fill: textColor, fontSize: 11 }}
+            tick={{ fill: textColor, fontSize: isMobile ? 10 : 11 }}
             domain={[-maxDifferential, maxDifferential]}
             label={{ 
               value: 'Score Differential', 
               angle: -90, 
               position: 'insideLeft',
-              style: { fill: textColor, fontSize: 11 }
+              style: { fill: textColor, fontSize: isMobile ? 10 : 11 }
             }}
           />
           
@@ -680,12 +719,18 @@ const MomentumChart: React.FC<MomentumChartProps> = ({ plays, homeTeam, awayTeam
       </Box>
       
       {/* Legend - premium styling */}
-      <Box sx={{ display: 'flex', gap: 3, mt: 2.5, justifyContent: 'center', flexWrap: 'wrap' }}>
+      <Box sx={{ 
+        display: 'flex', 
+        gap: { xs: 1.5, sm: 3 }, 
+        mt: { xs: 2, sm: 2.5 }, 
+        justifyContent: 'center', 
+        flexWrap: 'wrap' 
+      }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
           <Box
             sx={{
-              width: 14,
-              height: 14,
+              width: { xs: 12, sm: 14 },
+              height: { xs: 12, sm: 14 },
               borderRadius: '50%',
               backgroundColor: homeColor,
               border: `2px solid ${theme.palette.background.paper}`,
@@ -697,7 +742,7 @@ const MomentumChart: React.FC<MomentumChartProps> = ({ plays, homeTeam, awayTeam
             sx={{ 
               color: 'text.primary',
               fontWeight: typography.weight.medium,
-              fontSize: '0.75rem',
+              fontSize: { xs: '0.7rem', sm: '0.75rem' },
             }}
           >
             {homeTeam} leading
@@ -706,8 +751,8 @@ const MomentumChart: React.FC<MomentumChartProps> = ({ plays, homeTeam, awayTeam
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
           <Box
             sx={{
-              width: 14,
-              height: 14,
+              width: { xs: 12, sm: 14 },
+              height: { xs: 12, sm: 14 },
               borderRadius: '50%',
               backgroundColor: awayColor,
               border: `2px solid ${theme.palette.background.paper}`,
@@ -719,7 +764,7 @@ const MomentumChart: React.FC<MomentumChartProps> = ({ plays, homeTeam, awayTeam
             sx={{ 
               color: 'text.primary',
               fontWeight: typography.weight.medium,
-              fontSize: '0.75rem',
+              fontSize: { xs: '0.7rem', sm: '0.75rem' },
             }}
           >
             {awayTeam} leading
@@ -728,8 +773,8 @@ const MomentumChart: React.FC<MomentumChartProps> = ({ plays, homeTeam, awayTeam
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
           <Box
             sx={{
-              width: 10,
-              height: 10,
+              width: { xs: 9, sm: 10 },
+              height: { xs: 9, sm: 10 },
               borderRadius: '50%',
               backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 193, 7, 0.9)' : 'rgba(255, 152, 0, 0.9)',
               border: `1.5px solid ${theme.palette.background.paper}`,
@@ -739,7 +784,7 @@ const MomentumChart: React.FC<MomentumChartProps> = ({ plays, homeTeam, awayTeam
             variant="caption" 
             sx={{ 
               color: 'text.secondary',
-              fontSize: '0.75rem',
+              fontSize: { xs: '0.7rem', sm: '0.75rem' },
             }}
           >
             Lead change

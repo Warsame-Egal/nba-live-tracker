@@ -964,12 +964,13 @@ const Scoreboard = () => {
 
   return (
     <Box sx={{ 
-      minHeight: '100vh', 
+      minHeight: '100dvh', 
       backgroundColor: 'background.default', 
       display: 'flex', 
       flexDirection: 'column',
       maxWidth: '100vw',
       overflowX: 'hidden',
+      overflowY: 'visible',
       width: '100%',
     }}>
       <Navbar searchProps={searchProps} />
@@ -1117,12 +1118,14 @@ const Scoreboard = () => {
                 onChange={(_, newValue) => newValue && setGameFilter(newValue)}
                 size="small"
                 sx={{
+                  flexWrap: 'wrap',
+                  gap: { xs: 0.5, sm: 0 },
                   '& .MuiToggleButton-root': {
                     px: { xs: 1.5, sm: 1.5 },
                     py: { xs: 1, sm: 1 },
                     textTransform: 'none',
                     fontWeight: typography.weight.semibold,
-                    fontSize: { xs: typography.size.caption.xs, sm: typography.size.caption.sm },
+                    fontSize: { xs: '0.7rem', sm: typography.size.caption.sm },
                     minHeight: { xs: 44, sm: 40 }, // 44px minimum for mobile touch targets
                     minWidth: { xs: 44, sm: 'auto' }, // Ensure minimum width for touch
                     borderColor: 'divider',

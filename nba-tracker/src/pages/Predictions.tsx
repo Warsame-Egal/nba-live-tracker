@@ -101,12 +101,13 @@ const Predictions = () => {
 
   return (
     <Box sx={{ 
-      minHeight: '100vh', 
+      minHeight: '100dvh', 
       backgroundColor: 'background.default', 
       display: 'flex', 
       flexDirection: 'column',
       maxWidth: '100vw',
       overflowX: 'hidden',
+      overflowY: 'visible',
       width: '100%',
     }}>
       <Navbar />
@@ -134,7 +135,7 @@ const Predictions = () => {
                 p: { xs: 2, sm: 3 },
                 borderBottom: '1px solid',
                 borderColor: 'divider',
-                backgroundColor: 'action.hover',
+                backgroundColor: 'background.paper',
                 minHeight: { xs: 140, sm: 160 },
               }}
             >

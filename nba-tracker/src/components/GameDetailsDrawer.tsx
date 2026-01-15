@@ -84,7 +84,7 @@ const GameDetailsDrawer = ({ gameId, open, onClose, initialTab = 'box', gameInfo
   /**
    * Render modern team stats with improved visual hierarchy.
    */
-  const renderTeamStats = (team: TeamBoxScoreStats, isHome: boolean) => (
+  const renderTeamStats = (team: TeamBoxScoreStats, _isHome: boolean) => (
     <Box sx={{ mb: { xs: 3, sm: 4 } }}>
       {/* Team header card */}
       <Paper
@@ -92,19 +92,28 @@ const GameDetailsDrawer = ({ gameId, open, onClose, initialTab = 'box', gameInfo
         sx={{
           p: { xs: 2, sm: 2.5 },
           mb: 2,
-          backgroundColor: isHome ? 'rgba(25, 118, 210, 0.05)' : 'rgba(255, 255, 255, 0.02)',
+          backgroundColor: 'background.paper',
           border: '1px solid',
           borderColor: 'divider',
           borderRadius: 2,
         }}
       >
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, gap: { xs: 2, sm: 0 } }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Typography variant="h6" sx={{ fontWeight: 700, fontSize: { xs: '1.125rem', sm: '1.25rem' } }}>
+            <Typography 
+              variant="h6" 
+              sx={{ 
+                fontWeight: 700, 
+                fontSize: { xs: '1.125rem', sm: '1.25rem' },
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
               {team.team_name}
             </Typography>
           </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: { xs: '100%', sm: 'auto' } }}>
             {/* Team stats summary */}
             <Box sx={{ display: 'flex', gap: { xs: 1.5, sm: 2 }, flexWrap: 'wrap' }}>
               <StatBadge label="PTS" value={team.score} />
@@ -122,6 +131,7 @@ const GameDetailsDrawer = ({ gameId, open, onClose, initialTab = 'box', gameInfo
         <Paper
           elevation={0}
           sx={{
+            backgroundColor: 'background.paper',
             border: '1px solid',
             borderColor: 'divider',
             borderRadius: 2,
@@ -174,6 +184,7 @@ const GameDetailsDrawer = ({ gameId, open, onClose, initialTab = 'box', gameInfo
                   display: 'flex',
                   px: { xs: 2, sm: 2 },
                   py: { xs: 1.5, sm: 1.75 },
+                  backgroundColor: 'background.paper',
                   borderBottom: idx < team.players.length - 1 ? '1px solid' : 'none',
                   borderColor: 'divider',
                   transition: 'background-color 0.2s ease-in-out',
@@ -190,6 +201,9 @@ const GameDetailsDrawer = ({ gameId, open, onClose, initialTab = 'box', gameInfo
                       fontWeight: 600,
                       fontSize: { xs: '0.875rem', sm: '0.9375rem' },
                       mb: { xs: 0.5, sm: 0 },
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
                     }}
                   >
                     {p.name}
@@ -203,16 +217,16 @@ const GameDetailsDrawer = ({ gameId, open, onClose, initialTab = 'box', gameInfo
                       flexWrap: 'wrap',
                     }}
                   >
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
                       {formatMinutes(p.minutes ?? null)} MIN
                     </Typography>
-                    <Typography variant="caption" sx={{ fontWeight: 600, color: 'primary.main' }}>
+                    <Typography variant="caption" sx={{ fontWeight: 600, color: 'primary.main', whiteSpace: 'nowrap' }}>
                       {p.points} PTS
                     </Typography>
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
                       {p.rebounds} REB
                     </Typography>
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
                       {p.assists} AST
                     </Typography>
                   </Box>
@@ -257,6 +271,7 @@ const GameDetailsDrawer = ({ gameId, open, onClose, initialTab = 'box', gameInfo
           sx={{
             p: { xs: 4, sm: 6 },
             textAlign: 'center',
+            backgroundColor: 'background.paper',
             border: '1px solid',
             borderColor: 'divider',
             borderRadius: 2,

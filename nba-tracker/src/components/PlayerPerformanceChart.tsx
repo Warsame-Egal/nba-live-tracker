@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Paper, Typography, Box, useTheme } from '@mui/material';
+import { Paper, Typography, Box, useTheme, useMediaQuery } from '@mui/material';
 import {
   Line,
   Area,
@@ -22,6 +22,7 @@ interface PlayerPerformanceChartProps {
 
 const PlayerPerformanceChart: React.FC<PlayerPerformanceChartProps> = ({ data }) => {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const chartData = useMemo(() => {
     if (!data.games || data.games.length === 0) return [];
@@ -89,7 +90,7 @@ const PlayerPerformanceChart: React.FC<PlayerPerformanceChartProps> = ({ data })
     <Paper
       elevation={0}
       sx={{
-        p: 3.5,
+        p: { xs: 2, sm: 3.5 },
         backgroundColor: 'background.paper',
         border: '1px solid',
         borderColor: 'divider',
@@ -108,10 +109,10 @@ const PlayerPerformanceChart: React.FC<PlayerPerformanceChartProps> = ({ data })
         Recent Performance Trend
       </Typography>
 
-      <ResponsiveContainer width="100%" height={420}>
+      <ResponsiveContainer width="100%" height={isMobile ? 320 : 420}>
         <AreaChart
           data={chartData}
-          margin={{ top: 20, right: 50, left: 30, bottom: 40 }}
+          margin={{ top: 20, right: isMobile ? 30 : 50, left: isMobile ? 20 : 30, bottom: isMobile ? 60 : 40 }}
         >
           <defs>
             <linearGradient id="pointsGradient" x1="0" y1="0" x2="0" y2="1">
@@ -123,27 +124,33 @@ const PlayerPerformanceChart: React.FC<PlayerPerformanceChartProps> = ({ data })
             strokeDasharray="3 3"
             stroke={theme.palette.divider}
             strokeOpacity={0.3}
-            vertical={false}
+            vertical={true}
+            horizontal={true}
           />
           <XAxis
             dataKey="index"
             stroke={theme.palette.text.secondary}
             style={{
               fill: theme.palette.text.secondary,
-              fontSize: '0.8125rem',
+              fontSize: isMobile ? '0.75rem' : '0.8125rem',
               fontWeight: typography.weight.medium,
             }}
             tickLine={{ stroke: theme.palette.text.secondary }}
             axisLine={{ stroke: theme.palette.divider }}
-            angle={0}
-            textAnchor="middle"
-            height={50}
+            angle={isMobile ? -45 : 0}
+            textAnchor={isMobile ? 'end' : 'middle'}
+            height={isMobile ? 80 : 50}
             tickFormatter={(value) => {
               // Show date for this index
               const dataPoint = chartData[value];
               return dataPoint?.date || '';
             }}
             interval={(() => {
+              if (isMobile) {
+                if (chartData.length > 15) return 4;
+                if (chartData.length > 10) return 3;
+                return 2;
+              }
               // Calculate interval to show 6-8 evenly spaced dates
               // For 20 games, show every 3rd game (interval = 2)
               // For 15 games, show every 2nd game (interval = 1)
@@ -158,7 +165,7 @@ const PlayerPerformanceChart: React.FC<PlayerPerformanceChartProps> = ({ data })
             stroke={theme.palette.text.secondary}
             style={{
               fill: theme.palette.text.secondary,
-              fontSize: '0.8125rem',
+              fontSize: isMobile ? '0.75rem' : '0.8125rem',
               fontWeight: typography.weight.medium,
             }}
             domain={[0, Math.ceil(maxPoints * 1.1)]}
@@ -171,7 +178,7 @@ const PlayerPerformanceChart: React.FC<PlayerPerformanceChartProps> = ({ data })
               style: {
                 fill: pointsColor,
                 fontWeight: typography.weight.semibold,
-                fontSize: '0.875rem',
+                fontSize: isMobile ? '0.75rem' : '0.875rem',
               },
             }}
           />
@@ -181,7 +188,7 @@ const PlayerPerformanceChart: React.FC<PlayerPerformanceChartProps> = ({ data })
             stroke={theme.palette.text.secondary}
             style={{
               fill: theme.palette.text.secondary,
-              fontSize: '0.8125rem',
+              fontSize: isMobile ? '0.75rem' : '0.8125rem',
               fontWeight: typography.weight.medium,
             }}
             domain={[0, Math.ceil(maxEPI * 1.1)]}
@@ -194,7 +201,7 @@ const PlayerPerformanceChart: React.FC<PlayerPerformanceChartProps> = ({ data })
               style: {
                 fill: epiColor,
                 fontWeight: typography.weight.semibold,
-                fontSize: '0.875rem',
+                fontSize: isMobile ? '0.75rem' : '0.875rem',
               },
             }}
           />
@@ -274,10 +281,10 @@ const PlayerPerformanceChart: React.FC<PlayerPerformanceChartProps> = ({ data })
             cursor={{ stroke: theme.palette.divider, strokeWidth: 1, strokeDasharray: '5 5' }}
           />
           <Legend
-            wrapperStyle={{ paddingTop: '24px' }}
+            wrapperStyle={{ paddingTop: isMobile ? '16px' : '24px' }}
             iconType="line"
             formatter={(value) => (
-              <span style={{ color: theme.palette.text.primary, fontSize: '0.875rem' }}>{value}</span>
+              <span style={{ color: theme.palette.text.primary, fontSize: isMobile ? '0.75rem' : '0.875rem' }}>{value}</span>
             )}
           />
           <Area
@@ -287,8 +294,8 @@ const PlayerPerformanceChart: React.FC<PlayerPerformanceChartProps> = ({ data })
             stroke={pointsColor}
             fill="url(#pointsGradient)"
             strokeWidth={2}
-            dot={{ r: 4, fill: pointsColor, strokeWidth: 1, stroke: theme.palette.background.paper }}
-            activeDot={{ r: 6, fill: pointsColor, strokeWidth: 1, stroke: theme.palette.background.paper }}
+            dot={{ r: isMobile ? 3 : 4, fill: pointsColor, strokeWidth: 1, stroke: theme.palette.background.paper }}
+            activeDot={{ r: isMobile ? 5 : 6, fill: pointsColor, strokeWidth: 1, stroke: theme.palette.background.paper }}
             name={`Points (Avg: ${averages.Points.toFixed(1)})`}
             animationDuration={800}
             animationBegin={0}
@@ -299,8 +306,8 @@ const PlayerPerformanceChart: React.FC<PlayerPerformanceChartProps> = ({ data })
             dataKey="EPI"
             stroke={epiColor}
             strokeWidth={2}
-            dot={{ r: 4, fill: epiColor, strokeWidth: 1, stroke: theme.palette.background.paper }}
-            activeDot={{ r: 6, fill: epiColor, strokeWidth: 1, stroke: theme.palette.background.paper }}
+            dot={{ r: isMobile ? 3 : 4, fill: epiColor, strokeWidth: 1, stroke: theme.palette.background.paper }}
+            activeDot={{ r: isMobile ? 5 : 6, fill: epiColor, strokeWidth: 1, stroke: theme.palette.background.paper }}
             name={`EPI (Avg: ${averages.EPI.toFixed(1)})`}
             animationDuration={800}
             animationBegin={100}

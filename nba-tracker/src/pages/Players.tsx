@@ -217,7 +217,7 @@ const Players = () => {
           border: '1px solid',
           borderColor: 'divider',
           borderRadius: borderRadius.md,
-          minHeight: 200,
+          minHeight: { xs: 180, sm: 200 },
           display: 'flex',
           flexDirection: 'column',
           '&:hover': {
@@ -231,8 +231,8 @@ const Players = () => {
             src={`https://cdn.nba.com/headshots/nba/latest/1040x760/${playerId}.png`}
             alt={fullName}
             sx={{ 
-              width: 80,
-              height: 106.67, // 3/4 aspect ratio
+              width: { xs: 60, sm: 80 },
+              height: { xs: 80, sm: 106.67 }, // 3/4 aspect ratio
               aspectRatio: '3/4',
               border: '1px solid',
               borderColor: 'divider',
@@ -250,7 +250,7 @@ const Players = () => {
               sx={{
                 fontWeight: typography.weight.bold,
                 color: 'text.primary',
-                fontSize: typography.editorial.metric.xs,
+                fontSize: { xs: typography.size.bodySmall.xs, sm: typography.editorial.metric.xs },
                 mb: 0.5,
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
@@ -269,7 +269,7 @@ const Players = () => {
             >
               {player.TEAM_ABBREVIATION || 'No Team'} • #{player.JERSEY_NUMBER || '—'}
             </Typography>
-            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1.5 }}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: { xs: 1, sm: 1.5 } }}>
               <Box>
                 <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: typography.editorial.helper.xs, textTransform: 'lowercase' }}>
                   Position
@@ -710,12 +710,13 @@ const Players = () => {
 
   return (
     <Box sx={{ 
-      minHeight: '100vh', 
+      minHeight: '100dvh', 
       backgroundColor: 'background.default', 
       display: 'flex', 
       flexDirection: 'column',
       maxWidth: '100vw',
       overflowX: 'hidden',
+      overflowY: 'visible',
       width: '100%',
     }}>
       <Navbar />

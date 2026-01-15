@@ -226,7 +226,7 @@ const TeamPage = () => {
     <Box>
       {/* Season Selector */}
       <Box sx={{ mb: 3, display: 'flex', justifyContent: 'flex-end' }}>
-        <FormControl size="small" sx={{ minWidth: 180 }}>
+        <FormControl size="small" sx={{ minWidth: { xs: 160, sm: 180 } }}>
           <InputLabel>Season</InputLabel>
           <Select
             value={season}
@@ -282,6 +282,22 @@ const TeamPage = () => {
             <TableContainer sx={{ 
               overflowX: 'auto',
               minWidth: { xs: 600, sm: 'auto' },
+              // Hide scrollbar on mobile (touch devices)
+              '@media (hover: hover)': {
+                '&::-webkit-scrollbar': {
+                  height: 8,
+                },
+                '&::-webkit-scrollbar-track': {
+                  backgroundColor: 'background.default',
+                },
+                '&::-webkit-scrollbar-thumb': {
+                  backgroundColor: 'divider',
+                  borderRadius: borderRadius.xs,
+                  '&:hover': {
+                    backgroundColor: 'text.secondary',
+                  },
+                },
+              },
             }}>
               <Table size="small" stickyHeader sx={{ minWidth: { xs: 600, sm: 'auto' } }}>
                 <TableHead>
@@ -454,7 +470,25 @@ const TeamPage = () => {
             borderRadius: borderRadius.md,
           }}
         >
-          <TableContainer sx={{ overflowX: 'auto' }}>
+          <TableContainer sx={{ 
+            overflowX: 'auto',
+            // Hide scrollbar on mobile (touch devices)
+            '@media (hover: hover)': {
+              '&::-webkit-scrollbar': {
+                height: 8,
+              },
+              '&::-webkit-scrollbar-track': {
+                backgroundColor: 'background.default',
+              },
+              '&::-webkit-scrollbar-thumb': {
+                backgroundColor: 'divider',
+                borderRadius: borderRadius.xs,
+                '&:hover': {
+                  backgroundColor: 'text.secondary',
+                },
+              },
+            },
+          }}>
             <Table size="small" stickyHeader>
               <TableHead>
                 <TableRow>
@@ -497,7 +531,7 @@ const TeamPage = () => {
                   // Show W/L with points if available
                   let resultDisplay = result;
                   if (result && result !== '—' && game.points > 0) {
-                    resultDisplay = `${result}${game.points}`;
+                    resultDisplay = `${result} ${game.points}`;
                   }
 
                   return (
@@ -594,7 +628,7 @@ const TeamPage = () => {
 
         {/* Season selector */}
         <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center' }}>
-          <FormControl size="small" sx={{ minWidth: 180 }}>
+          <FormControl size="small" sx={{ minWidth: { xs: 160, sm: 180 } }}>
             <InputLabel>Season</InputLabel>
             <Select
               value={season}
@@ -611,7 +645,7 @@ const TeamPage = () => {
           </FormControl>
           
           {standings.length > 0 && (
-            <FormControl size="small" sx={{ minWidth: 200 }}>
+            <FormControl size="small" sx={{ minWidth: { xs: 160, sm: 200 } }}>
               <InputLabel>More NBA Teams</InputLabel>
               <Select
                 value={team?.team_id || ''}
@@ -702,7 +736,25 @@ const TeamPage = () => {
             }}
           >
             <SectionHeader title="Player Stats" />
-            <TableContainer sx={{ overflowX: 'auto' }}>
+            <TableContainer sx={{ 
+              overflowX: 'auto',
+              // Hide scrollbar on mobile (touch devices)
+              '@media (hover: hover)': {
+                '&::-webkit-scrollbar': {
+                  height: 8,
+                },
+                '&::-webkit-scrollbar-track': {
+                  backgroundColor: 'background.default',
+                },
+                '&::-webkit-scrollbar-thumb': {
+                  backgroundColor: 'divider',
+                  borderRadius: borderRadius.xs,
+                  '&:hover': {
+                    backgroundColor: 'text.secondary',
+                  },
+                },
+              },
+            }}>
               <Table size="small" stickyHeader>
                 <TableHead>
                   <TableRow>
@@ -839,12 +891,13 @@ const TeamPage = () => {
   // Always render page structure to prevent layout shifts
   return (
     <Box sx={{ 
-      minHeight: '100vh', 
+      minHeight: '100dvh', 
       backgroundColor: 'background.default', 
       display: 'flex', 
       flexDirection: 'column',
       maxWidth: '100vw',
       overflowX: 'hidden',
+      overflowY: 'visible',
       width: '100%',
     }}>
       <Navbar />

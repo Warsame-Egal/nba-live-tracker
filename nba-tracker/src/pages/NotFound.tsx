@@ -5,12 +5,13 @@ import { Link } from 'react-router-dom';
 const NotFound = () => (
   <Box
     sx={{
-      minHeight: '100vh',
+      minHeight: '100dvh',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: 'background.default',
+      overflowY: 'visible',
     }}
   >
     <Typography variant="h2" sx={{ fontWeight: 700, mb: 2 }}>

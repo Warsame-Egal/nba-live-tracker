@@ -1,8 +1,11 @@
 import asyncio
 import logging
+import re
 import time
-from typing import Dict
+from datetime import datetime
+from typing import Dict, Optional
 
+import pytz
 from fastapi import HTTPException
 from nba_api.stats.endpoints import scoreboardv2, playerindex, commonteamroster
 from nba_api.stats.static import teams
@@ -49,6 +52,59 @@ def _cleanup_player_stats_cache():
         for key in keys_to_remove:
             _player_stats_cache.pop(key, None)
         logger.debug(f"LRU eviction: removed {len(keys_to_remove)} old entries from player stats cache")
+
+
+def parse_game_time_from_status(game_status: str, game_date: str) -> Optional[str]:
+    """
+    Parse game time from game_status string (e.g., "7:00 pm ET") and convert to UTC ISO format.
+    
+    Args:
+        game_status: Status string like "7:00 pm ET", "7:30 pm ET", "Final", etc.
+        game_date: Date in YYYY-MM-DD format
+        
+    Returns:
+        ISO 8601 UTC datetime string (e.g., "2026-01-14T00:00:00Z") or None if parsing fails
+    """
+    if not game_status or not game_date:
+        return None
+    
+    # Pattern to match time formats like "7:00 pm ET", "7:30 pm ET", "12:00 pm ET"
+    # Also handles "7 pm ET" (without minutes)
+    time_pattern = r'(\d{1,2})(?::(\d{2}))?\s*(am|pm)\s*ET'
+    match = re.search(time_pattern, game_status, re.IGNORECASE)
+    
+    if not match:
+        return None
+    
+    try:
+        hour = int(match.group(1))
+        minute = int(match.group(2)) if match.group(2) else 0
+        am_pm = match.group(3).lower()
+        
+        # Convert to 24-hour format
+        if am_pm == 'pm' and hour != 12:
+            hour += 12
+        elif am_pm == 'am' and hour == 12:
+            hour = 0
+        
+        # Parse the game date
+        date_obj = datetime.strptime(game_date, "%Y-%m-%d")
+        
+        # Create datetime in ET timezone
+        et_tz = pytz.timezone('America/New_York')
+        et_datetime = et_tz.localize(
+            datetime(date_obj.year, date_obj.month, date_obj.day, hour, minute)
+        )
+        
+        # Convert to UTC
+        utc_datetime = et_datetime.astimezone(pytz.UTC)
+        
+        # Format as ISO 8601 UTC string
+        return utc_datetime.strftime("%Y-%m-%dT%H:%M:%SZ")
+        
+    except (ValueError, AttributeError) as e:
+        logger.debug(f"Error parsing game time from status '{game_status}': {e}")
+        return None
 
 
 async def get_player_season_averages(player_id: int) -> dict:
@@ -484,6 +540,12 @@ async def getGamesForDate(date: str) -> GamesResponse:
                     game_dict.get("GAME_ET") or
                     None
                 )
+                
+                # If game_time_utc is still None, try parsing from game_status (e.g., "7:00 pm ET")
+                if not game_time_utc:
+                    parsed_time = parse_game_time_from_status(game_status_text, date)
+                    if parsed_time:
+                        game_time_utc = parsed_time
 
                 # Create a GameSummary with all the game information
                 # Use the requested date, not the API's game_date (which might be different)
