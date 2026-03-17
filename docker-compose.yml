@@ -1,0 +1,38 @@
+services:
+  backend:
+    build: ./nba-tracker-api
+    container_name: nba-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./nba-tracker-api:/app
+    environment:
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - NBA_API_CONFIG=${NBA_API_CONFIG}
+      - NBA_API_PROXY=${NBA_API_PROXY}
+      - FRONTEND_URL=${FRONTEND_URL:-*}
+      - GIT_SHA=${GIT_SHA:-unknown}
+      - ENVIRONMENT=${ENVIRONMENT:-production}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - nba-network
+
+  frontend:
+    build: ./nba-tracker
+    container_name: nba-frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./nba-tracker:/src
+      - /src/node_modules
+    networks:
+      - nba-network
+
+networks:
+  nba-network:
+    driver: bridge

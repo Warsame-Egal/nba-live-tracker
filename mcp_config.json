@@ -1,0 +1,31 @@
+{
+  "description": "NBA Live Tracker MCP Server configuration",
+  "usage": "Add the mcpServers section below to your claude_desktop_config.json or Cursor MCP settings",
+
+  "mcpServers": {
+    "nba-tracker": {
+      "command": "python",
+      "args": ["/absolute/path/to/nba-live-tracker/nba-tracker-api/app/mcp_server.py"],
+      "env": {
+        "PYTHONPATH": "/absolute/path/to/nba-live-tracker/nba-tracker-api"
+      }
+    }
+  },
+
+  "available_tools": [
+    "get_live_scoreboard — today's games with live scores",
+    "get_player_stats — season stats and game log for any player",
+    "get_game_detail — full box score, key moments, win probability",
+    "get_standings — current conference standings",
+    "get_predictions — AI win probability predictions by date",
+    "get_league_leaders — season leaders by stat category"
+  ],
+
+  "example_queries": [
+    "Which NBA games are live right now?",
+    "How is LeBron James playing this season?",
+    "What is the win probability for the Lakers game tonight?",
+    "Who leads the league in assists?",
+    "Show me the Eastern Conference standings"
+  ]
+}

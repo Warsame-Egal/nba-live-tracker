@@ -1,0 +1,153 @@
+# NBA Live Tracker API — for AI assistants
+
+This file describes the NBA Live Tracker API so an AI can answer NBA-related questions by calling the right endpoints.
+
+## What the API does
+
+The NBA Live Tracker backend serves:
+- Live and scheduled game data (scoreboard, play-by-play, box score)
+- Game predictions (win probability, score prediction, AI insights)
+- Key moments (game-tying shots, lead changes, scoring runs, clutch plays, big shots)
+- Player and team stats, season leaders, standings, head-to-head, streaks
+- Post-game recaps and an agent for natural-language NBA Q&A
+
+Data comes from the NBA’s public API (cached); AI features use Groq. No authentication is required.
+
+## Base URL
+
+Use your deployment base URL, for example:
+- Production: https://your-backend.example.com
+- Local: http://localhost:8000
+
+All paths below are relative to the base URL.
+
+---
+
+## Primary endpoints (use these first)
+
+### POST /api/v1/agent/ask
+
+Natural-language NBA Q&A. Send a question and optional conversation history; the agent uses tools (scoreboard, game detail, standings, etc.) and returns a single answer.
+
+**Request body:**
+```json
+{
+  "question": "Who is leading the Lakers in points per game this season?",
+  "history": []
+}
+```
+- `question`: string, 3–500 characters (required). Sanitized; prompts that try to override instructions are rejected.
+- `history`: array of `{ "role": "user"|"assistant", "content": "..." }`, max 10 items (optional).
+
+**Response (200):**
+```json
+{
+  "answer": "LeBron James leads the Lakers in points per game this season at 25.2 PPG...",
+  "tools_used": ["get_season_leaders", "get_standings"],
+  "tool_results": []
+}
+```
+On error or rate limit (429), the response body or status indicates the issue.
+
+**Rate limit:** 5 requests per minute per client (by IP). Return 429 when exceeded.
+
+---
+
+### GET /api/v1/game/{game_id}/detail
+
+Full game page data: score, period, clock, box score, player impacts, key moments, win probability, hustle stats. Use for “tell me about this game” or “what were the key moments?”
+
+**Path:** `game_id` = NBA game ID (e.g. `0022500123`).
+
+**Response (200):** JSON with keys including:
+- `game_id`, `home_team`, `away_team`, `score_home`, `score_away`, `period`, `game_clock`, `status`
+- `box_score`, `player_impacts`, `key_moments`, `win_probability`, `quarter_scores`, `hustle` (if available)
+
+**Example use:** User asks “What happened in the Celtics vs Lakers game?” → Get today’s scoreboard or schedule to find `game_id`, then GET `/api/v1/game/{game_id}/detail` and use `key_moments` and score/box_score to summarize.
+
+---
+
+## Other key endpoints
+
+### GET /api/v1/health
+
+Returns `status`, cache stats (scoreboard age, play-by-play games cached), polling status, WebSocket connection counts, Groq rate-limit usage. No auth, no rate limit. Safe to call often.
+
+### WebSocket /api/v1/ws
+
+Connect for live scoreboard updates. Server pushes JSON when scores or status change. No query params required.
+
+### GET /api/v1/predictions/date/{date}
+
+Predictions for all games on the given date. Query: `season` (optional, e.g. `2024-25`). Date format: `YYYY-MM-DD`. Returns win probability, predicted score, confidence, key drivers, risk factors, matchup narrative per game.
+
+### GET /api/v1/player/{player_id}
+
+Player summary: name, team, position, recent games, stats. `player_id` = NBA person ID.
+
+### GET /api/v1/standings/season/{season}
+
+Paginated standings. Query: `page` (default 1), `limit` (default 20, max 100). Season format: `2024-25`.
+
+### GET /api/v1/players/search/{search_term}
+
+Paginated player search. Query: `page`, `limit`.
+
+### GET /api/v1/players/season-leaders?season=2024-25
+
+Season leaders by category (points, rebounds, assists, etc.). Paginated.
+
+### GET /api/v1/game/{game_id}/recap
+
+Post-game AI recap for finished games.
+
+---
+
+## Rate limits
+
+| Endpoint / group              | Limit           |
+|------------------------------|-----------------|
+| POST /api/v1/agent/ask        | 5/minute        |
+| POST /api/v1/agent/stream     | 5/minute        |
+| GET /api/v1/predictions/date/*| 10/minute       |
+| Compare (e.g. player compare) | 20/minute       |
+| GET /api/v1/players/search/* | 30/minute       |
+| Health, game detail, player, standings, recap | Not rate-limited (use responsibly) |
+
+When exceeded, the API returns 429. No API key or auth headers are required for the endpoints above.
+
+---
+
+## Authentication
+
+None. All endpoints listed are public. Do not send API keys or auth headers unless you add a custom deployment that requires them.
+
+---
+
+## Example: agent question and response
+
+**User question:** “What are today’s games and who’s favored?”
+
+**Steps an AI might take:**
+1. Get today’s date in `YYYY-MM-DD` (e.g. `2025-03-16`).
+2. Call **GET /api/v1/predictions/date/2025-03-16** (optional: `?season=2024-25`).
+3. From the response, use `predictions[]`: for each game use `home_team_name`, `away_team_name`, `home_win_probability`, `predicted_home_score`, `predicted_away_score`, and optionally `matchup_narrative`.
+
+**Alternative (agent):** Send **POST /api/v1/agent/ask** with body:
+```json
+{ "question": "What are today's games and who's favored?", "history": [] }
+```
+The agent will call internal tools (e.g. predictions for today) and return a single answer.
+
+**Example agent response (conceptual):**
+```json
+{
+  "answer": "Today's games include Lakers vs Celtics (Celtics favored, 58% win probability, predicted 112–108), Nuggets vs Suns (Nuggets favored, 62%, predicted 115–110)...",
+  "tools_used": ["get_predictions_for_date"],
+  "tool_results": []
+}
+```
+
+---
+
+For full API reference, see the backend’s OpenAPI docs at `{BASE_URL}/docs`.

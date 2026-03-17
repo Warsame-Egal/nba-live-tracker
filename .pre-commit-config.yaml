@@ -1,0 +1,9 @@
+# Optional: run before each commit. Install with: pre-commit install
+# Backend Black only; full tests remain in CI and PRE_PUSH_CHECKLIST.
+repos:
+  - repo: https://github.com/psf/black
+    rev: 25.1.0
+    hooks:
+      - id: black
+        name: black (backend)
+        files: ^nba-tracker-api/.*\.py$

@@ -1,0 +1,200 @@
+import asyncio
+import logging
+import os
+from contextlib import asynccontextmanager
+from pathlib import Path
+
+from dotenv import load_dotenv
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from pythonjsonlogger import jsonlogger
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+
+from app.middleware.rate_limit import limiter
+
+try:
+    import sentry_sdk
+    from sentry_sdk.integrations.fastapi import FastApiIntegration
+    from sentry_sdk.integrations.starlette import StarletteIntegration
+except ImportError:
+    sentry_sdk = None
+    FastApiIntegration = None  # type: ignore[misc]
+    StarletteIntegration = None  # type: ignore[misc]
+
+
+def setup_logging() -> None:
+    """Configure structured JSON logging. Every log line is valid JSON."""
+    logger = logging.getLogger()
+    # Remove any existing handlers to avoid duplicate lines
+    for h in logger.handlers[:]:
+        logger.removeHandler(h)
+    handler = logging.StreamHandler()
+    formatter = jsonlogger.JsonFormatter(
+        fmt="%(asctime)s %(name)s %(levelname)s %(message)s",
+        datefmt="%Y-%m-%dT%H:%M:%S",
+    )
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+    logger.setLevel(logging.INFO)
+
+
+setup_logging()
+
+# Load environment variables from .env file
+env_path = Path(__file__).parent.parent / ".env"
+load_dotenv(env_path)
+
+sentry_dsn = os.getenv("SENTRY_DSN", "")
+if sentry_dsn and sentry_sdk:
+    sentry_sdk.init(
+        dsn=sentry_dsn,
+        integrations=[
+            StarletteIntegration(transaction_style="endpoint"),
+            FastApiIntegration(transaction_style="endpoint"),
+        ],
+        traces_sample_rate=0.1,
+        profiles_sample_rate=0.1,
+        environment=os.getenv("ENVIRONMENT", "production"),
+        release=os.getenv("GIT_SHA", "unknown"),
+    )
+
+from app.routers.players import router as player_router  # noqa: E402
+from app.routers.schedule import router as schedule_router  # noqa: E402
+from app.routers.scoreboard import router as scoreboard_router  # noqa: E402
+from app.routers.standings import router as standings_router  # noqa: E402
+from app.routers.teams import router as team_router  # noqa: E402
+from app.routers.search import router as search_router  # noqa: E402
+from app.routers.predictions import router as predictions_router  # noqa: E402
+from app.routers.league import router as league_router  # noqa: E402
+from app.routers.compare_router import router as compare_router  # noqa: E402
+from app.routers.health import router as health_router  # noqa: E402
+from app.routers.agent import router as agent_router  # noqa: E402
+from app.services.data_cache import data_cache  # noqa: E402
+from app.services.websockets_manager import (  # noqa: E402
+    playbyplay_websocket_manager,
+    scoreboard_websocket_manager,
+)
+from app.services.key_moments import start_cleanup_task, stop_cleanup_task  # noqa: E402
+
+logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Start background polling and WebSocket broadcasting on app startup.
+
+    How it works:
+    - Data cache polling: fetches from NBA API at fixed intervals
+    - WebSocket broadcasting: reads from cache and sends to clients
+
+    This ensures only one poller exists per data type, and WebSocket
+    connections never trigger NBA API calls.
+    """
+    logger.info("Starting NBA data polling and WebSocket broadcasting...")
+
+    # Start background polling tasks that fetch data from NBA API
+    data_cache.start_polling()
+
+    # Start key moments cleanup task
+    start_cleanup_task()
+
+    # Start WebSocket broadcast tasks that read from cache
+    scoreboard_task = asyncio.create_task(scoreboard_websocket_manager.broadcast_updates())
+    playbyplay_task = asyncio.create_task(playbyplay_websocket_manager.broadcast_playbyplay_updates())
+
+    # Start WebSocket cleanup tasks
+    scoreboard_websocket_manager.start_cleanup_task()
+    playbyplay_websocket_manager.start_cleanup_task()
+
+    try:
+        yield
+    finally:
+        logger.info("Shutting down background tasks...")
+
+        await data_cache.stop_polling()
+        await stop_cleanup_task()
+
+        await scoreboard_websocket_manager.stop_cleanup_task()
+        await playbyplay_websocket_manager.stop_cleanup_task()
+
+        scoreboard_task.cancel()
+        playbyplay_task.cancel()
+        try:
+            await scoreboard_task
+        except asyncio.CancelledError:
+            pass
+        try:
+            await playbyplay_task
+        except asyncio.CancelledError:
+            pass
+
+
+app = FastAPI(
+    title="NBA Live API",
+    description="Real-time NBA game data, player statistics, team information, and game predictions.",
+    version="1.0.0",
+    lifespan=lifespan,
+)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# CORS: from env (FRONTEND_URL / ENVIRONMENT)
+frontend_url = os.getenv("FRONTEND_URL", "")
+vercel_url = os.getenv("VERCEL_URL", "")
+allowed_origins = []
+if frontend_url:
+    allowed_origins.append(frontend_url)
+if vercel_url:
+    allowed_origins.append(f"https://{vercel_url}")
+allowed_origins.extend(
+    [
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:5173",
+    ]
+)
+if os.getenv("ENVIRONMENT", "production") == "development" and not frontend_url:
+    allowed_origins = ["*"]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+@app.get("/")
+def home():
+    """Health check endpoint."""
+    return {"message": "NBA Live Tracker API is running"}
+
+
+@app.get("/api/v1/config/check")
+def check_config():
+    """Check if Groq API key is configured (for debugging)."""
+    from app.config import get_groq_api_key
+
+    groq_key = get_groq_api_key()
+    return {
+        "groq_configured": groq_key is not None,
+        "groq_key_length": len(groq_key) if groq_key else 0,
+    }
+
+
+# Register all API routes
+app.include_router(scoreboard_router, prefix="/api/v1")
+app.include_router(schedule_router, prefix="/api/v1")
+app.include_router(standings_router, prefix="/api/v1")
+app.include_router(player_router, prefix="/api/v1")
+app.include_router(team_router, prefix="/api/v1")
+app.include_router(search_router, prefix="/api/v1")
+app.include_router(predictions_router, prefix="/api/v1")
+app.include_router(league_router, prefix="/api/v1")
+app.include_router(compare_router)
+app.include_router(health_router)
+app.include_router(agent_router)

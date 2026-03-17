@@ -1,0 +1,48 @@
+nba-tracker-api/venv/
+nba-tracker-api/__pycache__/
+
+# Ignore virtual environment
+venv/
+.env
+
+# Ignore Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore logs
+*.log
+logs/
+
+# Ignore IDE/Editor settings
+.vscode/
+.idea/
+*.swp
+
+# Draft docs (not committed)
+planning/
+
+# Ignore dependency lock files (optional)
+Pipfile.lock
+
+test.db
+
+# Node modules (should never be committed)
+node_modules/
+
+# Frontend build artifacts
+nba-tracker/dist/
+nba-tracker/dist-ssr/
+nba-tracker/.vite/
+
+
+deploysteps.md
+MANUAL_SETUP.md
+REQUIREMENTS_VERIFICATION.md
+
+MEMORY_OPTIMIZATION_SUMMARY.md
+
+PERSONAL.md
+
+technical-details.md

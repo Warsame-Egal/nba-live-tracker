@@ -1,0 +1,246 @@
+// Design tokens for consistent spacing, typography, and styling
+// Use these across all components for a cohesive look
+export const spacing = {
+  xs: 0.5, // 4px
+  sm: 1, // 8px
+  md: 2, // 16px
+  lg: 3, // 24px
+  xl: 4, // 32px
+  xxl: 5, // 40px
+  xxxl: 6, // 48px
+} as const;
+
+// Responsive spacing patterns (Editorial, generous spacing)
+// All values in theme spacing units (8px base)
+export const responsiveSpacing = {
+  // Container padding - increased for editorial feel
+  container: { xs: 2, sm: 3, md: 4 },
+  containerVertical: { xs: 3, sm: 4, md: 5 },
+
+  // Section spacing - generous separation
+  section: { xs: 4, sm: 5, md: 6 },
+  sectionLarge: { xs: 5, sm: 6, md: 7 },
+
+  // Component padding - comfortable internal spacing
+  card: { xs: 2.5, sm: 3, md: 3.5 },
+  cardCompact: { xs: 2, sm: 2.5 },
+  cardLarge: { xs: 3, sm: 3.5, md: 4 },
+
+  // Element spacing - consistent rhythm
+  element: { xs: 2, sm: 2.5, md: 3 },
+  elementCompact: { xs: 1.5, sm: 2 },
+  elementLarge: { xs: 3, sm: 3.5, md: 4 },
+
+  // Gap spacing - intentional whitespace
+  gap: { xs: 2, sm: 2.5, md: 3 },
+  gapCompact: { xs: 1.5, sm: 2 },
+  gapLarge: { xs: 3, sm: 4, md: 5 },
+} as const;
+
+// Typography scale for consistent font sizes and weights
+export const typography = {
+  // Font weights
+  weight: {
+    light: 300,
+    regular: 400,
+    medium: 500,
+    semibold: 600,
+    bold: 700,
+    extrabold: 800,
+  },
+
+  // Font sizes (responsive)
+  size: {
+    // Headings
+    h1: { xs: '2rem', sm: '2.5rem', md: '3rem' },
+    h2: { xs: '1.75rem', sm: '2.25rem', md: '2.5rem' },
+    h3: { xs: '1.5rem', sm: '1.875rem', md: '2rem' },
+    h4: { xs: '1.25rem', sm: '1.5rem', md: '1.75rem' },
+    h5: { xs: '1.125rem', sm: '1.25rem', md: '1.5rem' },
+    h6: { xs: '1rem', sm: '1.125rem', md: '1.25rem' },
+
+    // Body text
+    body: { xs: '0.875rem', sm: '1rem' },
+    bodySmall: { xs: '0.8125rem', sm: '0.875rem' },
+    bodyLarge: { xs: '1rem', sm: '1.125rem' },
+
+    // UI elements
+    button: { xs: '0.875rem', sm: '0.9375rem' },
+    caption: { xs: '0.7rem', sm: '0.75rem' },
+    captionSmall: { xs: '0.65rem', sm: '0.7rem' },
+    label: { xs: '0.75rem', sm: '0.8125rem' },
+  },
+
+  // Line heights
+  lineHeight: {
+    tight: 1.1,
+    normal: 1.2,
+    relaxed: 1.4,
+    loose: 1.6,
+  },
+
+  // Letter spacing - refined for editorial readability
+  letterSpacing: {
+    tight: '-0.02em',
+    normal: '-0.01em',
+    relaxed: '0em',
+    wide: '0.01em',
+    wider: '0.02em',
+    widest: '0.08em',
+  },
+
+  // Editorial typography scale (for clamp() usage)
+  editorial: {
+    // Page titles - large, confident
+    pageTitle: {
+      xs: 'clamp(1.5rem, 5vw, 2.25rem)',
+      sm: 'clamp(1.75rem, 5vw, 2.5rem)',
+      md: 'clamp(2rem, 5vw, 3rem)',
+    },
+    // Section headers - medium, semibold
+    sectionTitle: {
+      xs: 'clamp(1.125rem, 3vw, 1.5rem)',
+      sm: 'clamp(1.25rem, 3vw, 1.75rem)',
+      md: 'clamp(1.5rem, 3vw, 2rem)',
+    },
+    // Primary metrics - prominent, readable
+    metric: {
+      xs: 'clamp(1rem, 2.5vw, 1.25rem)',
+      sm: 'clamp(1.125rem, 2.5vw, 1.5rem)',
+      md: 'clamp(1.25rem, 2.5vw, 1.75rem)',
+    },
+    // Helper text - small, subtle
+    helper: {
+      xs: 'clamp(0.7rem, 1.5vw, 0.75rem)',
+      sm: 'clamp(0.75rem, 1.5vw, 0.8125rem)',
+    },
+  },
+} as const;
+
+// Border radius scale for consistent rounded corners
+export const borderRadius = {
+  none: 0,
+  xs: 0.5, // 4px - small badges, chips
+  sm: 1, // 8px - buttons, inputs
+  md: 1.5, // 12px - cards, containers (most common)
+  lg: 2, // 16px - larger cards
+  xl: 2.5, // 20px - modals, dialogs
+  full: '50%', // circular
+} as const;
+
+// Shadow definitions for consistent elevation
+export const shadows = {
+  none: 'none',
+  sm: '0 2px 8px rgba(0, 0, 0, 0.1)',
+  md: '0 4px 12px rgba(0, 0, 0, 0.15)',
+  lg: '0 8px 24px rgba(0, 0, 0, 0.2)',
+  xl: '0 12px 32px rgba(0, 0, 0, 0.25)',
+
+  // Dark mode shadows
+  dark: {
+    sm: '0 2px 8px rgba(0, 0, 0, 0.3)',
+    md: '0 4px 12px rgba(0, 0, 0, 0.4)',
+    lg: '0 8px 24px rgba(0, 0, 0, 0.5)',
+    xl: '0 12px 32px rgba(0, 0, 0, 0.6)',
+  },
+
+  // Colored shadows (for primary actions)
+  primary: {
+    sm: '0 2px 8px rgba(30, 136, 229, 0.2)',
+    md: '0 4px 12px rgba(30, 136, 229, 0.3)',
+    lg: '0 8px 24px rgba(30, 136, 229, 0.4)',
+  },
+
+  // Error/live game shadows
+  error: {
+    sm: '0 2px 8px rgba(239, 83, 80, 0.2)',
+    md: '0 4px 12px rgba(239, 83, 80, 0.3)',
+    lg: '0 8px 24px rgba(239, 83, 80, 0.4)',
+  },
+} as const;
+
+// Transition timings for consistent animations
+export const transitions = {
+  fast: '0.15s ease-in-out',
+  normal: '0.2s ease-in-out',
+  slow: '0.3s ease-in-out',
+  smooth: '0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+} as const;
+
+// Z-index scale for consistent layering
+export const zIndex = {
+  base: 0,
+  dropdown: 1000,
+  sticky: 1100,
+  fixed: 1200,
+  modalBackdrop: 1300,
+  modal: 1400,
+  popover: 1500,
+  tooltip: 1600,
+} as const;
+
+// Pre-defined style objects for common component patterns
+export const componentStyles = {
+  // Card styles
+  card: {
+    borderRadius: borderRadius.sm,
+    border: '1px solid',
+    borderColor: 'divider',
+    backgroundColor: 'background.paper',
+    transition: transitions.normal,
+  },
+
+  cardHover: {
+    '&:hover': {
+      transform: 'translateY(-2px)',
+      boxShadow: shadows.md,
+      borderColor: 'primary.main',
+    },
+  },
+
+  // Dark-mode–aware outlined card (stronger border in dark)
+  outlined: {
+    border: '1px solid',
+    borderColor: 'divider',
+    '@media (prefers-color-scheme: dark)': {
+      borderColor: 'rgba(255,255,255,0.12)',
+    },
+  },
+
+  // Button styles
+  button: {
+    borderRadius: borderRadius.sm,
+    textTransform: 'none' as const,
+    fontWeight: typography.weight.semibold,
+    transition: transitions.normal,
+  },
+
+  // Input styles
+  input: {
+    borderRadius: borderRadius.sm,
+    '& .MuiOutlinedInput-root': {
+      borderRadius: borderRadius.sm,
+    },
+  },
+
+  // Chip styles
+  chip: {
+    borderRadius: borderRadius.xs,
+    fontWeight: typography.weight.semibold,
+    height: 24,
+  },
+
+  // Empty state container
+  emptyState: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    alignItems: 'center',
+    justifyContent: 'center',
+    py: responsiveSpacing.sectionLarge,
+    px: spacing.md,
+    minHeight: '40vh',
+  },
+} as const;
+
+// Helper to get responsive values
+export const getResponsive = <T>(values: { xs: T; sm?: T; md?: T; lg?: T }) => values;
