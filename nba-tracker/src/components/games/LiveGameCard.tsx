@@ -1,5 +1,16 @@
 import React, { useState } from 'react';
-import { Box, Typography, Avatar, Paper, Button, Chip, Collapse, alpha, useTheme, Fade } from '@mui/material';
+import {
+  Box,
+  Typography,
+  Avatar,
+  Paper,
+  Button,
+  Chip,
+  Collapse,
+  alpha,
+  useTheme,
+  Fade,
+} from '@mui/material';
 import { ChatBubbleOutline } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { Game } from '../../types/scoreboard';
@@ -85,19 +96,45 @@ const LiveGameCard: React.FC<LiveGameCardProps> = ({
           gap: { xs: 1.5, sm: 2 },
           p: { xs: 1.5, sm: 2 },
           cursor: 'pointer',
-          backgroundColor: isRecentlyUpdated ? alpha(theme.palette.primary.main, 0.06) : 'transparent',
+          backgroundColor: isRecentlyUpdated
+            ? alpha(theme.palette.primary.main, 0.06)
+            : 'transparent',
           transition: transitions.normal,
           '&:hover': { backgroundColor: 'action.hover' },
         }}
       >
-        <Box sx={{ minWidth: 56, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
+        <Box
+          sx={{
+            minWidth: 56,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 0.5,
+          }}
+        >
           <Box sx={LIVE_DOT_STYLE} />
-          <Typography variant="caption" sx={{ fontWeight: 600, color: 'error.main', textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
+          <Typography
+            variant="caption"
+            sx={{
+              fontWeight: 600,
+              color: 'error.main',
+              textAlign: 'center',
+              fontVariantNumeric: 'tabular-nums',
+            }}
+          >
             {getStatusLabel(game)}
           </Typography>
         </Box>
 
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 1.5 }, flex: 1, minWidth: 0 }}>
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: { xs: 1, sm: 1.5 },
+            flex: 1,
+            minWidth: 0,
+          }}
+        >
           <Avatar
             src={TEAM_LOGOS[awayTeam || 'NBA'] || TEAM_LOGOS['NBA']}
             alt={awayTeam}
@@ -109,12 +146,29 @@ const LiveGameCard: React.FC<LiveGameCardProps> = ({
               {awayTeam}
             </Typography>
           </Box>
-          <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1.25rem', minWidth: 40, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+          <Typography
+            variant="h6"
+            sx={{
+              fontWeight: 700,
+              fontSize: '1.25rem',
+              minWidth: 40,
+              textAlign: 'right',
+              fontVariantNumeric: 'tabular-nums',
+            }}
+          >
             {awayScore}
           </Typography>
         </Box>
 
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 1.5 }, flex: 1, minWidth: 0 }}>
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: { xs: 1, sm: 1.5 },
+            flex: 1,
+            minWidth: 0,
+          }}
+        >
           <Avatar
             src={TEAM_LOGOS[homeTeam || 'NBA'] || TEAM_LOGOS['NBA']}
             alt={homeTeam}
@@ -126,7 +180,16 @@ const LiveGameCard: React.FC<LiveGameCardProps> = ({
               {homeTeam}
             </Typography>
           </Box>
-          <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1.25rem', minWidth: 40, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+          <Typography
+            variant="h6"
+            sx={{
+              fontWeight: 700,
+              fontSize: '1.25rem',
+              minWidth: 40,
+              textAlign: 'right',
+              fontVariantNumeric: 'tabular-nums',
+            }}
+          >
             {homeScore}
           </Typography>
         </Box>
@@ -170,8 +233,18 @@ const LiveGameCard: React.FC<LiveGameCardProps> = ({
                     backgroundColor: alpha(theme.palette.primary.main, 0.15),
                   }}
                 >
-                  <Box sx={{ flex: winProbability.away_win_prob, backgroundColor: alpha(theme.palette.primary.main, 0.6) }} />
-                  <Box sx={{ flex: winProbability.home_win_prob, backgroundColor: theme.palette.primary.main }} />
+                  <Box
+                    sx={{
+                      flex: winProbability.away_win_prob,
+                      backgroundColor: alpha(theme.palette.primary.main, 0.6),
+                    }}
+                  />
+                  <Box
+                    sx={{
+                      flex: winProbability.home_win_prob,
+                      backgroundColor: theme.palette.primary.main,
+                    }}
+                  />
                 </Box>
                 <Typography variant="caption" fontWeight={600} color="primary.main">
                   {winProbability.home_win_prob > winProbability.away_win_prob
@@ -185,7 +258,18 @@ const LiveGameCard: React.FC<LiveGameCardProps> = ({
         </Box>
       )}
 
-      <Box sx={{ px: 1.5, pb: 1.5, pt: 0.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 0.5 }}>
+      <Box
+        sx={{
+          px: 1.5,
+          pb: 1.5,
+          pt: 0.5,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 0.5,
+        }}
+      >
         {hasInsight && (
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <Chip
@@ -221,7 +305,12 @@ const LiveGameCard: React.FC<LiveGameCardProps> = ({
           variant="outlined"
           size="small"
           onClick={handleClick}
-          sx={{ borderRadius: borderRadius.sm, textTransform: 'none', fontWeight: 600, ml: hasInsight ? 0 : 'auto' }}
+          sx={{
+            borderRadius: borderRadius.sm,
+            textTransform: 'none',
+            fontWeight: 600,
+            ml: hasInsight ? 0 : 'auto',
+          }}
         >
           View Game
         </Button>

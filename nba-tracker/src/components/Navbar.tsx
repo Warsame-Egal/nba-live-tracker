@@ -92,7 +92,9 @@ export default function Navbar() {
               to={item.path}
               sx={{
                 color: isActive(item.path) ? 'primary.main' : 'text.secondary',
-                fontWeight: isActive(item.path) ? typography.weight.semibold : typography.weight.medium,
+                fontWeight: isActive(item.path)
+                  ? typography.weight.semibold
+                  : typography.weight.medium,
                 fontSize: typography.editorial.helper.xs,
                 px: 2,
                 py: 1,
@@ -113,7 +115,13 @@ export default function Navbar() {
             onClick={e => setAnchorEl(e.currentTarget)}
             endIcon={<ExpandMore />}
             sx={{
-              color: location.pathname.startsWith('/standings') || location.pathname.startsWith('/teams') || location.pathname.startsWith('/players') || location.pathname.startsWith('/compare') ? 'primary.main' : 'text.secondary',
+              color:
+                location.pathname.startsWith('/standings') ||
+                location.pathname.startsWith('/teams') ||
+                location.pathname.startsWith('/players') ||
+                location.pathname.startsWith('/compare')
+                  ? 'primary.main'
+                  : 'text.secondary',
               fontWeight: typography.weight.medium,
               fontSize: typography.editorial.helper.xs,
               px: 2,
@@ -136,7 +144,12 @@ export default function Navbar() {
             transformOrigin={{ vertical: 'top', horizontal: 'left' }}
           >
             {exploreItems.map(item => (
-              <MenuItem key={item.path} component={RouterLink} to={item.path} onClick={() => setAnchorEl(null)}>
+              <MenuItem
+                key={item.path}
+                component={RouterLink}
+                to={item.path}
+                onClick={() => setAnchorEl(null)}
+              >
                 {item.label}
               </MenuItem>
             ))}
@@ -146,7 +159,12 @@ export default function Navbar() {
         {/* Search icon + theme toggle */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
           <Tooltip title="Search players and teams">
-            <IconButton onClick={openSearch} aria-label="open search" size="medium" sx={{ color: 'text.primary' }}>
+            <IconButton
+              onClick={openSearch}
+              aria-label="open search"
+              size="medium"
+              sx={{ color: 'text.primary' }}
+            >
               <Search />
             </IconButton>
           </Tooltip>

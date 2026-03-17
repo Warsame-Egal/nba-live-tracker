@@ -97,15 +97,27 @@ export default function GameDetail() {
       if (!games) return;
       const game = games.find(g => 'gameId' in g && g.gameId === gameId);
       if (!game || !('homeTeam' in game)) return;
-      const g = game as { gameId: string; homeTeam: { score?: number }; awayTeam: { score?: number }; period?: number; gameClock?: string };
+      const g = game as {
+        gameId: string;
+        homeTeam: { score?: number };
+        awayTeam: { score?: number };
+        period?: number;
+        gameClock?: string;
+      };
       setDetail(prev => {
         if (!prev || prev.game_id !== gameId) return prev;
         return {
           ...prev,
           score: {
             ...prev.score,
-            home_team: { ...prev.score.home_team, score: g.homeTeam?.score ?? prev.score.home_team.score },
-            away_team: { ...prev.score.away_team, score: g.awayTeam?.score ?? prev.score.away_team.score },
+            home_team: {
+              ...prev.score.home_team,
+              score: g.homeTeam?.score ?? prev.score.home_team.score,
+            },
+            away_team: {
+              ...prev.score.away_team,
+              score: g.awayTeam?.score ?? prev.score.away_team.score,
+            },
             period: g.period ?? prev.score.period,
             clock: g.gameClock ?? prev.score.clock,
           },
@@ -180,7 +192,17 @@ export default function GameDetail() {
   if (error) {
     return (
       <PageContainer maxWidth={1400}>
-        <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 16, color: 'inherit', textDecoration: 'none' }}>
+        <Link
+          to="/"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 8,
+            marginBottom: 16,
+            color: 'inherit',
+            textDecoration: 'none',
+          }}
+        >
           <ArrowBack fontSize="small" /> Back to scoreboard
         </Link>
         <Typography color="error">{error}</Typography>
@@ -192,7 +214,11 @@ export default function GameDetail() {
     return (
       <PageContainer maxWidth={1400}>
         <Skeleton variant="text" width={120} height={40} sx={{ mb: 2 }} />
-        <Skeleton variant="rectangular" height={200} sx={{ borderRadius: borderRadius.lg, mb: 2 }} />
+        <Skeleton
+          variant="rectangular"
+          height={200}
+          sx={{ borderRadius: borderRadius.lg, mb: 2 }}
+        />
         <Skeleton variant="rectangular" height={180} sx={{ borderRadius: borderRadius.lg }} />
       </PageContainer>
     );
@@ -200,21 +226,19 @@ export default function GameDetail() {
 
   const isLive = detail.status === 'live';
   const winProb = detail.win_probability;
-  const playsForMomentum: PlayByPlayEvent[] = (detail.play_by_play ?? []).map(
-    p => ({
-      action_number: p.action_number ?? 0,
-      clock: p.clock ?? '',
-      period: p.period ?? 1,
-      team_id: p.team_id,
-      team_tricode: p.team_tricode,
-      action_type: p.action_type ?? '',
-      description: p.description ?? '',
-      player_id: p.player_id,
-      player_name: p.player_name,
-      score_home: p.score_home ?? undefined,
-      score_away: p.score_away ?? undefined,
-    })
-  );
+  const playsForMomentum: PlayByPlayEvent[] = (detail.play_by_play ?? []).map(p => ({
+    action_number: p.action_number ?? 0,
+    clock: p.clock ?? '',
+    period: p.period ?? 1,
+    team_id: p.team_id,
+    team_tricode: p.team_tricode,
+    action_type: p.action_type ?? '',
+    description: p.description ?? '',
+    player_id: p.player_id,
+    player_name: p.player_name,
+    score_home: p.score_home ?? undefined,
+    score_away: p.score_away ?? undefined,
+  }));
 
   const latestKeyMoment = detail.key_moments?.[0] ?? null;
   const MOMENT_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
@@ -251,11 +275,7 @@ export default function GameDetail() {
           <ArrowBack fontSize="small" /> Back to scoreboard
         </Link>
 
-        <ScoreHeader
-          score={detail.score}
-          status={detail.status}
-          gradientColors={gradientColors}
-        />
+        <ScoreHeader score={detail.score} status={detail.status} gradientColors={gradientColors} />
 
         {/* Narrative / Post-game recap (completed only) */}
         {detail.status === 'completed' && (
@@ -269,7 +289,10 @@ export default function GameDetail() {
               backgroundColor: 'background.paper',
             }}
           >
-            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1, color: 'text.secondary' }}>
+            <Typography
+              variant="subtitle2"
+              sx={{ fontWeight: 600, mb: 1, color: 'text.secondary' }}
+            >
               Post-Game Recap
             </Typography>
             {recapLoading ? (
@@ -283,7 +306,11 @@ export default function GameDetail() {
                 <Typography variant="body2" sx={{ lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
                   {recap}
                 </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ display: 'block', mt: 1 }}
+                >
                   Generated by Groq
                 </Typography>
               </>
@@ -314,7 +341,10 @@ export default function GameDetail() {
                 'Key moment'}
             </Typography>
             {(latestKeyMoment as KeyMomentDict).context && (
-              <Typography variant="caption" sx={{ display: 'block', mt: 1, fontStyle: 'italic', color: 'text.secondary' }}>
+              <Typography
+                variant="caption"
+                sx={{ display: 'block', mt: 1, fontStyle: 'italic', color: 'text.secondary' }}
+              >
                 {(latestKeyMoment as KeyMomentDict).context}
               </Typography>
             )}
@@ -399,7 +429,10 @@ export default function GameDetail() {
         </Box>
 
         {/* Box score — accordion, collapsed by default on mobile */}
-        <Accordion defaultExpanded={isDesktop} sx={{ borderRadius: `${borderRadius.lg} !important`, overflow: 'hidden' }}>
+        <Accordion
+          defaultExpanded={isDesktop}
+          sx={{ borderRadius: `${borderRadius.lg} !important`, overflow: 'hidden' }}
+        >
           <AccordionSummary expandIcon={<ExpandMore />}>
             <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
               Box score
@@ -411,7 +444,10 @@ export default function GameDetail() {
         </Accordion>
 
         {/* Play-by-play — accordion, collapsed by default on mobile */}
-        <Accordion defaultExpanded={isDesktop} sx={{ borderRadius: `${borderRadius.lg} !important`, overflow: 'hidden' }}>
+        <Accordion
+          defaultExpanded={isDesktop}
+          sx={{ borderRadius: `${borderRadius.lg} !important`, overflow: 'hidden' }}
+        >
           <AccordionSummary expandIcon={<ExpandMore />}>
             <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
               Play by play
@@ -505,7 +541,15 @@ function BoxScoreTab({
         borderRadius: 1,
       }}
     >
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 0.5 }}>
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: 0.5,
+        }}
+      >
         <Typography variant="body2" fontWeight={600}>
           {String(p.name ?? '')}
         </Typography>
@@ -551,19 +595,41 @@ function BoxScoreTab({
               >
                 Player
               </TableCell>
-              <TableCell align="center" sx={{ fontWeight: 700 }}>MIN</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 700 }}>PTS</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 700 }}>REB</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 700 }}>AST</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 700 }}>STL</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 700 }}>BLK</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 700 }}>TO</TableCell>
+              <TableCell align="center" sx={{ fontWeight: 700 }}>
+                MIN
+              </TableCell>
+              <TableCell align="center" sx={{ fontWeight: 700 }}>
+                PTS
+              </TableCell>
+              <TableCell align="center" sx={{ fontWeight: 700 }}>
+                REB
+              </TableCell>
+              <TableCell align="center" sx={{ fontWeight: 700 }}>
+                AST
+              </TableCell>
+              <TableCell align="center" sx={{ fontWeight: 700 }}>
+                STL
+              </TableCell>
+              <TableCell align="center" sx={{ fontWeight: 700 }}>
+                BLK
+              </TableCell>
+              <TableCell align="center" sx={{ fontWeight: 700 }}>
+                TO
+              </TableCell>
               {viewMode === 'advanced' && (
                 <>
-                  <TableCell align="center" sx={{ fontWeight: 700 }}>GmSc</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 700 }}>TS%</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 700 }}>PTS/MIN</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 700 }}>Usage</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 700 }}>
+                    GmSc
+                  </TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 700 }}>
+                    TS%
+                  </TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 700 }}>
+                    PTS/MIN
+                  </TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 700 }}>
+                    Usage
+                  </TableCell>
                 </>
               )}
             </TableRow>
@@ -592,13 +658,30 @@ function BoxScoreTab({
                   >
                     {String(p.name ?? '')}
                   </TableCell>
-                  <TableCell align="center" sx={{ fontVariantNumeric: 'tabular-nums' }}>{String(p.minutes ?? '')}</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{pts}</TableCell>
-                  <TableCell align="center" sx={{ fontVariantNumeric: 'tabular-nums' }}>{Number(p.rebounds ?? 0)}</TableCell>
-                  <TableCell align="center" sx={{ fontVariantNumeric: 'tabular-nums' }}>{Number(p.assists ?? 0)}</TableCell>
-                  <TableCell align="center" sx={{ fontVariantNumeric: 'tabular-nums' }}>{Number(p.steals ?? 0)}</TableCell>
-                  <TableCell align="center" sx={{ fontVariantNumeric: 'tabular-nums' }}>{Number(p.blocks ?? 0)}</TableCell>
-                  <TableCell align="center" sx={{ fontVariantNumeric: 'tabular-nums' }}>{Number(p.turnovers ?? 0)}</TableCell>
+                  <TableCell align="center" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                    {String(p.minutes ?? '')}
+                  </TableCell>
+                  <TableCell
+                    align="center"
+                    sx={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}
+                  >
+                    {pts}
+                  </TableCell>
+                  <TableCell align="center" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                    {Number(p.rebounds ?? 0)}
+                  </TableCell>
+                  <TableCell align="center" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                    {Number(p.assists ?? 0)}
+                  </TableCell>
+                  <TableCell align="center" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                    {Number(p.steals ?? 0)}
+                  </TableCell>
+                  <TableCell align="center" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                    {Number(p.blocks ?? 0)}
+                  </TableCell>
+                  <TableCell align="center" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                    {Number(p.turnovers ?? 0)}
+                  </TableCell>
                   {viewMode === 'advanced' &&
                     advancedKeys.map(k => {
                       const v = p[k];
@@ -635,11 +718,7 @@ function BoxScoreTab({
         </Typography>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
           {awayPlayers.map(p =>
-            renderPlayerCard(
-              p,
-              awayLabel,
-              maxAwayPts > 0 && Number(p.points ?? 0) === maxAwayPts,
-            ),
+            renderPlayerCard(p, awayLabel, maxAwayPts > 0 && Number(p.points ?? 0) === maxAwayPts),
           )}
         </Box>
         <Typography variant="subtitle2" sx={{ fontWeight: 700, mt: 2 }}>
@@ -647,11 +726,7 @@ function BoxScoreTab({
         </Typography>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
           {homePlayers.map(p =>
-            renderPlayerCard(
-              p,
-              homeLabel,
-              maxHomePts > 0 && Number(p.points ?? 0) === maxHomePts,
-            ),
+            renderPlayerCard(p, homeLabel, maxHomePts > 0 && Number(p.points ?? 0) === maxHomePts),
           )}
         </Box>
       </Box>
@@ -673,21 +748,12 @@ function BoxScoreTab({
       </Box>
       <Box sx={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
         <Box sx={{ minWidth: 650 }}>
-          {renderTeamTable(
-            awayPlayers,
-            away.team_name ?? score.away_team.name,
-            maxAwayPts,
-          )}
+          {renderTeamTable(awayPlayers, away.team_name ?? score.away_team.name, maxAwayPts)}
           <Box sx={{ mt: 2 }}>
-            {renderTeamTable(
-              homePlayers,
-              home.team_name ?? score.home_team.name,
-              maxHomePts,
-            )}
+            {renderTeamTable(homePlayers, home.team_name ?? score.home_team.name, maxHomePts)}
           </Box>
         </Box>
       </Box>
     </Box>
   );
 }
-

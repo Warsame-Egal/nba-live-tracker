@@ -67,15 +67,11 @@ const PlayerImpacts: React.FC<PlayerImpactsProps> = ({ player_impacts }) => {
           key={`${p.player_id}-${idx}`}
           sx={{
             py: 1.5,
-            borderBottom:
-              idx < players.length - 1 ? '1px solid' : 'none',
+            borderBottom: idx < players.length - 1 ? '1px solid' : 'none',
             borderColor: 'divider',
           }}
         >
-          <Typography
-            variant="body2"
-            sx={{ fontWeight: typography.weight.semibold }}
-          >
+          <Typography variant="body2" sx={{ fontWeight: typography.weight.semibold }}>
             {p.player_name}
           </Typography>
           <Typography variant="caption" color="text.secondary" display="block">
@@ -97,7 +93,12 @@ const PlayerImpacts: React.FC<PlayerImpactsProps> = ({ player_impacts }) => {
                 px: 1,
                 py: 0.25,
                 borderRadius: 1,
-                backgroundColor: p.impact_label === 'Dominant' ? 'rgba(212, 175, 55, 0.2)' : p.impact_label === 'Strong' ? 'rgba(46, 125, 50, 0.15)' : 'action.selected',
+                backgroundColor:
+                  p.impact_label === 'Dominant'
+                    ? 'rgba(212, 175, 55, 0.2)'
+                    : p.impact_label === 'Strong'
+                      ? 'rgba(46, 125, 50, 0.15)'
+                      : 'action.selected',
                 color: impactLabelColor(p.impact_label),
                 fontWeight: typography.weight.semibold,
               }}

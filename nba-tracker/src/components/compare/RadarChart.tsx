@@ -58,22 +58,22 @@ export default function RadarChart({
             <PolarGrid />
             <PolarAngleAxis dataKey="stat" tick={{ fontSize: 12 }} />
             <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fontSize: 10 }} />
-          <Radar
-            name={player1Name}
-            dataKey={player1Name}
-            stroke="hsl(220, 70%, 50%)"
-            fill="hsl(220, 70%, 50%)"
-            fillOpacity={0.3}
-            strokeWidth={2}
-          />
-          <Radar
-            name={player2Name}
-            dataKey={player2Name}
-            stroke="hsl(30, 70%, 50%)"
-            fill="hsl(30, 70%, 50%)"
-            fillOpacity={0.3}
-            strokeWidth={2}
-          />
+            <Radar
+              name={player1Name}
+              dataKey={player1Name}
+              stroke="hsl(220, 70%, 50%)"
+              fill="hsl(220, 70%, 50%)"
+              fillOpacity={0.3}
+              strokeWidth={2}
+            />
+            <Radar
+              name={player2Name}
+              dataKey={player2Name}
+              stroke="hsl(30, 70%, 50%)"
+              fill="hsl(30, 70%, 50%)"
+              fillOpacity={0.3}
+              strokeWidth={2}
+            />
             <Legend />
             <Tooltip />
           </RechartsRadar>

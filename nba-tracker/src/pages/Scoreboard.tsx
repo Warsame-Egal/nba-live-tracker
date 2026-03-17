@@ -198,7 +198,9 @@ const Scoreboard = () => {
       .catch(() => {
         if (!cancelled) setStreaks(null);
       });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [selectedDate]);
 
   /**
@@ -1012,7 +1014,10 @@ const Scoreboard = () => {
         width: '100%',
       }}
     >
-      <PageContainer maxWidth={1400} sx={{ pt: { xs: 0.5, sm: 0.75 }, pb: { xs: 2, sm: 3 }, overflowX: 'hidden' }}>
+      <PageContainer
+        maxWidth={1400}
+        sx={{ pt: { xs: 0.5, sm: 0.75 }, pb: { xs: 2, sm: 3 }, overflowX: 'hidden' }}
+      >
         {/* Scoreboard Page Header: Calendar and Predictions */}
         <Box
           sx={{
@@ -1067,7 +1072,10 @@ const Scoreboard = () => {
             { value: 'overtime' as const, label: 'OT' },
           ].map(({ value, label }) => {
             const isLiveChip = value === 'live';
-            const active = value === 'live' ? gameFilter === 'all' && liveGames.length > 0 : gameFilter === value;
+            const active =
+              value === 'live'
+                ? gameFilter === 'all' && liveGames.length > 0
+                : gameFilter === value;
             return (
               <ToggleButton
                 key={value}
@@ -1091,12 +1099,13 @@ const Scoreboard = () => {
                     color: 'primary.contrastText',
                     '&:hover': { backgroundColor: 'primary.dark' },
                   },
-                  ...(isLiveChip && liveGames.length > 0 && {
-                    color: 'error.main',
-                    '&.Mui-selected': { color: 'primary.contrastText' },
-                    animation: 'pulse 2s ease-in-out infinite',
-                    '@keyframes pulse': { '0%, 100%': { opacity: 1 }, '50%': { opacity: 0.85 } },
-                  }),
+                  ...(isLiveChip &&
+                    liveGames.length > 0 && {
+                      color: 'error.main',
+                      '&.Mui-selected': { color: 'primary.contrastText' },
+                      animation: 'pulse 2s ease-in-out infinite',
+                      '@keyframes pulse': { '0%, 100%': { opacity: 1 }, '50%': { opacity: 0.85 } },
+                    }),
                 }}
               >
                 {label}
@@ -1117,402 +1126,413 @@ const Scoreboard = () => {
           {/* Left column (desktop: live) / single column (mobile) */}
           <Box>
             {/* Game Statistics Summary Bar - when today */}
-        <Box
-          sx={{
-            display: 'flex',
-            gap: { xs: 2, sm: 3 },
-            alignItems: 'center',
-            mb: { xs: 0.25, sm: 0.5 },
-            mt: 0,
-            flexWrap: 'wrap',
-            minHeight: 48,
-            visibility: isToday ? 'visible' : 'hidden',
-          }}
-        >
-          {loading && isToday ? (
-            <>
-              <Skeleton
-                variant="text"
-                width={100}
-                height={24}
-                sx={{ borderRadius: borderRadius.xs }}
-              />
-              <Skeleton
-                variant="text"
-                width={80}
-                height={24}
-                sx={{ borderRadius: borderRadius.xs }}
-              />
-              <Skeleton
-                variant="rectangular"
-                width={200}
-                height={32}
-                sx={{ borderRadius: borderRadius.sm, ml: 'auto' }}
-              />
-            </>
-          ) : (
-            games.length > 0 &&
-            isToday && (
-              <>
-                <Typography
-                  variant="body2"
-                  sx={{
-                    color: 'text.secondary',
-                    fontWeight: typography.weight.medium,
-                    fontSize: {
-                      xs: typography.size.bodySmall.xs,
-                      sm: typography.size.bodySmall.sm,
-                    },
-                  }}
-                >
-                  {gameStats.totalGames} {gameStats.totalGames === 1 ? 'Game' : 'Games'}
-                </Typography>
-                {gameStats.gamesInProgress > 0 && (
-                  <>
-                    <Divider orientation="vertical" flexItem sx={{ height: { xs: 14, sm: 16 } }} />
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      <FiberManualRecord sx={{ fontSize: 8, color: 'error.main' }} />
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          color: 'error.main',
-                          fontWeight: typography.weight.semibold,
-                          fontSize: {
-                            xs: typography.size.bodySmall.xs,
-                            sm: typography.size.bodySmall.sm,
-                          },
-                        }}
-                      >
-                        {gameStats.gamesInProgress} Live
-                      </Typography>
-                    </Box>
-                  </>
-                )}
-              </>
-            )
-          )}
-        </Box>
-
-        {/* Games Display */}
-        {loading && games.length === 0 ? (
-          <Box>
-            {/* Skeleton loading */}
-            <Box sx={{ mb: { xs: 3, sm: 4, md: 5 } }}>
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: { xs: 1.5, sm: 2 },
-                  mb: { xs: 2, sm: 2.5 },
-                  pb: 1,
-                }}
-              >
-                <Skeleton variant="circular" width={20} height={20} />
-                <Skeleton variant="text" width={140} height={28} sx={{ flex: 1 }} />
-                <Skeleton
-                  variant="rectangular"
-                  width={32}
-                  height={24}
-                  sx={{ borderRadius: borderRadius.xs }}
-                />
-              </Box>
-              <Box
-                sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 2, sm: 2.5, md: 3 } }}
-              >
-                {[...Array(3)].map((_, index) => (
-                  <Skeleton
-                    key={index}
-                    variant="rectangular"
-                    height={110}
-                    sx={{
-                      borderRadius: borderRadius.md,
-                      height: { xs: 100, sm: 110 },
-                    }}
-                  />
-                ))}
-              </Box>
-            </Box>
-          </Box>
-        ) : isToday ? (
-          // If viewing today, show all three categories with filters applied
-          <Box>
-            {loading && (
-              <Box sx={{ mb: responsiveSpacing.section }}>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1.5,
-                    mb: responsiveSpacing.element,
-                  }}
-                >
-                  <Skeleton variant="text" width={120} height={24} />
-                  <Skeleton
-                    variant="rectangular"
-                    width={32}
-                    height={22}
-                    sx={{ borderRadius: borderRadius.xs }}
-                  />
-                </Box>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                  {[...Array(2)].map((_, index) => (
-                    <Skeleton
-                      key={index}
-                      variant="rectangular"
-                      height={64}
-                      sx={{ borderRadius: borderRadius.sm }}
-                    />
-                  ))}
-                </Box>
-              </Box>
-            )}
-            {renderGameSection(
-              'LIVE',
-              filteredLiveGames,
-              <FiberManualRecord sx={{ fontSize: { xs: 16, sm: 18 }, color: 'error.main' }} />,
-              true,
-            )}
-            <Box sx={{ display: { xs: 'block', md: 'none' } }}>
-              {renderGameSection(
-                'Tonight',
-                filteredUpcomingGames,
-                <Schedule sx={{ fontSize: 18 }} />,
-                false,
-              )}
-              {renderGameSection(
-                'Completed',
-                filteredCompletedGames,
-                <Event sx={{ fontSize: 18 }} />,
-                false,
-              )}
-            </Box>
-          </Box>
-        ) : (
-          // If viewing past or future date, show appropriate category with filters applied
-          <Box>
-            {loading && (
-              <Box sx={{ mb: { xs: 3, sm: 4, md: 5 } }}>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: { xs: 1.5, sm: 2 },
-                    mb: { xs: 2, sm: 2.5 },
-                    pb: 1,
-                  }}
-                >
-                  <Skeleton variant="circular" width={20} height={20} />
-                  <Skeleton variant="text" width={140} height={28} sx={{ flex: 1 }} />
-                  <Skeleton
-                    variant="rectangular"
-                    width={32}
-                    height={24}
-                    sx={{ borderRadius: borderRadius.xs }}
-                  />
-                </Box>
-                <Box
-                  sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 2, sm: 2.5, md: 3 } }}
-                >
-                  {[...Array(2)].map((_, index) => (
-                    <Skeleton
-                      key={index}
-                      variant="rectangular"
-                      height={110}
-                      sx={{
-                        borderRadius: borderRadius.md,
-                        height: { xs: 100, sm: 110 },
-                      }}
-                    />
-                  ))}
-                </Box>
-              </Box>
-            )}
-            {selectedDate < today
-              ? renderGameSection(
-                  'Completed Games',
-                  filteredCompletedGames,
-                  <Event sx={{ fontSize: { xs: 16, sm: 18 } }} />,
-                  true,
-                )
-              : renderGameSection(
-                  'Future Games',
-                  filteredUpcomingGames,
-                  <Schedule sx={{ fontSize: { xs: 16, sm: 18 } }} />,
-                  true,
-                )}
-          </Box>
-        )}
-
-        {/* Empty state: no games scheduled */}
-        {!loading && games.length === 0 && (
-          <Box
-            sx={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              py: { xs: 8, sm: 12 },
-              px: 3,
-              minHeight: '50vh',
-            }}
-          >
-            <Box
-              sx={{
-                position: 'relative',
-                mb: 4,
-                animation: 'float 3s ease-in-out infinite',
-                '@keyframes float': {
-                  '0%, 100%': { transform: 'translateY(0px)' },
-                  '50%': { transform: 'translateY(-10px)' },
-                },
-              }}
-            >
-              <Event
-                sx={{
-                  fontSize: { xs: 100, sm: 120 },
-                  color: 'primary.main',
-                  opacity: 0.3,
-                }}
-              />
-            </Box>
-            <Typography
-              variant="h5"
-              sx={{
-                fontWeight: typography.weight.bold,
-                mb: 1,
-                textAlign: 'center',
-                color: 'text.primary',
-              }}
-            >
-              No Games Scheduled
-            </Typography>
-            <Typography
-              variant="body1"
-              color="text.secondary"
-              sx={{
-                textAlign: 'center',
-                mb: 4,
-                maxWidth: 500,
-                lineHeight: 1.6,
-              }}
-            >
-              There are no NBA games scheduled for{' '}
-              {selectedDate === getLocalISODate() ? 'today' : 'this date'}. Check another date or
-              come back later!
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'center' }}>
-              <Button
-                variant="outlined"
-                startIcon={<CalendarToday />}
-                onClick={() => setSelectedDate(getLocalISODate())}
-                sx={{
-                  px: 3,
-                  py: 1.5,
-                  borderRadius: borderRadius.sm,
-                  textTransform: 'none',
-                  fontWeight: typography.weight.semibold,
-                }}
-              >
-                View Today's Games
-              </Button>
-              <Button
-                variant="outlined"
-                startIcon={<Schedule />}
-                onClick={() => {
-                  const tomorrow = new Date(selectedDate);
-                  tomorrow.setDate(tomorrow.getDate() + 1);
-                  setSelectedDate(tomorrow.toISOString().split('T')[0]);
-                }}
-                sx={{
-                  px: 3,
-                  py: 1.5,
-                  borderRadius: borderRadius.sm,
-                  textTransform: 'none',
-                  fontWeight: typography.weight.semibold,
-                }}
-              >
-                View Tomorrow
-              </Button>
-            </Box>
-          </Box>
-        )}
-
-        {/* Empty state: games exist but don't match filters */}
-        {!loading &&
-          liveGames.length === 0 &&
-          upcomingGames.length === 0 &&
-          completedGames.length === 0 &&
-          games.length !== 0 && (
             <Box
               sx={{
                 display: 'flex',
-                flexDirection: 'column',
+                gap: { xs: 2, sm: 3 },
                 alignItems: 'center',
-                justifyContent: 'center',
-                py: { xs: 8, sm: 12 },
-                px: 3,
-                minHeight: '50vh',
+                mb: { xs: 0.25, sm: 0.5 },
+                mt: 0,
+                flexWrap: 'wrap',
+                minHeight: 48,
+                visibility: isToday ? 'visible' : 'hidden',
               }}
             >
+              {loading && isToday ? (
+                <>
+                  <Skeleton
+                    variant="text"
+                    width={100}
+                    height={24}
+                    sx={{ borderRadius: borderRadius.xs }}
+                  />
+                  <Skeleton
+                    variant="text"
+                    width={80}
+                    height={24}
+                    sx={{ borderRadius: borderRadius.xs }}
+                  />
+                  <Skeleton
+                    variant="rectangular"
+                    width={200}
+                    height={32}
+                    sx={{ borderRadius: borderRadius.sm, ml: 'auto' }}
+                  />
+                </>
+              ) : (
+                games.length > 0 &&
+                isToday && (
+                  <>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        color: 'text.secondary',
+                        fontWeight: typography.weight.medium,
+                        fontSize: {
+                          xs: typography.size.bodySmall.xs,
+                          sm: typography.size.bodySmall.sm,
+                        },
+                      }}
+                    >
+                      {gameStats.totalGames} {gameStats.totalGames === 1 ? 'Game' : 'Games'}
+                    </Typography>
+                    {gameStats.gamesInProgress > 0 && (
+                      <>
+                        <Divider
+                          orientation="vertical"
+                          flexItem
+                          sx={{ height: { xs: 14, sm: 16 } }}
+                        />
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          <FiberManualRecord sx={{ fontSize: 8, color: 'error.main' }} />
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              color: 'error.main',
+                              fontWeight: typography.weight.semibold,
+                              fontSize: {
+                                xs: typography.size.bodySmall.xs,
+                                sm: typography.size.bodySmall.sm,
+                              },
+                            }}
+                          >
+                            {gameStats.gamesInProgress} Live
+                          </Typography>
+                        </Box>
+                      </>
+                    )}
+                  </>
+                )
+              )}
+            </Box>
+
+            {/* Games Display */}
+            {loading && games.length === 0 ? (
+              <Box>
+                {/* Skeleton loading */}
+                <Box sx={{ mb: { xs: 3, sm: 4, md: 5 } }}>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: { xs: 1.5, sm: 2 },
+                      mb: { xs: 2, sm: 2.5 },
+                      pb: 1,
+                    }}
+                  >
+                    <Skeleton variant="circular" width={20} height={20} />
+                    <Skeleton variant="text" width={140} height={28} sx={{ flex: 1 }} />
+                    <Skeleton
+                      variant="rectangular"
+                      width={32}
+                      height={24}
+                      sx={{ borderRadius: borderRadius.xs }}
+                    />
+                  </Box>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: { xs: 2, sm: 2.5, md: 3 },
+                    }}
+                  >
+                    {[...Array(3)].map((_, index) => (
+                      <Skeleton
+                        key={index}
+                        variant="rectangular"
+                        height={110}
+                        sx={{
+                          borderRadius: borderRadius.md,
+                          height: { xs: 100, sm: 110 },
+                        }}
+                      />
+                    ))}
+                  </Box>
+                </Box>
+              </Box>
+            ) : isToday ? (
+              // If viewing today, show all three categories with filters applied
+              <Box>
+                {loading && (
+                  <Box sx={{ mb: responsiveSpacing.section }}>
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1.5,
+                        mb: responsiveSpacing.element,
+                      }}
+                    >
+                      <Skeleton variant="text" width={120} height={24} />
+                      <Skeleton
+                        variant="rectangular"
+                        width={32}
+                        height={22}
+                        sx={{ borderRadius: borderRadius.xs }}
+                      />
+                    </Box>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                      {[...Array(2)].map((_, index) => (
+                        <Skeleton
+                          key={index}
+                          variant="rectangular"
+                          height={64}
+                          sx={{ borderRadius: borderRadius.sm }}
+                        />
+                      ))}
+                    </Box>
+                  </Box>
+                )}
+                {renderGameSection(
+                  'LIVE',
+                  filteredLiveGames,
+                  <FiberManualRecord sx={{ fontSize: { xs: 16, sm: 18 }, color: 'error.main' }} />,
+                  true,
+                )}
+                <Box sx={{ display: { xs: 'block', md: 'none' } }}>
+                  {renderGameSection(
+                    'Tonight',
+                    filteredUpcomingGames,
+                    <Schedule sx={{ fontSize: 18 }} />,
+                    false,
+                  )}
+                  {renderGameSection(
+                    'Completed',
+                    filteredCompletedGames,
+                    <Event sx={{ fontSize: 18 }} />,
+                    false,
+                  )}
+                </Box>
+              </Box>
+            ) : (
+              // If viewing past or future date, show appropriate category with filters applied
+              <Box>
+                {loading && (
+                  <Box sx={{ mb: { xs: 3, sm: 4, md: 5 } }}>
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: { xs: 1.5, sm: 2 },
+                        mb: { xs: 2, sm: 2.5 },
+                        pb: 1,
+                      }}
+                    >
+                      <Skeleton variant="circular" width={20} height={20} />
+                      <Skeleton variant="text" width={140} height={28} sx={{ flex: 1 }} />
+                      <Skeleton
+                        variant="rectangular"
+                        width={32}
+                        height={24}
+                        sx={{ borderRadius: borderRadius.xs }}
+                      />
+                    </Box>
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: { xs: 2, sm: 2.5, md: 3 },
+                      }}
+                    >
+                      {[...Array(2)].map((_, index) => (
+                        <Skeleton
+                          key={index}
+                          variant="rectangular"
+                          height={110}
+                          sx={{
+                            borderRadius: borderRadius.md,
+                            height: { xs: 100, sm: 110 },
+                          }}
+                        />
+                      ))}
+                    </Box>
+                  </Box>
+                )}
+                {selectedDate < today
+                  ? renderGameSection(
+                      'Completed Games',
+                      filteredCompletedGames,
+                      <Event sx={{ fontSize: { xs: 16, sm: 18 } }} />,
+                      true,
+                    )
+                  : renderGameSection(
+                      'Future Games',
+                      filteredUpcomingGames,
+                      <Schedule sx={{ fontSize: { xs: 16, sm: 18 } }} />,
+                      true,
+                    )}
+              </Box>
+            )}
+
+            {/* Empty state: no games scheduled */}
+            {!loading && games.length === 0 && (
               <Box
                 sx={{
-                  position: 'relative',
-                  mb: 4,
-                  animation: 'pulse 2s ease-in-out infinite',
-                  '@keyframes pulse': {
-                    '0%, 100%': { opacity: 0.5 },
-                    '50%': { opacity: 1 },
-                  },
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  py: { xs: 8, sm: 12 },
+                  px: 3,
+                  minHeight: '50vh',
                 }}
               >
-                <FilterList
+                <Box
                   sx={{
-                    fontSize: { xs: 100, sm: 120 },
-                    color: 'text.disabled',
-                    opacity: 0.3,
+                    position: 'relative',
+                    mb: 4,
+                    animation: 'float 3s ease-in-out infinite',
+                    '@keyframes float': {
+                      '0%, 100%': { transform: 'translateY(0px)' },
+                      '50%': { transform: 'translateY(-10px)' },
+                    },
                   }}
-                />
+                >
+                  <Event
+                    sx={{
+                      fontSize: { xs: 100, sm: 120 },
+                      color: 'primary.main',
+                      opacity: 0.3,
+                    }}
+                  />
+                </Box>
+                <Typography
+                  variant="h5"
+                  sx={{
+                    fontWeight: typography.weight.bold,
+                    mb: 1,
+                    textAlign: 'center',
+                    color: 'text.primary',
+                  }}
+                >
+                  No Games Scheduled
+                </Typography>
+                <Typography
+                  variant="body1"
+                  color="text.secondary"
+                  sx={{
+                    textAlign: 'center',
+                    mb: 4,
+                    maxWidth: 500,
+                    lineHeight: 1.6,
+                  }}
+                >
+                  There are no NBA games scheduled for{' '}
+                  {selectedDate === getLocalISODate() ? 'today' : 'this date'}. Check another date
+                  or come back later!
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'center' }}>
+                  <Button
+                    variant="outlined"
+                    startIcon={<CalendarToday />}
+                    onClick={() => setSelectedDate(getLocalISODate())}
+                    sx={{
+                      px: 3,
+                      py: 1.5,
+                      borderRadius: borderRadius.sm,
+                      textTransform: 'none',
+                      fontWeight: typography.weight.semibold,
+                    }}
+                  >
+                    View Today's Games
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    startIcon={<Schedule />}
+                    onClick={() => {
+                      const tomorrow = new Date(selectedDate);
+                      tomorrow.setDate(tomorrow.getDate() + 1);
+                      setSelectedDate(tomorrow.toISOString().split('T')[0]);
+                    }}
+                    sx={{
+                      px: 3,
+                      py: 1.5,
+                      borderRadius: borderRadius.sm,
+                      textTransform: 'none',
+                      fontWeight: typography.weight.semibold,
+                    }}
+                  >
+                    View Tomorrow
+                  </Button>
+                </Box>
               </Box>
-              <Typography
-                variant="h5"
-                sx={{
-                  fontWeight: typography.weight.bold,
-                  mb: 1,
-                  textAlign: 'center',
-                  color: 'text.primary',
-                }}
-              >
-                No Games Match Your Filters
-              </Typography>
-              <Typography
-                variant="body1"
-                color="text.secondary"
-                sx={{
-                  textAlign: 'center',
-                  mb: 4,
-                  maxWidth: 500,
-                  lineHeight: 1.6,
-                }}
-              >
-                Try adjusting your filters or selecting a different date to see more games.
-              </Typography>
-              <Button
-                variant="contained"
-                startIcon={<Refresh />}
-                onClick={() => setGameFilter('all')}
-                sx={{
-                  px: 4,
-                  py: 1.5,
-                  borderRadius: 1.5, // Material 3: 12dp
-                  textTransform: 'none',
-                  fontWeight: 600,
-                }}
-              >
-                Clear Filters
-              </Button>
-            </Box>
-          )}
+            )}
 
+            {/* Empty state: games exist but don't match filters */}
+            {!loading &&
+              liveGames.length === 0 &&
+              upcomingGames.length === 0 &&
+              completedGames.length === 0 &&
+              games.length !== 0 && (
+                <Box
+                  sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    py: { xs: 8, sm: 12 },
+                    px: 3,
+                    minHeight: '50vh',
+                  }}
+                >
+                  <Box
+                    sx={{
+                      position: 'relative',
+                      mb: 4,
+                      animation: 'pulse 2s ease-in-out infinite',
+                      '@keyframes pulse': {
+                        '0%, 100%': { opacity: 0.5 },
+                        '50%': { opacity: 1 },
+                      },
+                    }}
+                  >
+                    <FilterList
+                      sx={{
+                        fontSize: { xs: 100, sm: 120 },
+                        color: 'text.disabled',
+                        opacity: 0.3,
+                      }}
+                    />
+                  </Box>
+                  <Typography
+                    variant="h5"
+                    sx={{
+                      fontWeight: typography.weight.bold,
+                      mb: 1,
+                      textAlign: 'center',
+                      color: 'text.primary',
+                    }}
+                  >
+                    No Games Match Your Filters
+                  </Typography>
+                  <Typography
+                    variant="body1"
+                    color="text.secondary"
+                    sx={{
+                      textAlign: 'center',
+                      mb: 4,
+                      maxWidth: 500,
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    Try adjusting your filters or selecting a different date to see more games.
+                  </Typography>
+                  <Button
+                    variant="contained"
+                    startIcon={<Refresh />}
+                    onClick={() => setGameFilter('all')}
+                    sx={{
+                      px: 4,
+                      py: 1.5,
+                      borderRadius: 1.5, // Material 3: 12dp
+                      textTransform: 'none',
+                      fontWeight: 600,
+                    }}
+                  >
+                    Clear Filters
+                  </Button>
+                </Box>
+              )}
           </Box>
 
           {/* Right column (desktop): Hot Streaks + Upcoming + Completed when today */}
@@ -1530,15 +1550,23 @@ const Scoreboard = () => {
                     backgroundColor: 'background.paper',
                   }}
                 >
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5, color: 'text.secondary' }}>
+                  <Typography
+                    variant="subtitle2"
+                    sx={{ fontWeight: 700, mb: 1.5, color: 'text.secondary' }}
+                  >
                     Hot streaks
                   </Typography>
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
                     {streaks.slice(0, 8).map((s, i) => {
                       const name = (s.PLAYER_NAME ?? s.player_name ?? '—') as string;
                       const team = (s.TEAM_ABBREVIATION ?? s.team_abbreviation ?? '') as string;
-                      const desc = (s.STREAK_TYPE ?? s.streak_type ?? s.DESCRIPTION ?? '') as string;
-                      const num = (s.STREAK_NUMBER ?? s.streak_number ?? s.CONSECUTIVE ?? '') as string | number;
+                      const desc = (s.STREAK_TYPE ??
+                        s.streak_type ??
+                        s.DESCRIPTION ??
+                        '') as string;
+                      const num = (s.STREAK_NUMBER ?? s.streak_number ?? s.CONSECUTIVE ?? '') as
+                        | string
+                        | number;
                       return (
                         <Box
                           key={i}
@@ -1548,7 +1576,8 @@ const Scoreboard = () => {
                             justifyContent: 'space-between',
                             gap: 1,
                             py: 0.5,
-                            borderBottom: i < Math.min(8, streaks.length) - 1 ? '1px solid' : 'none',
+                            borderBottom:
+                              i < Math.min(8, streaks.length) - 1 ? '1px solid' : 'none',
                             borderColor: 'divider',
                           }}
                         >
@@ -1598,7 +1627,6 @@ const Scoreboard = () => {
             {toast?.message}
           </Alert>
         </Snackbar>
-
       </PageContainer>
     </Box>
   );

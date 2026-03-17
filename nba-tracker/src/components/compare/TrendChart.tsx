@@ -120,45 +120,45 @@ export default function TrendChart({
       </Box>
       <Box sx={{ width: '100%', height: { xs: 260, sm: 300 }, minHeight: { xs: 260, sm: 300 } }}>
         <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="date" tick={{ fontSize: 10 }} />
-          <YAxis tick={{ fontSize: 10 }} />
-          <Tooltip />
-          <Legend />
-          {player1Averages != null && (
-            <ReferenceLine
-              y={Number(player1Averages[stat])}
+          <LineChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+            <YAxis tick={{ fontSize: 10 }} />
+            <Tooltip />
+            <Legend />
+            {player1Averages != null && (
+              <ReferenceLine
+                y={Number(player1Averages[stat])}
+                stroke="hsl(220, 70%, 50%)"
+                strokeDasharray="5 5"
+                strokeOpacity={0.6}
+                label={{ value: `${player1Name} avg`, position: 'right', fontSize: 10 }}
+              />
+            )}
+            {player2Averages != null && (
+              <ReferenceLine
+                y={Number(player2Averages[stat])}
+                stroke="hsl(30, 70%, 50%)"
+                strokeDasharray="5 5"
+                strokeOpacity={0.6}
+                label={{ value: `${player2Name} avg`, position: 'right', fontSize: 10 }}
+              />
+            )}
+            <Line
+              type="monotone"
+              dataKey={player1Name}
               stroke="hsl(220, 70%, 50%)"
-              strokeDasharray="5 5"
-              strokeOpacity={0.6}
-              label={{ value: `${player1Name} avg`, position: 'right', fontSize: 10 }}
+              strokeWidth={2}
+              dot={false}
             />
-          )}
-          {player2Averages != null && (
-            <ReferenceLine
-              y={Number(player2Averages[stat])}
+            <Line
+              type="monotone"
+              dataKey={player2Name}
               stroke="hsl(30, 70%, 50%)"
-              strokeDasharray="5 5"
-              strokeOpacity={0.6}
-              label={{ value: `${player2Name} avg`, position: 'right', fontSize: 10 }}
+              strokeWidth={2}
+              dot={false}
             />
-          )}
-          <Line
-            type="monotone"
-            dataKey={player1Name}
-            stroke="hsl(220, 70%, 50%)"
-            strokeWidth={2}
-            dot={false}
-          />
-          <Line
-            type="monotone"
-            dataKey={player2Name}
-            stroke="hsl(30, 70%, 50%)"
-            strokeWidth={2}
-            dot={false}
-          />
-        </LineChart>
+          </LineChart>
         </ResponsiveContainer>
       </Box>
     </Box>

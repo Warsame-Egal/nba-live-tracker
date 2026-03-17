@@ -51,22 +51,10 @@ const GameRow: React.FC<GameRowProps> = ({
   }
 
   if (status === 'upcoming') {
-    return (
-      <ScheduledGameCard
-        game={game}
-        onClick={onClick}
-        homeWinPercent={homeWinPercent}
-      />
-    );
+    return <ScheduledGameCard game={game} onClick={onClick} homeWinPercent={homeWinPercent} />;
   }
 
-  return (
-    <CompletedGameCard
-      game={game}
-      onClick={onClick}
-      isRecentlyUpdated={isRecentlyUpdated}
-    />
-  );
+  return <CompletedGameCard game={game} onClick={onClick} isRecentlyUpdated={isRecentlyUpdated} />;
 };
 
 export default GameRow;

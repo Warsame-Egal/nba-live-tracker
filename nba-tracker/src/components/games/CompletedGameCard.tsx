@@ -12,10 +12,7 @@ interface CompletedGameCardProps {
   isRecentlyUpdated?: boolean;
 }
 
-const CompletedGameCard: React.FC<CompletedGameCardProps> = ({
-  game,
-  onClick,
-}) => {
+const CompletedGameCard: React.FC<CompletedGameCardProps> = ({ game, onClick }) => {
   const theme = useTheme();
   const navigate = useNavigate();
   const isLiveGame = 'homeTeam' in game;
@@ -30,8 +27,12 @@ const CompletedGameCard: React.FC<CompletedGameCardProps> = ({
   const awayWon = awayScore > homeScore;
 
   const gameLeaders = isLiveGame
-    ? 'gameLeaders' in game ? game.gameLeaders : null
-    : 'gameLeaders' in game ? (game as GameSummary).gameLeaders : null;
+    ? 'gameLeaders' in game
+      ? game.gameLeaders
+      : null
+    : 'gameLeaders' in game
+      ? (game as GameSummary).gameLeaders
+      : null;
   const topPerformer =
     gameLeaders?.homeLeaders || gameLeaders?.awayLeaders
       ? (gameLeaders.homeLeaders?.points ?? 0) >= (gameLeaders.awayLeaders?.points ?? 0)
@@ -154,7 +155,8 @@ const CompletedGameCard: React.FC<CompletedGameCardProps> = ({
         >
           <Typography variant="caption" color="text.secondary">
             Top: {topPerformer.name} — {Math.round(topPerformer.points)} PTS
-            {typeof topPerformer.rebounds === 'number' && ` ${Math.round(topPerformer.rebounds)} REB`}
+            {typeof topPerformer.rebounds === 'number' &&
+              ` ${Math.round(topPerformer.rebounds)} REB`}
             {typeof topPerformer.assists === 'number' && ` ${Math.round(topPerformer.assists)} AST`}
           </Typography>
         </Box>

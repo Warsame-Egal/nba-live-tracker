@@ -112,11 +112,17 @@ const Standings = () => {
   }, [standings, selectedConference]);
 
   const eastStandings = useMemo(
-    () => standings.filter(t => t.conference === 'East').sort((a, b) => a.playoff_rank - b.playoff_rank),
+    () =>
+      standings
+        .filter(t => t.conference === 'East')
+        .sort((a, b) => a.playoff_rank - b.playoff_rank),
     [standings],
   );
   const westStandings = useMemo(
-    () => standings.filter(t => t.conference === 'West').sort((a, b) => a.playoff_rank - b.playoff_rank),
+    () =>
+      standings
+        .filter(t => t.conference === 'West')
+        .sort((a, b) => a.playoff_rank - b.playoff_rank),
     [standings],
   );
 
@@ -1144,7 +1150,10 @@ const Standings = () => {
         width: '100%',
       }}
     >
-      <PageContainer maxWidth={1400} sx={{ px: responsiveSpacing.container, py: responsiveSpacing.containerVertical }}>
+      <PageContainer
+        maxWidth={1400}
+        sx={{ px: responsiveSpacing.container, py: responsiveSpacing.containerVertical }}
+      >
         {/* Page header - always rendered */}
         <PageHeader
           title="Standings"

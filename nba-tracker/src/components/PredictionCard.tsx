@@ -129,7 +129,8 @@ const PredictionCard: React.FC<PredictionCardProps> = ({ prediction }) => {
       {/* Predicted score one-liner */}
       <Typography variant="caption" color="text.secondary" sx={{ mb: 1 }}>
         Predicted: {getTeamAbbreviation(prediction.away_team_name)}{' '}
-        {prediction.predicted_away_score.toFixed(0)} — {getTeamAbbreviation(prediction.home_team_name)}{' '}
+        {prediction.predicted_away_score.toFixed(0)} —{' '}
+        {getTeamAbbreviation(prediction.home_team_name)}{' '}
         {prediction.predicted_home_score.toFixed(0)}
       </Typography>
 

@@ -58,16 +58,12 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({ prediction, onCl
         cursor: 'pointer',
         transition: transitions.normal,
         backgroundColor:
-          theme.palette.mode === 'dark'
-            ? 'rgba(255,255,255,0.05)'
-            : 'rgba(0,0,0,0.02)',
+          theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)',
         border: '1px solid',
         borderColor: 'divider',
         '&:hover': {
           backgroundColor:
-            theme.palette.mode === 'dark'
-              ? 'rgba(255,255,255,0.1)'
-              : 'rgba(0,0,0,0.05)',
+            theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
           borderColor: 'primary.main',
         },
       }}
@@ -147,7 +143,9 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({ prediction, onCl
 
       {/* Win Probability bar */}
       <Box sx={{ mb: 1 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
+        <Box
+          sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}
+        >
           <Typography
             variant="caption"
             sx={{
@@ -230,14 +228,27 @@ export const PredictionsListContent: React.FC<{
               border: '1px solid',
               borderColor: 'divider',
               backgroundColor:
-                theme.palette.mode === 'dark'
-                  ? 'rgba(255,255,255,0.05)'
-                  : 'rgba(0,0,0,0.02)',
+                theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)',
             }}
           >
-            <Skeleton variant="rectangular" width="70%" height={16} sx={{ borderRadius: borderRadius.xs, mb: 1 }} />
-            <Skeleton variant="rectangular" width="100%" height={5} sx={{ borderRadius: borderRadius.xs, mb: 1 }} />
-            <Skeleton variant="rectangular" width="50%" height={12} sx={{ borderRadius: borderRadius.xs }} />
+            <Skeleton
+              variant="rectangular"
+              width="70%"
+              height={16}
+              sx={{ borderRadius: borderRadius.xs, mb: 1 }}
+            />
+            <Skeleton
+              variant="rectangular"
+              width="100%"
+              height={5}
+              sx={{ borderRadius: borderRadius.xs, mb: 1 }}
+            />
+            <Skeleton
+              variant="rectangular"
+              width="50%"
+              height={12}
+              sx={{ borderRadius: borderRadius.xs }}
+            />
           </Paper>
         ))}
       </Box>
@@ -245,7 +256,15 @@ export const PredictionsListContent: React.FC<{
   }
   if (error && predictions.length === 0) {
     return (
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 3, textAlign: 'center' }}>
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          py: 3,
+          textAlign: 'center',
+        }}
+      >
         <Typography variant="body2" color="error" sx={{ fontSize: typography.size.bodySmall.xs }}>
           {error}
         </Typography>
@@ -265,7 +284,10 @@ export const PredictionsListContent: React.FC<{
         }}
       >
         <Insights sx={{ fontSize: 40, color: 'text.disabled', opacity: 0.4, mb: 1.5 }} />
-        <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: typography.size.bodySmall.xs, mb: 0.5 }}>
+        <Typography
+          variant="body2"
+          sx={{ color: 'text.secondary', fontSize: typography.size.bodySmall.xs, mb: 0.5 }}
+        >
           No predictions for this date.
         </Typography>
       </Box>
@@ -427,14 +449,19 @@ const PredictionsSidebar: React.FC<PredictionsSidebarProps> = ({
               scrollbarColor: `${theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.4)'} ${theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
               '&::-webkit-scrollbar': { width: '8px' },
               '&::-webkit-scrollbar-track': {
-                background: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+                background:
+                  theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
                 borderRadius: borderRadius.xs,
               },
               '&::-webkit-scrollbar-thumb': {
-                backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.4)',
+                backgroundColor:
+                  theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.4)',
                 borderRadius: borderRadius.xs,
                 '&:hover': {
-                  backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.6)' : 'rgba(0, 0, 0, 0.6)',
+                  backgroundColor:
+                    theme.palette.mode === 'dark'
+                      ? 'rgba(255, 255, 255, 0.6)'
+                      : 'rgba(0, 0, 0, 0.6)',
                 },
               },
             },

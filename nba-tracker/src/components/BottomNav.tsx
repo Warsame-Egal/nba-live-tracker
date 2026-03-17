@@ -176,7 +176,15 @@ export default function BottomNav() {
           ))}
         </List>
         <Divider />
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2, py: 2 }}>
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            px: 2,
+            py: 2,
+          }}
+        >
           <Typography variant="body2" color="text.secondary">
             Theme
           </Typography>

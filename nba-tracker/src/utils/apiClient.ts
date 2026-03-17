@@ -143,7 +143,7 @@ export async function fetchGameSummary(gameId: string): Promise<{ summary: strin
 
 /** Fetch or generate post-game recap (completed games only). */
 export async function fetchGameRecap(
-  gameId: string
+  gameId: string,
 ): Promise<{ game_id: string; recap: string; cached: boolean } | null> {
   const url = `${API_BASE_URL}/api/v1/game/${gameId}/recap`;
   try {

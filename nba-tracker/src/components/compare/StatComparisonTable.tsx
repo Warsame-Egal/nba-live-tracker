@@ -44,10 +44,7 @@ const STAT_ROWS: { key: keyof SeasonAverages; label: string; format: 'int' | 'fl
   { key: 'plus_minus', label: '+/-', format: 'float' },
 ];
 
-function formatVal(
-  v: number,
-  format: 'int' | 'float' | 'pct',
-): string {
+function formatVal(v: number, format: 'int' | 'float' | 'pct'): string {
   if (format === 'pct') return (v * 100).toFixed(1) + '%';
   if (format === 'int') return String(Math.round(v));
   return v.toFixed(1);
@@ -55,9 +52,13 @@ function formatVal(
 
 function TrendBadge({ trend }: { trend: string }) {
   if (trend === 'hot')
-    return <Chip size="small" label="Hot" sx={{ bgcolor: 'error.light', color: 'error.contrastText' }} />;
+    return (
+      <Chip size="small" label="Hot" sx={{ bgcolor: 'error.light', color: 'error.contrastText' }} />
+    );
   if (trend === 'cold')
-    return <Chip size="small" label="Cold" sx={{ bgcolor: 'info.light', color: 'info.contrastText' }} />;
+    return (
+      <Chip size="small" label="Cold" sx={{ bgcolor: 'info.light', color: 'info.contrastText' }} />
+    );
   return <Chip size="small" label="Steady" variant="outlined" color="default" />;
 }
 
@@ -85,13 +86,17 @@ export default function StatComparisonTable({
           <TableRow>
             <TableCell sx={{ fontWeight: 600 }}>Stat</TableCell>
             <TableCell align="right" sx={{ fontWeight: 600 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5 }}>
+              <Box
+                sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5 }}
+              >
                 {player1Name}
                 {player1HotStreak && <TrendBadge trend={player1HotStreak.overall_trend} />}
               </Box>
             </TableCell>
             <TableCell align="right" sx={{ fontWeight: 600 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5 }}>
+              <Box
+                sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5 }}
+              >
                 {player2Name}
                 {player2HotStreak && <TrendBadge trend={player2HotStreak.overall_trend} />}
               </Box>
@@ -128,7 +133,9 @@ export default function StatComparisonTable({
               const higher = v1 > v2 ? 1 : v2 > v1 ? 2 : 0;
               return (
                 <TableRow key={key}>
-                  <TableCell sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>{label}</TableCell>
+                  <TableCell sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>
+                    {label}
+                  </TableCell>
                   <TableCell
                     align="right"
                     sx={

@@ -119,8 +119,7 @@ const Players = () => {
           {},
           { maxRetries: 3, retryDelay: 1000, timeout: 30000 },
         );
-        if (!cancelled && data?.data)
-          setSeasonLeaders({ season, categories: data.data });
+        if (!cancelled && data?.data) setSeasonLeaders({ season, categories: data.data });
       } catch (err) {
         if (!cancelled) console.error('Error fetching season leaders:', err);
       } finally {
@@ -239,11 +238,9 @@ const Players = () => {
         const lower = cat.category.toLowerCase().replace(/\s+/g, '');
         return keys.some(k => lower.includes(k) || lower === k);
       });
-    return [
-      find(['points', 'pts']),
-      find(['rebounds', 'reb']),
-      find(['assists', 'ast']),
-    ].filter(Boolean) as SeasonLeadersCategory[];
+    return [find(['points', 'pts']), find(['rebounds', 'reb']), find(['assists', 'ast'])].filter(
+      Boolean,
+    ) as SeasonLeadersCategory[];
   }, [seasonLeaders]);
 
   const renderPlayerCard = (player: PlayerSummary) => {
@@ -996,7 +993,10 @@ const Players = () => {
         width: '100%',
       }}
     >
-      <PageContainer maxWidth={1400} sx={{ px: responsiveSpacing.container, py: responsiveSpacing.containerVertical }}>
+      <PageContainer
+        maxWidth={1400}
+        sx={{ px: responsiveSpacing.container, py: responsiveSpacing.containerVertical }}
+      >
         {/* Page header - always rendered */}
         <PageHeader title="Players" />
 
@@ -1083,16 +1083,17 @@ const Players = () => {
                         alignItems: 'center',
                         py: 0.5,
                         borderBottom:
-                          idx < Math.min(3, cat.leaders.length) - 1
-                            ? '1px solid'
-                            : 'none',
+                          idx < Math.min(3, cat.leaders.length) - 1 ? '1px solid' : 'none',
                         borderColor: 'divider',
                       }}
                     >
                       <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.8rem' }}>
                         {leader.player_name}
                       </Typography>
-                      <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>
+                      <Typography
+                        variant="body2"
+                        sx={{ color: 'text.secondary', fontSize: '0.8rem' }}
+                      >
                         {Number.isInteger(leader.value) ? leader.value : leader.value.toFixed(1)}
                       </Typography>
                     </Box>

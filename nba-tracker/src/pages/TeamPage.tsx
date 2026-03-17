@@ -322,9 +322,7 @@ const TeamPage = () => {
             Record
           </Typography>
           <Typography variant="h6" sx={{ fontWeight: 700 }}>
-            {teamStanding != null
-              ? `${teamStanding.wins}-${teamStanding.losses}`
-              : '—'}
+            {teamStanding != null ? `${teamStanding.wins}-${teamStanding.losses}` : '—'}
           </Typography>
         </Paper>
         <Paper
@@ -386,7 +384,7 @@ const TeamPage = () => {
             {teamStanding?.diff != null
               ? `${teamStanding.diff > 0 ? '+' : ''}${teamStanding.diff.toFixed(1)}`
               : teamStanding?.ppg != null && teamStanding?.opp_ppg != null
-                ? `${(teamStanding.ppg - teamStanding.opp_ppg) > 0 ? '+' : ''}${(teamStanding.ppg - teamStanding.opp_ppg).toFixed(1)}`
+                ? `${teamStanding.ppg - teamStanding.opp_ppg > 0 ? '+' : ''}${(teamStanding.ppg - teamStanding.opp_ppg).toFixed(1)}`
                 : '—'}
           </Typography>
         </Paper>
@@ -564,19 +562,23 @@ const TeamPage = () => {
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  {Object.keys(lineups[0]).slice(0, 10).map(h => (
-                    <TableCell key={h} sx={{ fontWeight: typography.weight.bold }}>
-                      {String(h).replace(/_/g, ' ')}
-                    </TableCell>
-                  ))}
+                  {Object.keys(lineups[0])
+                    .slice(0, 10)
+                    .map(h => (
+                      <TableCell key={h} sx={{ fontWeight: typography.weight.bold }}>
+                        {String(h).replace(/_/g, ' ')}
+                      </TableCell>
+                    ))}
                 </TableRow>
               </TableHead>
               <TableBody>
                 {lineups.slice(0, 15).map((row, i) => (
                   <TableRow key={i}>
-                    {Object.values(row).slice(0, 10).map((v, j) => (
-                      <TableCell key={j}>{String(v ?? '—')}</TableCell>
-                    ))}
+                    {Object.values(row)
+                      .slice(0, 10)
+                      .map((v, j) => (
+                        <TableCell key={j}>{String(v ?? '—')}</TableCell>
+                      ))}
                   </TableRow>
                 ))}
               </TableBody>
@@ -603,19 +605,23 @@ const TeamPage = () => {
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  {Object.keys(onOff[0]).slice(0, 10).map(h => (
-                    <TableCell key={h} sx={{ fontWeight: typography.weight.bold }}>
-                      {String(h).replace(/_/g, ' ')}
-                    </TableCell>
-                  ))}
+                  {Object.keys(onOff[0])
+                    .slice(0, 10)
+                    .map(h => (
+                      <TableCell key={h} sx={{ fontWeight: typography.weight.bold }}>
+                        {String(h).replace(/_/g, ' ')}
+                      </TableCell>
+                    ))}
                 </TableRow>
               </TableHead>
               <TableBody>
                 {onOff.slice(0, 20).map((row, i) => (
                   <TableRow key={i}>
-                    {Object.values(row).slice(0, 10).map((v, j) => (
-                      <TableCell key={j}>{String(v ?? '—')}</TableCell>
-                    ))}
+                    {Object.values(row)
+                      .slice(0, 10)
+                      .map((v, j) => (
+                        <TableCell key={j}>{String(v ?? '—')}</TableCell>
+                      ))}
                   </TableRow>
                 ))}
               </TableBody>
@@ -733,21 +739,23 @@ const TeamPage = () => {
             <Typography variant="caption" color="text.secondary" sx={{ mr: 1 }}>
               Last 5
             </Typography>
-            {gameLog.games
-              .slice(-5)
-              .map((g, idx) => (
-                <Box
-                  key={g.game_id || idx}
-                  sx={{
-                    width: 10,
-                    height: 10,
-                    borderRadius: '50%',
-                    backgroundColor:
-                      g.win_loss === 'W' ? 'success.main' : g.win_loss === 'L' ? 'error.main' : 'divider',
-                  }}
-                  title={g.win_loss === 'W' ? 'Win' : g.win_loss === 'L' ? 'Loss' : '—'}
-                />
-              ))}
+            {gameLog.games.slice(-5).map((g, idx) => (
+              <Box
+                key={g.game_id || idx}
+                sx={{
+                  width: 10,
+                  height: 10,
+                  borderRadius: '50%',
+                  backgroundColor:
+                    g.win_loss === 'W'
+                      ? 'success.main'
+                      : g.win_loss === 'L'
+                        ? 'error.main'
+                        : 'divider',
+                }}
+                title={g.win_loss === 'W' ? 'Win' : g.win_loss === 'L' ? 'Loss' : '—'}
+              />
+            ))}
           </Box>
         )}
 

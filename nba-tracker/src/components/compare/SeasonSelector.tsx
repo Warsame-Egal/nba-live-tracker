@@ -52,13 +52,9 @@ export default function SeasonSelector({
   }, [player2Id]);
 
   const options1 =
-    seasons1.length > 0
-      ? [...new Set([season1, ...seasons1])].sort()
-      : [season1 || currentSeason];
+    seasons1.length > 0 ? [...new Set([season1, ...seasons1])].sort() : [season1 || currentSeason];
   const options2 =
-    seasons2.length > 0
-      ? [...new Set([season2, ...seasons2])].sort()
-      : [season2 || currentSeason];
+    seasons2.length > 0 ? [...new Set([season2, ...seasons2])].sort() : [season2 || currentSeason];
 
   return (
     <Box

@@ -36,7 +36,15 @@ const PlayerProfile: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   // Profile sections (File 4.6)
-  const [zonesData, setZonesData] = useState<{ zones: Array<{ zone: string; fg_pct: number; league_avg: number | null; diff_pct: number | null; freq_pct: number }> } | null>(null);
+  const [zonesData, setZonesData] = useState<{
+    zones: Array<{
+      zone: string;
+      fg_pct: number;
+      league_avg: number | null;
+      diff_pct: number | null;
+      freq_pct: number;
+    }>;
+  } | null>(null);
   const [clutchData, setClutchData] = useState<{
     regular: { ppg: number | null; fg_pct: number | null; gp: number };
     clutch: { ppg: number | null; fg_pct: number | null; gp: number };
@@ -45,9 +53,16 @@ const PlayerProfile: React.FC = () => {
     ppg_diff: number | null;
     fg_pct_diff: number | null;
   } | null>(null);
-  const [splitsData, setSplitsData] = useState<Record<string, Array<Record<string, unknown>>> | null>(null);
-  const [defenseData, setDefenseData] = useState<{ defense: Array<Record<string, unknown>> } | null>(null);
-  const [passingData, setPassingData] = useState<{ passes: Array<Record<string, unknown>> } | null>(null);
+  const [splitsData, setSplitsData] = useState<Record<
+    string,
+    Array<Record<string, unknown>>
+  > | null>(null);
+  const [defenseData, setDefenseData] = useState<{
+    defense: Array<Record<string, unknown>>;
+  } | null>(null);
+  const [passingData, setPassingData] = useState<{ passes: Array<Record<string, unknown>> } | null>(
+    null,
+  );
   const [yoyData, setYoyData] = useState<{ seasons: Array<Record<string, unknown>> } | null>(null);
 
   const season = searchParams.get('season') || getCurrentSeason();
@@ -108,11 +123,15 @@ const PlayerProfile: React.FC = () => {
 
     const fetchZones = async () => {
       try {
-        const res = await fetchJson<{ zones: Array<{ zone: string; fg_pct: number; league_avg: number | null; diff_pct: number | null; freq_pct: number }> }>(
-          `${base}/shooting-zones${q}`,
-          {},
-          { maxRetries: 1, timeout: 15000 },
-        );
+        const res = await fetchJson<{
+          zones: Array<{
+            zone: string;
+            fg_pct: number;
+            league_avg: number | null;
+            diff_pct: number | null;
+            freq_pct: number;
+          }>;
+        }>(`${base}/shooting-zones${q}`, {}, { maxRetries: 1, timeout: 15000 });
         setZonesData(res);
       } catch {
         setZonesData(null);
@@ -120,7 +139,11 @@ const PlayerProfile: React.FC = () => {
     };
     const fetchClutch = async () => {
       try {
-        const res = await fetchJson<typeof clutchData>(`${base}/clutch${q}`, {}, { maxRetries: 1, timeout: 15000 });
+        const res = await fetchJson<typeof clutchData>(
+          `${base}/clutch${q}`,
+          {},
+          { maxRetries: 1, timeout: 15000 },
+        );
         setClutchData(res);
       } catch {
         setClutchData(null);
@@ -128,7 +151,11 @@ const PlayerProfile: React.FC = () => {
     };
     const fetchSplits = async () => {
       try {
-        const res = await fetchJson<Record<string, Array<Record<string, unknown>>>>(`${base}/splits${q}`, {}, { maxRetries: 1, timeout: 15000 });
+        const res = await fetchJson<Record<string, Array<Record<string, unknown>>>>(
+          `${base}/splits${q}`,
+          {},
+          { maxRetries: 1, timeout: 15000 },
+        );
         setSplitsData(res);
       } catch {
         setSplitsData(null);
@@ -136,7 +163,11 @@ const PlayerProfile: React.FC = () => {
     };
     const fetchDefense = async () => {
       try {
-        const res = await fetchJson<{ defense: Array<Record<string, unknown>> }>(`${base}/defense${q}`, {}, { maxRetries: 1, timeout: 15000 });
+        const res = await fetchJson<{ defense: Array<Record<string, unknown>> }>(
+          `${base}/defense${q}`,
+          {},
+          { maxRetries: 1, timeout: 15000 },
+        );
         setDefenseData(res);
       } catch {
         setDefenseData(null);
@@ -144,7 +175,11 @@ const PlayerProfile: React.FC = () => {
     };
     const fetchPassing = async () => {
       try {
-        const res = await fetchJson<{ passes: Array<Record<string, unknown>> }>(`${base}/passing${q}`, {}, { maxRetries: 1, timeout: 15000 });
+        const res = await fetchJson<{ passes: Array<Record<string, unknown>> }>(
+          `${base}/passing${q}`,
+          {},
+          { maxRetries: 1, timeout: 15000 },
+        );
         setPassingData(res);
       } catch {
         setPassingData(null);
@@ -274,7 +309,11 @@ const PlayerProfile: React.FC = () => {
             {/* Last 10 games sparkline — above the fold on mobile */}
             {gameLog && gameLog.games && gameLog.games.length > 0 && (
               <Box sx={{ mb: 2 }}>
-                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5, fontWeight: 600 }}>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ display: 'block', mb: 0.5, fontWeight: 600 }}
+                >
                   Last 10 games
                 </Typography>
                 <Box sx={{ width: '100%', height: 40, maxWidth: 280 }}>
@@ -314,531 +353,544 @@ const PlayerProfile: React.FC = () => {
 
                 {/* Game Log */}
                 {gameLog && gameLog.games.length > 0 && (
-              <Box sx={{ mb: { xs: 4, sm: 5 } }}>
-                <Paper
-                  elevation={0}
-                  sx={{
-                    p: { xs: 2, sm: 3 }, // Material 3: 24dp padding
-                    backgroundColor: 'background.paper', // Material 3: surface
-                    border: '1px solid',
-                    borderColor: 'divider', // Material 3: outline
-                    borderRadius: borderRadius.md,
-                  }}
-                >
-                  <Typography
-                    variant="h6"
-                    sx={{
-                      fontWeight: typography.weight.bold,
-                      mb: { xs: 2, sm: 3 },
-                      fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.h6 },
-                    }}
-                  >
-                    Game Log
-                  </Typography>
-                  <Box
-                    sx={{
-                      overflowX: 'auto',
-                      WebkitOverflowScrolling: 'touch',
-                      width: '100%',
-                      maxWidth: '100%',
-                    }}
-                  >
-                    <TableContainer
+                  <Box sx={{ mb: { xs: 4, sm: 5 } }}>
+                    <Paper
+                      elevation={0}
                       sx={{
-                        overflowX: 'auto',
-                        width: '100%',
-                        maxWidth: '100%',
-                        minWidth: { xs: 700, sm: 'auto' },
-                        // Hide scrollbar on mobile (touch devices)
-                        '@media (hover: hover)': {
-                          '&::-webkit-scrollbar': {
-                            height: 8,
-                          },
-                          '&::-webkit-scrollbar-track': {
-                            backgroundColor: 'background.default',
-                          },
-                          '&::-webkit-scrollbar-thumb': {
-                            backgroundColor: 'divider',
-                            borderRadius: borderRadius.xs,
-                            '&:hover': {
-                              backgroundColor: 'text.secondary',
-                            },
-                          },
-                        },
+                        p: { xs: 2, sm: 3 }, // Material 3: 24dp padding
+                        backgroundColor: 'background.paper', // Material 3: surface
+                        border: '1px solid',
+                        borderColor: 'divider', // Material 3: outline
+                        borderRadius: borderRadius.md,
                       }}
                     >
-                      <Table
-                        size="small"
+                      <Typography
+                        variant="h6"
                         sx={{
-                          width: '100%',
-                          tableLayout: 'auto',
+                          fontWeight: typography.weight.bold,
+                          mb: { xs: 2, sm: 3 },
+                          fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.h6 },
                         }}
                       >
-                        <TableHead>
-                          <TableRow>
-                            <TableCell
-                              sx={{
-                                fontWeight: typography.weight.semibold,
-                                py: { xs: 1.5, sm: 2.5 },
-                                px: { xs: 0.75, sm: 1.5 },
-                                fontSize: {
-                                  xs: typography.size.caption.xs,
-                                  sm: typography.editorial.helper.xs,
+                        Game Log
+                      </Typography>
+                      <Box
+                        sx={{
+                          overflowX: 'auto',
+                          WebkitOverflowScrolling: 'touch',
+                          width: '100%',
+                          maxWidth: '100%',
+                        }}
+                      >
+                        <TableContainer
+                          sx={{
+                            overflowX: 'auto',
+                            width: '100%',
+                            maxWidth: '100%',
+                            minWidth: { xs: 700, sm: 'auto' },
+                            // Hide scrollbar on mobile (touch devices)
+                            '@media (hover: hover)': {
+                              '&::-webkit-scrollbar': {
+                                height: 8,
+                              },
+                              '&::-webkit-scrollbar-track': {
+                                backgroundColor: 'background.default',
+                              },
+                              '&::-webkit-scrollbar-thumb': {
+                                backgroundColor: 'divider',
+                                borderRadius: borderRadius.xs,
+                                '&:hover': {
+                                  backgroundColor: 'text.secondary',
                                 },
-                                color: 'text.secondary',
-                              }}
-                            >
-                              Date
-                            </TableCell>
-                            <TableCell
-                              sx={{
-                                fontWeight: typography.weight.semibold,
-                                py: { xs: 1.5, sm: 2.5 },
-                                px: { xs: 0.75, sm: 1.5 },
-                                fontSize: {
-                                  xs: typography.size.caption.xs,
-                                  sm: typography.editorial.helper.xs,
-                                },
-                                color: 'text.secondary',
-                              }}
-                            >
-                              Opponent
-                            </TableCell>
-                            <TableCell
-                              align="center"
-                              sx={{
-                                fontWeight: typography.weight.semibold,
-                                py: { xs: 1.5, sm: 2.5 },
-                                px: { xs: 0.75, sm: 1.5 },
-                                fontSize: {
-                                  xs: typography.size.caption.xs,
-                                  sm: typography.editorial.helper.xs,
-                                },
-                                color: 'text.secondary',
-                              }}
-                            >
-                              Result
-                            </TableCell>
-                            <TableCell
-                              align="center"
-                              sx={{
-                                fontWeight: typography.weight.semibold,
-                                py: { xs: 1.5, sm: 2.5 },
-                                px: { xs: 0.75, sm: 1.5 },
-                                fontSize: {
-                                  xs: typography.size.caption.xs,
-                                  sm: typography.editorial.helper.xs,
-                                },
-                                color: 'text.secondary',
-                              }}
-                            >
-                              MIN
-                            </TableCell>
-                            <TableCell
-                              align="center"
-                              sx={{
-                                fontWeight: typography.weight.semibold,
-                                py: { xs: 1.5, sm: 2.5 },
-                                px: { xs: 0.75, sm: 1.5 },
-                                fontSize: {
-                                  xs: typography.size.caption.xs,
-                                  sm: typography.editorial.helper.xs,
-                                },
-                                color: 'text.secondary',
-                              }}
-                            >
-                              PTS
-                            </TableCell>
-                            <TableCell
-                              align="center"
-                              sx={{
-                                fontWeight: typography.weight.semibold,
-                                py: { xs: 1.5, sm: 2.5 },
-                                px: { xs: 0.75, sm: 1.5 },
-                                fontSize: {
-                                  xs: typography.size.caption.xs,
-                                  sm: typography.editorial.helper.xs,
-                                },
-                                color: 'text.secondary',
-                              }}
-                            >
-                              REB
-                            </TableCell>
-                            <TableCell
-                              align="center"
-                              sx={{
-                                fontWeight: typography.weight.semibold,
-                                py: { xs: 1.5, sm: 2.5 },
-                                px: { xs: 0.75, sm: 1.5 },
-                                fontSize: {
-                                  xs: typography.size.caption.xs,
-                                  sm: typography.editorial.helper.xs,
-                                },
-                                color: 'text.secondary',
-                              }}
-                            >
-                              AST
-                            </TableCell>
-                            <TableCell
-                              align="center"
-                              sx={{
-                                fontWeight: typography.weight.semibold,
-                                py: { xs: 1.5, sm: 2.5 },
-                                px: { xs: 0.75, sm: 1.5 },
-                                fontSize: {
-                                  xs: typography.size.caption.xs,
-                                  sm: typography.editorial.helper.xs,
-                                },
-                                color: 'text.secondary',
-                              }}
-                            >
-                              STL
-                            </TableCell>
-                            <TableCell
-                              align="center"
-                              sx={{
-                                fontWeight: typography.weight.semibold,
-                                py: { xs: 1.5, sm: 2.5 },
-                                px: { xs: 0.75, sm: 1.5 },
-                                fontSize: {
-                                  xs: typography.size.caption.xs,
-                                  sm: typography.editorial.helper.xs,
-                                },
-                                color: 'text.secondary',
-                              }}
-                            >
-                              BLK
-                            </TableCell>
-                            <TableCell
-                              align="center"
-                              sx={{
-                                fontWeight: typography.weight.semibold,
-                                py: { xs: 1.5, sm: 2.5 },
-                                px: { xs: 0.75, sm: 1.5 },
-                                fontSize: {
-                                  xs: typography.size.caption.xs,
-                                  sm: typography.editorial.helper.xs,
-                                },
-                                color: 'text.secondary',
-                              }}
-                            >
-                              TO
-                            </TableCell>
-                            <TableCell
-                              align="center"
-                              sx={{
-                                fontWeight: typography.weight.semibold,
-                                py: { xs: 1.5, sm: 2.5 },
-                                px: { xs: 0.75, sm: 1.5 },
-                                fontSize: {
-                                  xs: typography.size.caption.xs,
-                                  sm: typography.editorial.helper.xs,
-                                },
-                                color: 'text.secondary',
-                              }}
-                            >
-                              FG
-                            </TableCell>
-                            <TableCell
-                              align="center"
-                              sx={{
-                                fontWeight: typography.weight.semibold,
-                                py: { xs: 1.5, sm: 2.5 },
-                                px: { xs: 0.75, sm: 1.5 },
-                                fontSize: {
-                                  xs: typography.size.caption.xs,
-                                  sm: typography.editorial.helper.xs,
-                                },
-                                color: 'text.secondary',
-                              }}
-                            >
-                              3P
-                            </TableCell>
-                            <TableCell
-                              align="center"
-                              sx={{
-                                fontWeight: typography.weight.semibold,
-                                py: { xs: 1.5, sm: 2.5 },
-                                px: { xs: 0.75, sm: 1.5 },
-                                fontSize: {
-                                  xs: typography.size.caption.xs,
-                                  sm: typography.editorial.helper.xs,
-                                },
-                                color: 'text.secondary',
-                              }}
-                            >
-                              FT
-                            </TableCell>
-                            <TableCell
-                              align="center"
-                              sx={{
-                                fontWeight: typography.weight.semibold,
-                                py: { xs: 1.5, sm: 2.5 },
-                                px: { xs: 0.75, sm: 1.5 },
-                                fontSize: {
-                                  xs: typography.size.caption.xs,
-                                  sm: typography.editorial.helper.xs,
-                                },
-                                color: 'text.secondary',
-                              }}
-                            >
-                              +/-
-                            </TableCell>
-                          </TableRow>
-                        </TableHead>
-                        <TableBody>
-                          {gameLog.games.slice(0, 20).map(game => {
-                            let opponent = game.matchup;
-                            if (game.matchup.includes('@')) {
-                              opponent = game.matchup.split('@')[1]?.trim() || game.matchup;
-                            } else if (game.matchup.includes('vs')) {
-                              opponent = game.matchup.split(/vs\.?/)[1]?.trim() || game.matchup;
-                            }
-
-                            const gameDate = format(new Date(game.game_date), 'MMM d');
-                            const result = game.win_loss || '-';
-
-                            const fgMade = game.field_goals_made ?? 0;
-                            const fgAttempted = game.field_goals_attempted ?? 0;
-                            const fgFormatted = fgAttempted > 0 ? `${fgMade}/${fgAttempted}` : '-';
-                            const threeMade = game.three_pointers_made ?? 0;
-                            const threeAttempted = game.three_pointers_attempted ?? 0;
-                            const threeFormatted =
-                              threeAttempted > 0 ? `${threeMade}/${threeAttempted}` : '-';
-
-                            const ftMade = game.free_throws_made ?? 0;
-                            const ftAttempted = game.free_throws_attempted ?? 0;
-                            const ftFormatted = ftAttempted > 0 ? `${ftMade}/${ftAttempted}` : '-';
-
-                            const plusMinus =
-                              game.plus_minus !== undefined && game.plus_minus !== null
-                                ? game.plus_minus > 0
-                                  ? `+${game.plus_minus}`
-                                  : game.plus_minus.toString()
-                                : '-';
-
-                            return (
-                              <TableRow
-                                key={game.game_id}
-                                sx={{
-                                  transition: 'background-color 0.2s ease-in-out',
-                                  '&:hover': {
-                                    backgroundColor: 'action.hover',
-                                  },
-                                }}
-                              >
+                              },
+                            },
+                          }}
+                        >
+                          <Table
+                            size="small"
+                            sx={{
+                              width: '100%',
+                              tableLayout: 'auto',
+                            }}
+                          >
+                            <TableHead>
+                              <TableRow>
                                 <TableCell
                                   sx={{
-                                    py: { xs: 1.5, sm: 2 },
+                                    fontWeight: typography.weight.semibold,
+                                    py: { xs: 1.5, sm: 2.5 },
                                     px: { xs: 0.75, sm: 1.5 },
                                     fontSize: {
-                                      xs: typography.size.bodySmall.xs,
-                                      sm: typography.size.bodySmall.sm,
+                                      xs: typography.size.caption.xs,
+                                      sm: typography.editorial.helper.xs,
                                     },
+                                    color: 'text.secondary',
                                   }}
                                 >
-                                  {gameDate}
+                                  Date
                                 </TableCell>
                                 <TableCell
                                   sx={{
                                     fontWeight: typography.weight.semibold,
-                                    py: { xs: 1.5, sm: 2 },
+                                    py: { xs: 1.5, sm: 2.5 },
                                     px: { xs: 0.75, sm: 1.5 },
                                     fontSize: {
-                                      xs: typography.size.bodySmall.xs,
-                                      sm: typography.size.bodySmall.sm,
+                                      xs: typography.size.caption.xs,
+                                      sm: typography.editorial.helper.xs,
                                     },
+                                    color: 'text.secondary',
                                   }}
                                 >
-                                  {opponent}
+                                  Opponent
                                 </TableCell>
                                 <TableCell
                                   align="center"
                                   sx={{
                                     fontWeight: typography.weight.semibold,
-                                    py: { xs: 1.5, sm: 2 },
+                                    py: { xs: 1.5, sm: 2.5 },
                                     px: { xs: 0.75, sm: 1.5 },
                                     fontSize: {
-                                      xs: typography.size.bodySmall.xs,
-                                      sm: typography.size.bodySmall.sm,
+                                      xs: typography.size.caption.xs,
+                                      sm: typography.editorial.helper.xs,
                                     },
-                                    color:
-                                      result === 'W'
-                                        ? 'success.main'
-                                        : result === 'L'
-                                          ? 'error.main'
-                                          : 'text.secondary',
+                                    color: 'text.secondary',
                                   }}
                                 >
-                                  {result}
-                                </TableCell>
-                                <TableCell
-                                  align="center"
-                                  sx={{
-                                    py: { xs: 1.5, sm: 2 },
-                                    px: { xs: 0.75, sm: 1.5 },
-                                    fontSize: {
-                                      xs: typography.size.bodySmall.xs,
-                                      sm: typography.size.bodySmall.sm,
-                                    },
-                                  }}
-                                >
-                                  {game.minutes || '-'}
+                                  Result
                                 </TableCell>
                                 <TableCell
                                   align="center"
                                   sx={{
                                     fontWeight: typography.weight.semibold,
-                                    py: { xs: 1.5, sm: 2 },
+                                    py: { xs: 1.5, sm: 2.5 },
                                     px: { xs: 0.75, sm: 1.5 },
                                     fontSize: {
-                                      xs: typography.size.bodySmall.xs,
-                                      sm: typography.size.bodySmall.sm,
+                                      xs: typography.size.caption.xs,
+                                      sm: typography.editorial.helper.xs,
                                     },
+                                    color: 'text.secondary',
                                   }}
                                 >
-                                  {game.points}
+                                  MIN
                                 </TableCell>
                                 <TableCell
                                   align="center"
                                   sx={{
-                                    py: { xs: 1.5, sm: 2 },
+                                    fontWeight: typography.weight.semibold,
+                                    py: { xs: 1.5, sm: 2.5 },
                                     px: { xs: 0.75, sm: 1.5 },
                                     fontSize: {
-                                      xs: typography.size.bodySmall.xs,
-                                      sm: typography.size.bodySmall.sm,
+                                      xs: typography.size.caption.xs,
+                                      sm: typography.editorial.helper.xs,
                                     },
+                                    color: 'text.secondary',
                                   }}
                                 >
-                                  {game.rebounds}
+                                  PTS
                                 </TableCell>
                                 <TableCell
                                   align="center"
                                   sx={{
-                                    py: { xs: 1.5, sm: 2 },
+                                    fontWeight: typography.weight.semibold,
+                                    py: { xs: 1.5, sm: 2.5 },
                                     px: { xs: 0.75, sm: 1.5 },
                                     fontSize: {
-                                      xs: typography.size.bodySmall.xs,
-                                      sm: typography.size.bodySmall.sm,
+                                      xs: typography.size.caption.xs,
+                                      sm: typography.editorial.helper.xs,
                                     },
+                                    color: 'text.secondary',
                                   }}
                                 >
-                                  {game.assists}
+                                  REB
                                 </TableCell>
                                 <TableCell
                                   align="center"
                                   sx={{
-                                    py: { xs: 1.5, sm: 2 },
+                                    fontWeight: typography.weight.semibold,
+                                    py: { xs: 1.5, sm: 2.5 },
                                     px: { xs: 0.75, sm: 1.5 },
                                     fontSize: {
-                                      xs: typography.size.bodySmall.xs,
-                                      sm: typography.size.bodySmall.sm,
+                                      xs: typography.size.caption.xs,
+                                      sm: typography.editorial.helper.xs,
                                     },
+                                    color: 'text.secondary',
                                   }}
                                 >
-                                  {game.steals}
+                                  AST
                                 </TableCell>
                                 <TableCell
                                   align="center"
                                   sx={{
-                                    py: { xs: 1.5, sm: 2 },
+                                    fontWeight: typography.weight.semibold,
+                                    py: { xs: 1.5, sm: 2.5 },
                                     px: { xs: 0.75, sm: 1.5 },
                                     fontSize: {
-                                      xs: typography.size.bodySmall.xs,
-                                      sm: typography.size.bodySmall.sm,
+                                      xs: typography.size.caption.xs,
+                                      sm: typography.editorial.helper.xs,
                                     },
+                                    color: 'text.secondary',
                                   }}
                                 >
-                                  {game.blocks}
+                                  STL
                                 </TableCell>
                                 <TableCell
                                   align="center"
                                   sx={{
-                                    py: { xs: 1.5, sm: 2 },
+                                    fontWeight: typography.weight.semibold,
+                                    py: { xs: 1.5, sm: 2.5 },
                                     px: { xs: 0.75, sm: 1.5 },
                                     fontSize: {
-                                      xs: typography.size.bodySmall.xs,
-                                      sm: typography.size.bodySmall.sm,
+                                      xs: typography.size.caption.xs,
+                                      sm: typography.editorial.helper.xs,
                                     },
+                                    color: 'text.secondary',
                                   }}
                                 >
-                                  {game.turnovers}
+                                  BLK
                                 </TableCell>
                                 <TableCell
                                   align="center"
                                   sx={{
-                                    py: { xs: 1.5, sm: 2 },
+                                    fontWeight: typography.weight.semibold,
+                                    py: { xs: 1.5, sm: 2.5 },
                                     px: { xs: 0.75, sm: 1.5 },
                                     fontSize: {
-                                      xs: typography.size.bodySmall.xs,
-                                      sm: typography.size.bodySmall.sm,
+                                      xs: typography.size.caption.xs,
+                                      sm: typography.editorial.helper.xs,
                                     },
+                                    color: 'text.secondary',
                                   }}
                                 >
-                                  {fgFormatted}
+                                  TO
                                 </TableCell>
                                 <TableCell
                                   align="center"
                                   sx={{
-                                    py: { xs: 1.5, sm: 2 },
+                                    fontWeight: typography.weight.semibold,
+                                    py: { xs: 1.5, sm: 2.5 },
                                     px: { xs: 0.75, sm: 1.5 },
                                     fontSize: {
-                                      xs: typography.size.bodySmall.xs,
-                                      sm: typography.size.bodySmall.sm,
+                                      xs: typography.size.caption.xs,
+                                      sm: typography.editorial.helper.xs,
                                     },
+                                    color: 'text.secondary',
                                   }}
                                 >
-                                  {threeFormatted}
+                                  FG
                                 </TableCell>
                                 <TableCell
                                   align="center"
                                   sx={{
-                                    py: { xs: 1.5, sm: 2 },
+                                    fontWeight: typography.weight.semibold,
+                                    py: { xs: 1.5, sm: 2.5 },
                                     px: { xs: 0.75, sm: 1.5 },
                                     fontSize: {
-                                      xs: typography.size.bodySmall.xs,
-                                      sm: typography.size.bodySmall.sm,
+                                      xs: typography.size.caption.xs,
+                                      sm: typography.editorial.helper.xs,
                                     },
+                                    color: 'text.secondary',
                                   }}
                                 >
-                                  {ftFormatted}
+                                  3P
                                 </TableCell>
                                 <TableCell
                                   align="center"
                                   sx={{
-                                    py: { xs: 1.5, sm: 2 },
+                                    fontWeight: typography.weight.semibold,
+                                    py: { xs: 1.5, sm: 2.5 },
                                     px: { xs: 0.75, sm: 1.5 },
                                     fontSize: {
-                                      xs: typography.size.bodySmall.xs,
-                                      sm: typography.size.bodySmall.sm,
+                                      xs: typography.size.caption.xs,
+                                      sm: typography.editorial.helper.xs,
                                     },
-                                    color:
-                                      game.plus_minus && game.plus_minus > 0
-                                        ? 'success.main'
-                                        : game.plus_minus && game.plus_minus < 0
-                                          ? 'error.main'
-                                          : 'text.primary',
+                                    color: 'text.secondary',
                                   }}
                                 >
-                                  {plusMinus}
+                                  FT
+                                </TableCell>
+                                <TableCell
+                                  align="center"
+                                  sx={{
+                                    fontWeight: typography.weight.semibold,
+                                    py: { xs: 1.5, sm: 2.5 },
+                                    px: { xs: 0.75, sm: 1.5 },
+                                    fontSize: {
+                                      xs: typography.size.caption.xs,
+                                      sm: typography.editorial.helper.xs,
+                                    },
+                                    color: 'text.secondary',
+                                  }}
+                                >
+                                  +/-
                                 </TableCell>
                               </TableRow>
-                            );
-                          })}
-                        </TableBody>
-                      </Table>
-                    </TableContainer>
+                            </TableHead>
+                            <TableBody>
+                              {gameLog.games.slice(0, 20).map(game => {
+                                let opponent = game.matchup;
+                                if (game.matchup.includes('@')) {
+                                  opponent = game.matchup.split('@')[1]?.trim() || game.matchup;
+                                } else if (game.matchup.includes('vs')) {
+                                  opponent = game.matchup.split(/vs\.?/)[1]?.trim() || game.matchup;
+                                }
+
+                                const gameDate = format(new Date(game.game_date), 'MMM d');
+                                const result = game.win_loss || '-';
+
+                                const fgMade = game.field_goals_made ?? 0;
+                                const fgAttempted = game.field_goals_attempted ?? 0;
+                                const fgFormatted =
+                                  fgAttempted > 0 ? `${fgMade}/${fgAttempted}` : '-';
+                                const threeMade = game.three_pointers_made ?? 0;
+                                const threeAttempted = game.three_pointers_attempted ?? 0;
+                                const threeFormatted =
+                                  threeAttempted > 0 ? `${threeMade}/${threeAttempted}` : '-';
+
+                                const ftMade = game.free_throws_made ?? 0;
+                                const ftAttempted = game.free_throws_attempted ?? 0;
+                                const ftFormatted =
+                                  ftAttempted > 0 ? `${ftMade}/${ftAttempted}` : '-';
+
+                                const plusMinus =
+                                  game.plus_minus !== undefined && game.plus_minus !== null
+                                    ? game.plus_minus > 0
+                                      ? `+${game.plus_minus}`
+                                      : game.plus_minus.toString()
+                                    : '-';
+
+                                return (
+                                  <TableRow
+                                    key={game.game_id}
+                                    sx={{
+                                      transition: 'background-color 0.2s ease-in-out',
+                                      '&:hover': {
+                                        backgroundColor: 'action.hover',
+                                      },
+                                    }}
+                                  >
+                                    <TableCell
+                                      sx={{
+                                        py: { xs: 1.5, sm: 2 },
+                                        px: { xs: 0.75, sm: 1.5 },
+                                        fontSize: {
+                                          xs: typography.size.bodySmall.xs,
+                                          sm: typography.size.bodySmall.sm,
+                                        },
+                                      }}
+                                    >
+                                      {gameDate}
+                                    </TableCell>
+                                    <TableCell
+                                      sx={{
+                                        fontWeight: typography.weight.semibold,
+                                        py: { xs: 1.5, sm: 2 },
+                                        px: { xs: 0.75, sm: 1.5 },
+                                        fontSize: {
+                                          xs: typography.size.bodySmall.xs,
+                                          sm: typography.size.bodySmall.sm,
+                                        },
+                                      }}
+                                    >
+                                      {opponent}
+                                    </TableCell>
+                                    <TableCell
+                                      align="center"
+                                      sx={{
+                                        fontWeight: typography.weight.semibold,
+                                        py: { xs: 1.5, sm: 2 },
+                                        px: { xs: 0.75, sm: 1.5 },
+                                        fontSize: {
+                                          xs: typography.size.bodySmall.xs,
+                                          sm: typography.size.bodySmall.sm,
+                                        },
+                                        color:
+                                          result === 'W'
+                                            ? 'success.main'
+                                            : result === 'L'
+                                              ? 'error.main'
+                                              : 'text.secondary',
+                                      }}
+                                    >
+                                      {result}
+                                    </TableCell>
+                                    <TableCell
+                                      align="center"
+                                      sx={{
+                                        py: { xs: 1.5, sm: 2 },
+                                        px: { xs: 0.75, sm: 1.5 },
+                                        fontSize: {
+                                          xs: typography.size.bodySmall.xs,
+                                          sm: typography.size.bodySmall.sm,
+                                        },
+                                      }}
+                                    >
+                                      {game.minutes || '-'}
+                                    </TableCell>
+                                    <TableCell
+                                      align="center"
+                                      sx={{
+                                        fontWeight: typography.weight.semibold,
+                                        py: { xs: 1.5, sm: 2 },
+                                        px: { xs: 0.75, sm: 1.5 },
+                                        fontSize: {
+                                          xs: typography.size.bodySmall.xs,
+                                          sm: typography.size.bodySmall.sm,
+                                        },
+                                      }}
+                                    >
+                                      {game.points}
+                                    </TableCell>
+                                    <TableCell
+                                      align="center"
+                                      sx={{
+                                        py: { xs: 1.5, sm: 2 },
+                                        px: { xs: 0.75, sm: 1.5 },
+                                        fontSize: {
+                                          xs: typography.size.bodySmall.xs,
+                                          sm: typography.size.bodySmall.sm,
+                                        },
+                                      }}
+                                    >
+                                      {game.rebounds}
+                                    </TableCell>
+                                    <TableCell
+                                      align="center"
+                                      sx={{
+                                        py: { xs: 1.5, sm: 2 },
+                                        px: { xs: 0.75, sm: 1.5 },
+                                        fontSize: {
+                                          xs: typography.size.bodySmall.xs,
+                                          sm: typography.size.bodySmall.sm,
+                                        },
+                                      }}
+                                    >
+                                      {game.assists}
+                                    </TableCell>
+                                    <TableCell
+                                      align="center"
+                                      sx={{
+                                        py: { xs: 1.5, sm: 2 },
+                                        px: { xs: 0.75, sm: 1.5 },
+                                        fontSize: {
+                                          xs: typography.size.bodySmall.xs,
+                                          sm: typography.size.bodySmall.sm,
+                                        },
+                                      }}
+                                    >
+                                      {game.steals}
+                                    </TableCell>
+                                    <TableCell
+                                      align="center"
+                                      sx={{
+                                        py: { xs: 1.5, sm: 2 },
+                                        px: { xs: 0.75, sm: 1.5 },
+                                        fontSize: {
+                                          xs: typography.size.bodySmall.xs,
+                                          sm: typography.size.bodySmall.sm,
+                                        },
+                                      }}
+                                    >
+                                      {game.blocks}
+                                    </TableCell>
+                                    <TableCell
+                                      align="center"
+                                      sx={{
+                                        py: { xs: 1.5, sm: 2 },
+                                        px: { xs: 0.75, sm: 1.5 },
+                                        fontSize: {
+                                          xs: typography.size.bodySmall.xs,
+                                          sm: typography.size.bodySmall.sm,
+                                        },
+                                      }}
+                                    >
+                                      {game.turnovers}
+                                    </TableCell>
+                                    <TableCell
+                                      align="center"
+                                      sx={{
+                                        py: { xs: 1.5, sm: 2 },
+                                        px: { xs: 0.75, sm: 1.5 },
+                                        fontSize: {
+                                          xs: typography.size.bodySmall.xs,
+                                          sm: typography.size.bodySmall.sm,
+                                        },
+                                      }}
+                                    >
+                                      {fgFormatted}
+                                    </TableCell>
+                                    <TableCell
+                                      align="center"
+                                      sx={{
+                                        py: { xs: 1.5, sm: 2 },
+                                        px: { xs: 0.75, sm: 1.5 },
+                                        fontSize: {
+                                          xs: typography.size.bodySmall.xs,
+                                          sm: typography.size.bodySmall.sm,
+                                        },
+                                      }}
+                                    >
+                                      {threeFormatted}
+                                    </TableCell>
+                                    <TableCell
+                                      align="center"
+                                      sx={{
+                                        py: { xs: 1.5, sm: 2 },
+                                        px: { xs: 0.75, sm: 1.5 },
+                                        fontSize: {
+                                          xs: typography.size.bodySmall.xs,
+                                          sm: typography.size.bodySmall.sm,
+                                        },
+                                      }}
+                                    >
+                                      {ftFormatted}
+                                    </TableCell>
+                                    <TableCell
+                                      align="center"
+                                      sx={{
+                                        py: { xs: 1.5, sm: 2 },
+                                        px: { xs: 0.75, sm: 1.5 },
+                                        fontSize: {
+                                          xs: typography.size.bodySmall.xs,
+                                          sm: typography.size.bodySmall.sm,
+                                        },
+                                        color:
+                                          game.plus_minus && game.plus_minus > 0
+                                            ? 'success.main'
+                                            : game.plus_minus && game.plus_minus < 0
+                                              ? 'error.main'
+                                              : 'text.primary',
+                                      }}
+                                    >
+                                      {plusMinus}
+                                    </TableCell>
+                                  </TableRow>
+                                );
+                              })}
+                            </TableBody>
+                          </Table>
+                        </TableContainer>
+                      </Box>
+                    </Paper>
                   </Box>
-                </Paper>
-              </Box>
-            )}
+                )}
 
                 {/* Profile sections (File 4.6): Shooting Zones, Clutch, Splits, Defense, Passing, Year-Over-Year */}
                 {zonesData?.zones && zonesData.zones.length > 0 && (
-                  <Paper elevation={0} sx={{ p: 2, mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: borderRadius.md }}>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5 }}>Shooting by zone</Typography>
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 2,
+                      mb: 3,
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      borderRadius: borderRadius.md,
+                    }}
+                  >
+                    <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5 }}>
+                      Shooting by zone
+                    </Typography>
                     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
-                      {zonesData.zones.map((z) => (
+                      {zonesData.zones.map(z => (
                         <Box
                           key={z.zone}
                           sx={{
@@ -849,15 +901,31 @@ const PlayerProfile: React.FC = () => {
                             minWidth: 140,
                           }}
                         >
-                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>{z.zone}</Typography>
-                          <Typography variant="body2" fontWeight={600}>{z.fg_pct}%</Typography>
-                          {z.league_avg != null && <Typography variant="caption">League {z.league_avg}%</Typography>}
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            sx={{ display: 'block' }}
+                          >
+                            {z.zone}
+                          </Typography>
+                          <Typography variant="body2" fontWeight={600}>
+                            {z.fg_pct}%
+                          </Typography>
+                          {z.league_avg != null && (
+                            <Typography variant="caption">League {z.league_avg}%</Typography>
+                          )}
                           {z.diff_pct != null && (
-                            <Typography variant="caption" color={z.diff_pct >= 0 ? 'success.main' : 'error.main'}>
-                              {z.diff_pct >= 0 ? '+' : ''}{z.diff_pct}%
+                            <Typography
+                              variant="caption"
+                              color={z.diff_pct >= 0 ? 'success.main' : 'error.main'}
+                            >
+                              {z.diff_pct >= 0 ? '+' : ''}
+                              {z.diff_pct}%
                             </Typography>
                           )}
-                          <Typography variant="caption" display="block">{(z.freq_pct ?? 0).toFixed(1)}% of FGA</Typography>
+                          <Typography variant="caption" display="block">
+                            {(z.freq_pct ?? 0).toFixed(1)}% of FGA
+                          </Typography>
                         </Box>
                       ))}
                     </Box>
@@ -865,22 +933,50 @@ const PlayerProfile: React.FC = () => {
                 )}
 
                 {clutchData && (
-                  <Paper elevation={0} sx={{ p: 2, mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: borderRadius.md }}>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5 }}>Clutch (last 5 min, within 5 pts)</Typography>
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 2,
+                      mb: 3,
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      borderRadius: borderRadius.md,
+                    }}
+                  >
+                    <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5 }}>
+                      Clutch (last 5 min, within 5 pts)
+                    </Typography>
                     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
                       <Box>
-                        <Typography variant="caption" color="text.secondary">Regular</Typography>
-                        <Typography variant="body2">{clutchData.regular.ppg ?? '—'} PPG, {clutchData.regular.fg_pct ?? '—'}% FG</Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Regular
+                        </Typography>
+                        <Typography variant="body2">
+                          {clutchData.regular.ppg ?? '—'} PPG, {clutchData.regular.fg_pct ?? '—'}%
+                          FG
+                        </Typography>
                       </Box>
                       <Box>
-                        <Typography variant="caption" color="text.secondary">Clutch</Typography>
-                        <Typography variant="body2">{clutchData.clutch.ppg ?? '—'} PPG, {clutchData.clutch.fg_pct ?? '—'}% FG</Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Clutch
+                        </Typography>
+                        <Typography variant="body2">
+                          {clutchData.clutch.ppg ?? '—'} PPG, {clutchData.clutch.fg_pct ?? '—'}% FG
+                        </Typography>
                       </Box>
-                      {clutchData.clutch_w_l != null && <Typography variant="body2">W–L {clutchData.clutch_w_l}</Typography>}
-                      {clutchData.clutch_plus_minus != null && <Typography variant="body2">+/- {clutchData.clutch_plus_minus}</Typography>}
+                      {clutchData.clutch_w_l != null && (
+                        <Typography variant="body2">W–L {clutchData.clutch_w_l}</Typography>
+                      )}
+                      {clutchData.clutch_plus_minus != null && (
+                        <Typography variant="body2">+/- {clutchData.clutch_plus_minus}</Typography>
+                      )}
                       {clutchData.ppg_diff != null && (
-                        <Typography variant="body2" color={clutchData.ppg_diff >= 0 ? 'success.main' : 'error.main'}>
-                          PPG diff {clutchData.ppg_diff >= 0 ? '+' : ''}{clutchData.ppg_diff}
+                        <Typography
+                          variant="body2"
+                          color={clutchData.ppg_diff >= 0 ? 'success.main' : 'error.main'}
+                        >
+                          PPG diff {clutchData.ppg_diff >= 0 ? '+' : ''}
+                          {clutchData.ppg_diff}
                         </Typography>
                       )}
                     </Box>
@@ -888,29 +984,56 @@ const PlayerProfile: React.FC = () => {
                 )}
 
                 {splitsData && Object.keys(splitsData).length > 0 && (
-                  <Paper elevation={0} sx={{ p: 2, mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: borderRadius.md }}>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5 }}>Context splits</Typography>
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 2,
+                      mb: 3,
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      borderRadius: borderRadius.md,
+                    }}
+                  >
+                    <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5 }}>
+                      Context splits
+                    </Typography>
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                       {Object.entries(splitsData).map(([key, rows]) => (
                         <Box key={key}>
-                          <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'capitalize' }}>{key.replace(/([A-Z])/g, ' $1').trim()}</Typography>
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            sx={{ textTransform: 'capitalize' }}
+                          >
+                            {key.replace(/([A-Z])/g, ' $1').trim()}
+                          </Typography>
                           {Array.isArray(rows) && rows.length > 0 && (
                             <Table size="small" sx={{ mt: 0.5 }}>
                               <TableHead>
                                 <TableRow>
-                                  {Object.keys(rows[0] as object).slice(0, 6).map((h) => (
-                                    <TableCell key={h} sx={{ fontWeight: 600, py: 0.5 }}>{String(h).replace(/_/g, ' ')}</TableCell>
-                                  ))}
+                                  {Object.keys(rows[0] as object)
+                                    .slice(0, 6)
+                                    .map(h => (
+                                      <TableCell key={h} sx={{ fontWeight: 600, py: 0.5 }}>
+                                        {String(h).replace(/_/g, ' ')}
+                                      </TableCell>
+                                    ))}
                                 </TableRow>
                               </TableHead>
                               <TableBody>
-                                {(rows as Array<Record<string, unknown>>).slice(0, 5).map((row, i) => (
-                                  <TableRow key={i}>
-                                    {Object.values(row).slice(0, 6).map((v, j) => (
-                                      <TableCell key={j} sx={{ py: 0.5 }}>{String(v ?? '—')}</TableCell>
-                                    ))}
-                                  </TableRow>
-                                ))}
+                                {(rows as Array<Record<string, unknown>>)
+                                  .slice(0, 5)
+                                  .map((row, i) => (
+                                    <TableRow key={i}>
+                                      {Object.values(row)
+                                        .slice(0, 6)
+                                        .map((v, j) => (
+                                          <TableCell key={j} sx={{ py: 0.5 }}>
+                                            {String(v ?? '—')}
+                                          </TableCell>
+                                        ))}
+                                    </TableRow>
+                                  ))}
                               </TableBody>
                             </Table>
                           )}
@@ -921,22 +1044,39 @@ const PlayerProfile: React.FC = () => {
                 )}
 
                 {defenseData?.defense && defenseData.defense.length > 0 && (
-                  <Paper elevation={0} sx={{ p: 2, mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: borderRadius.md }}>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5 }}>Defensive impact</Typography>
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 2,
+                      mb: 3,
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      borderRadius: borderRadius.md,
+                    }}
+                  >
+                    <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5 }}>
+                      Defensive impact
+                    </Typography>
                     <Table size="small">
                       <TableHead>
                         <TableRow>
-                          {Object.keys(defenseData.defense[0]).slice(0, 5).map((h) => (
-                            <TableCell key={h} sx={{ fontWeight: 600 }}>{String(h).replace(/_/g, ' ')}</TableCell>
-                          ))}
+                          {Object.keys(defenseData.defense[0])
+                            .slice(0, 5)
+                            .map(h => (
+                              <TableCell key={h} sx={{ fontWeight: 600 }}>
+                                {String(h).replace(/_/g, ' ')}
+                              </TableCell>
+                            ))}
                         </TableRow>
                       </TableHead>
                       <TableBody>
                         {defenseData.defense.slice(0, 8).map((row, i) => (
                           <TableRow key={i}>
-                            {Object.values(row).slice(0, 5).map((v, j) => (
-                              <TableCell key={j}>{String(v ?? '—')}</TableCell>
-                            ))}
+                            {Object.values(row)
+                              .slice(0, 5)
+                              .map((v, j) => (
+                                <TableCell key={j}>{String(v ?? '—')}</TableCell>
+                              ))}
                           </TableRow>
                         ))}
                       </TableBody>
@@ -945,22 +1085,39 @@ const PlayerProfile: React.FC = () => {
                 )}
 
                 {passingData?.passes && passingData.passes.length > 0 && (
-                  <Paper elevation={0} sx={{ p: 2, mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: borderRadius.md }}>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5 }}>Passing network</Typography>
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 2,
+                      mb: 3,
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      borderRadius: borderRadius.md,
+                    }}
+                  >
+                    <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5 }}>
+                      Passing network
+                    </Typography>
                     <Table size="small">
                       <TableHead>
                         <TableRow>
-                          {Object.keys(passingData.passes[0]).slice(0, 6).map((h) => (
-                            <TableCell key={h} sx={{ fontWeight: 600 }}>{String(h).replace(/_/g, ' ')}</TableCell>
-                          ))}
+                          {Object.keys(passingData.passes[0])
+                            .slice(0, 6)
+                            .map(h => (
+                              <TableCell key={h} sx={{ fontWeight: 600 }}>
+                                {String(h).replace(/_/g, ' ')}
+                              </TableCell>
+                            ))}
                         </TableRow>
                       </TableHead>
                       <TableBody>
                         {passingData.passes.slice(0, 10).map((row, i) => (
                           <TableRow key={i}>
-                            {Object.values(row).slice(0, 6).map((v, j) => (
-                              <TableCell key={j}>{String(v ?? '—')}</TableCell>
-                            ))}
+                            {Object.values(row)
+                              .slice(0, 6)
+                              .map((v, j) => (
+                                <TableCell key={j}>{String(v ?? '—')}</TableCell>
+                              ))}
                           </TableRow>
                         ))}
                       </TableBody>
@@ -969,29 +1126,45 @@ const PlayerProfile: React.FC = () => {
                 )}
 
                 {yoyData?.seasons && yoyData.seasons.length > 0 && (
-                  <Paper elevation={0} sx={{ p: 2, mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: borderRadius.md }}>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5 }}>Year-over-year</Typography>
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 2,
+                      mb: 3,
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      borderRadius: borderRadius.md,
+                    }}
+                  >
+                    <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5 }}>
+                      Year-over-year
+                    </Typography>
                     <Table size="small">
                       <TableHead>
                         <TableRow>
-                          {Object.keys(yoyData.seasons[0]).slice(0, 8).map((h) => (
-                            <TableCell key={h} sx={{ fontWeight: 600 }}>{String(h).replace(/_/g, ' ')}</TableCell>
-                          ))}
+                          {Object.keys(yoyData.seasons[0])
+                            .slice(0, 8)
+                            .map(h => (
+                              <TableCell key={h} sx={{ fontWeight: 600 }}>
+                                {String(h).replace(/_/g, ' ')}
+                              </TableCell>
+                            ))}
                         </TableRow>
                       </TableHead>
                       <TableBody>
                         {yoyData.seasons.slice(0, 12).map((row, i) => (
                           <TableRow key={i}>
-                            {Object.values(row).slice(0, 8).map((v, j) => (
-                              <TableCell key={j}>{String(v ?? '—')}</TableCell>
-                            ))}
+                            {Object.values(row)
+                              .slice(0, 8)
+                              .map((v, j) => (
+                                <TableCell key={j}>{String(v ?? '—')}</TableCell>
+                              ))}
                           </TableRow>
                         ))}
                       </TableBody>
                     </Table>
                   </Paper>
                 )}
-
               </Box>
 
               {/* Sidebar (md+): season stats + bio */}
@@ -1027,7 +1200,10 @@ const PlayerProfile: React.FC = () => {
                       {last10ForSparkline.length > 0 && (
                         <Box sx={{ width: 80, height: 30 }}>
                           <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={last10ForSparkline} margin={{ top: 2, right: 2, left: 2, bottom: 2 }}>
+                            <LineChart
+                              data={last10ForSparkline}
+                              margin={{ top: 2, right: 2, left: 2, bottom: 2 }}
+                            >
                               <Line
                                 type="monotone"
                                 dataKey="pts"
@@ -1047,13 +1223,22 @@ const PlayerProfile: React.FC = () => {
                       APG {player?.AST != null ? player.AST.toFixed(1) : '—'}
                     </Typography>
                     <Typography variant="body2">
-                      FG% {seasonShootingFromLog?.fgPct != null ? seasonShootingFromLog.fgPct.toFixed(1) + '%' : '—'}
+                      FG%{' '}
+                      {seasonShootingFromLog?.fgPct != null
+                        ? seasonShootingFromLog.fgPct.toFixed(1) + '%'
+                        : '—'}
                     </Typography>
                     <Typography variant="body2">
-                      3P% {seasonShootingFromLog?.threePct != null ? seasonShootingFromLog.threePct.toFixed(1) + '%' : '—'}
+                      3P%{' '}
+                      {seasonShootingFromLog?.threePct != null
+                        ? seasonShootingFromLog.threePct.toFixed(1) + '%'
+                        : '—'}
                     </Typography>
                     <Typography variant="body2">
-                      FT% {seasonShootingFromLog?.ftPct != null ? seasonShootingFromLog.ftPct.toFixed(1) + '%' : '—'}
+                      FT%{' '}
+                      {seasonShootingFromLog?.ftPct != null
+                        ? seasonShootingFromLog.ftPct.toFixed(1) + '%'
+                        : '—'}
                     </Typography>
                   </Box>
                 </Paper>
@@ -1074,7 +1259,9 @@ const PlayerProfile: React.FC = () => {
                   </Typography>
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
                     <Typography variant="body2">Height {player?.HEIGHT ?? '—'}</Typography>
-                    <Typography variant="body2">Weight {player?.WEIGHT ? `${player.WEIGHT} lbs` : '—'}</Typography>
+                    <Typography variant="body2">
+                      Weight {player?.WEIGHT ? `${player.WEIGHT} lbs` : '—'}
+                    </Typography>
                     <Typography variant="body2">School {player?.COLLEGE ?? '—'}</Typography>
                     <Typography variant="body2">
                       Draft {player?.FROM_YEAR ? `${player.FROM_YEAR} R1 Pick 23` : '—'}

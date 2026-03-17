@@ -90,10 +90,7 @@ const WinProbabilityChart: React.FC<WinProbabilityChartProps> = ({
       >
         <Box sx={{ width: '100%', height: 220 }}>
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart
-              data={chartData}
-              margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
-            >
+            <AreaChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} />
               <XAxis
                 dataKey="label"
@@ -109,7 +106,10 @@ const WinProbabilityChart: React.FC<WinProbabilityChartProps> = ({
                 axisLine={{ stroke: theme.palette.divider }}
               />
               <Tooltip
-                formatter={(value: number | undefined) => [value != null ? `${value.toFixed(1)}%` : '', '']}
+                formatter={(value: number | undefined) => [
+                  value != null ? `${value.toFixed(1)}%` : '',
+                  '',
+                ]}
                 labelFormatter={label => label}
                 content={({ active, payload, label }) => {
                   if (!active || !payload?.length) return null;
@@ -136,11 +136,7 @@ const WinProbabilityChart: React.FC<WinProbabilityChartProps> = ({
                   );
                 }}
               />
-              <ReferenceLine
-                y={50}
-                stroke={theme.palette.text.disabled}
-                strokeDasharray="4 4"
-              />
+              <ReferenceLine y={50} stroke={theme.palette.text.disabled} strokeDasharray="4 4" />
               <Area
                 type="monotone"
                 dataKey="homePct"

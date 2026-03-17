@@ -60,7 +60,9 @@ function StatComparisonCards({
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       <Paper variant="outlined" sx={{ p: 2, borderRadius: borderRadius.md }}>
-        <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5 }}>{player1Name}</Typography>
+        <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5 }}>
+          {player1Name}
+        </Typography>
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
           {rows.map(({ key, label }) => (
             <Typography key={key} variant="body2">
@@ -70,7 +72,9 @@ function StatComparisonCards({
         </Box>
       </Paper>
       <Paper variant="outlined" sx={{ p: 2, borderRadius: borderRadius.md }}>
-        <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5 }}>{player2Name}</Typography>
+        <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5 }}>
+          {player2Name}
+        </Typography>
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
           {rows.map(({ key, label }) => (
             <Typography key={key} variant="body2">
@@ -173,7 +177,10 @@ export default function ComparePage() {
         overflowX: 'hidden',
       }}
     >
-      <PageContainer maxWidth={1400} sx={{ px: responsiveSpacing.container, py: responsiveSpacing.containerVertical }}>
+      <PageContainer
+        maxWidth={1400}
+        sx={{ px: responsiveSpacing.container, py: responsiveSpacing.containerVertical }}
+      >
         {/* Phase 1: full-screen search for first player */}
         {phase1 && (
           <Box
@@ -237,7 +244,12 @@ export default function ComparePage() {
                   {player1.full_name}
                 </Typography>
               </Box>
-              <Typography component={Link} to={`/player/${player1.id}`} variant="body2" color="primary">
+              <Typography
+                component={Link}
+                to={`/player/${player1.id}`}
+                variant="body2"
+                color="primary"
+              >
                 View profile
               </Typography>
             </Paper>
@@ -306,7 +318,11 @@ export default function ComparePage() {
         )}
 
         {error && (
-          <Alert severity="error" sx={{ mb: responsiveSpacing.element }} onClose={() => setError(null)}>
+          <Alert
+            severity="error"
+            sx={{ mb: responsiveSpacing.element }}
+            onClose={() => setError(null)}
+          >
             {error}
           </Alert>
         )}
@@ -335,7 +351,10 @@ export default function ComparePage() {
             >
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                 <Avatar
-                  src={comparisonData.player1.headshot_url || `${HEADSHOT_BASE}/${comparisonData.player1.id}.png`}
+                  src={
+                    comparisonData.player1.headshot_url ||
+                    `${HEADSHOT_BASE}/${comparisonData.player1.id}.png`
+                  }
                   sx={{ width: { xs: 48, md: 64 }, height: { xs: 48, md: 64 } }}
                   onError={e => {
                     (e.target as HTMLImageElement).src = '';
@@ -350,7 +369,10 @@ export default function ComparePage() {
               </Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                 <Avatar
-                  src={comparisonData.player2.headshot_url || `${HEADSHOT_BASE}/${comparisonData.player2.id}.png`}
+                  src={
+                    comparisonData.player2.headshot_url ||
+                    `${HEADSHOT_BASE}/${comparisonData.player2.id}.png`
+                  }
                   sx={{ width: { xs: 48, md: 64 }, height: { xs: 48, md: 64 } }}
                   onError={e => {
                     (e.target as HTMLImageElement).src = '';

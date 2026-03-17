@@ -91,7 +91,11 @@ const ScoreHeader: React.FC<ScoreHeaderProps> = ({ score, status, gradientColors
           {!isLive && !isCompleted && !isUpcoming && (
             <Typography
               variant="overline"
-              sx={{ fontWeight: typography.weight.bold, color: 'text.secondary', letterSpacing: 0.5 }}
+              sx={{
+                fontWeight: typography.weight.bold,
+                color: 'text.secondary',
+                letterSpacing: 0.5,
+              }}
             >
               {statusLabel}
             </Typography>
@@ -126,7 +130,12 @@ const ScoreHeader: React.FC<ScoreHeaderProps> = ({ score, status, gradientColors
               >
                 {away_team.name}
                 {away_team.abbreviation && (
-                  <Typography component="span" variant="body2" color="text.secondary" sx={{ ml: 1 }}>
+                  <Typography
+                    component="span"
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ ml: 1 }}
+                  >
                     ({away_team.abbreviation})
                   </Typography>
                 )}
@@ -191,7 +200,12 @@ const ScoreHeader: React.FC<ScoreHeaderProps> = ({ score, status, gradientColors
               >
                 {home_team.name}
                 {home_team.abbreviation && (
-                  <Typography component="span" variant="body2" color="text.secondary" sx={{ ml: 1 }}>
+                  <Typography
+                    component="span"
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ ml: 1 }}
+                  >
                     ({home_team.abbreviation})
                   </Typography>
                 )}

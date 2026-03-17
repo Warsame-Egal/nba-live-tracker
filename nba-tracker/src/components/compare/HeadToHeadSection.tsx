@@ -1,11 +1,4 @@
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-} from '@mui/material';
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
 import type { HeadToHeadSummary } from '../../types/compare';
 
 interface HeadToHeadSectionProps {
@@ -46,10 +39,12 @@ export default function HeadToHeadSection({
             <TableRow key={`${g.date}-${i}`}>
               <TableCell>{g.date}</TableCell>
               <TableCell align="right">
-                {g.player1_stats.pts} PTS, {g.player1_stats.reb} REB, {g.player1_stats.ast} AST ({g.player1_stats.result})
+                {g.player1_stats.pts} PTS, {g.player1_stats.reb} REB, {g.player1_stats.ast} AST (
+                {g.player1_stats.result})
               </TableCell>
               <TableCell align="right">
-                {g.player2_stats.pts} PTS, {g.player2_stats.reb} REB, {g.player2_stats.ast} AST ({g.player2_stats.result})
+                {g.player2_stats.pts} PTS, {g.player2_stats.reb} REB, {g.player2_stats.ast} AST (
+                {g.player2_stats.result})
               </TableCell>
             </TableRow>
           ))}

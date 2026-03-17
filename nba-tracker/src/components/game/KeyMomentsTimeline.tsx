@@ -42,7 +42,8 @@ const KeyMomentsTimeline: React.FC<KeyMomentsTimelineProps> = ({ moments }) => {
         }}
       >
         <Typography color="text.secondary">
-          Key moments are detected during live games (lead changes, big shots, clutch plays). For past games, moments are only shown if the game was followed live.
+          Key moments are detected during live games (lead changes, big shots, clutch plays). For
+          past games, moments are only shown if the game was followed live.
         </Typography>
       </Paper>
     );
@@ -73,7 +74,9 @@ const KeyMomentsTimeline: React.FC<KeyMomentsTimelineProps> = ({ moments }) => {
           play.score_away != null && play.score_home != null
             ? `${play.score_away}–${play.score_home}`
             : null;
-        const teamColor = play.team_tricode ? getTeamColorsByTricode(String(play.team_tricode)).primary : config.color;
+        const teamColor = play.team_tricode
+          ? getTeamColorsByTricode(String(play.team_tricode)).primary
+          : config.color;
 
         return (
           <Paper
@@ -102,10 +105,7 @@ const KeyMomentsTimeline: React.FC<KeyMomentsTimelineProps> = ({ moments }) => {
                   <Typography component="span" sx={{ fontSize: '1rem' }}>
                     {config.icon}
                   </Typography>
-                  <Typography
-                    variant="subtitle2"
-                    sx={{ fontWeight: 600, color: config.color }}
-                  >
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, color: config.color }}>
                     {config.label}
                   </Typography>
                 </Box>
@@ -113,7 +113,11 @@ const KeyMomentsTimeline: React.FC<KeyMomentsTimelineProps> = ({ moments }) => {
                   {description}
                 </Typography>
                 {scoreStr && (
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ display: 'block', mt: 0.25 }}
+                  >
                     Score: {scoreStr}
                   </Typography>
                 )}

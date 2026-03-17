@@ -46,9 +46,7 @@ export default function AgentChat() {
     setActiveToolCall(null);
     abortRef.current = new AbortController();
 
-    const history = messages
-      .slice(-10)
-      .map(m => ({ role: m.role, content: m.content }));
+    const history = messages.slice(-10).map(m => ({ role: m.role, content: m.content }));
 
     try {
       const res = await fetch(`${API_BASE_URL}/api/v1/agent/stream`, {
@@ -187,7 +185,16 @@ export default function AgentChat() {
             overflow: 'hidden',
           }}
         >
-          <Box sx={{ p: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: 1, borderColor: 'divider' }}>
+          <Box
+            sx={{
+              p: 1.5,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              borderBottom: 1,
+              borderColor: 'divider',
+            }}
+          >
             <Typography variant="subtitle1" fontWeight={600}>
               NBA Agent
             </Typography>
@@ -195,9 +202,21 @@ export default function AgentChat() {
               <CloseIcon />
             </IconButton>
           </Box>
-          <Box sx={{ flex: 1, overflow: 'auto', p: 1.5, display: 'flex', flexDirection: 'column', gap: 1 }}>
+          <Box
+            sx={{
+              flex: 1,
+              overflow: 'auto',
+              p: 1.5,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 1,
+            }}
+          >
             {messages.map((m, i) => (
-              <Box key={i} sx={{ alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '90%' }}>
+              <Box
+                key={i}
+                sx={{ alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '90%' }}
+              >
                 <Typography
                   variant="body2"
                   sx={{
@@ -234,7 +253,10 @@ export default function AgentChat() {
                   </Box>
                 )}
                 {streamingContent && (
-                  <Typography variant="body2" sx={{ bgcolor: 'action.hover', px: 1.5, py: 1, borderRadius: 2 }}>
+                  <Typography
+                    variant="body2"
+                    sx={{ bgcolor: 'action.hover', px: 1.5, py: 1, borderRadius: 2 }}
+                  >
                     {streamingContent}
                   </Typography>
                 )}

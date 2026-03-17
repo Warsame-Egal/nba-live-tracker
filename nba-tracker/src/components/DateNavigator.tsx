@@ -15,11 +15,7 @@ interface DateNavigatorProps {
  * Compact date navigator: "Today, March 16" with prev/next arrows.
  * Optionally expands to show full week when the date is tapped.
  */
-const DateNavigator = ({
-  selectedDate,
-  onDateChange,
-  expandable = true,
-}: DateNavigatorProps) => {
+const DateNavigator = ({ selectedDate, onDateChange, expandable = true }: DateNavigatorProps) => {
   const theme = useTheme();
   const [expanded, setExpanded] = useState(false);
 
@@ -169,7 +165,11 @@ const DateNavigator = ({
                     backgroundColor: isSelected
                       ? alpha(theme.palette.primary.main, 0.1)
                       : 'transparent',
-                    color: isSelected ? 'primary.main' : isTodayDay ? 'primary.main' : 'text.secondary',
+                    color: isSelected
+                      ? 'primary.main'
+                      : isTodayDay
+                        ? 'primary.main'
+                        : 'text.secondary',
                     '&:hover': {
                       backgroundColor: isSelected
                         ? alpha(theme.palette.primary.main, 0.15)

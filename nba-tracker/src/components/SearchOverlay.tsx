@@ -125,7 +125,16 @@ export default function SearchOverlay() {
       }}
     >
       <DialogContent sx={{ p: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+            p: 2,
+            borderBottom: '1px solid',
+            borderColor: 'divider',
+          }}
+        >
           <TextField
             fullWidth
             autoFocus
@@ -148,7 +157,12 @@ export default function SearchOverlay() {
             }}
             sx={{ '& .MuiOutlinedInput-root': { bgcolor: 'background.paper' } }}
           />
-          <IconButton onClick={handleClose} aria-label="close search" size="large" sx={{ minWidth: 44, minHeight: 44 }}>
+          <IconButton
+            onClick={handleClose}
+            aria-label="close search"
+            size="large"
+            sx={{ minWidth: 44, minHeight: 44 }}
+          >
             <Close />
           </IconButton>
         </Box>
@@ -161,7 +175,13 @@ export default function SearchOverlay() {
               </Typography>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                 {recent.map(q => (
-                  <Chip key={q} label={q} onClick={() => handleRecentChip(q)} size="medium" variant="outlined" />
+                  <Chip
+                    key={q}
+                    label={q}
+                    onClick={() => handleRecentChip(q)}
+                    size="medium"
+                    variant="outlined"
+                  />
                 ))}
               </Box>
             </Box>
@@ -175,7 +195,16 @@ export default function SearchOverlay() {
             <Paper variant="outlined" sx={{ overflow: 'hidden' }}>
               {results.players.length > 0 && (
                 <>
-                  <Typography variant="caption" sx={{ px: 2, py: 1, display: 'block', color: 'text.secondary', fontWeight: 600 }}>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      px: 2,
+                      py: 1,
+                      display: 'block',
+                      color: 'text.secondary',
+                      fontWeight: 600,
+                    }}
+                  >
                     Players
                   </Typography>
                   <List dense disablePadding>
@@ -191,7 +220,16 @@ export default function SearchOverlay() {
               )}
               {results.teams.length > 0 && (
                 <>
-                  <Typography variant="caption" sx={{ px: 2, py: 1, display: 'block', color: 'text.secondary', fontWeight: 600 }}>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      px: 2,
+                      py: 1,
+                      display: 'block',
+                      color: 'text.secondary',
+                      fontWeight: 600,
+                    }}
+                  >
                     Teams
                   </Typography>
                   <List dense disablePadding>

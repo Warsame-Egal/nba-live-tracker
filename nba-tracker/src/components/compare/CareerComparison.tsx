@@ -78,8 +78,12 @@ export default function CareerComparison({
           <TableHead>
             <TableRow>
               <TableCell sx={{ fontWeight: 600 }}>Stat</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 600 }}>{player1Name}</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 600 }}>{player2Name}</TableCell>
+              <TableCell align="center" sx={{ fontWeight: 600 }}>
+                {player1Name}
+              </TableCell>
+              <TableCell align="center" sx={{ fontWeight: 600 }}>
+                {player2Name}
+              </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -130,7 +134,11 @@ export default function CareerComparison({
                   <CartesianGrid strokeDasharray="3 3" stroke="divider" />
                   <XAxis dataKey="season" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 11 }} />
-                  <Tooltip formatter={(value: number | undefined) => (value != null ? value.toFixed(1) : '—')} />
+                  <Tooltip
+                    formatter={(value: number | undefined) =>
+                      value != null ? value.toFixed(1) : '—'
+                    }
+                  />
                   <Legend />
                   <Line
                     type="monotone"
@@ -171,7 +179,8 @@ export default function CareerComparison({
                 {player1Career.peak_season.season} ({player1Career.peak_season.team})
               </Typography>
               <Typography variant="body2">
-                {player1Career.peak_season.pts.toFixed(1)} PPG · {player1Career.peak_season.reb.toFixed(1)} REB ·{' '}
+                {player1Career.peak_season.pts.toFixed(1)} PPG ·{' '}
+                {player1Career.peak_season.reb.toFixed(1)} REB ·{' '}
                 {player1Career.peak_season.ast.toFixed(1)} AST · {player1Career.peak_season.gp} GP
               </Typography>
               {player1Career.consistency_score >= 90 && (
@@ -196,7 +205,8 @@ export default function CareerComparison({
                 {player2Career.peak_season.season} ({player2Career.peak_season.team})
               </Typography>
               <Typography variant="body2">
-                {player2Career.peak_season.pts.toFixed(1)} PPG · {player2Career.peak_season.reb.toFixed(1)} REB ·{' '}
+                {player2Career.peak_season.pts.toFixed(1)} PPG ·{' '}
+                {player2Career.peak_season.reb.toFixed(1)} REB ·{' '}
                 {player2Career.peak_season.ast.toFixed(1)} AST · {player2Career.peak_season.gp} GP
               </Typography>
               {player2Career.consistency_score >= 90 && (

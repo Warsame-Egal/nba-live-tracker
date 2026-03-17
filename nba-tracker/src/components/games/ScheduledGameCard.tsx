@@ -13,11 +13,7 @@ interface ScheduledGameCardProps {
   homeWinPercent?: number | null;
 }
 
-const ScheduledGameCard: React.FC<ScheduledGameCardProps> = ({
-  game,
-  onClick,
-  homeWinPercent,
-}) => {
+const ScheduledGameCard: React.FC<ScheduledGameCardProps> = ({ game, onClick, homeWinPercent }) => {
   const theme = useTheme();
   const navigate = useNavigate();
   const isLiveGame = 'homeTeam' in game;

@@ -14,7 +14,12 @@ interface GameSummaryProps {
 /**
  * AI post-game recap: 3 paragraphs. Skeleton while loading; message if null/unavailable.
  */
-const GameSummary: React.FC<GameSummaryProps> = ({ summary, loading = false, status = '', onRetry }) => {
+const GameSummary: React.FC<GameSummaryProps> = ({
+  summary,
+  loading = false,
+  status = '',
+  onRetry,
+}) => {
   const statusNorm = (status || '').toLowerCase();
   const isLive = statusNorm === 'live';
   const isUpcoming = statusNorm === 'upcoming';
@@ -56,12 +61,12 @@ const GameSummary: React.FC<GameSummaryProps> = ({ summary, loading = false, sta
       >
         <Typography color="text.secondary" sx={{ mb: isCompleted && onRetry ? 2 : 0 }}>
           {isLive
-            ? "AI recap is generated after the game ends. Check back when the game is final."
+            ? 'AI recap is generated after the game ends. Check back when the game is final.'
             : isUpcoming
-              ? "AI recap will be available after the game ends."
+              ? 'AI recap will be available after the game ends.'
               : isCompleted
                 ? "AI recap couldn't be generated. This may be due to rate limits or API configuration."
-                : "No AI recap for this game. Summaries are generated for completed games and require Groq to be configured."}
+                : 'No AI recap for this game. Summaries are generated for completed games and require Groq to be configured.'}
         </Typography>
         {isCompleted && onRetry && (
           <Button variant="outlined" size="small" onClick={onRetry}>
