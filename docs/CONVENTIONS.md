@@ -1,6 +1,6 @@
 # Code conventions
 
-Short reference for how the NBA Live Tracker codebase is structured. For system design and numbers, see [architecture.md](architecture.md). For architecture decisions (why we chose X), see [adr/](adr/).
+Short reference for how the NBA Live Tracker codebase is structured. For system design and numbers, see [architecture.md](architecture.md).
 
 ## Backend (nba-tracker-api)
 

@@ -249,12 +249,7 @@ async def call_groq_api(
         raise ImportError("Groq library not available")
 
     limiter = rate_limiter if rate_limiter is not None else _groq_rate_limiter
-    from app.services.ai_queue import get_ai_request_queue
-
-    return await get_ai_request_queue().run(
-        priority,
-        _raw_groq_call(api_key, system_message, user_prompt, limiter, max_tokens),
-    )
+    return await _raw_groq_call(api_key, system_message, user_prompt, limiter, max_tokens)
 
 
 def get_groq_rate_limiter() -> GroqRateLimiter:

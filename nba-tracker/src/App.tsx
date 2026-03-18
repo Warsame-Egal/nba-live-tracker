@@ -3,7 +3,6 @@ import { Suspense, lazy } from 'react';
 import { Box, Skeleton } from '@mui/material';
 import AppShell from './components/AppShell';
 import { LiveCountProvider } from './contexts/LiveCountContext';
-import AgentChat from './components/AgentChat';
 
 // Lazy load pages to improve initial load time
 // Pages are only loaded when the user navigates to them
@@ -87,7 +86,6 @@ export default function App() {
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
-          <AgentChat />
         </AppShell>
       </LiveCountProvider>
     </Router>

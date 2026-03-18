@@ -13,7 +13,6 @@ from nba_api.stats.library.parameters import HistoricalNullable
 
 from app.schemas.schedule import GamesResponse, GameSummary, TeamSummary, TopScorer, GameLeaders, GameLeader
 from app.config import get_api_kwargs
-from app.utils.game_id import normalize_game_id
 from app.utils.rate_limiter import rate_limit
 
 # Set up logger for this file
@@ -564,7 +563,7 @@ async def getGamesForDate(date: str) -> GamesResponse:
                 # Normalize game_id to 10 digits so detail page and API lookups work
                 games.append(
                     GameSummary(
-                        game_id=normalize_game_id(str(game_id)),
+                        game_id=str(game_id).zfill(10),
                         game_date=date,  # Use the requested date
                         game_time_utc=game_time_utc,
                         matchup=f"{home_team.team_abbreviation} vs {away_team.team_abbreviation}",

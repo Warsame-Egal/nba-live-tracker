@@ -190,10 +190,10 @@ From `nba-tracker-api`: `python test_mcp.py` (backend must be running). See `mcp
 
 ## Documentation
 
-- **Doc index:** [docs/README.md](docs/README.md) — architecture, overview, technical details, Groq AI, conventions, ADRs
+- **Architecture:** [docs/architecture.md](docs/architecture.md)
 - **API Docs:** http://localhost:8000/docs
 - **Full API reference:** [nba-tracker-api/app/docs/API_DOCUMENTATION.md](nba-tracker-api/app/docs/API_DOCUMENTATION.md)
-- **Groq AI:** [docs/groq-ai.md](docs/groq-ai.md)
+- **Groq AI details:** [docs/groq-ai.md](docs/groq-ai.md)
 
 ## Deployment
 
@@ -209,16 +209,5 @@ Uses the [`nba_api`](https://github.com/swar/nba_api) Python package. Version pi
 - **Backend:** pytest in `nba-tracker-api/app/tests/`. Run: `pytest` from `nba-tracker-api`. No live API keys required.
 - **Frontend:** ESLint, Prettier, production build in CI.
 - **CI:** [.github/workflows/ci.yml](.github/workflows/ci.yml) — backend (ruff, black, pytest), frontend (TypeScript, eslint) on push/PR to `main` and `dev`.
-
-## Architecture decisions
-
-[Architecture Decision Records (ADRs)](docs/adr/):
-
-- [0001](docs/adr/0001-fastapi-react-and-repo-structure.md) — FastAPI + React and repo structure
-- [0002](docs/adr/0002-websockets-and-cached-polling.md) — WebSockets and cached polling
-- [0003](docs/adr/0003-docker-and-ci.md) — Docker and CI
-- [0004](docs/adr/0004-data-source-and-ai.md) — Data source and Groq AI
-
----
 
 Made by Warsame Egal

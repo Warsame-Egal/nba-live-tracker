@@ -134,41 +134,23 @@ async def health():
 
 
 def _health_ai_section(groq_stats: dict) -> dict:
-    """AI pipeline observability: queue depths, cache hit rate, agent metrics, validation failures."""
+    """AI pipeline observability: agent metrics and structured validation failures."""
     try:
-        from app.services.ai_queue import AIPriority, get_ai_request_queue
         from app.services.agent_service import get_agent_metrics
         from app.services.structured_groq import get_structured_validation_failures_count
-        from app.utils.ai_cache import get_agent_response_cache
     except Exception:
         return {
             "groq_requests_last_minute": groq_stats.get("requests_last_minute", 0),
             "groq_tokens_last_minute": groq_stats.get("tokens_last_minute", 0),
             "agent_requests_today": 0,
             "agent_avg_tools_per_request": 0,
-            "cache_hit_rate_pct": 0,
             "structured_validation_failures_today": 0,
             "queue_depths": {"agent": 0, "narrative": 0, "insights": 0, "batch": 0},
         }
     try:
-        queue = get_ai_request_queue()
-        queue_depths = {
-            "agent": queue.queue_depth(AIPriority.AGENT),
-            "narrative": queue.queue_depth(AIPriority.NARRATIVE),
-            "insights": queue.queue_depth(AIPriority.INSIGHTS),
-            "batch": queue.queue_depth(AIPriority.BATCH),
-        }
-    except Exception:
-        queue_depths = {"agent": 0, "narrative": 0, "insights": 0, "batch": 0}
-    try:
         agent_metrics = get_agent_metrics()
     except Exception:
         agent_metrics = {"agent_requests_since_start": 0, "agent_avg_tools_per_request": 0}
-    try:
-        cache_stats = get_agent_response_cache().stats()
-        cache_hit_rate_pct = cache_stats.get("hit_rate_pct", 0)
-    except Exception:
-        cache_hit_rate_pct = 0
     try:
         validation_failures = get_structured_validation_failures_count()
     except Exception:
@@ -178,9 +160,8 @@ def _health_ai_section(groq_stats: dict) -> dict:
         "groq_tokens_last_minute": groq_stats.get("tokens_last_minute", 0),
         "agent_requests_today": agent_metrics.get("agent_requests_since_start", 0),
         "agent_avg_tools_per_request": agent_metrics.get("agent_avg_tools_per_request", 0),
-        "cache_hit_rate_pct": cache_hit_rate_pct,
         "structured_validation_failures_today": validation_failures,
-        "queue_depths": queue_depths,
+        "queue_depths": {"agent": 0, "narrative": 0, "insights": 0, "batch": 0},
     }
 
 

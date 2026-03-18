@@ -562,28 +562,96 @@ const TeamPage = () => {
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  {Object.keys(lineups[0])
-                    .slice(0, 10)
-                    .map(h => (
-                      <TableCell key={h} sx={{ fontWeight: typography.weight.bold }}>
-                        {String(h).replace(/_/g, ' ')}
-                      </TableCell>
-                    ))}
+                  <TableCell sx={{ fontWeight: typography.weight.bold }}>Lineup</TableCell>
+                  <TableCell sx={{ fontWeight: typography.weight.bold }} align="right">
+                    MIN
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: typography.weight.bold }} align="right">
+                    Net rating
+                  </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {lineups.slice(0, 15).map((row, i) => (
-                  <TableRow key={i}>
-                    {Object.values(row)
-                      .slice(0, 10)
-                      .map((v, j) => (
-                        <TableCell key={j}>{String(v ?? '—')}</TableCell>
-                      ))}
-                  </TableRow>
-                ))}
+                {lineups
+                  .slice()
+                  .sort((a, b) => {
+                    const na = Number((a as any).NET_RATING ?? 0);
+                    const nb = Number((b as any).NET_RATING ?? 0);
+                    return nb - na;
+                  })
+                  .slice(0, 5)
+                  .map((row, i) => {
+                    const r = row as Record<string, any>;
+                    const groupName = String(r.GROUP_NAME ?? '').trim();
+                    const minutes = Number(r.MIN ?? 0);
+                    const net = Number(r.NET_RATING ?? 0);
+                    return (
+                      <TableRow key={`best-${i}`}>
+                        <TableCell>{groupName || '—'}</TableCell>
+                        <TableCell align="right">
+                          {Number.isNaN(minutes) ? '—' : minutes.toFixed(1)}
+                        </TableCell>
+                        <TableCell align="right">
+                          {Number.isNaN(net) ? '—' : net.toFixed(1)}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
               </TableBody>
             </Table>
           </Box>
+          {lineups.length > 8 && (
+            <Box sx={{ mt: 2 }}>
+              <Typography
+                variant="subtitle2"
+                sx={{ fontWeight: typography.weight.semibold, mb: 1 }}
+              >
+                Toughest lineups
+              </Typography>
+              <Box sx={{ overflowX: 'auto' }}>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell sx={{ fontWeight: typography.weight.bold }}>Lineup</TableCell>
+                      <TableCell sx={{ fontWeight: typography.weight.bold }} align="right">
+                        MIN
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: typography.weight.bold }} align="right">
+                        Net rating
+                      </TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {lineups
+                      .slice()
+                      .sort((a, b) => {
+                        const na = Number((a as any).NET_RATING ?? 0);
+                        const nb = Number((b as any).NET_RATING ?? 0);
+                        return na - nb;
+                      })
+                      .slice(0, 3)
+                      .map((row, i) => {
+                        const r = row as Record<string, any>;
+                        const groupName = String(r.GROUP_NAME ?? '').trim();
+                        const minutes = Number(r.MIN ?? 0);
+                        const net = Number(r.NET_RATING ?? 0);
+                        return (
+                          <TableRow key={`worst-${i}`}>
+                            <TableCell>{groupName || '—'}</TableCell>
+                            <TableCell align="right">
+                              {Number.isNaN(minutes) ? '—' : minutes.toFixed(1)}
+                            </TableCell>
+                            <TableCell align="right">
+                              {Number.isNaN(net) ? '—' : net.toFixed(1)}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                  </TableBody>
+                </Table>
+              </Box>
+            </Box>
+          )}
         </Paper>
       )}
 
@@ -605,25 +673,73 @@ const TeamPage = () => {
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  {Object.keys(onOff[0])
-                    .slice(0, 10)
-                    .map(h => (
-                      <TableCell key={h} sx={{ fontWeight: typography.weight.bold }}>
-                        {String(h).replace(/_/g, ' ')}
-                      </TableCell>
-                    ))}
+                  <TableCell sx={{ fontWeight: typography.weight.bold }}>Player</TableCell>
+                  <TableCell sx={{ fontWeight: typography.weight.bold }} align="right">
+                    On-court NRtg
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: typography.weight.bold }} align="right">
+                    Off-court NRtg
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: typography.weight.bold }} align="right">
+                    Differential
+                  </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {onOff.slice(0, 20).map((row, i) => (
-                  <TableRow key={i}>
-                    {Object.values(row)
-                      .slice(0, 10)
-                      .map((v, j) => (
-                        <TableCell key={j}>{String(v ?? '—')}</TableCell>
-                      ))}
-                  </TableRow>
-                ))}
+                {onOff
+                  .slice()
+                  .map(row => row as Record<string, any>)
+                  .map(r => {
+                    const name = String(r.GROUP_VALUE ?? r.PLAYER_NAME ?? 'Unknown');
+                    const on =
+                      typeof r.ON_COURT_PLUS_MINUS === 'number'
+                        ? r.ON_COURT_PLUS_MINUS
+                        : typeof r.NET_RATING === 'number'
+                          ? r.NET_RATING
+                          : null;
+                    const off =
+                      typeof r.OFF_COURT_PLUS_MINUS === 'number'
+                        ? r.OFF_COURT_PLUS_MINUS
+                        : typeof r.OFF_NET_RATING === 'number'
+                          ? r.OFF_NET_RATING
+                          : null;
+                    const diff = on != null && off != null ? on - off : null;
+                    return { name, on, off, diff };
+                  })
+                  .sort((a, b) => {
+                    const da = a.diff ?? 0;
+                    const db = b.diff ?? 0;
+                    return db - da;
+                  })
+                  .slice(0, 10)
+                  .map((row, i) => (
+                    <TableRow key={i}>
+                      <TableCell>{row.name}</TableCell>
+                      <TableCell align="right">
+                        {row.on != null && !Number.isNaN(row.on) ? row.on.toFixed(1) : '—'}
+                      </TableCell>
+                      <TableCell align="right">
+                        {row.off != null && !Number.isNaN(row.off) ? row.off.toFixed(1) : '—'}
+                      </TableCell>
+                      <TableCell
+                        align="right"
+                        sx={{
+                          color:
+                            row.diff != null && !Number.isNaN(row.diff)
+                              ? row.diff > 0
+                                ? 'success.main'
+                                : row.diff < 0
+                                  ? 'error.main'
+                                  : 'text.secondary'
+                              : 'text.secondary',
+                        }}
+                      >
+                        {row.diff != null && !Number.isNaN(row.diff)
+                          ? `${row.diff > 0 ? '+' : ''}${row.diff.toFixed(1)}`
+                          : '—'}
+                      </TableCell>
+                    </TableRow>
+                  ))}
               </TableBody>
             </Table>
           </Box>

@@ -68,6 +68,8 @@ const getGameStatus = (game: Game | GameSummary): 'live' | 'upcoming' | 'complet
 const Scoreboard = () => {
   // List of all games to display
   const [games, setGames] = useState<(Game | GameSummary)[]>([]);
+  // Snapshot of today's schedule from the HTTP endpoint (used for "Tonight" column)
+  const [todayScheduleGames, setTodayScheduleGames] = useState<(Game | GameSummary)[]>([]);
   // Whether we're loading data
   const [loading, setLoading] = useState(false);
   // The date the user selected to view games for
@@ -134,10 +136,10 @@ const Scoreboard = () => {
   const [, setPredictionsError] = useState<string | null>(null);
 
   // Split games into live, upcoming, and completed categories
-  // This is memoized so it only recalculates when games or date changes
+  // This is memoized so it only recalculates when games, date, or schedule snapshot changes
   const { liveGames, upcomingGames, completedGames } = useMemo(() => {
     // Filter games by search query if there is one
-    const filtered = games.filter(game => {
+    const filteredAll = games.filter(game => {
       if (!searchQuery) return true;
       const homeName =
         'homeTeam' in game ? game.homeTeam.teamName : game.home_team.team_abbreviation;
@@ -150,29 +152,44 @@ const Scoreboard = () => {
     });
 
     const today = getLocalISODate();
-    // If viewing today, show all three categories
+    // If viewing today, show all three categories. Use the schedule snapshot for "Tonight"
+    // so those games don't disappear from the right column when live updates arrive.
     if (selectedDate === today) {
+      const scheduleSource =
+        todayScheduleGames.length > 0 ? todayScheduleGames : games;
+      const filteredSchedule = scheduleSource.filter(game => {
+        if (!searchQuery) return true;
+        const homeName =
+          'homeTeam' in game ? game.homeTeam.teamName : game.home_team.team_abbreviation;
+        const awayName =
+          'awayTeam' in game ? game.awayTeam.teamName : game.away_team.team_abbreviation;
+        return (
+          homeName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          awayName.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+      });
+
       return {
-        liveGames: filtered.filter(game => getGameStatus(game) === 'live'),
-        upcomingGames: filtered.filter(game => getGameStatus(game) === 'upcoming'),
-        completedGames: filtered.filter(game => getGameStatus(game) === 'completed'),
+        liveGames: filteredAll.filter(game => getGameStatus(game) === 'live'),
+        upcomingGames: filteredSchedule.filter(game => getGameStatus(game) === 'upcoming'),
+        completedGames: filteredAll.filter(game => getGameStatus(game) === 'completed'),
       };
     } else if (selectedDate < today) {
       // If viewing past date, only show completed games
       return {
         liveGames: [],
         upcomingGames: [],
-        completedGames: filtered,
+        completedGames: filteredAll,
       };
     } else {
       // If viewing future date, only show upcoming games
       return {
         liveGames: [],
-        upcomingGames: filtered,
+        upcomingGames: filteredAll,
         completedGames: [],
       };
     }
-  }, [games, searchQuery, selectedDate]);
+  }, [games, searchQuery, selectedDate, todayScheduleGames]);
 
   const { setLiveCount } = useLiveCount();
   useEffect(() => {
@@ -603,13 +620,18 @@ const Scoreboard = () => {
           { maxRetries: 3, retryDelay: 1000, timeout: 30000 },
         );
 
-        if (date === getLocalISODate()) {
+        const today = getLocalISODate();
+        if (date === today) {
+          // Snapshot for "Tonight" column – stays stable when live WS updates arrive
+          setTodayScheduleGames(data.games);
           scheduleGameLeadersRef.current.clear();
           data.games.forEach(game => {
             if (game.gameLeaders) {
               scheduleGameLeadersRef.current.set(game.game_id, game.gameLeaders);
             }
           });
+        } else {
+          setTodayScheduleGames([]);
         }
 
         setGames(data.games);
@@ -1537,7 +1559,14 @@ const Scoreboard = () => {
 
           {/* Right column (desktop): Hot Streaks + Upcoming + Completed when today */}
           {isToday && (
-            <Box sx={{ display: { xs: 'none', md: 'block' } }}>
+            <Box
+              sx={{
+                display: { xs: 'none', md: 'block' },
+                // Nudge the right column down so the "Tonight" header
+                // visually aligns with the "LIVE" label and first game card.
+                mt: 6.5,
+              }}
+            >
               {streaks && streaks.length > 0 && (
                 <Paper
                   elevation={0}

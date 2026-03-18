@@ -23,7 +23,6 @@ from app.services.data_cache import data_cache
 from app.services.key_moments import get_key_moments_for_game, parse_clock
 from app.services.scoreboard import getBoxScore, get_hustle_box_score, getPlayByPlay
 from app.services.win_probability import get_win_probability
-from app.utils.game_id import normalize_game_id
 
 logger = logging.getLogger(__name__)
 
@@ -546,12 +545,12 @@ class GameDetailService:
         Get full game detail: status from scoreboard cache; box score, play-by-play,
         key moments, win probability in parallel. Returns dict suitable for JSON response.
         """
-        game_id = normalize_game_id(game_id)
+        game_id = str(game_id).zfill(10)
         scoreboard_data = await data_cache.get_scoreboard()
         game = None
         if scoreboard_data and scoreboard_data.scoreboard:
             for g in scoreboard_data.scoreboard.games:
-                if normalize_game_id(g.gameId) == game_id:
+                if str(g.gameId).zfill(10) == game_id:
                     game = g
                     break
         if game is None and scoreboard_data is None:

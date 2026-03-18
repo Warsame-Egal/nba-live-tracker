@@ -39,6 +39,37 @@ import { borderRadius } from '../theme/designTokens';
 import { getTeamColorsByName } from '../utils/teamColors';
 import PageContainer from '../components/PageContainer';
 
+const formatMinutes = (value: unknown): string => {
+  if (value == null) return '—';
+  const raw = String(value).trim();
+  if (!raw) return '—';
+
+  // Already looks like mm:ss or similar, just return
+  if (/^\d{1,2}:\d{2}$/.test(raw)) {
+    return raw;
+  }
+
+  // ISO8601 style from NBA live API, e.g. PT05M, PT32M15S
+  if (raw.startsWith('PT')) {
+    const match = raw.match(/^PT(?:(\d+)M)?(?:(\d+)S)?$/);
+    if (match) {
+      const mins = parseInt(match[1] || '0', 10);
+      const secs = parseInt(match[2] || '0', 10);
+      const mm = String(mins);
+      const ss = secs.toString().padStart(2, '0');
+      return `${mm}:${ss}`;
+    }
+  }
+
+  // Fallback for plain numeric minutes
+  const asNumber = Number(raw);
+  if (!Number.isNaN(asNumber) && asNumber >= 0) {
+    return asNumber.toFixed(1);
+  }
+
+  return raw;
+};
+
 /**
  * Full game detail page: single scrolling page with sticky score header,
  * narrative, key moment, win prob, momentum, top performers, key moments timeline,
@@ -554,7 +585,7 @@ function BoxScoreTab({
           {String(p.name ?? '')}
         </Typography>
         <Typography variant="caption" color="text.secondary">
-          {teamLabel} · {String(p.minutes ?? '—')} MIN
+          {teamLabel} · {formatMinutes(p.minutes)} MIN
         </Typography>
       </Box>
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 0.5 }}>
@@ -659,7 +690,7 @@ function BoxScoreTab({
                     {String(p.name ?? '')}
                   </TableCell>
                   <TableCell align="center" sx={{ fontVariantNumeric: 'tabular-nums' }}>
-                    {String(p.minutes ?? '')}
+                    {formatMinutes(p.minutes)}
                   </TableCell>
                   <TableCell
                     align="center"

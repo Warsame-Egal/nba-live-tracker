@@ -1,6 +1,6 @@
 # Groq AI Integration
 
-This app uses Groq for live game insights, key moment context, predictions narrative, and the **AI agent** (natural-language Q&A). For system design (batching, priority queue, cache sizes), see **[architecture.md](architecture.md)**.
+This app uses Groq for live game insights, key moment context, predictions narrative, and post-game recaps. For system design (batching and cache sizes), see **[architecture.md](architecture.md)**.
 
 ## Why Groq
 
@@ -31,9 +31,9 @@ Groq does not replace game logic. It just explains what the numbers mean in plai
 
 ## Batching and caching
 
-All Groq traffic goes through the **AI priority queue** (`app/services/ai_queue.py`): agent (highest) → narrative → insights → batch. This avoids bursts and 429s. We batch by use case: one call for all live game insights, one for all key moments needing context, one per date for prediction narrative.
+Groq calls are rate-limited with a simple in-process limiter; at this scale we just call Groq directly from the agent and insights services.
 
-Insights and lead-change explanations are cached (see architecture.md for sizes). Agent responses use a 200-entry LRU (120 s for live, 300 s for other).
+Insights and lead-change explanations are cached (see architecture.md for sizes).
 
 ## How It Works
 
@@ -44,12 +44,6 @@ Insights and lead-change explanations are cached (see architecture.md for sizes)
 5. User can click "Why?" on lead changes to get a deeper explanation
 
 The prompts evolve over time. They're not fixed. We adjust them based on what works and what doesn't.
-
-## Agent (natural-language Q&A)
-
-**Location:** `app/services/agent_service.py`, `app/routers/agent.py`
-
-The agent is a **tool-calling** flow: the user sends a question to `POST /api/v1/agent/ask`; the model can request tools (e.g. get scoreboard, game detail, standings). The backend runs those tools and feeds results back until the model has enough to answer (max 5 tool iterations). All agent requests use the highest priority in the AI queue so they are never starved by batch jobs. Responses are cached (see architecture.md). For full flow and priorities, see [architecture.md](architecture.md#5-agent-architecture).
 
 ## Prompt system
 

@@ -9,7 +9,7 @@ High-level view of how the app is organized and how data flows. For design ratio
 - `data_cache.py` — Polls NBA API (scoreboard 8s, play-by-play 5s per live game), LRU caches. Single source for live data; WebSockets read from here only.
 - `websockets_manager.py` — Broadcasts scoreboard, play-by-play, insights, key moments, win probability to clients.
 - `groq_client.py` — Groq API calls and rate limiting (RPM/TPM).
-- `ai_queue.py` — Priority queue for all Groq traffic (agent > narrative > insights > batch).
+- Groq calls use a lightweight in-process rate limiter; at this scale we just call Groq directly from the agent and insights services.
 - `agent_service.py` — Tool-calling agent: user questions → tools (scoreboard, game detail, standings) → Groq.
 - `batched_insights.py` — AI insights for all live games in one call.
 - `key_moments.py` — Detects game-tying shot, lead change, scoring run, clutch, big shot; batches AI context.
@@ -28,7 +28,7 @@ High-level view of how the app is organized and how data flows. For design ratio
 ## Data flow (short)
 
 1. **Live data:** DataCache polls NBA API at fixed intervals; WebSocket manager and HTTP endpoints read from cache only. No N×M API calls.
-2. **AI:** All Groq calls go through the AI priority queue; batched by use case (insights, key moment context, predictions). See [architecture.md](architecture.md) and [groq-ai.md](groq-ai.md).
+2. **AI:** Groq calls are batched by use case (insights, key moment context, predictions) and pass through a single rate-limited client. See [architecture.md](architecture.md) and [groq-ai.md](groq-ai.md).
 
 ## WebSocket message types
 

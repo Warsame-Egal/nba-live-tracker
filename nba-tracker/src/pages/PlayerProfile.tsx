@@ -27,6 +27,78 @@ import { API_BASE_URL } from '../utils/apiConfig';
 import PageContainer from '../components/PageContainer';
 
 // Player profile page with stats, game log, and performance charts
+const SplitRow = ({
+  label,
+  leftLabel,
+  rightLabel,
+  left,
+  right,
+}: {
+  label: string;
+  leftLabel: string;
+  rightLabel: string;
+  left?: Record<string, any>;
+  right?: Record<string, any>;
+}) => {
+  const formatNumber = (value: any, decimals = 1) => {
+    const num = Number(value);
+    if (Number.isNaN(num)) return '—';
+    return num.toFixed(decimals);
+  };
+
+  const buildSide = (row?: Record<string, any>) => {
+    if (!row) {
+      return {
+        ppg: '—',
+        fg: '—',
+        reb: '—',
+        ast: '—',
+      };
+    }
+    return {
+      ppg: `${formatNumber(row.PTS ?? row.PTS_PG ?? row.POINTS, 1)} pts`,
+      fg: `${formatNumber(
+        (row.FG_PCT ?? row.FG_PCT_PG ?? row.FIELD_GOAL_PCT) * 100,
+        1,
+      )}% FG`,
+      reb: `${formatNumber(row.REB ?? row.REB_PG ?? row.REBOUNDS, 1)} reb`,
+      ast: `${formatNumber(row.AST ?? row.AST_PG ?? row.ASSISTS, 1)} ast`,
+    };
+  };
+
+  const leftSide = buildSide(left);
+  const rightSide = buildSide(right);
+
+  return (
+    <Box sx={{ mb: 1 }}>
+      <Typography
+        variant="caption"
+        color="text.secondary"
+        sx={{ textTransform: 'uppercase', display: 'block', mb: 0.5 }}
+      >
+        {label}
+      </Typography>
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: { xs: 'column', sm: 'row' },
+          gap: 0.5,
+          justifyContent: 'space-between',
+        }}
+      >
+        <Typography variant="body2">
+          <strong>{leftLabel}:</strong>{' '}
+          {`${leftSide.ppg} · ${leftSide.fg} · ${leftSide.reb} · ${leftSide.ast}`}
+        </Typography>
+        <Typography variant="body2">
+          <strong>{rightLabel}:</strong>{' '}
+          {`${rightSide.ppg} · ${rightSide.fg} · ${rightSide.reb} · ${rightSide.ast}`}
+        </Typography>
+      </Box>
+    </Box>
+  );
+};
+
 const PlayerProfile: React.FC = () => {
   const { playerId } = useParams<{ playerId: string }>();
   const [searchParams] = useSearchParams();
@@ -889,45 +961,106 @@ const PlayerProfile: React.FC = () => {
                     <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5 }}>
                       Shooting by zone
                     </Typography>
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
-                      {zonesData.zones.map(z => (
-                        <Box
-                          key={z.zone}
-                          sx={{
-                            px: 1.5,
-                            py: 1,
-                            borderRadius: 1,
-                            bgcolor: 'action.hover',
-                            minWidth: 140,
-                          }}
-                        >
-                          <Typography
-                            variant="caption"
-                            color="text.secondary"
-                            sx={{ display: 'block' }}
+                    <Box
+                      sx={{
+                        display: 'grid',
+                        gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))' },
+                        gap: 1.5,
+                      }}
+                    >
+                      {zonesData.zones.map(z => {
+                        const fgPct =
+                          z.fg_pct != null && !Number.isNaN(z.fg_pct)
+                            ? `${z.fg_pct.toFixed(1)}%`
+                            : '—';
+                        const leaguePct =
+                          z.league_avg != null && !Number.isNaN(z.league_avg)
+                            ? `${z.league_avg.toFixed(1)}%`
+                            : null;
+                        const diff =
+                          z.diff_pct != null && !Number.isNaN(z.diff_pct) ? z.diff_pct : null;
+                        const diffDisplay =
+                          diff != null ? `${diff >= 0 ? '+' : ''}${diff.toFixed(1)}%` : null;
+                        const diffColor =
+                          diff != null
+                            ? diff >= 1
+                              ? 'success.main'
+                              : diff <= -1
+                                ? 'error.main'
+                                : 'text.secondary'
+                            : 'text.secondary';
+                        const freq = z.freq_pct ?? 0;
+                        const clampedFreq = Math.max(0, Math.min(100, freq));
+                        return (
+                          <Box
+                            key={z.zone}
+                            sx={{
+                              px: 1.5,
+                              py: 1,
+                              borderRadius: 1,
+                              bgcolor: 'background.default',
+                              border: '1px solid',
+                              borderColor: 'divider',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: 0.5,
+                            }}
                           >
-                            {z.zone}
-                          </Typography>
-                          <Typography variant="body2" fontWeight={600}>
-                            {z.fg_pct}%
-                          </Typography>
-                          {z.league_avg != null && (
-                            <Typography variant="caption">League {z.league_avg}%</Typography>
-                          )}
-                          {z.diff_pct != null && (
                             <Typography
                               variant="caption"
-                              color={z.diff_pct >= 0 ? 'success.main' : 'error.main'}
+                              color="text.secondary"
+                              sx={{ display: 'block' }}
                             >
-                              {z.diff_pct >= 0 ? '+' : ''}
-                              {z.diff_pct}%
+                              {z.zone}
                             </Typography>
-                          )}
-                          <Typography variant="caption" display="block">
-                            {(z.freq_pct ?? 0).toFixed(1)}% of FGA
-                          </Typography>
-                        </Box>
-                      ))}
+                            <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
+                              <Typography variant="body2" fontWeight={600}>
+                                {fgPct}
+                              </Typography>
+                              {leaguePct && (
+                                <Typography variant="caption" color="text.secondary">
+                                  League {leaguePct}
+                                </Typography>
+                              )}
+                              {diffDisplay && (
+                                <Typography variant="caption" color={diffColor}>
+                                  {diffDisplay}
+                                </Typography>
+                              )}
+                            </Box>
+                            <Box sx={{ mt: 0.5 }}>
+                              <Box
+                                sx={{
+                                  position: 'relative',
+                                  width: '100%',
+                                  height: 6,
+                                  borderRadius: 999,
+                                  bgcolor: 'action.hover',
+                                  overflow: 'hidden',
+                                }}
+                              >
+                                <Box
+                                  sx={{
+                                    position: 'absolute',
+                                    left: 0,
+                                    top: 0,
+                                    bottom: 0,
+                                    width: `${clampedFreq}%`,
+                                    bgcolor: 'primary.main',
+                                  }}
+                                />
+                              </Box>
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                                sx={{ mt: 0.25, display: 'block' }}
+                              >
+                                {clampedFreq.toFixed(1)}% of FGA
+                              </Typography>
+                            </Box>
+                          </Box>
+                        );
+                      })}
                     </Box>
                   </Paper>
                 )}
@@ -997,48 +1130,54 @@ const PlayerProfile: React.FC = () => {
                     <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5 }}>
                       Context splits
                     </Typography>
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                      {Object.entries(splitsData).map(([key, rows]) => (
-                        <Box key={key}>
-                          <Typography
-                            variant="caption"
-                            color="text.secondary"
-                            sx={{ textTransform: 'capitalize' }}
-                          >
-                            {key.replace(/([A-Z])/g, ' $1').trim()}
-                          </Typography>
-                          {Array.isArray(rows) && rows.length > 0 && (
-                            <Table size="small" sx={{ mt: 0.5 }}>
-                              <TableHead>
-                                <TableRow>
-                                  {Object.keys(rows[0] as object)
-                                    .slice(0, 6)
-                                    .map(h => (
-                                      <TableCell key={h} sx={{ fontWeight: 600, py: 0.5 }}>
-                                        {String(h).replace(/_/g, ' ')}
-                                      </TableCell>
-                                    ))}
-                                </TableRow>
-                              </TableHead>
-                              <TableBody>
-                                {(rows as Array<Record<string, unknown>>)
-                                  .slice(0, 5)
-                                  .map((row, i) => (
-                                    <TableRow key={i}>
-                                      {Object.values(row)
-                                        .slice(0, 6)
-                                        .map((v, j) => (
-                                          <TableCell key={j} sx={{ py: 0.5 }}>
-                                            {String(v ?? '—')}
-                                          </TableCell>
-                                        ))}
-                                    </TableRow>
-                                  ))}
-                              </TableBody>
-                            </Table>
-                          )}
-                        </Box>
-                      ))}
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+                      {/* Home vs Away */}
+                      {splitsData.LocationPlayerDashboard &&
+                        Array.isArray(splitsData.LocationPlayerDashboard) &&
+                        splitsData.LocationPlayerDashboard.length >= 2 && (
+                          <SplitRow
+                            label="Home vs Away"
+                            leftLabel="Home"
+                            rightLabel="Away"
+                            left={splitsData.LocationPlayerDashboard.find(
+                              (r: any) => r.LOCATION === 'Home',
+                            )}
+                            right={splitsData.LocationPlayerDashboard.find(
+                              (r: any) => r.LOCATION === 'Road' || r.LOCATION === 'Away',
+                            )}
+                          />
+                        )}
+                      {/* Wins vs Losses */}
+                      {splitsData.WinsLossesPlayerDashboard &&
+                        Array.isArray(splitsData.WinsLossesPlayerDashboard) &&
+                        splitsData.WinsLossesPlayerDashboard.length >= 2 && (
+                          <SplitRow
+                            label="Wins vs Losses"
+                            leftLabel="Wins"
+                            rightLabel="Losses"
+                            left={splitsData.WinsLossesPlayerDashboard.find(
+                              (r: any) => r.WL === 'W',
+                            )}
+                            right={splitsData.WinsLossesPlayerDashboard.find(
+                              (r: any) => r.WL === 'L',
+                            )}
+                          />
+                        )}
+                      {/* Rest splits */}
+                      {splitsData.DaysRestPlayerDashboard &&
+                        Array.isArray(splitsData.DaysRestPlayerDashboard) && (
+                          <SplitRow
+                            label="Rest"
+                            leftLabel="3+ days rest"
+                            rightLabel="0–1 days rest"
+                            left={splitsData.DaysRestPlayerDashboard.find(
+                              (r: any) => Number(r.DAYS_REST || 0) >= 3,
+                            )}
+                            right={splitsData.DaysRestPlayerDashboard.find(
+                              (r: any) => Number(r.DAYS_REST || 0) <= 1,
+                            )}
+                          />
+                        )}
                     </Box>
                   </Paper>
                 )}
@@ -1060,25 +1199,58 @@ const PlayerProfile: React.FC = () => {
                     <Table size="small">
                       <TableHead>
                         <TableRow>
-                          {Object.keys(defenseData.defense[0])
-                            .slice(0, 5)
-                            .map(h => (
-                              <TableCell key={h} sx={{ fontWeight: 600 }}>
-                                {String(h).replace(/_/g, ' ')}
-                              </TableCell>
-                            ))}
+                          <TableCell sx={{ fontWeight: 600 }}>Shot category</TableCell>
+                          <TableCell sx={{ fontWeight: 600 }}>Defended FG%</TableCell>
+                          <TableCell sx={{ fontWeight: 600 }}>League FG%</TableCell>
+                          <TableCell sx={{ fontWeight: 600 }}>Diff</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
-                        {defenseData.defense.slice(0, 8).map((row, i) => (
-                          <TableRow key={i}>
-                            {Object.values(row)
-                              .slice(0, 5)
-                              .map((v, j) => (
-                                <TableCell key={j}>{String(v ?? '—')}</TableCell>
-                              ))}
-                          </TableRow>
-                        ))}
+                        {defenseData.defense.slice(0, 8).map((row, i) => {
+                          const r = row as Record<string, any>;
+                          const rawCategory = String(r.DEFENSE_CATEGORY ?? r.DEFENSE_CAT ?? 'Overall');
+                          const shotCategory =
+                            rawCategory.toLowerCase() === 'overall'
+                              ? 'Overall'
+                              : rawCategory.replace(/_/g, ' ').replace(/\bfg\b/gi, 'FG');
+                          const dPct = typeof r.D_FG_PCT === 'number' ? r.D_FG_PCT * 100 : null;
+                          const leaguePct =
+                            typeof r.NORMAL_FG_PCT === 'number' ? r.NORMAL_FG_PCT * 100 : null;
+                          const pctPlusMinus =
+                            typeof r.PCT_PLUSMINUS === 'number' ? r.PCT_PLUSMINUS * 100 : null;
+                          const diff =
+                            pctPlusMinus != null && !Number.isNaN(pctPlusMinus)
+                              ? pctPlusMinus
+                              : dPct != null && leaguePct != null
+                                ? dPct - leaguePct
+                                : null;
+                          const diffColor =
+                            diff != null
+                              ? diff < 0
+                                ? 'success.main'
+                                : diff > 0
+                                  ? 'error.main'
+                                  : 'text.secondary'
+                              : 'text.secondary';
+                          return (
+                            <TableRow key={i}>
+                              <TableCell>{shotCategory}</TableCell>
+                              <TableCell>
+                                {dPct != null && !Number.isNaN(dPct) ? `${dPct.toFixed(1)}%` : '—'}
+                              </TableCell>
+                              <TableCell>
+                                {leaguePct != null && !Number.isNaN(leaguePct)
+                                  ? `${leaguePct.toFixed(1)}%`
+                                  : '—'}
+                              </TableCell>
+                              <TableCell sx={{ color: diffColor }}>
+                                {diff != null && !Number.isNaN(diff)
+                                  ? `${diff >= 0 ? '+' : ''}${diff.toFixed(1)}%`
+                                  : '—'}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
                       </TableBody>
                     </Table>
                   </Paper>
@@ -1101,25 +1273,40 @@ const PlayerProfile: React.FC = () => {
                     <Table size="small">
                       <TableHead>
                         <TableRow>
-                          {Object.keys(passingData.passes[0])
-                            .slice(0, 6)
-                            .map(h => (
-                              <TableCell key={h} sx={{ fontWeight: 600 }}>
-                                {String(h).replace(/_/g, ' ')}
-                              </TableCell>
-                            ))}
+                          <TableCell sx={{ fontWeight: 600 }}>Teammate</TableCell>
+                          <TableCell sx={{ fontWeight: 600 }}>Assists</TableCell>
+                          <TableCell sx={{ fontWeight: 600 }}>FG% on passes</TableCell>
+                          <TableCell sx={{ fontWeight: 600 }}>3P% on passes</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
-                        {passingData.passes.slice(0, 10).map((row, i) => (
-                          <TableRow key={i}>
-                            {Object.values(row)
-                              .slice(0, 6)
-                              .map((v, j) => (
-                                <TableCell key={j}>{String(v ?? '—')}</TableCell>
-                              ))}
-                          </TableRow>
-                        ))}
+                        {passingData.passes
+                          .slice()
+                          .sort((a, b) => {
+                            const aa = (a as any).AST ?? 0;
+                            const bb = (b as any).AST ?? 0;
+                            return Number(bb) - Number(aa);
+                          })
+                          .slice(0, 5)
+                          .map((row, i) => {
+                            const r = row as Record<string, any>;
+                            const name = String(r.PASS_TO ?? r.PASS_TO_PLAYER ?? 'Unknown');
+                            const ast = r.AST ?? r.PASS ?? 0;
+                            const fgPct =
+                              typeof r.FG_PCT === 'number' ? `${(r.FG_PCT * 100).toFixed(1)}%` : '—';
+                            const fg3Pct =
+                              typeof r.FG3_PCT === 'number'
+                                ? `${(r.FG3_PCT * 100).toFixed(1)}%`
+                                : '—';
+                            return (
+                              <TableRow key={i}>
+                                <TableCell>{name}</TableCell>
+                                <TableCell>{ast}</TableCell>
+                                <TableCell>{fgPct}</TableCell>
+                                <TableCell>{fg3Pct}</TableCell>
+                              </TableRow>
+                            );
+                          })}
                       </TableBody>
                     </Table>
                   </Paper>

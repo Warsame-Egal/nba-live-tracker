@@ -2,21 +2,21 @@
 
 This document explains how the system is built and why. It is written for developers joining the project or for design review.
 
-**See also:** [README.md](README.md) for the full doc index (overview, API examples, Groq AI, conventions, ADRs).
+**See also:** [README.md](README.md) for the full doc index (overview, API examples, Groq AI, conventions).
 
 ---
 
 ## 1. System Overview
 
-The NBA Live Tracker is a full-stack app that shows **live NBA scores**, **game detail** (box score, key moments, win probability), **predictions**, **player/team stats**, and an **AI agent** that answers natural-language NBA questions. The backend is FastAPI; the frontend is React (Vite). Data ultimately comes from the NBA's public API; AI features use the Groq API.
+The NBA Live Tracker is a full-stack app that shows **live NBA scores**, **game detail** (box score, key moments, win probability), **predictions**, **player/team stats**, and AI-powered summaries (insights, key moments context, post-game recaps). The backend is FastAPI; the frontend is React (Vite). Data ultimately comes from the NBA's public API; AI features use the Groq API.
 
 The architecture is built around three constraints:
 
 - **NBA API is rate-limited and blocking** — we must throttle calls and never block the event loop.
 - **Many clients can subscribe to live data** — we avoid N×M API calls by caching once and pushing via WebSockets.
-- **Groq has RPM/TPM limits** — we batch and queue AI calls so we don't burst and get 429s.
+- **Groq has RPM/TPM limits** — we batch AI calls and respect rate limits so we don't burst and get 429s.
 
-So we use: (1) a **cache-first polling pattern** so WebSockets never hit the NBA API directly, (2) **LRU-bounded caches** everywhere so memory stays predictable (important on free-tier deployments), and (3) a **single Groq queue** with priorities so agent requests get served first and batch jobs don't starve them.
+So we use: (1) a **cache-first polling pattern** so WebSockets never hit the NBA API directly, (2) **LRU-bounded caches** everywhere so memory stays predictable (important on free-tier deployments), and (3) a **single rate-limited Groq client** plus batching so we stay within RPM/TPM without extra queue infrastructure.
 
 ---
 
@@ -58,7 +58,7 @@ One Groq call per game for "insights" or "narrative" would mean 15 games → 15 
 - For **key moments**: we collect all moments that need "context" in a short window and send them in **one** Groq request with a structured prompt; the model returns context for each moment in one response.
 - For **batched insights**: we send multiple games' context in one prompt and get back insights for all of them.
 
-So: **batch by time or by logical unit** (e.g. "all games today," "all new key moments this cycle") so we use one or a few Groq calls instead of N. The **AI priority queue** (see below) then serializes these so we don't exceed rate limits.
+So: **batch by time or by logical unit** (e.g. "all games today," "all new key moments this cycle") so we use one or a few Groq calls instead of N. A simple rate limiter in the Groq client ensures we stay under RPM/TPM bounds.
 
 ---
 
@@ -75,7 +75,6 @@ Every cache has a **max size** and **LRU eviction** (oldest unused entry is drop
 | Predictions           | 100 date+season, 30 min TTL | LRU                      |
 | Key moments (list)    | Per game, 5 min window | Rolling; game finished → clear |
 | Moment context (AI)   | 1000 entries           | LRU                            |
-| Agent response cache  | 200 entries            | LRU; 120 s live / 300 s other   |
 | Batched insights      | 50 batches, 20 lead-change | LRU                        |
 | Game summary (AI)     | 24 h TTL               | Per game_id                    |
 
@@ -83,32 +82,7 @@ This keeps memory bounded on small instances (e.g. GCP free tier) and avoids unb
 
 ---
 
-## 5. Agent Architecture
-
-The agent is a **tool-calling** flow: the model can request "tools" (e.g. "get today's scoreboard," "get game detail," "get standings"). The backend runs those tools and feeds results back into the model until it has enough to answer.
-
-**Flow**
-
-1. User sends `POST /api/v1/agent/ask` with `{ "question": "...", "history": [] }`.
-2. Request is enqueued with **AIPriority.AGENT** (highest priority).
-3. When the queue runs it: call Groq with the question and conversation history; if the response includes `tool_calls`, for each tool call we execute the corresponding function (e.g. fetch scoreboard, game detail, standings), append tool results to messages, and call Groq again. We repeat until the model returns no tool calls or we hit **max 5 iterations**.
-4. If a tool fails (e.g. NBA API error), we inject an error message and let the model continue or conclude with what it has.
-5. Final answer is returned as JSON: `{ "answer": "...", "tools_used": [...], "tool_results": [...] }`.
-
-**Priority queue**
-
-All Groq traffic goes through `get_ai_request_queue().run(priority, coro)`. Priorities (lower number = higher priority):
-
-- **1 = AGENT** — user-facing Q&A (e.g. `/agent/ask`).
-- **2 = NARRATIVE** — narrative generation.
-- **3 = INSIGHTS** — insights batch.
-- **4 = BATCH** — everything else (predictions enhancement, key moment context, etc.).
-
-So agent requests are never starved by batch jobs. The queue is single-threaded (one Groq call at a time per process), with rate limiting (RPM/TPM) applied inside the Groq client.
-
----
-
-## 6. Key Moments Detection
+## 5. Key Moments Detection
 
 Key moments are "highlight" events: game-tying shot, lead change, scoring run (e.g. 8+ unanswered points), clutch play (final minutes, close score), big shot (momentum swing). They are **detected in the backend** from play-by-play and then sent to the frontend via WebSocket.
 
@@ -128,7 +102,7 @@ For each new moment we can generate a short "why it matters" text via Groq. To a
 
 ---
 
-## 7. Data Flow Diagram
+## 6. Data Flow Diagram
 
 ```
                     +------------------+
@@ -166,20 +140,13 @@ For each new moment we can generate a short "why it matters" text via Groq. To a
 
     Groq AI branch (separate from NBA path):
 
-    [ Agent / Predictions / Key moments / Insights ]
+    [ Predictions / Key moments / Insights / Recaps ]
                     |
                     v
             +------------------+
-            | AI priority queue|
-            | (1=agent, 2=nav, |
-            |  3=insights,     |
-            |  4=batch)        |
-            +--------+---------+
-                     |
-                     v
-            +------------------+
-            | Groq API         |
-            | (rate-limited    |
+            | Groq API client  |
+            | (batched,        |
+            |  rate-limited    |
             |  28 RPM / 5800   |
             |  TPM)            |
             +------------------+
@@ -197,7 +164,6 @@ For each new moment we can generate a short "why it matters" text via Groq. To a
 | NBA API min delay       | 600 ms |
 | Groq RPM (conservative) | 28    |
 | Groq TPM (conservative) | 5800  |
-| Agent max tool iterations | 5   |
 | Key moment context LRU  | 1000  |
 | Predictions cache TTL   | 30 min |
 | Win probability cache  | 20 games, 1 h TTL |

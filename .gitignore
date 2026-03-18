@@ -26,8 +26,6 @@ planning/
 # Ignore dependency lock files (optional)
 Pipfile.lock
 
-test.db
-
 # Node modules (should never be committed)
 node_modules/
 
@@ -36,13 +34,3 @@ nba-tracker/dist/
 nba-tracker/dist-ssr/
 nba-tracker/.vite/
 
-
-deploysteps.md
-MANUAL_SETUP.md
-REQUIREMENTS_VERIFICATION.md
-
-MEMORY_OPTIMIZATION_SUMMARY.md
-
-PERSONAL.md
-
-technical-details.md

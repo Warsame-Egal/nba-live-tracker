@@ -69,7 +69,6 @@ from app.routers.predictions import router as predictions_router  # noqa: E402
 from app.routers.league import router as league_router  # noqa: E402
 from app.routers.compare_router import router as compare_router  # noqa: E402
 from app.routers.health import router as health_router  # noqa: E402
-from app.routers.agent import router as agent_router  # noqa: E402
 from app.services.data_cache import data_cache  # noqa: E402
 from app.services.websockets_manager import (  # noqa: E402
     playbyplay_websocket_manager,
@@ -197,4 +196,3 @@ app.include_router(predictions_router, prefix="/api/v1")
 app.include_router(league_router, prefix="/api/v1")
 app.include_router(compare_router)
 app.include_router(health_router)
-app.include_router(agent_router)

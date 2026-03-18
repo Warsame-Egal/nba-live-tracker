@@ -32,7 +32,6 @@ from app.schemas.scoreboard import (
 )
 from app.config import get_api_kwargs
 from app.constants import GAME_STATUS_LIVE
-from app.utils.game_id import normalize_game_id
 from app.utils.rate_limiter import rate_limit
 
 
@@ -491,14 +490,14 @@ async def _get_game_info_from_scoreboard(game_id: str):
         dict: Basic game info with team names and status, or None if not found
     """
     try:
-        game_id_norm = normalize_game_id(game_id)
+        game_id_norm = str(game_id).zfill(10)
         raw_scoreboard_data = await fetch_nba_scoreboard()
         if not raw_scoreboard_data:
             return None
 
         raw_games = raw_scoreboard_data.get("games", [])
         for game in raw_games:
-            if normalize_game_id(game.get("gameId", "")) == game_id_norm:
+            if str(game.get("gameId", "")).zfill(10) == game_id_norm:
                 return {
                     "gameId": game_id,
                     "status": game.get("gameStatusText", "Scheduled"),
@@ -530,7 +529,7 @@ async def getBoxScore(game_id: str) -> BoxScoreResponse:
     Raises:
         HTTPException: If game not found or API error
     """
-    game_id = normalize_game_id(game_id)
+    game_id = str(game_id).zfill(10)
     try:
         # Get box score data from NBA API (requires 10-digit game_id)
         api_kwargs = get_api_kwargs()
