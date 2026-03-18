@@ -62,8 +62,25 @@ const TeamPage = () => {
   const [standings, setStandings] = useState<StandingRecord[]>([]);
   const [teamStats, setTeamStats] = useState<TeamStatsResponse | null>(null);
   const [playerStats, setPlayerStats] = useState<TeamPlayerStatsResponse | null>(null);
-  const [lineups, setLineups] = useState<Array<Record<string, unknown>> | null>(null);
-  const [onOff, setOnOff] = useState<Array<Record<string, unknown>> | null>(null);
+  type LineupRow = {
+    [key: string]: unknown;
+    GROUP_NAME?: string;
+    MIN?: number;
+    NET_RATING?: number;
+  };
+
+  type OnOffRow = {
+    [key: string]: unknown;
+    GROUP_VALUE?: string;
+    PLAYER_NAME?: string;
+    ON_COURT_PLUS_MINUS?: number;
+    NET_RATING?: number;
+    OFF_COURT_PLUS_MINUS?: number;
+    OFF_NET_RATING?: number;
+  };
+
+  const [lineups, setLineups] = useState<LineupRow[] | null>(null);
+  const [onOff, setOnOff] = useState<OnOffRow[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -213,7 +230,7 @@ const TeamPage = () => {
         }
 
         try {
-          const lineupsData = await fetchJson<{ lineups: Array<Record<string, unknown>> }>(
+          const lineupsData = await fetchJson<{ lineups: LineupRow[] }>(
             `${API_BASE_URL}/api/v1/teams/${team_id}/lineups?season=${encodeURIComponent(season)}`,
             {},
             { maxRetries: 1, timeout: 15000 },
@@ -225,7 +242,7 @@ const TeamPage = () => {
         }
 
         try {
-          const onOffData = await fetchJson<{ on_off: Array<Record<string, unknown>> }>(
+          const onOffData = await fetchJson<{ on_off: OnOffRow[] }>(
             `${API_BASE_URL}/api/v1/teams/${team_id}/on-off?season=${encodeURIComponent(season)}`,
             {},
             { maxRetries: 1, timeout: 15000 },
@@ -575,13 +592,13 @@ const TeamPage = () => {
                 {lineups
                   .slice()
                   .sort((a, b) => {
-                    const na = Number((a as any).NET_RATING ?? 0);
-                    const nb = Number((b as any).NET_RATING ?? 0);
+                    const na = Number(a.NET_RATING ?? 0);
+                    const nb = Number(b.NET_RATING ?? 0);
                     return nb - na;
                   })
                   .slice(0, 5)
                   .map((row, i) => {
-                    const r = row as Record<string, any>;
+                    const r = row;
                     const groupName = String(r.GROUP_NAME ?? '').trim();
                     const minutes = Number(r.MIN ?? 0);
                     const net = Number(r.NET_RATING ?? 0);
@@ -625,13 +642,13 @@ const TeamPage = () => {
                     {lineups
                       .slice()
                       .sort((a, b) => {
-                        const na = Number((a as any).NET_RATING ?? 0);
-                        const nb = Number((b as any).NET_RATING ?? 0);
+                        const na = Number(a.NET_RATING ?? 0);
+                        const nb = Number(b.NET_RATING ?? 0);
                         return na - nb;
                       })
                       .slice(0, 3)
                       .map((row, i) => {
-                        const r = row as Record<string, any>;
+                        const r = row;
                         const groupName = String(r.GROUP_NAME ?? '').trim();
                         const minutes = Number(r.MIN ?? 0);
                         const net = Number(r.NET_RATING ?? 0);
@@ -688,7 +705,6 @@ const TeamPage = () => {
               <TableBody>
                 {onOff
                   .slice()
-                  .map(row => row as Record<string, any>)
                   .map(r => {
                     const name = String(r.GROUP_VALUE ?? r.PLAYER_NAME ?? 'Unknown');
                     const on =

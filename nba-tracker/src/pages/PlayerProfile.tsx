@@ -26,6 +26,10 @@ import { typography, borderRadius } from '../theme/designTokens';
 import { API_BASE_URL } from '../utils/apiConfig';
 import PageContainer from '../components/PageContainer';
 
+type SplitStatRow = {
+  [key: string]: number | string | null | undefined;
+};
+
 // Player profile page with stats, game log, and performance charts
 const SplitRow = ({
   label,
@@ -37,16 +41,16 @@ const SplitRow = ({
   label: string;
   leftLabel: string;
   rightLabel: string;
-  left?: Record<string, any>;
-  right?: Record<string, any>;
+  left?: SplitStatRow;
+  right?: SplitStatRow;
 }) => {
-  const formatNumber = (value: any, decimals = 1) => {
+  const formatNumber = (value: unknown, decimals = 1) => {
     const num = Number(value);
     if (Number.isNaN(num)) return '—';
     return num.toFixed(decimals);
   };
 
-  const buildSide = (row?: Record<string, any>) => {
+  const buildSide = (row?: SplitStatRow) => {
     if (!row) {
       return {
         ppg: '—',
@@ -55,12 +59,21 @@ const SplitRow = ({
         ast: '—',
       };
     }
+    const fgSource =
+      typeof row.FG_PCT === 'number'
+        ? row.FG_PCT
+        : typeof row.FG_PCT_PG === 'number'
+          ? row.FG_PCT_PG
+          : typeof row.FIELD_GOAL_PCT === 'number'
+            ? row.FIELD_GOAL_PCT
+            : null;
+
     return {
       ppg: `${formatNumber(row.PTS ?? row.PTS_PG ?? row.POINTS, 1)} pts`,
-      fg: `${formatNumber(
-        (row.FG_PCT ?? row.FG_PCT_PG ?? row.FIELD_GOAL_PCT) * 100,
-        1,
-      )}% FG`,
+      fg:
+        fgSource != null
+          ? `${formatNumber(fgSource * 100, 1)}% FG`
+          : '—',
       reb: `${formatNumber(row.REB ?? row.REB_PG ?? row.REBOUNDS, 1)} reb`,
       ast: `${formatNumber(row.AST ?? row.AST_PG ?? row.ASSISTS, 1)} ast`,
     };
@@ -1139,12 +1152,14 @@ const PlayerProfile: React.FC = () => {
                             label="Home vs Away"
                             leftLabel="Home"
                             rightLabel="Away"
-                            left={splitsData.LocationPlayerDashboard.find(
-                              (r: any) => r.LOCATION === 'Home',
-                            )}
-                            right={splitsData.LocationPlayerDashboard.find(
-                              (r: any) => r.LOCATION === 'Road' || r.LOCATION === 'Away',
-                            )}
+                            left={splitsData.LocationPlayerDashboard.find(r => {
+                              const loc = (r as SplitStatRow).LOCATION;
+                              return loc === 'Home';
+                            }) as SplitStatRow | undefined}
+                            right={splitsData.LocationPlayerDashboard.find(r => {
+                              const loc = (r as SplitStatRow).LOCATION;
+                              return loc === 'Road' || loc === 'Away';
+                            }) as SplitStatRow | undefined}
                           />
                         )}
                       {/* Wins vs Losses */}
@@ -1155,12 +1170,14 @@ const PlayerProfile: React.FC = () => {
                             label="Wins vs Losses"
                             leftLabel="Wins"
                             rightLabel="Losses"
-                            left={splitsData.WinsLossesPlayerDashboard.find(
-                              (r: any) => r.WL === 'W',
-                            )}
-                            right={splitsData.WinsLossesPlayerDashboard.find(
-                              (r: any) => r.WL === 'L',
-                            )}
+                            left={splitsData.WinsLossesPlayerDashboard.find(r => {
+                              const wl = (r as SplitStatRow).WL;
+                              return wl === 'W';
+                            }) as SplitStatRow | undefined}
+                            right={splitsData.WinsLossesPlayerDashboard.find(r => {
+                              const wl = (r as SplitStatRow).WL;
+                              return wl === 'L';
+                            }) as SplitStatRow | undefined}
                           />
                         )}
                       {/* Rest splits */}
@@ -1170,12 +1187,14 @@ const PlayerProfile: React.FC = () => {
                             label="Rest"
                             leftLabel="3+ days rest"
                             rightLabel="0–1 days rest"
-                            left={splitsData.DaysRestPlayerDashboard.find(
-                              (r: any) => Number(r.DAYS_REST || 0) >= 3,
-                            )}
-                            right={splitsData.DaysRestPlayerDashboard.find(
-                              (r: any) => Number(r.DAYS_REST || 0) <= 1,
-                            )}
+                            left={splitsData.DaysRestPlayerDashboard.find(r => {
+                              const rest = Number((r as SplitStatRow).DAYS_REST ?? 0);
+                              return rest >= 3;
+                            }) as SplitStatRow | undefined}
+                            right={splitsData.DaysRestPlayerDashboard.find(r => {
+                              const rest = Number((r as SplitStatRow).DAYS_REST ?? 0);
+                              return rest <= 1;
+                            }) as SplitStatRow | undefined}
                           />
                         )}
                     </Box>
@@ -1207,7 +1226,14 @@ const PlayerProfile: React.FC = () => {
                       </TableHead>
                       <TableBody>
                         {defenseData.defense.slice(0, 8).map((row, i) => {
-                          const r = row as Record<string, any>;
+                          const r = row as {
+                            [key: string]: unknown;
+                            DEFENSE_CATEGORY?: string;
+                            DEFENSE_CAT?: string;
+                            D_FG_PCT?: number;
+                            NORMAL_FG_PCT?: number;
+                            PCT_PLUSMINUS?: number;
+                          };
                           const rawCategory = String(r.DEFENSE_CATEGORY ?? r.DEFENSE_CAT ?? 'Overall');
                           const shotCategory =
                             rawCategory.toLowerCase() === 'overall'
@@ -1283,13 +1309,21 @@ const PlayerProfile: React.FC = () => {
                         {passingData.passes
                           .slice()
                           .sort((a, b) => {
-                            const aa = (a as any).AST ?? 0;
-                            const bb = (b as any).AST ?? 0;
+                            const aa = (a as { AST?: number }).AST ?? 0;
+                            const bb = (b as { AST?: number }).AST ?? 0;
                             return Number(bb) - Number(aa);
                           })
                           .slice(0, 5)
                           .map((row, i) => {
-                            const r = row as Record<string, any>;
+                            const r = row as {
+                              [key: string]: unknown;
+                              PASS_TO?: string;
+                              PASS_TO_PLAYER?: string;
+                              AST?: number;
+                              PASS?: number;
+                              FG_PCT?: number;
+                              FG3_PCT?: number;
+                            };
                             const name = String(r.PASS_TO ?? r.PASS_TO_PLAYER ?? 'Unknown');
                             const ast = r.AST ?? r.PASS ?? 0;
                             const fgPct =
