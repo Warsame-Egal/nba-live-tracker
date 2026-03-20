@@ -13,6 +13,7 @@ import {
   Skeleton,
   Alert,
   Avatar,
+  IconButton,
   Tabs,
   Tab,
   Select,
@@ -21,6 +22,7 @@ import {
   InputLabel,
 } from '@mui/material';
 import { format } from 'date-fns';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SectionHeader from '../components/SectionHeader';
 import { fetchJson } from '../utils/apiClient';
 import { getCurrentSeason, getSeasonOptions } from '../utils/season';
@@ -154,111 +156,81 @@ const TeamPage = () => {
     const fetchTeamData = async () => {
       setLoading(true);
       setError(null);
-      try {
-        const teamData = await fetchJson<TeamDetails>(
+      const [
+        teamRes,
+        standingsRes,
+        statsRes,
+        rosterRes,
+        gameLogRes,
+        playerStatsRes,
+        lineupsRes,
+        onOffRes,
+      ] = await Promise.allSettled([
+        fetchJson<TeamDetails>(
           `${API_BASE_URL}/api/v1/teams/${team_id}`,
           {},
           { maxRetries: 3, retryDelay: 1000, timeout: 30000 },
-        );
-        setTeam(teamData);
+        ),
+        fetchJson<{ data: StandingRecord[] }>(
+          `${API_BASE_URL}/api/v1/standings/season/${season}?page=1&limit=100`,
+          {},
+          { maxRetries: 3, retryDelay: 1000, timeout: 30000 },
+        ),
+        fetchJson<TeamStatsResponse>(
+          `${API_BASE_URL}/api/v1/teams/stats?season=${encodeURIComponent(season)}`,
+          {},
+          { maxRetries: 3, retryDelay: 1000, timeout: 30000 },
+        ),
+        fetchJson<TeamRoster>(
+          `${API_BASE_URL}/api/v1/scoreboard/team/${team_id}/roster/${season}`,
+          {},
+          { maxRetries: 2, retryDelay: 1000, timeout: 30000 },
+        ),
+        fetchJson<TeamGameLogResponse>(
+          `${API_BASE_URL}/api/v1/teams/${team_id}/game-log?season=${encodeURIComponent(season)}`,
+          {},
+          { maxRetries: 3, retryDelay: 1000, timeout: 30000 },
+        ),
+        fetchJson<TeamPlayerStatsResponse>(
+          `${API_BASE_URL}/api/v1/teams/${team_id}/player-stats?season=${encodeURIComponent(season)}`,
+          {},
+          { maxRetries: 2, retryDelay: 1000, timeout: 30000 },
+        ),
+        fetchJson<{ lineups: LineupRow[] }>(
+          `${API_BASE_URL}/api/v1/teams/${team_id}/lineups?season=${encodeURIComponent(season)}`,
+          {},
+          { maxRetries: 1, timeout: 15000 },
+        ),
+        fetchJson<{ on_off: OnOffRow[] }>(
+          `${API_BASE_URL}/api/v1/teams/${team_id}/on-off?season=${encodeURIComponent(season)}`,
+          {},
+          { maxRetries: 1, timeout: 15000 },
+        ),
+      ]);
 
-        try {
-          const standingsData = await fetchJson<{ data: StandingRecord[] }>(
-            `${API_BASE_URL}/api/v1/standings/season/${season}?page=1&limit=100`,
-            {},
-            { maxRetries: 3, retryDelay: 1000, timeout: 30000 },
-          );
-          setStandings(standingsData.data);
-        } catch (err) {
-          console.error('Error fetching standings:', err);
-        }
-
-        try {
-          const statsData = await fetchJson<TeamStatsResponse>(
-            `${API_BASE_URL}/api/v1/teams/stats?season=${encodeURIComponent(season)}`,
-            {},
-            { maxRetries: 3, retryDelay: 1000, timeout: 30000 },
-          );
-          setTeamStats(statsData);
-        } catch (err) {
-          console.error('Error fetching team stats:', err);
-        }
-
-        try {
-          const rosterData = await fetchJson<TeamRoster>(
-            `${API_BASE_URL}/api/v1/scoreboard/team/${team_id}/roster/${season}`,
-            {},
-            { maxRetries: 2, retryDelay: 1000, timeout: 30000 },
-          );
-          setRoster(rosterData);
-        } catch (err) {
-          console.error('Error fetching roster:', err);
-        }
-
-        try {
-          const gameLogData = await fetchJson<TeamGameLogResponse>(
-            `${API_BASE_URL}/api/v1/teams/${team_id}/game-log?season=${encodeURIComponent(season)}`,
-            {},
-            { maxRetries: 3, retryDelay: 1000, timeout: 30000 },
-          );
-          if (gameLogData && gameLogData.games) {
-            console.log(
-              `Loaded ${gameLogData.games.length} games for team ${team_id}, season ${season}`,
-            );
-            setGameLog(gameLogData);
-          } else {
-            console.warn(
-              `Game log returned empty or invalid data for team ${team_id}, season ${season}`,
-            );
-            setGameLog(null);
-          }
-        } catch (err) {
-          console.error('Error fetching game log:', err);
-          setGameLog(null);
-        }
-
-        try {
-          const playerStatsData = await fetchJson<TeamPlayerStatsResponse>(
-            `${API_BASE_URL}/api/v1/teams/${team_id}/player-stats?season=${encodeURIComponent(season)}`,
-            {},
-            { maxRetries: 2, retryDelay: 1000, timeout: 30000 },
-          );
-          setPlayerStats(playerStatsData);
-        } catch (err) {
-          console.warn('Player stats not available for this season:', err);
-          setPlayerStats(null);
-        }
-
-        try {
-          const lineupsData = await fetchJson<{ lineups: LineupRow[] }>(
-            `${API_BASE_URL}/api/v1/teams/${team_id}/lineups?season=${encodeURIComponent(season)}`,
-            {},
-            { maxRetries: 1, timeout: 15000 },
-          );
-          setLineups(lineupsData?.lineups ?? null);
-        } catch (err) {
-          console.warn('Lineups not available:', err);
-          setLineups(null);
-        }
-
-        try {
-          const onOffData = await fetchJson<{ on_off: OnOffRow[] }>(
-            `${API_BASE_URL}/api/v1/teams/${team_id}/on-off?season=${encodeURIComponent(season)}`,
-            {},
-            { maxRetries: 1, timeout: 15000 },
-          );
-          setOnOff(onOffData?.on_off ?? null);
-        } catch (err) {
-          console.warn('On/off not available:', err);
-          setOnOff(null);
-        }
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : 'Failed to load team information. Please try again.',
-        );
-      } finally {
-        setLoading(false);
+      if (teamRes.status === 'fulfilled') {
+        setTeam(teamRes.value);
+      } else {
+        setError('Failed to load team information. Please try again.');
       }
+
+      if (standingsRes.status === 'fulfilled') setStandings(standingsRes.value.data ?? []);
+      if (statsRes.status === 'fulfilled') setTeamStats(statsRes.value);
+      if (rosterRes.status === 'fulfilled') setRoster(rosterRes.value);
+      if (gameLogRes.status === 'fulfilled') {
+        const d = gameLogRes.value;
+        setGameLog(d?.games ? d : null);
+      } else {
+        setGameLog(null);
+      }
+      if (playerStatsRes.status === 'fulfilled') setPlayerStats(playerStatsRes.value);
+      else setPlayerStats(null);
+      if (lineupsRes.status === 'fulfilled') setLineups(lineupsRes.value?.lineups ?? null);
+      else setLineups(null);
+      if (onOffRes.status === 'fulfilled') setOnOff(onOffRes.value?.on_off ?? null);
+      else setOnOff(null);
+
+      setLoading(false);
     };
 
     fetchTeamData();
@@ -1693,6 +1665,13 @@ const TeamPage = () => {
       }}
     >
       <PageContainer maxWidth={1400} sx={{ overflowX: 'hidden' }}>
+        <IconButton
+          onClick={() => navigate(-1)}
+          aria-label="Go back"
+          sx={{ display: { xs: 'inline-flex', md: 'none' }, mb: 1 }}
+        >
+          <ArrowBackIcon />
+        </IconButton>
         {loading ? (
           <Box sx={{ minHeight: 400, display: 'flex', flexDirection: 'column', gap: 2 }}>
             <Skeleton variant="rectangular" height={200} sx={{ borderRadius: 2, mb: 2 }} />

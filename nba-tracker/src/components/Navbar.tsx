@@ -25,6 +25,7 @@ import { typography, transitions } from '../theme/designTokens';
 const mainNav = [
   { label: 'Scores', path: '/' },
   { label: 'Predictions', path: '/predictions' },
+  { label: 'Agent', path: '/agent' },
 ];
 
 const exploreItems = [
@@ -80,7 +81,7 @@ export default function Navbar() {
             transition: transitions.smooth,
           }}
         >
-          NBA Live
+          CourtIQ
         </Typography>
 
         {/* Desktop: Scores, Predictions, Explore */}

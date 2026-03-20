@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Box, Typography, Paper, Alert, Chip, Skeleton, CircularProgress } from '@mui/material';
 import PredictionCard from '../components/PredictionCard';
@@ -26,6 +26,8 @@ const Predictions = () => {
 
   // Persistent prediction cache keyed by game_id
   const [predictionCache, setPredictionCache] = useState<Map<string, GamePrediction>>(new Map());
+  // Track which dates have already been fetched to avoid refetching when users switch back.
+  const fetchedDatesRef = useRef<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -57,6 +59,10 @@ const Predictions = () => {
 
   useEffect(() => {
     const fetchPredictions = async () => {
+      // If we've already fetched this date once, use the warm cache and skip refetch.
+      if (fetchedDatesRef.current.has(selectedDate)) {
+        return;
+      }
       setLoading(true);
       setError(null);
       try {
@@ -65,13 +71,11 @@ const Predictions = () => {
           {},
           { maxRetries: 2, retryDelay: 500, timeout: 120000 },
         );
-        console.log(
-          `Predictions loaded: ${data.predictions?.length || 0} games for ${selectedDate}`,
-        );
         // Update cache with new predictions (preserves existing ones)
         if (data && data.predictions) {
           updatePredictionCache(data.predictions, selectedDate);
         }
+        fetchedDatesRef.current.add(selectedDate);
         // Don't clear cache on error - keep existing predictions visible
       } catch (err) {
         console.error('Predictions error:', err);
@@ -238,6 +242,13 @@ const Predictions = () => {
                 sx={{ fontSize: clamp('0.875rem', '2vw', '1rem') }}
               >
                 No games scheduled for {format(parseISO(selectedDate), 'MMMM d, yyyy')}
+              </Typography>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ mt: 1, fontSize: clamp('0.8rem', '1.8vw', '0.95rem') }}
+              >
+                Try a different date or check the schedule.
               </Typography>
             </Box>
           ) : (

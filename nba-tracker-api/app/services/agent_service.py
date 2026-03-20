@@ -9,7 +9,7 @@ from fastapi import HTTPException
 
 from app.services.data_cache import data_cache
 from app.services.game_detail import GameDetailService
-from app.services.groq_client import groq_is_ready, get_groq_client
+from app.services.groq_client import groq_is_ready, get_groq_client, get_groq_rate_limiter
 from app.services.players import getPlayer, get_top_players_by_stat, search_players
 from app.services.standings import getSeasonStandings
 from app.utils.season import get_current_season
@@ -218,6 +218,57 @@ def _convert_to_jsonable(obj: Any) -> Any:
     return str(obj)
 
 
+def _trim_tool_result(name: str, result: Any) -> Any:
+    """Strip tool results to what the model needs, reducing token usage."""
+    converted = _convert_to_jsonable(result)
+
+    if name == "get_live_scoreboard" and isinstance(converted, dict):
+        games = (converted.get("scoreboard") or {}).get("games") or []
+        trimmed_games = []
+        for g in games[:15]:
+            home = g.get("homeTeam") or {}
+            away = g.get("awayTeam") or {}
+            trimmed_games.append(
+                {
+                    "home": f"{home.get('teamCity', '')} {home.get('teamName', '')}".strip(),
+                    "away": f"{away.get('teamCity', '')} {away.get('teamName', '')}".strip(),
+                    "home_score": home.get("score"),
+                    "away_score": away.get("score"),
+                    "status": g.get("gameStatusText", ""),
+                    "period": g.get("period"),
+                    "clock": g.get("gameClock", ""),
+                    "game_id": g.get("gameId", ""),
+                }
+            )
+        return trimmed_games
+
+    if name == "get_standings":
+        as_str = json.dumps(converted, default=str)
+        if len(as_str) > 3000:
+            return {"truncated": True, "data_preview": as_str[:3000] + "..."}
+        return converted
+
+    if name == "get_player_stats" and isinstance(converted, dict):
+        keep = {
+            "name",
+            "position",
+            "team",
+            "stats",
+            "recent_games",
+            "pts",
+            "reb",
+            "ast",
+            "fg_pct",
+            "season",
+        }
+        return {k: converted[k] for k in keep if k in converted}
+
+    as_str = json.dumps(converted, default=str)
+    if len(as_str) > 4000:
+        return {"note": "Response truncated", "data_preview": as_str[:3500] + "..."}
+    return converted
+
+
 async def _execute_tool(name: str, args: Dict[str, Any]) -> Any:
     global _agent_tools_total_since_start
 
@@ -318,6 +369,7 @@ async def run_agent(question: str, conversation_history: List[Dict[str, Any]]) -
     messages.append({"role": "user", "content": question})
 
     # 1) Let the model decide tool calls.
+    await get_groq_rate_limiter().wait_if_needed(estimated_tokens=800)
     resp = await client.chat.completions.create(
         model="llama-3.1-8b-instant",
         messages=messages,
@@ -348,7 +400,7 @@ async def run_agent(question: str, conversation_history: List[Dict[str, Any]]) -
     for tc in tool_calls:
         result = await _execute_tool(tc.name, tc.arguments or {})
         tools_used.append({"name": tc.name, "arguments": tc.arguments})
-        tool_results.append({"name": tc.name, "result": _convert_to_jsonable(result)})
+        tool_results.append({"name": tc.name, "result": _trim_tool_result(tc.name, result)})
 
     # 2) Ask for a final answer using tool results.
     tool_results_payload = json.dumps(tool_results, ensure_ascii=False)
@@ -362,6 +414,7 @@ async def run_agent(question: str, conversation_history: List[Dict[str, Any]]) -
         }
     )
 
+    await get_groq_rate_limiter().wait_if_needed(estimated_tokens=800)
     final_resp = await client.chat.completions.create(
         model="llama-3.1-8b-instant",
         messages=final_messages,
@@ -425,6 +478,7 @@ async def run_agent_streaming(
     messages.append({"role": "user", "content": question})
 
     try:
+        await get_groq_rate_limiter().wait_if_needed(estimated_tokens=800)
         resp = await client.chat.completions.create(
             model="llama-3.1-8b-instant",
             messages=messages,
@@ -453,7 +507,7 @@ async def run_agent_streaming(
             yield _format_sse_event("tool_call", {"tool_name": tc.name, "arguments": tc.arguments})
             result = await _execute_tool(tc.name, tc.arguments or {})
             tools_used.append({"name": tc.name, "arguments": tc.arguments})
-            tool_results.append({"name": tc.name, "result": _convert_to_jsonable(result)})
+            tool_results.append({"name": tc.name, "result": _trim_tool_result(tc.name, result)})
             yield _format_sse_event("tool_result", {"tool_name": tc.name, "ok": True})
 
         tool_results_payload = json.dumps(tool_results, ensure_ascii=False)
@@ -467,6 +521,7 @@ async def run_agent_streaming(
             }
         )
 
+        await get_groq_rate_limiter().wait_if_needed(estimated_tokens=800)
         final_resp = await client.chat.completions.create(
             model="llama-3.1-8b-instant",
             messages=final_messages,

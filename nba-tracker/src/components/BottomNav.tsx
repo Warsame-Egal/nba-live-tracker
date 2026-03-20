@@ -26,6 +26,7 @@ import {
   EmojiEvents,
   Groups,
   CompareArrows,
+  SmartToy,
   LightMode,
   DarkMode,
 } from '@mui/icons-material';
@@ -44,6 +45,7 @@ const moreItems = [
   { label: 'Standings', path: '/standings', icon: <EmojiEvents /> },
   { label: 'Teams', path: '/teams', icon: <Groups /> },
   { label: 'Compare', path: '/compare', icon: <CompareArrows /> },
+  { label: 'Agent', path: '/agent', icon: <SmartToy /> },
 ];
 
 export default function BottomNav() {

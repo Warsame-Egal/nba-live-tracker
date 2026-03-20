@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -12,7 +12,9 @@ import {
   TableRow,
   Skeleton,
   Alert,
+  IconButton,
 } from '@mui/material';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { LineChart, Line, ResponsiveContainer } from 'recharts';
 import { PlayerSummary } from '../types/player';
 import { format } from 'date-fns';
@@ -115,6 +117,7 @@ const SplitRow = ({
 const PlayerProfile: React.FC = () => {
   const { playerId } = useParams<{ playerId: string }>();
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [player, setPlayer] = useState<PlayerSummary | null>(null);
   const [gameLog, setGameLog] = useState<PlayerGameLogResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -284,6 +287,7 @@ const PlayerProfile: React.FC = () => {
 
   useEffect(() => {
     if (!playerId) return;
+    let cancelled = false;
     setYoyData(null);
     const fetchYoy = async () => {
       try {
@@ -292,12 +296,15 @@ const PlayerProfile: React.FC = () => {
           {},
           { maxRetries: 1, timeout: 15000 },
         );
-        setYoyData(res);
+        if (!cancelled) setYoyData(res);
       } catch {
-        setYoyData(null);
+        if (!cancelled) setYoyData(null);
       }
     };
     fetchYoy();
+    return () => {
+      cancelled = true;
+    };
   }, [playerId]);
 
   const experience =
@@ -349,6 +356,13 @@ const PlayerProfile: React.FC = () => {
       }}
     >
       <PageContainer maxWidth={1400} sx={{ overflowX: 'hidden' }}>
+        <IconButton
+          onClick={() => navigate(-1)}
+          aria-label="Go back"
+          sx={{ display: { xs: 'inline-flex', md: 'none' }, mb: 1 }}
+        >
+          <ArrowBackIcon />
+        </IconButton>
         {loading ? (
           <Box sx={{ minHeight: 400, display: 'flex', flexDirection: 'column', gap: 2 }}>
             <Skeleton variant="rectangular" height={200} sx={{ borderRadius: 2, mb: 2 }} />

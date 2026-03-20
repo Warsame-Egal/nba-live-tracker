@@ -11,5 +11,5 @@ class AgentRequest(BaseModel):
     different message shapes. We only rely on `role` + `content`.
     """
 
-    question: str = Field(..., min_length=1, max_length=5000)
+    question: str = Field(..., min_length=1, max_length=500)
     history: List[Dict[str, Any]] = Field(default_factory=list)

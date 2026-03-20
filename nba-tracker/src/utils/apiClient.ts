@@ -38,13 +38,18 @@ export async function fetchWithRetry(
         return response;
       }
 
-      // Retry on server errors (5xx) or timeout/rate limit (408, 429)
-      if (response.status >= 500 || response.status === 408 || response.status === 429) {
+      // Retry on server errors (5xx) or request timeout (408)
+      if (response.status >= 500 || response.status === 408) {
         if (attempt < maxRetries) {
           const delay = retryDelay * Math.pow(2, attempt);
           await new Promise(resolve => setTimeout(resolve, delay));
           continue;
         }
+      }
+
+      // Never retry rate limits; let callers surface a friendly message immediately.
+      if (response.status === 429) {
+        throw new Error('Too many requests — please wait a moment and try again.');
       }
 
       return response;
@@ -126,7 +131,7 @@ export async function fetchComparison(
     params.set('season2', season2);
   }
   const url = `${API_BASE_URL}/api/v1/compare/${player1Id}/${player2Id}?${params.toString()}`;
-  return fetchJson(url, {}, { maxRetries: 2, timeout: 45000 });
+  return fetchJson(url, {}, { maxRetries: 2, timeout: 25000 });
 }
 
 /** Game detail: aggregated score, box score, player impacts, key moments, win probability, AI summary */

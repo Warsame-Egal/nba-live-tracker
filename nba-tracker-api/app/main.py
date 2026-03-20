@@ -174,18 +174,6 @@ def home():
     return {"message": "NBA Live Tracker API is running"}
 
 
-@app.get("/api/v1/config/check")
-def check_config():
-    """Check if Groq API key is configured (for debugging)."""
-    from app.config import get_groq_api_key
-
-    groq_key = get_groq_api_key()
-    return {
-        "groq_configured": groq_key is not None,
-        "groq_key_length": len(groq_key) if groq_key else 0,
-    }
-
-
 # Register all API routes
 app.include_router(scoreboard_router, prefix="/api/v1")
 app.include_router(schedule_router, prefix="/api/v1")

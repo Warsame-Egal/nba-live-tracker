@@ -199,13 +199,10 @@ const Scoreboard = () => {
 
   const [streaks, setStreaks] = useState<Array<Record<string, unknown>> | null>(null);
   useEffect(() => {
-    if (selectedDate !== getLocalISODate()) {
-      setStreaks(null);
-      return;
-    }
     let cancelled = false;
+    const currentSeason = getCurrentSeason();
     fetchJson<{ streaks: Array<Record<string, unknown>> }>(
-      `${API_BASE_URL}/api/v1/players/streaks?min_games=3&season=${encodeURIComponent(getCurrentSeason())}`,
+      `${API_BASE_URL}/api/v1/players/streaks?min_games=3&season=${encodeURIComponent(currentSeason)}`,
       {},
       { maxRetries: 1, timeout: 12000 },
     )
@@ -218,7 +215,7 @@ const Scoreboard = () => {
     return () => {
       cancelled = true;
     };
-  }, [selectedDate]);
+  }, []);
 
   /**
    * Set up WebSocket connection for live score updates.
@@ -239,19 +236,10 @@ const Scoreboard = () => {
       const handleInsightsEvent = (event: CustomEvent) => {
         try {
           const data = event.detail;
-          console.log('[Scoreboard] Received insights event:', data);
           if (data && data.type === 'insights') {
-            console.log('[Scoreboard] Insights message structure:', {
-              hasData: !!data.data,
-              hasInsights: !!(data.data && data.data.insights),
-              insightsLength: data.data?.insights?.length || 0,
-            });
-
             if (data.data && data.data.insights && Array.isArray(data.data.insights)) {
-              console.log('[Scoreboard] Processing insights array:', data.data.insights);
               const newInsights = new Map<string, GameInsightData>();
-              data.data.insights.forEach((insight: GameInsightData, index: number) => {
-                console.log(`[Scoreboard] Processing insight ${index}:`, insight);
+              data.data.insights.forEach((insight: GameInsightData) => {
                 if (
                   insight &&
                   insight.game_id &&
@@ -259,20 +247,7 @@ const Scoreboard = () => {
                   insight.type !== 'none' &&
                   insight.text
                 ) {
-                  console.log(`[Scoreboard] Adding insight for game ${insight.game_id}:`, insight);
                   newInsights.set(insight.game_id, insight);
-                } else {
-                  console.log(
-                    `[Scoreboard] ✗ Skipping insight ${index} - missing/invalid fields:`,
-                    {
-                      hasInsight: !!insight,
-                      hasGameId: !!insight?.game_id,
-                      gameId: insight?.game_id,
-                      type: insight?.type,
-                      hasText: !!insight?.text,
-                      text: insight?.text,
-                    },
-                  );
                 }
               });
 
@@ -282,21 +257,10 @@ const Scoreboard = () => {
                   newInsights.forEach((insight, gameId) => {
                     merged.set(gameId, insight);
                   });
-                  console.log(
-                    '[Scoreboard] Updated game insights map. Total insights:',
-                    merged.size,
-                  );
-                  console.log('[Scoreboard] Insight keys:', Array.from(merged.keys()));
                   return merged;
                 });
-              } else {
-                console.log('[Scoreboard] No valid insights to add after filtering');
               }
-            } else {
-              console.log('[Scoreboard] No insights array found in data:', data);
             }
-          } else {
-            console.log('[Scoreboard] Not an insights message or missing data:', data);
           }
         } catch (error) {
           console.error('[Scoreboard] Error parsing insights message', error);
@@ -310,13 +274,8 @@ const Scoreboard = () => {
       const handleKeyMomentsEvent = (event: CustomEvent) => {
         try {
           const data = event.detail;
-          console.log('[Scoreboard] Received key moments event:', data);
           if (data && data.type === 'key_moments' && data.data && data.data.moments_by_game) {
             const momentsByGame = data.data.moments_by_game;
-            console.log(
-              '[Scoreboard] Processing key moments for games:',
-              Object.keys(momentsByGame),
-            );
 
             setGameKeyMoments(prev => {
               const merged = new Map(prev);
@@ -328,10 +287,6 @@ const Scoreboard = () => {
                   const mostRecent = moments[0];
                   if (mostRecent) {
                     merged.set(gameId, mostRecent);
-                    console.log(
-                      `[Scoreboard] Updated key moment for game ${gameId}:`,
-                      mostRecent.type,
-                    );
                   }
                 }
               });
@@ -350,7 +305,6 @@ const Scoreboard = () => {
       const handleWinProbabilityEvent = (event: CustomEvent) => {
         try {
           const data = event.detail;
-          console.log('[Scoreboard] Received win probability event:', data);
           if (
             data &&
             data.type === 'win_probability' &&
@@ -358,10 +312,6 @@ const Scoreboard = () => {
             data.data.probabilities_by_game
           ) {
             const probabilitiesByGame = data.data.probabilities_by_game;
-            console.log(
-              '[Scoreboard] Processing win probabilities for games:',
-              Object.keys(probabilitiesByGame),
-            );
 
             setGameWinProbabilities(prev => {
               const merged = new Map(prev);
@@ -376,10 +326,6 @@ const Scoreboard = () => {
                   ) {
                     const typedWinProb = winProb as WinProbability;
                     merged.set(gameId, typedWinProb);
-                    console.log(
-                      `[Scoreboard] Updated win probability for game ${gameId}:`,
-                      `Home ${(typedWinProb.home_win_prob * 100).toFixed(1)}%`,
-                    );
                   }
                 },
               );
@@ -1439,9 +1385,9 @@ const Scoreboard = () => {
                     lineHeight: 1.6,
                   }}
                 >
-                  There are no NBA games scheduled for{' '}
-                  {selectedDate === getLocalISODate() ? 'today' : 'this date'}. Check another date
-                  or come back later!
+                  {selectedDate === getLocalISODate()
+                    ? 'No games today — enjoy the day off.'
+                    : 'There are no NBA games scheduled for this date. Check another date or come back later!'}
                 </Typography>
                 <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'center' }}>
                   <Button

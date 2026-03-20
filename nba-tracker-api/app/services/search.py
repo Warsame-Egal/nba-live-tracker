@@ -1,7 +1,8 @@
 import asyncio
 import logging
+import time
 import pandas as pd
-from typing import List
+from typing import Dict, List, Tuple
 
 from fastapi import HTTPException
 from nba_api.stats.endpoints import playerindex
@@ -14,6 +15,9 @@ from app.utils.rate_limiter import rate_limit
 
 # Set up logger for this file
 logger = logging.getLogger(__name__)
+
+_SEARCH_CACHE_TTL_SECONDS = 300.0  # 5 minutes
+_search_cache: Dict[str, Tuple[SearchResults, float]] = {}
 
 
 async def search_entities(query: str) -> SearchResults:
@@ -31,7 +35,15 @@ async def search_entities(query: str) -> SearchResults:
         HTTPException: If API error occurs
     """
     try:
-        search_lower = query.lower()
+        search_lower = query.lower().strip()
+
+        cached = _search_cache.get(search_lower)
+        if cached:
+            cached_result, cached_ts = cached
+            if (time.time() - cached_ts) < _SEARCH_CACHE_TTL_SECONDS:
+                return cached_result
+            _search_cache.pop(search_lower, None)
+
         player_results: List[PlayerResult] = []
         team_results: List[TeamResult] = []
 
@@ -97,7 +109,9 @@ async def search_entities(query: str) -> SearchResults:
                 if len(team_results) >= 10:
                     break
 
-        return SearchResults(players=player_results, teams=team_results)
+        result = SearchResults(players=player_results, teams=team_results)
+        _search_cache[search_lower] = (result, time.time())
+        return result
 
     except Exception as e:
         logger.error(f"Error in search for query '{query}': {e}")

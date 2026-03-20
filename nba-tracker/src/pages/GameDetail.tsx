@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -18,6 +18,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  IconButton,
 } from '@mui/material';
 import { ArrowBack, ExpandMore, TrendingUp } from '@mui/icons-material';
 import { fetchGameDetail, fetchGameRecap, fetchGameSummary } from '../utils/apiClient';
@@ -77,6 +78,7 @@ const formatMinutes = (value: unknown): string => {
  */
 export default function GameDetail() {
   const { gameId } = useParams<{ gameId: string }>();
+  const navigate = useNavigate();
   const theme = useTheme();
   const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
   const [detail, setDetail] = useState<GameDetailResponse | null>(null);
@@ -223,19 +225,27 @@ export default function GameDetail() {
   if (error) {
     return (
       <PageContainer maxWidth={1400}>
-        <Link
+        <IconButton
+          onClick={() => navigate(-1)}
+          aria-label="Go back"
+          sx={{ display: { xs: 'inline-flex', md: 'none' }, mb: 1 }}
+        >
+          <ArrowBack fontSize="small" />
+        </IconButton>
+        <Box
+          component={Link}
           to="/"
-          style={{
-            display: 'inline-flex',
+          sx={{
+            display: { xs: 'none', md: 'inline-flex' },
             alignItems: 'center',
-            gap: 8,
-            marginBottom: 16,
+            gap: 1,
+            mb: 2,
             color: 'inherit',
             textDecoration: 'none',
           }}
         >
           <ArrowBack fontSize="small" /> Back to scoreboard
-        </Link>
+        </Box>
         <Typography color="error">{error}</Typography>
       </PageContainer>
     );
@@ -290,13 +300,21 @@ export default function GameDetail() {
       }}
     >
       <PageContainer maxWidth={1400} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <Link
+        <IconButton
+          onClick={() => navigate(-1)}
+          aria-label="Go back"
+          sx={{ display: { xs: 'inline-flex', md: 'none' }, mb: 0.5, width: 'fit-content' }}
+        >
+          <ArrowBack fontSize="small" />
+        </IconButton>
+        <Box
+          component={Link}
           to="/"
-          style={{
-            display: 'inline-flex',
+          sx={{
+            display: { xs: 'none', md: 'inline-flex' },
             alignItems: 'center',
-            gap: 8,
-            marginBottom: 8,
+            gap: 1,
+            mb: 1,
             color: 'inherit',
             textDecoration: 'none',
             minHeight: 44,
@@ -304,7 +322,7 @@ export default function GameDetail() {
           }}
         >
           <ArrowBack fontSize="small" /> Back to scoreboard
-        </Link>
+        </Box>
 
         <ScoreHeader score={detail.score} status={detail.status} gradientColors={gradientColors} />
 

@@ -17,6 +17,7 @@ import {
 import { TeamRoster, Player } from '../types/team';
 import { logger } from '../utils/logger';
 import { fetchJson } from '../utils/apiClient';
+import { getCurrentSeason } from '../utils/season';
 
 // Base URL for API calls
 import { API_BASE_URL } from '../utils/apiConfig';
@@ -25,6 +26,7 @@ import PageContainer from '../components/PageContainer';
 // Team roster page showing all players with their info
 const RosterPage = () => {
   const { team_id } = useParams<{ team_id: string }>();
+  const season = getCurrentSeason();
   const [teamRoster, setTeamRoster] = useState<TeamRoster | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -33,7 +35,7 @@ const RosterPage = () => {
     async function fetchTeamRoster() {
       try {
         const data = await fetchJson<TeamRoster>(
-          `${API_BASE_URL}/api/v1/scoreboard/team/${team_id}/roster/2024-25`,
+          `${API_BASE_URL}/api/v1/scoreboard/team/${team_id}/roster/${season}`,
           {},
           { maxRetries: 3, retryDelay: 1000, timeout: 30000 },
         );
@@ -47,7 +49,7 @@ const RosterPage = () => {
     }
 
     fetchTeamRoster();
-  }, [team_id]);
+  }, [team_id, season]);
 
   // Always render page structure to prevent layout shifts
   return (

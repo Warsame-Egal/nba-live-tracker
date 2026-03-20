@@ -83,7 +83,7 @@ const Players = () => {
 
   // Fetch league roster
   useEffect(() => {
-    if (activeTab === 'roster') {
+    if (activeTab === 'roster' && roster.length === 0) {
       const fetchRoster = async () => {
         setRosterLoading(true);
         try {
@@ -92,7 +92,6 @@ const Players = () => {
             {},
             { maxRetries: 3, retryDelay: 1000, timeout: 30000 },
           );
-          console.log('Fetched roster data:', data?.length || 0, 'players');
           if (data) {
             setRoster(data);
           }
@@ -106,7 +105,7 @@ const Players = () => {
       };
       fetchRoster();
     }
-  }, [activeTab]);
+  }, [activeTab, roster.length]);
 
   // Fetch season leaders on mount and when season changes (for Leaders tab and sidebar)
   useEffect(() => {

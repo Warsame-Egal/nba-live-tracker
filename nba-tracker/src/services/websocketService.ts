@@ -80,7 +80,6 @@ class WebSocketService {
 
         // Check if this is an insights message (has type field)
         if (data.type === 'insights') {
-          console.log('[WebSocket] Received insights message:', data);
           // Dispatch as custom event for insights handling with the parsed data
           window.dispatchEvent(new CustomEvent('websocket-insights', { detail: data }));
           return;
@@ -90,7 +89,6 @@ class WebSocketService {
         // Key moments are automatically detected important plays like game-tying shots,
         // lead changes, scoring runs, clutch plays, and big shots
         if (data.type === 'key_moments') {
-          console.log('[WebSocket] Received key moments message:', data);
           // Dispatch as custom event so the Scoreboard component can handle it
           window.dispatchEvent(new CustomEvent('websocket-key-moments', { detail: data }));
           return;
@@ -99,7 +97,6 @@ class WebSocketService {
         // Check if this is a win probability message
         // Win probability shows the likelihood of each team winning at any given moment
         if (data.type === 'win_probability') {
-          console.log('[WebSocket] Received win probability message:', data);
           // Dispatch as custom event so the Scoreboard component can handle it
           window.dispatchEvent(new CustomEvent('websocket-win-probability', { detail: data }));
           return;

@@ -81,7 +81,14 @@ const LiveGameCard: React.FC<LiveGameCardProps> = ({
           '0%, 100%': { borderLeftColor: 'error.main' },
           '50%': { borderLeftColor: 'error.light' },
         },
+        '@keyframes scoreUpdateGlow': {
+          '0%': { boxShadow: `0 0 0 2px ${alpha(theme.palette.primary.main, 0.75)}` },
+          '100%': { boxShadow: theme.palette.mode === 'dark' ? shadows.dark.md : shadows.md },
+        },
         animation: 'livePulse 2s ease-in-out infinite',
+        ...(isRecentlyUpdated && {
+          animation: 'livePulse 2s ease-in-out infinite, scoreUpdateGlow 0.8s ease-out 1',
+        }),
         '&:hover': {
           boxShadow: theme.palette.mode === 'dark' ? shadows.dark.lg : shadows.lg,
           transform: 'translateY(-2px)',

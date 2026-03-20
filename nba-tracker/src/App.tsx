@@ -4,6 +4,7 @@ import { Box, Skeleton } from '@mui/material';
 import AppShell from './components/AppShell';
 import { LiveCountProvider } from './contexts/LiveCountContext';
 import AgentChat from './components/AgentChat';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 // Lazy load pages to improve initial load time
 // Pages are only loaded when the user navigates to them
@@ -17,6 +18,7 @@ const Teams = lazy(() => import('./pages/Teams'));
 const Predictions = lazy(() => import('./pages/Predictions'));
 const ComparePage = lazy(() => import('./pages/ComparePage'));
 const GameDetail = lazy(() => import('./pages/GameDetail'));
+const AgentPage = lazy(() => import('./pages/AgentPage'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
 const PageSkeleton = () => (
@@ -32,39 +34,42 @@ export default function App() {
   return (
     <Router>
       <LiveCountProvider>
-        <AppShell>
-          <Suspense fallback={<PageSkeleton />}>
-            {/* Define all the routes */}
-            <Routes>
-              {/* Home page - shows the scoreboard */}
-              <Route path="/" element={<Scoreboard />} />
-              {/* Team page - shows team details */}
-              <Route path="/team/:team_id" element={<TeamPage />} />
-              {/* Roster page - shows team roster */}
-              <Route path="/team/:team_id/roster" element={<RosterPage />} />
-              {/* Standings page - shows league standings */}
-              <Route path="/standings/:season" element={<Standings />} />
-              <Route path="/standings" element={<Standings />} />
-              {/* Players page - shows season leaders and player search */}
-              <Route path="/players" element={<Players />} />
-              {/* Player profile page - shows player details */}
-              <Route path="/player/:playerId" element={<PlayerProfile />} />
-              {/* Teams page - shows team statistics */}
-              <Route path="/teams" element={<Teams />} />
-              {/* Predictions page - shows AI-powered game predictions */}
-              <Route path="/predictions" element={<Predictions />} />
-              {/* Compare page - side-by-side player comparison */}
-              <Route path="/compare" element={<ComparePage />} />
-              <Route path="/compare/:player1Id" element={<ComparePage />} />
-              <Route path="/compare/:player1Id/:player2Id" element={<ComparePage />} />
-              {/* Game detail page - full game page with score, box score, key moments, AI summary */}
-              <Route path="/game/:gameId" element={<GameDetail />} />
-              {/* 404 page - shows when user goes to a page that doesn't exist */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Suspense>
-          <AgentChat />
-        </AppShell>
+        <ErrorBoundary>
+          <AppShell>
+            <Suspense fallback={<PageSkeleton />}>
+              {/* Define all the routes */}
+              <Routes>
+                {/* Home page - shows the scoreboard */}
+                <Route path="/" element={<Scoreboard />} />
+                {/* Team page - shows team details */}
+                <Route path="/team/:team_id" element={<TeamPage />} />
+                {/* Roster page - shows team roster */}
+                <Route path="/team/:team_id/roster" element={<RosterPage />} />
+                {/* Standings page - shows league standings */}
+                <Route path="/standings/:season" element={<Standings />} />
+                <Route path="/standings" element={<Standings />} />
+                {/* Players page - shows season leaders and player search */}
+                <Route path="/players" element={<Players />} />
+                {/* Player profile page - shows player details */}
+                <Route path="/player/:playerId" element={<PlayerProfile />} />
+                {/* Teams page - shows team statistics */}
+                <Route path="/teams" element={<Teams />} />
+                {/* Predictions page - shows AI-powered game predictions */}
+                <Route path="/predictions" element={<Predictions />} />
+                {/* Compare page - side-by-side player comparison */}
+                <Route path="/compare" element={<ComparePage />} />
+                <Route path="/compare/:player1Id" element={<ComparePage />} />
+                <Route path="/compare/:player1Id/:player2Id" element={<ComparePage />} />
+                {/* Game detail page - full game page with score, box score, key moments, AI summary */}
+                <Route path="/game/:gameId" element={<GameDetail />} />
+                <Route path="/agent" element={<AgentPage />} />
+                {/* 404 page - shows when user goes to a page that doesn't exist */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
+            <AgentChat />
+          </AppShell>
+        </ErrorBoundary>
       </LiveCountProvider>
     </Router>
   );
