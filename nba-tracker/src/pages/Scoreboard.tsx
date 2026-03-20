@@ -818,7 +818,7 @@ const Scoreboard = () => {
       : upcomingPredictions;
   }, [predictionCache, games]);
 
-  // Predictions sidebar removed; cache still used for homeWinPercent on scheduled cards
+  // Predictions sidebar removed; cache still used for scheduled-card home win % and filters
   void _filteredPredictions;
 
   const today = getLocalISODate();

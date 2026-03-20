@@ -330,7 +330,7 @@ export default function GameDetail() {
 
         <ScoreHeader score={detail.score} status={detail.status} gradientColors={gradientColors} />
 
-        {/* Floating Play-by-Play toggle button */}
+        {/* Floating Play-by-Play toggle — stacked above global AgentChat FAB (see AgentChat.tsx) */}
         <Fab
           variant="extended"
           size="medium"
@@ -338,8 +338,9 @@ export default function GameDetail() {
           onClick={() => setPbpOpen(true)}
           sx={{
             position: 'fixed',
-            bottom: { xs: 80, md: 32 },
-            right: { xs: 16, md: 32 },
+            // ~56px chat FAB + gap; xs matches mobile nav offset used by AgentChat (80px)
+            bottom: { xs: 'calc(80px + 56px + 12px)', md: 'calc(24px + 56px + 12px)' },
+            right: 24,
             zIndex: 1200,
             gap: 1,
             boxShadow: 4,

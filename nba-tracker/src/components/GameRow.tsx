@@ -18,7 +18,7 @@ export interface GameRowProps {
   insight?: GameInsightData | null;
   keyMoment?: KeyMoment | null;
   winProbability?: WinProbability | null;
-  /** For scheduled games: home team win probability 0–1 from predictions */
+  /** Scheduled games: home win probability 0–1 from predictions */
   homeWinPercent?: number | null;
 }
 
