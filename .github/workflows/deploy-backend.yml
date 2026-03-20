@@ -1,0 +1,31 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'nba-tracker-api/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GCP VM
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.GCP_HOST }}
+          username: ${{ secrets.GCP_USER }}
+          key: ${{ secrets.GCP_SSH_KEY }}
+          script: |
+            set -e
+            cd ~/nba-live-tracker && git pull origin main
+            cd nba-tracker-api && source .venv/bin/activate
+            pip install -q -r requirements.txt
+            python patch_scoreboard.py
+            python patch_http.py
+            pkill -f "uvicorn app.main:app" || true
+            sleep 1
+            nohup uvicorn app.main:app --host 0.0.0.0 --port 8000 > ~/fastapi.log 2>&1 &
+            sleep 3
+            curl -sf http://localhost:8000/api/v1/health > /dev/null && echo "OK" || echo "FAILED"
