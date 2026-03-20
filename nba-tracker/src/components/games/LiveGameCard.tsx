@@ -139,84 +139,71 @@ const LiveGameCard: React.FC<LiveGameCardProps> = ({
           </Typography>
         </Box>
 
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: { xs: 1, sm: 1.5 },
-            flex: 1,
-            minWidth: 0,
-          }}
-        >
-          <Avatar
-            src={TEAM_LOGOS[awayTeam || 'NBA'] || TEAM_LOGOS['NBA']}
-            alt={awayTeam}
-            onClick={e => handleTeamClick(e, awayId)}
-            sx={{ width: 40, height: 40, cursor: awayId ? 'pointer' : 'default' }}
-          />
-          <Box sx={{ minWidth: 0 }}>
+        {/* Teams stacked */}
+        <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+          {/* Away row */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Avatar
+              src={TEAM_LOGOS[awayTeam || 'NBA'] || TEAM_LOGOS['NBA']}
+              alt={awayTeam}
+              onClick={e => handleTeamClick(e, awayId)}
+              sx={{ width: 32, height: 32, flexShrink: 0, cursor: awayId ? 'pointer' : 'default' }}
+            />
             <Typography
-              variant="body1"
+              variant="body2"
               fontWeight={600}
               noWrap
-              sx={{ fontSize: { xs: '0.875rem', sm: '0.9375rem' } }}
+              sx={{ flex: 1, minWidth: 0 }}
             >
               {awayTeam}
             </Typography>
-          </Box>
-          <Typography
-            variant="h6"
-            sx={{
-              fontFamily: '"Barlow Condensed", sans-serif',
-              fontWeight: 800,
-              fontSize: { xs: '2rem', md: '2.5rem' },
-              minWidth: 48,
-              textAlign: 'right',
-              fontVariantNumeric: 'tabular-nums',
-            }}
-          >
-            {awayScore}
-          </Typography>
-        </Box>
-
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: { xs: 1, sm: 1.5 },
-            flex: 1,
-            minWidth: 0,
-          }}
-        >
-          <Avatar
-            src={TEAM_LOGOS[homeTeam || 'NBA'] || TEAM_LOGOS['NBA']}
-            alt={homeTeam}
-            onClick={e => handleTeamClick(e, homeId)}
-            sx={{ width: 40, height: 40, cursor: homeId ? 'pointer' : 'default' }}
-          />
-          <Box sx={{ minWidth: 0 }}>
             <Typography
-              variant="body1"
+              sx={{
+                fontFamily: '"Barlow Condensed", sans-serif',
+                fontWeight: 800,
+                fontSize: { xs: '1.5rem', sm: '1.75rem' },
+                minWidth: 48,
+                textAlign: 'right',
+                flexShrink: 0,
+                fontVariantNumeric: 'tabular-nums',
+                lineHeight: 1,
+              }}
+            >
+              {awayScore}
+            </Typography>
+          </Box>
+
+          {/* Home row */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Avatar
+              src={TEAM_LOGOS[homeTeam || 'NBA'] || TEAM_LOGOS['NBA']}
+              alt={homeTeam}
+              onClick={e => handleTeamClick(e, homeId)}
+              sx={{ width: 32, height: 32, flexShrink: 0, cursor: homeId ? 'pointer' : 'default' }}
+            />
+            <Typography
+              variant="body2"
               fontWeight={600}
               noWrap
-              sx={{ fontSize: { xs: '0.875rem', sm: '0.9375rem' } }}
+              sx={{ flex: 1, minWidth: 0 }}
             >
               {homeTeam}
             </Typography>
+            <Typography
+              sx={{
+                fontFamily: '"Barlow Condensed", sans-serif',
+                fontWeight: 800,
+                fontSize: { xs: '1.5rem', sm: '1.75rem' },
+                minWidth: 48,
+                textAlign: 'right',
+                flexShrink: 0,
+                fontVariantNumeric: 'tabular-nums',
+                lineHeight: 1,
+              }}
+            >
+              {homeScore}
+            </Typography>
           </Box>
-          <Typography
-            variant="h6"
-            sx={{
-              fontFamily: '"Barlow Condensed", sans-serif',
-              fontWeight: 800,
-              fontSize: { xs: '2rem', md: '2.5rem' },
-              minWidth: 48,
-              textAlign: 'right',
-              fontVariantNumeric: 'tabular-nums',
-            }}
-          >
-            {homeScore}
-          </Typography>
         </Box>
       </Box>
 

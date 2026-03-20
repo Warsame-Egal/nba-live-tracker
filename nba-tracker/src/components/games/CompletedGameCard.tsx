@@ -73,79 +73,121 @@ const CompletedGameCard: React.FC<CompletedGameCardProps> = ({ game, onClick }) 
       <Box
         onClick={handleClick}
         sx={{
-          display: 'flex',
+          display: 'grid',
+          // Dedicated score column so totals never share a shrinking flex row with team names (avoids right-edge clipping)
+          gridTemplateColumns: { xs: '40px minmax(0, 1fr) minmax(52px, auto)', sm: '44px minmax(0, 1fr) minmax(56px, auto)' },
+          gridTemplateRows: 'auto auto',
+          columnGap: { xs: 1.5, sm: 2 },
+          rowGap: 1,
           alignItems: 'center',
-          gap: { xs: 1.5, sm: 2 },
           p: { xs: 2, sm: 2.5 },
           cursor: 'pointer',
           '&:hover': { backgroundColor: 'action.hover' },
         }}
       >
-        <Box sx={{ minWidth: 56, textAlign: 'center' }}>
-          <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', letterSpacing: '0.08em' }}>
-            FINAL
-          </Typography>
-        </Box>
+        {/* FINAL label — spans both team rows */}
+        <Typography
+          variant="caption"
+          sx={{
+            gridRow: '1 / 3',
+            gridColumn: 1,
+            fontWeight: 700,
+            color: 'text.secondary',
+            letterSpacing: '0.08em',
+            textAlign: 'center',
+            alignSelf: 'center',
+          }}
+        >
+          FINAL
+        </Typography>
 
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1, minWidth: 0 }}>
+        {/* Away: logo + name (middle column) */}
+        <Box
+          sx={{
+            gridRow: 1,
+            gridColumn: 2,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+            minWidth: 0,
+          }}
+        >
           <Avatar
             src={TEAM_LOGOS[awayTeam || 'NBA'] || TEAM_LOGOS['NBA']}
             alt={awayTeam}
             onClick={e => handleTeamClick(e, awayId)}
-            sx={{ width: 36, height: 36, cursor: awayId ? 'pointer' : 'default' }}
+            sx={{ width: 28, height: 28, flexShrink: 0, cursor: awayId ? 'pointer' : 'default' }}
           />
           <Typography
             variant="body2"
-            fontWeight={awayWon ? 700 : 600}
+            fontWeight={awayWon ? 700 : 500}
             color={awayWon ? 'text.primary' : 'text.secondary'}
-            noWrap
+            sx={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
           >
             {awayTeam}
           </Typography>
-          <Typography
-            variant="h6"
-            sx={{
-              fontWeight: awayWon ? 700 : 600,
-              fontSize: { xs: '1.25rem', sm: '1.375rem' },
-              minWidth: 36,
-              textAlign: 'right',
-              color: awayWon ? 'text.primary' : 'text.secondary',
-              textDecoration: 'none',
-            }}
-          >
-            {awayScore}
-          </Typography>
         </Box>
+        <Typography
+          sx={{
+            gridRow: 1,
+            gridColumn: 3,
+            fontFamily: '"Barlow Condensed", sans-serif',
+            fontWeight: awayWon ? 800 : 500,
+            fontSize: { xs: '1.25rem', sm: '1.375rem' },
+            color: awayWon ? 'text.primary' : 'text.secondary',
+            textAlign: 'right',
+            fontVariantNumeric: 'tabular-nums',
+            lineHeight: 1.1,
+            justifySelf: 'end',
+            width: '100%',
+          }}
+        >
+          {awayScore}
+        </Typography>
 
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1, minWidth: 0 }}>
+        {/* Home: logo + name */}
+        <Box
+          sx={{
+            gridRow: 2,
+            gridColumn: 2,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+            minWidth: 0,
+          }}
+        >
           <Avatar
             src={TEAM_LOGOS[homeTeam || 'NBA'] || TEAM_LOGOS['NBA']}
             alt={homeTeam}
             onClick={e => handleTeamClick(e, homeId)}
-            sx={{ width: 36, height: 36, cursor: homeId ? 'pointer' : 'default' }}
+            sx={{ width: 28, height: 28, flexShrink: 0, cursor: homeId ? 'pointer' : 'default' }}
           />
           <Typography
             variant="body2"
-            fontWeight={homeWon ? 700 : 600}
+            fontWeight={homeWon ? 700 : 500}
             color={homeWon ? 'text.primary' : 'text.secondary'}
-            noWrap
+            sx={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
           >
             {homeTeam}
           </Typography>
-          <Typography
-            variant="h6"
-            sx={{
-              fontWeight: homeWon ? 700 : 600,
-              fontSize: { xs: '1.25rem', sm: '1.375rem' },
-              minWidth: 36,
-              textAlign: 'right',
-              color: homeWon ? 'text.primary' : 'text.secondary',
-              textDecoration: 'none',
-            }}
-          >
-            {homeScore}
-          </Typography>
         </Box>
+        <Typography
+          sx={{
+            gridRow: 2,
+            gridColumn: 3,
+            fontFamily: '"Barlow Condensed", sans-serif',
+            fontWeight: homeWon ? 800 : 500,
+            fontSize: { xs: '1.25rem', sm: '1.375rem' },
+            color: homeWon ? 'text.primary' : 'text.secondary',
+            textAlign: 'right',
+            fontVariantNumeric: 'tabular-nums',
+            lineHeight: 1.1,
+            justifySelf: 'end',
+            width: '100%',
+          }}
+        >
+          {homeScore}
+        </Typography>
       </Box>
 
       {topPerformer && topPerformer.name && (

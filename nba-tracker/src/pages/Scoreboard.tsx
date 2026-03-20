@@ -58,7 +58,17 @@ const getGameStatus = (game: Game | GameSummary): 'live' | 'upcoming' | 'complet
   if ('game_status' in game && typeof game.game_status === 'string') {
     const lowerStatus = game.game_status.toLowerCase();
     if (lowerStatus.includes('final')) return 'completed';
-    if (lowerStatus.includes('live') || lowerStatus.includes('in progress')) return 'live';
+    // Schedule endpoint can mark live games with quarter/OT text instead of "live".
+    const isQuarterClock =
+      /\b[1-4](st|nd|rd|th)?\b/.test(lowerStatus) &&
+      (lowerStatus.includes('q') || lowerStatus.includes('quarter'));
+    const isLiveLike =
+      lowerStatus.includes('live') ||
+      lowerStatus.includes('in progress') ||
+      lowerStatus.includes('halftime') ||
+      lowerStatus.includes('ot') ||
+      isQuarterClock;
+    if (isLiveLike) return 'live';
     return 'upcoming';
   }
   return 'upcoming';
@@ -884,7 +894,8 @@ const Scoreboard = () => {
           minHeight: gameList.length === 0 ? 0 : undefined,
           visibility: gameList.length === 0 ? 'hidden' : 'visible',
           height: gameList.length === 0 ? 0 : 'auto',
-          overflow: 'hidden',
+          // Don't clip card hover transforms or tight grid overflow
+          overflow: gameList.length === 0 ? 'hidden' : 'visible',
         }}
       >
         {gameList.length > 0 && (
@@ -922,7 +933,8 @@ const Scoreboard = () => {
             <Box
               sx={{
                 display: 'grid',
-                gridTemplateColumns: { xs: '1fr', md: '1fr 1fr', xl: '1fr 1fr 1fr' },
+                // minmax prevents 1fr tracks from shrinking below readable card width (was clipping scores in 3-col + sidebar layout)
+                gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 300px), 1fr))',
                 gap: { xs: 2, sm: 2.5, md: 3 },
                 minHeight: { xs: 200, sm: 300 },
               }}

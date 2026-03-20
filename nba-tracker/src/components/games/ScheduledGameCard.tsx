@@ -74,42 +74,30 @@ const ScheduledGameCard: React.FC<ScheduledGameCardProps> = ({ game, onClick, ho
           </Typography>
         </Box>
 
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1, minWidth: 0 }}>
-          <Avatar
-            src={TEAM_LOGOS[awayTeam || 'NBA'] || TEAM_LOGOS['NBA']}
-            alt={awayTeam}
-            onClick={e => handleTeamClick(e, awayId)}
-            sx={{ width: 36, height: 36, cursor: awayId ? 'pointer' : 'default' }}
-          />
-          <Typography
-            variant="body1"
-            fontWeight={600}
-            noWrap
-            sx={{ fontFamily: '"Barlow Condensed", sans-serif', fontSize: '0.9375rem' }}
-          >
-            {awayTeam}
-          </Typography>
-        </Box>
-
-        <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>
-          @
-        </Typography>
-
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1, minWidth: 0 }}>
-          <Avatar
-            src={TEAM_LOGOS[homeTeam || 'NBA'] || TEAM_LOGOS['NBA']}
-            alt={homeTeam}
-            onClick={e => handleTeamClick(e, homeId)}
-            sx={{ width: 36, height: 36, cursor: homeId ? 'pointer' : 'default' }}
-          />
-          <Typography
-            variant="body1"
-            fontWeight={600}
-            noWrap
-            sx={{ fontFamily: '"Barlow Condensed", sans-serif', fontSize: '0.9375rem' }}
-          >
-            {homeTeam}
-          </Typography>
+        {/* Teams stacked */}
+        <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Avatar
+              src={TEAM_LOGOS[awayTeam || 'NBA'] || TEAM_LOGOS['NBA']}
+              alt={awayTeam}
+              onClick={e => handleTeamClick(e, awayId)}
+              sx={{ width: 28, height: 28, flexShrink: 0, cursor: awayId ? 'pointer' : 'default' }}
+            />
+            <Typography variant="body2" fontWeight={600} noWrap sx={{ flex: 1, minWidth: 0 }}>
+              {awayTeam}
+            </Typography>
+          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Avatar
+              src={TEAM_LOGOS[homeTeam || 'NBA'] || TEAM_LOGOS['NBA']}
+              alt={homeTeam}
+              onClick={e => handleTeamClick(e, homeId)}
+              sx={{ width: 28, height: 28, flexShrink: 0, cursor: homeId ? 'pointer' : 'default' }}
+            />
+            <Typography variant="body2" fontWeight={600} noWrap sx={{ flex: 1, minWidth: 0 }}>
+              {homeTeam}
+            </Typography>
+          </Box>
         </Box>
 
         {homeWinPercent != null && !isNaN(homeWinPercent) && (

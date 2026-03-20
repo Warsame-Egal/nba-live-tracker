@@ -237,7 +237,7 @@ export default function AgentPage() {
           minHeight: 0,
         }}
       >
-        <Paper sx={{ p: 2, display: { xs: 'none', md: 'block' }, bgcolor: '#111111', borderColor: '#222222' }}>
+        <Paper sx={{ p: 2, display: { xs: 'none', md: 'block' }, bgcolor: 'background.paper', borderColor: 'divider' }}>
           <Typography variant="subtitle2" sx={{ mb: 1 }}>
             Suggestions
           </Typography>
@@ -246,7 +246,7 @@ export default function AgentPage() {
               <Button
                 key={s}
                 variant="text"
-                sx={{ justifyContent: 'flex-start', border: '1px solid #222222', '&:hover': { borderColor: 'primary.main' } }}
+                sx={{ justifyContent: 'flex-start', border: '1px solid', borderColor: 'divider', '&:hover': { borderColor: 'primary.main' } }}
                 onClick={() => handleSend(s)}
               >
                 {s}
@@ -255,7 +255,7 @@ export default function AgentPage() {
           </Box>
         </Paper>
 
-        <Paper sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', bgcolor: '#111111', borderColor: '#222222' }}>
+        <Paper sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', bgcolor: 'background.paper', borderColor: 'divider' }}>
           <Box sx={{ flex: 1, overflowY: 'auto', p: 2 }}>
             {messages.length === 0 ? (
               <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5 }}>
@@ -282,8 +282,8 @@ export default function AgentPage() {
                         borderRadius: 2,
                         px: 1.5,
                         py: 1,
-                        backgroundColor: isUser ? 'primary.main' : '#1A1A1A',
-                        color: isUser ? 'primary.contrastText' : 'common.white',
+                        backgroundColor: isUser ? 'primary.main' : 'action.selected',
+                        color: isUser ? 'primary.contrastText' : 'text.primary',
                         whiteSpace: 'pre-wrap',
                         wordBreak: 'break-word',
                       }}

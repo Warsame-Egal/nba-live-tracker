@@ -71,12 +71,53 @@ export const getTeamAbbreviation = (teamName: string): string => {
   return TEAM_ABBREVIATIONS[teamName] || teamName.substring(0, 3).toUpperCase();
 };
 
-// Get team logo path from full name, with optional abbreviation fallback (e.g. when API returns "Lakers" instead of "Los Angeles Lakers")
+// Nickname-only -> tricode map for NBA API responses that return e.g. "Magic" not "Orlando Magic"
+const NICKNAME_TO_TRICODE: Record<string, string> = {
+  Hawks: 'ATL',
+  Celtics: 'BOS',
+  Nets: 'BKN',
+  Hornets: 'CHA',
+  Bulls: 'CHI',
+  Cavaliers: 'CLE',
+  Mavericks: 'DAL',
+  Nuggets: 'DEN',
+  Pistons: 'DET',
+  Warriors: 'GSW',
+  Rockets: 'HOU',
+  Pacers: 'IND',
+  Clippers: 'LAC',
+  Lakers: 'LAL',
+  Grizzlies: 'MEM',
+  Heat: 'MIA',
+  Bucks: 'MIL',
+  Timberwolves: 'MIN',
+  Pelicans: 'NOP',
+  Knicks: 'NYK',
+  Thunder: 'OKC',
+  Magic: 'ORL',
+  '76ers': 'PHI',
+  Suns: 'PHX',
+  'Trail Blazers': 'POR',
+  Kings: 'SAC',
+  Spurs: 'SAS',
+  Raptors: 'TOR',
+  Jazz: 'UTA',
+  Wizards: 'WAS',
+};
+
 export const getTeamLogo = (teamName: string, abbreviation?: string | null): string => {
+  // 1. Exact full-name match ("Orlando Magic")
   const byName = TEAM_LOGOS[teamName];
   if (byName) return byName;
+
+  // 2. Tricode passed directly ("ORL")
   if (abbreviation) return `/logos/${abbreviation}.svg`;
-  return '/logos/default.svg';
+
+  // 3. Nickname-only match ("Magic") - NBA API boxscore returns this
+  const tricode = NICKNAME_TO_TRICODE[teamName];
+  if (tricode) return `/logos/${tricode}.svg`;
+
+  return '/logos/NBA.svg';
 };
 
 // Get both abbreviation and logo
