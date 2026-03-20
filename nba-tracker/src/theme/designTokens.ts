@@ -93,26 +93,26 @@ export const typography = {
   editorial: {
     // Page titles - large, confident
     pageTitle: {
-      xs: 'clamp(1.5rem, 5vw, 2.25rem)',
-      sm: 'clamp(1.75rem, 5vw, 2.5rem)',
-      md: 'clamp(2rem, 5vw, 3rem)',
+      xs: 'clamp(1.25rem, 4vw, 1.75rem)',
+      sm: 'clamp(1.5rem, 4vw, 2rem)',
+      md: 'clamp(1.75rem, 3vw, 2.25rem)',
     },
     // Section headers - medium, semibold
     sectionTitle: {
-      xs: 'clamp(1.125rem, 3vw, 1.5rem)',
-      sm: 'clamp(1.25rem, 3vw, 1.75rem)',
-      md: 'clamp(1.5rem, 3vw, 2rem)',
+      xs: 'clamp(1rem, 3vw, 1.25rem)',
+      sm: 'clamp(1.125rem, 3vw, 1.5rem)',
+      md: 'clamp(1.25rem, 2.5vw, 1.625rem)',
     },
     // Primary metrics - prominent, readable
     metric: {
-      xs: 'clamp(1rem, 2.5vw, 1.25rem)',
-      sm: 'clamp(1.125rem, 2.5vw, 1.5rem)',
-      md: 'clamp(1.25rem, 2.5vw, 1.75rem)',
+      xs: 'clamp(0.9375rem, 2.5vw, 1.125rem)',
+      sm: 'clamp(1rem, 2.5vw, 1.25rem)',
+      md: 'clamp(1.125rem, 2vw, 1.5rem)',
     },
     // Helper text - small, subtle
     helper: {
-      xs: 'clamp(0.7rem, 1.5vw, 0.75rem)',
-      sm: 'clamp(0.75rem, 1.5vw, 0.8125rem)',
+      xs: 'clamp(0.6875rem, 1.5vw, 0.75rem)',
+      sm: 'clamp(0.6875rem, 1.5vw, 0.75rem)',
     },
   },
 } as const;

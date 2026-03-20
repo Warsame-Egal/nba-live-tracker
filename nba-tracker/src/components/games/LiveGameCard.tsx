@@ -77,7 +77,7 @@ const LiveGameCard: React.FC<LiveGameCardProps> = ({
         transition: transitions.smooth,
         borderLeft: '4px solid',
         borderLeftColor: 'primary.main',
-        backgroundColor: '#111111',
+        backgroundColor: 'background.paper',
         '@keyframes livePulse': {
           '0%, 100%': { borderLeftColor: 'error.main' },
           '50%': { borderLeftColor: 'error.light' },
@@ -93,7 +93,7 @@ const LiveGameCard: React.FC<LiveGameCardProps> = ({
         '&:hover': {
           boxShadow: theme.palette.mode === 'dark' ? shadows.dark.lg : shadows.lg,
           transform: { md: 'translateY(-2px) scale(1.01)' },
-          backgroundColor: '#1A1A1A',
+          backgroundColor: 'action.hover',
         },
       }}
     >
@@ -102,8 +102,8 @@ const LiveGameCard: React.FC<LiveGameCardProps> = ({
         sx={{
           display: 'flex',
           alignItems: 'center',
-          gap: { xs: 1.5, sm: 2 },
-          p: { xs: 1.5, sm: 2 },
+          gap: { xs: 2, sm: 2.5 },
+          p: { xs: 2, sm: 2.5 },
           cursor: 'pointer',
           backgroundColor: isRecentlyUpdated
             ? alpha(theme.palette.primary.main, 0.06)
@@ -114,7 +114,7 @@ const LiveGameCard: React.FC<LiveGameCardProps> = ({
       >
         <Box
           sx={{
-            minWidth: 56,
+            minWidth: 52,
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
@@ -152,10 +152,15 @@ const LiveGameCard: React.FC<LiveGameCardProps> = ({
             src={TEAM_LOGOS[awayTeam || 'NBA'] || TEAM_LOGOS['NBA']}
             alt={awayTeam}
             onClick={e => handleTeamClick(e, awayId)}
-            sx={{ width: 36, height: 36, cursor: awayId ? 'pointer' : 'default' }}
+            sx={{ width: 40, height: 40, cursor: awayId ? 'pointer' : 'default' }}
           />
           <Box sx={{ minWidth: 0 }}>
-            <Typography variant="body2" fontWeight={600} noWrap>
+            <Typography
+              variant="body1"
+              fontWeight={600}
+              noWrap
+              sx={{ fontSize: { xs: '0.875rem', sm: '0.9375rem' } }}
+            >
               {awayTeam}
             </Typography>
           </Box>
@@ -165,7 +170,7 @@ const LiveGameCard: React.FC<LiveGameCardProps> = ({
               fontFamily: '"Barlow Condensed", sans-serif',
               fontWeight: 800,
               fontSize: { xs: '2rem', md: '2.5rem' },
-              minWidth: 40,
+              minWidth: 48,
               textAlign: 'right',
               fontVariantNumeric: 'tabular-nums',
             }}
@@ -187,10 +192,15 @@ const LiveGameCard: React.FC<LiveGameCardProps> = ({
             src={TEAM_LOGOS[homeTeam || 'NBA'] || TEAM_LOGOS['NBA']}
             alt={homeTeam}
             onClick={e => handleTeamClick(e, homeId)}
-            sx={{ width: 36, height: 36, cursor: homeId ? 'pointer' : 'default' }}
+            sx={{ width: 40, height: 40, cursor: homeId ? 'pointer' : 'default' }}
           />
           <Box sx={{ minWidth: 0 }}>
-            <Typography variant="body2" fontWeight={600} noWrap>
+            <Typography
+              variant="body1"
+              fontWeight={600}
+              noWrap
+              sx={{ fontSize: { xs: '0.875rem', sm: '0.9375rem' } }}
+            >
               {homeTeam}
             </Typography>
           </Box>
@@ -200,7 +210,7 @@ const LiveGameCard: React.FC<LiveGameCardProps> = ({
               fontFamily: '"Barlow Condensed", sans-serif',
               fontWeight: 800,
               fontSize: { xs: '2rem', md: '2.5rem' },
-              minWidth: 40,
+              minWidth: 48,
               textAlign: 'right',
               fontVariantNumeric: 'tabular-nums',
             }}
@@ -217,8 +227,8 @@ const LiveGameCard: React.FC<LiveGameCardProps> = ({
             alignItems: 'center',
             justifyContent: 'center',
             gap: 1,
-            px: 1.5,
-            py: 1,
+            px: 2,
+            py: 1.25,
             borderTop: '1px solid',
             borderColor: 'divider',
           }}
@@ -262,9 +272,9 @@ const LiveGameCard: React.FC<LiveGameCardProps> = ({
 
       <Box
         sx={{
-          px: 1.5,
-          pb: 1.5,
-          pt: 0.5,
+          px: 2,
+          pb: 2,
+          pt: 1,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',

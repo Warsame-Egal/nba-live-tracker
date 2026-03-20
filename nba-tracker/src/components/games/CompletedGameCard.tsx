@@ -58,8 +58,9 @@ const CompletedGameCard: React.FC<CompletedGameCardProps> = ({ game, onClick }) 
         display: 'flex',
         flexDirection: 'column',
         borderRadius: borderRadius.lg,
-        backgroundColor: '#111111',
-        border: '1px solid #222222',
+        backgroundColor: 'background.paper',
+        border: '1px solid',
+        borderColor: 'divider',
         overflow: 'hidden',
         boxShadow: theme.palette.mode === 'dark' ? shadows.dark.sm : shadows.sm,
         transition: transitions.smooth,
@@ -75,7 +76,7 @@ const CompletedGameCard: React.FC<CompletedGameCardProps> = ({ game, onClick }) 
           display: 'flex',
           alignItems: 'center',
           gap: { xs: 1.5, sm: 2 },
-          p: { xs: 1.5, sm: 2 },
+          p: { xs: 2, sm: 2.5 },
           cursor: 'pointer',
           '&:hover': { backgroundColor: 'action.hover' },
         }}
@@ -91,7 +92,7 @@ const CompletedGameCard: React.FC<CompletedGameCardProps> = ({ game, onClick }) 
             src={TEAM_LOGOS[awayTeam || 'NBA'] || TEAM_LOGOS['NBA']}
             alt={awayTeam}
             onClick={e => handleTeamClick(e, awayId)}
-            sx={{ width: 32, height: 32, cursor: awayId ? 'pointer' : 'default' }}
+            sx={{ width: 36, height: 36, cursor: awayId ? 'pointer' : 'default' }}
           />
           <Typography
             variant="body2"
@@ -105,11 +106,11 @@ const CompletedGameCard: React.FC<CompletedGameCardProps> = ({ game, onClick }) 
             variant="h6"
             sx={{
               fontWeight: awayWon ? 700 : 600,
-              fontSize: '1.125rem',
+              fontSize: { xs: '1.25rem', sm: '1.375rem' },
               minWidth: 36,
               textAlign: 'right',
               color: awayWon ? 'text.primary' : 'text.secondary',
-              textDecoration: awayWon ? 'none' : 'line-through',
+              textDecoration: 'none',
             }}
           >
             {awayScore}
@@ -121,7 +122,7 @@ const CompletedGameCard: React.FC<CompletedGameCardProps> = ({ game, onClick }) 
             src={TEAM_LOGOS[homeTeam || 'NBA'] || TEAM_LOGOS['NBA']}
             alt={homeTeam}
             onClick={e => handleTeamClick(e, homeId)}
-            sx={{ width: 32, height: 32, cursor: homeId ? 'pointer' : 'default' }}
+            sx={{ width: 36, height: 36, cursor: homeId ? 'pointer' : 'default' }}
           />
           <Typography
             variant="body2"
@@ -135,11 +136,11 @@ const CompletedGameCard: React.FC<CompletedGameCardProps> = ({ game, onClick }) 
             variant="h6"
             sx={{
               fontWeight: homeWon ? 700 : 600,
-              fontSize: '1.125rem',
+              fontSize: { xs: '1.25rem', sm: '1.375rem' },
               minWidth: 36,
               textAlign: 'right',
               color: homeWon ? 'text.primary' : 'text.secondary',
-              textDecoration: homeWon ? 'none' : 'line-through',
+              textDecoration: 'none',
             }}
           >
             {homeScore}
@@ -150,9 +151,9 @@ const CompletedGameCard: React.FC<CompletedGameCardProps> = ({ game, onClick }) 
       {topPerformer && topPerformer.name && (
         <Box
           sx={{
-            px: 1.5,
-            pb: 1,
-            pt: 0,
+            px: 2,
+            pb: 1.25,
+            pt: 0.25,
             borderTop: '1px solid',
             borderColor: 'divider',
           }}

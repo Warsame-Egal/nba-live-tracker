@@ -20,6 +20,26 @@
   --font-stats: 'Barlow Condensed', monospace;
 }
 
+@media (prefers-color-scheme: light) {
+  :root {
+    --color-bg: #f0f4f8;
+    --color-surface: #ffffff;
+    --color-surface-elevated: #f5f8fc;
+    --color-border: rgba(0, 0, 0, 0.12);
+    --color-text-primary: rgba(0, 0, 0, 0.87);
+    --color-text-secondary: rgba(0, 0, 0, 0.6);
+  }
+}
+
+[data-theme='light'] {
+  --color-bg: #f0f4f8;
+  --color-surface: #ffffff;
+  --color-surface-elevated: #f5f8fc;
+  --color-border: rgba(0, 0, 0, 0.12);
+  --color-text-primary: rgba(0, 0, 0, 0.87);
+  --color-text-secondary: rgba(0, 0, 0, 0.6);
+}
+
 body {
   font-family: var(--font-body);
   background-color: var(--color-bg);

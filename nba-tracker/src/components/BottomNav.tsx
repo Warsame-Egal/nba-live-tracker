@@ -90,13 +90,20 @@ export default function BottomNav() {
           right: 0,
           zIndex: 1100,
           height: 56,
-          borderTop: '1px solid rgba(255,255,255,0.06)',
-          background: 'rgba(10,10,10,0.97)',
+          backgroundColor: 'background.paper',
+          borderTop: '1px solid',
+          borderColor: 'divider',
           backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
         }}
         elevation={4}
       >
-        <BottomNavigation value={value} onChange={handleChange} showLabels sx={{ height: 56 }}>
+        <BottomNavigation
+          value={value}
+          onChange={handleChange}
+          showLabels
+          sx={{ height: 56, backgroundColor: 'transparent' }}
+        >
           {tabs.map((tab, idx) => (
             <BottomNavigationAction
               key={tab.label}
@@ -135,7 +142,7 @@ export default function BottomNav() {
             borderTopLeftRadius: 8,
             borderTopRightRadius: 8,
             maxHeight: '70vh',
-            backgroundColor: '#111111',
+            backgroundColor: 'background.paper',
           },
         }}
       >

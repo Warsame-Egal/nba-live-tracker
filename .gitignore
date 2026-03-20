@@ -34,4 +34,11 @@ nba-tracker/dist/
 nba-tracker/dist-ssr/
 nba-tracker/.vite/
 
+# Local backend runtime artifacts
+nba-tracker-api/.venv/
+nba-tracker-api/.env
+cloudflared-linux-amd64.deb
+
 md
+
+docs/GCP_BACKEND_SETUP.md

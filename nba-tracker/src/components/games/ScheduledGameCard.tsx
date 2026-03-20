@@ -46,13 +46,14 @@ const ScheduledGameCard: React.FC<ScheduledGameCardProps> = ({ game, onClick, ho
         boxShadow: theme.palette.mode === 'dark' ? shadows.dark.sm : shadows.sm,
         transition: transitions.smooth,
         opacity: 0.92,
-        backgroundColor: '#111111',
-        border: '1px solid #222222',
+        backgroundColor: 'background.paper',
+        border: '1px solid',
+        borderColor: 'divider',
         '&:hover': {
           boxShadow: theme.palette.mode === 'dark' ? shadows.dark.md : shadows.md,
           transform: { md: 'translateY(-2px)' },
           opacity: 1,
-          backgroundColor: '#1A1A1A',
+          backgroundColor: 'action.hover',
         },
       }}
     >
@@ -62,13 +63,13 @@ const ScheduledGameCard: React.FC<ScheduledGameCardProps> = ({ game, onClick, ho
           display: 'flex',
           alignItems: 'center',
           gap: { xs: 1.5, sm: 2 },
-          p: { xs: 1.5, sm: 2 },
+          p: { xs: 2, sm: 2.5 },
           cursor: 'pointer',
           '&:hover': { backgroundColor: 'action.hover' },
         }}
       >
         <Box sx={{ minWidth: 56, textAlign: 'center' }}>
-          <Typography variant="caption" sx={{ fontWeight: 700, color: 'primary.main' }}>
+          <Typography variant="body2" sx={{ fontWeight: 700, color: 'primary.main', fontSize: '0.8125rem' }}>
             {gameTime}
           </Typography>
         </Box>
@@ -78,9 +79,14 @@ const ScheduledGameCard: React.FC<ScheduledGameCardProps> = ({ game, onClick, ho
             src={TEAM_LOGOS[awayTeam || 'NBA'] || TEAM_LOGOS['NBA']}
             alt={awayTeam}
             onClick={e => handleTeamClick(e, awayId)}
-            sx={{ width: 32, height: 32, cursor: awayId ? 'pointer' : 'default' }}
+            sx={{ width: 36, height: 36, cursor: awayId ? 'pointer' : 'default' }}
           />
-          <Typography variant="body2" fontWeight={600} noWrap sx={{ fontFamily: '"Barlow Condensed", sans-serif' }}>
+          <Typography
+            variant="body1"
+            fontWeight={600}
+            noWrap
+            sx={{ fontFamily: '"Barlow Condensed", sans-serif', fontSize: '0.9375rem' }}
+          >
             {awayTeam}
           </Typography>
         </Box>
@@ -94,9 +100,14 @@ const ScheduledGameCard: React.FC<ScheduledGameCardProps> = ({ game, onClick, ho
             src={TEAM_LOGOS[homeTeam || 'NBA'] || TEAM_LOGOS['NBA']}
             alt={homeTeam}
             onClick={e => handleTeamClick(e, homeId)}
-            sx={{ width: 32, height: 32, cursor: homeId ? 'pointer' : 'default' }}
+            sx={{ width: 36, height: 36, cursor: homeId ? 'pointer' : 'default' }}
           />
-          <Typography variant="body2" fontWeight={600} noWrap sx={{ fontFamily: '"Barlow Condensed", sans-serif' }}>
+          <Typography
+            variant="body1"
+            fontWeight={600}
+            noWrap
+            sx={{ fontFamily: '"Barlow Condensed", sans-serif', fontSize: '0.9375rem' }}
+          >
             {homeTeam}
           </Typography>
         </Box>

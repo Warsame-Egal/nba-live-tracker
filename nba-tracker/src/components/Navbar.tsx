@@ -49,9 +49,10 @@ export default function Navbar() {
       elevation={0}
       sx={{
         backgroundColor: 'background.paper',
-        borderBottom: '1px solid rgba(255,255,255,0.06)',
+        borderBottom: '1px solid',
+        borderColor: 'divider',
         backdropFilter: 'blur(20px)',
-        background: 'rgba(10,10,10,0.95)',
+        WebkitBackdropFilter: 'blur(20px)',
       }}
     >
       <Toolbar
@@ -148,7 +149,7 @@ export default function Navbar() {
             transformOrigin={{ vertical: 'top', horizontal: 'left' }}
             PaperProps={{
               sx: {
-                backgroundColor: '#1A1A1A',
+                backgroundColor: 'background.paper',
                 borderRadius: 1,
                 p: 0.5,
               },
