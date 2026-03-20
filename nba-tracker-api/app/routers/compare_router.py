@@ -209,7 +209,7 @@ async def compare_players(
     try:
         result = await pipeline.execute(player1_id, player2_id, s1, s2, last_n_games)
         if not result.has_minimum_data:
-            raise HTTPException(status_code=503, detail="Unable to fetch required comparison data")
+            raise HTTPException(status_code=503, detail=result.missing_data_detail())
         return _build_comparison_response(result, last_n_games)
     except HTTPException:
         raise

@@ -5,8 +5,6 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Chip,
-  Box,
 } from '@mui/material';
 import type { SeasonAverages, HotStreakData, EfficiencyMetrics } from '../../types/compare';
 
@@ -50,18 +48,6 @@ function formatVal(v: number, format: 'int' | 'float' | 'pct'): string {
   return v.toFixed(1);
 }
 
-function TrendBadge({ trend }: { trend: string }) {
-  if (trend === 'hot')
-    return (
-      <Chip size="small" label="Hot" sx={{ bgcolor: 'error.light', color: 'error.contrastText' }} />
-    );
-  if (trend === 'cold')
-    return (
-      <Chip size="small" label="Cold" sx={{ bgcolor: 'info.light', color: 'info.contrastText' }} />
-    );
-  return <Chip size="small" label="Steady" variant="outlined" color="default" />;
-}
-
 export default function StatComparisonTable({
   player1Name,
   player2Name,
@@ -86,20 +72,10 @@ export default function StatComparisonTable({
           <TableRow>
             <TableCell sx={{ fontWeight: 600 }}>Stat</TableCell>
             <TableCell align="right" sx={{ fontWeight: 600 }}>
-              <Box
-                sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5 }}
-              >
-                {player1Name}
-                {player1HotStreak && <TrendBadge trend={player1HotStreak.overall_trend} />}
-              </Box>
+              {player1Name}
             </TableCell>
             <TableCell align="right" sx={{ fontWeight: 600 }}>
-              <Box
-                sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5 }}
-              >
-                {player2Name}
-                {player2HotStreak && <TrendBadge trend={player2HotStreak.overall_trend} />}
-              </Box>
+              {player2Name}
             </TableCell>
           </TableRow>
         </TableHead>

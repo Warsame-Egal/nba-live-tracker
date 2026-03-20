@@ -1,188 +1,443 @@
 import React, { useState } from 'react';
-import { Paper, Box, Typography, Chip, Collapse, IconButton } from '@mui/material';
-import { ExpandMore } from '@mui/icons-material';
+import { Paper, Box, Typography, Avatar, Chip, Collapse, IconButton } from '@mui/material';
+import { ExpandMore, Warning } from '@mui/icons-material';
 import { useTheme, alpha } from '@mui/material/styles';
-import { borderRadius, transitions, typography } from '../theme/designTokens';
 import { GamePrediction } from '../types/predictions';
-import PredictionHeader from './predictions/PredictionHeader';
-import PredictionSummary from './predictions/PredictionSummary';
-import RiskFactors from './predictions/RiskFactors';
-import { getTeamAbbreviation } from '../utils/teamMappings';
+import { getTeamAbbreviation, getTeamLogo } from '../utils/teamMappings';
 
 interface PredictionCardProps {
   prediction: GamePrediction;
 }
 
-/**
- * Prediction card: confidence top-right, narrative at top, large win prob bar,
- * key factor pills inline, tap to expand risk factors.
- */
 const PredictionCard: React.FC<PredictionCardProps> = ({ prediction }) => {
   const theme = useTheme();
-  const [riskExpanded, setRiskExpanded] = useState(false);
-  const [narrativeExpanded, setNarrativeExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
-  const confidenceColor =
-    prediction.confidence_tier &&
-    (() => {
-      switch (prediction.confidence_tier.toLowerCase()) {
-        case 'high':
-          return theme.palette.success.main;
-        case 'medium':
-          return theme.palette.warning.main;
-        case 'low':
-          return theme.palette.text.secondary;
-        default:
-          return theme.palette.text.secondary;
-      }
-    })();
+  const homeAbbr = getTeamAbbreviation(prediction.home_team_name);
+  const awayAbbr = getTeamAbbreviation(prediction.away_team_name);
+  const homeLogo = getTeamLogo(prediction.home_team_name);
+  const awayLogo = getTeamLogo(prediction.away_team_name);
+
+  const homeProb = Math.round(prediction.home_win_probability * 100);
+  const awayProb = Math.round(prediction.away_win_probability * 100);
+  const homeWins = homeProb >= awayProb;
+  const winnerAbbr = homeWins ? homeAbbr : awayAbbr;
+  const winnerProb = homeWins ? homeProb : awayProb;
+
+  // Confidence tier color
+  const confidenceColor = (() => {
+    switch ((prediction.confidence_tier || '').toLowerCase()) {
+      case 'high':
+        return theme.palette.success.main;
+      case 'medium':
+        return theme.palette.warning.main;
+      default:
+        return theme.palette.text.disabled;
+    }
+  })();
+
+  const hasDetails =
+    prediction.matchup_narrative ||
+    (prediction.key_drivers && prediction.key_drivers.length > 0) ||
+    (prediction.risk_factors && prediction.risk_factors.length > 0);
 
   return (
     <Paper
       elevation={0}
       sx={{
-        position: 'relative',
         display: 'flex',
         flexDirection: 'column',
-        borderRadius: borderRadius.md,
         border: '1px solid',
         borderColor: 'divider',
-        borderLeft: '4px solid',
-        borderLeftColor: confidenceColor || 'primary.main',
+        borderRadius: 2,
+        overflow: 'hidden',
         backgroundColor: 'background.paper',
-        p: { xs: 2.5, sm: 3 },
-        minHeight: { xs: 380, sm: 420 },
-        transition: transitions.smooth,
+        transition: 'box-shadow 0.2s ease',
         '&:hover': {
           boxShadow:
             theme.palette.mode === 'dark'
-              ? '0 8px 24px rgba(0, 0, 0, 0.4)'
-              : '0 4px 12px rgba(0, 0, 0, 0.12)',
-          borderColor: alpha(theme.palette.primary.main, 0.3),
+              ? '0 4px 20px rgba(0,0,0,0.4)'
+              : '0 4px 16px rgba(0,0,0,0.1)',
         },
       }}
     >
-      {/* Confidence badge top-right */}
-      {prediction.confidence_tier && confidenceColor && (
-        <Chip
-          label={
-            prediction.confidence_tier.toUpperCase()
-          }
-          size="small"
+      {/* ── TOP: confidence bar ─────────────────────────── */}
+      <Box
+        sx={{
+          height: 3,
+          backgroundColor: alpha(confidenceColor, 0.25),
+          position: 'relative',
+        }}
+      >
+        <Box
           sx={{
             position: 'absolute',
-            top: 12,
-            right: 12,
-            height: 24,
-            fontSize: '0.6875rem',
-            fontWeight: typography.weight.semibold,
-            fontFamily: '"Barlow Condensed", sans-serif',
-            backgroundColor: alpha(confidenceColor, 0.15),
-            color: confidenceColor,
-            border: `1px solid ${alpha(confidenceColor, 0.3)}`,
-            borderRadius: borderRadius.sm,
+            left: 0,
+            top: 0,
+            height: '100%',
+            width: `${winnerProb}%`,
+            backgroundColor: confidenceColor,
+            transition: 'width 0.6s ease',
           }}
         />
-      )}
+      </Box>
 
-      {/* Matchup narrative first */}
-      {prediction.matchup_narrative && (
-        <Box sx={{ mb: 1.5 }}>
-          <Box
-            onClick={() => setNarrativeExpanded(e => !e)}
-            sx={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}
-          >
-            <Typography variant="caption" color="text.secondary">
-              Matchup narrative
-            </Typography>
+      {/* ── HEADER: teams + logos + confidence badge ──── */}
+      <Box sx={{ p: { xs: 2, sm: 2.5 }, pb: 0 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+          {/* Away team */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1 }}>
+            <Avatar
+              src={awayLogo}
+              alt={awayAbbr}
+              sx={{ width: 36, height: 36, border: '1px solid', borderColor: 'divider' }}
+              onError={e => {
+                (e.currentTarget as HTMLImageElement).src = '/logos/NBA.svg';
+              }}
+            />
+            <Box>
+              <Typography
+                variant="body2"
+                fontWeight={700}
+                sx={{
+                  fontFamily: '"Barlow Condensed", sans-serif',
+                  fontSize: '1rem',
+                  letterSpacing: '0.02em',
+                }}
+              >
+                {awayAbbr}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6875rem' }}>
+                Away
+              </Typography>
+            </Box>
           </Box>
-          <Collapse in={narrativeExpanded}>
+
+          {/* VS + confidence */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5, px: 1 }}>
             <Typography
-              variant="body2"
+              variant="caption"
+              color="text.secondary"
+              sx={{ fontWeight: 600, letterSpacing: '0.06em', fontSize: '0.6875rem' }}
+            >
+              VS
+            </Typography>
+            {prediction.confidence_tier && (
+              <Chip
+                label={prediction.confidence_tier.toUpperCase()}
+                size="small"
+                sx={{
+                  height: 20,
+                  fontSize: '0.625rem',
+                  fontWeight: 700,
+                  letterSpacing: '0.05em',
+                  backgroundColor: alpha(confidenceColor, 0.12),
+                  color: confidenceColor,
+                  border: `1px solid ${alpha(confidenceColor, 0.3)}`,
+                  borderRadius: 1,
+                }}
+              />
+            )}
+          </Box>
+
+          {/* Home team */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1, justifyContent: 'flex-end' }}>
+            <Box sx={{ textAlign: 'right' }}>
+              <Typography
+                variant="body2"
+                fontWeight={700}
+                sx={{
+                  fontFamily: '"Barlow Condensed", sans-serif',
+                  fontSize: '1rem',
+                  letterSpacing: '0.02em',
+                }}
+              >
+                {homeAbbr}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6875rem' }}>
+                Home
+              </Typography>
+            </Box>
+            <Avatar
+              src={homeLogo}
+              alt={homeAbbr}
+              sx={{ width: 36, height: 36, border: '1px solid', borderColor: 'divider' }}
+              onError={e => {
+                (e.currentTarget as HTMLImageElement).src = '/logos/NBA.svg';
+              }}
+            />
+          </Box>
+        </Box>
+
+        {/* ── WIN PROBABILITY: single split bar ─────────── */}
+        <Box sx={{ mb: 2 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.75 }}>
+            <Typography
+              variant="caption"
               sx={{
-                mt: 0.75,
-                pr: prediction.confidence_tier ? 5 : 0,
-                lineHeight: 1.6,
-                color: 'text.secondary',
-                fontStyle: 'italic',
-                fontWeight: typography.weight.regular,
-                fontSize: { xs: '0.875rem', sm: '0.9375rem' },
+                fontFamily: '"Barlow Condensed", sans-serif',
+                fontWeight: !homeWins ? 800 : 500,
+                fontSize: '0.9375rem',
+                color: !homeWins ? 'text.primary' : 'text.secondary',
               }}
             >
-              {prediction.matchup_narrative}
+              {awayProb}%
             </Typography>
-          </Collapse>
+            <Typography
+              variant="caption"
+              sx={{ fontSize: '0.6875rem', color: 'text.disabled', alignSelf: 'center' }}
+            >
+              WIN PROBABILITY
+            </Typography>
+            <Typography
+              variant="caption"
+              sx={{
+                fontFamily: '"Barlow Condensed", sans-serif',
+                fontWeight: homeWins ? 800 : 500,
+                fontSize: '0.9375rem',
+                color: homeWins ? 'text.primary' : 'text.secondary',
+              }}
+            >
+              {homeProb}%
+            </Typography>
+          </Box>
+          {/* Split bar — away left, home right */}
+          <Box
+            sx={{
+              display: 'flex',
+              height: 6,
+              borderRadius: 999,
+              overflow: 'hidden',
+              gap: '2px',
+              backgroundColor: 'divider',
+            }}
+          >
+            <Box
+              sx={{
+                flex: awayProb,
+                backgroundColor: !homeWins
+                  ? theme.palette.primary.main
+                  : alpha(theme.palette.text.secondary, 0.3),
+                borderRadius: '999px 0 0 999px',
+                transition: 'flex 0.4s ease',
+              }}
+            />
+            <Box
+              sx={{
+                flex: homeProb,
+                backgroundColor: homeWins
+                  ? theme.palette.primary.main
+                  : alpha(theme.palette.text.secondary, 0.3),
+                borderRadius: '0 999px 999px 0',
+                transition: 'flex 0.4s ease',
+              }}
+            />
+          </Box>
+          {/* Winner label */}
+          <Typography
+            variant="caption"
+            sx={{
+              display: 'block',
+              textAlign: 'center',
+              mt: 0.75,
+              fontSize: '0.6875rem',
+              color: 'text.secondary',
+            }}
+          >
+            {winnerAbbr} favored — {winnerProb}% win probability
+          </Typography>
         </Box>
-      )}
 
-      {/* Header: logos and matchup (no confidence — shown top-right) */}
-      <PredictionHeader prediction={prediction} hideConfidence />
+        {/* ── PREDICTED SCORE ───────────────────────────── */}
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 2,
+            py: 1.5,
+            px: 2,
+            mb: 1.5,
+            backgroundColor: alpha(theme.palette.primary.main, 0.04),
+            borderRadius: 1.5,
+            border: '1px solid',
+            borderColor: alpha(theme.palette.primary.main, 0.1),
+          }}
+        >
+          <Box sx={{ textAlign: 'center', flex: 1 }}>
+            <Typography
+              sx={{
+                fontFamily: '"Barlow Condensed", sans-serif',
+                fontWeight: !homeWins ? 800 : 600,
+                fontSize: { xs: '1.75rem', sm: '2rem' },
+                lineHeight: 1,
+                color: !homeWins ? 'primary.main' : 'text.secondary',
+                fontVariantNumeric: 'tabular-nums',
+              }}
+            >
+              {prediction.predicted_away_score.toFixed(0)}
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6875rem', fontWeight: 600 }}>
+              {awayAbbr}
+            </Typography>
+          </Box>
+          <Typography color="text.disabled" sx={{ fontWeight: 300, fontSize: '1.25rem' }}>
+            —
+          </Typography>
+          <Box sx={{ textAlign: 'center', flex: 1 }}>
+            <Typography
+              sx={{
+                fontFamily: '"Barlow Condensed", sans-serif',
+                fontWeight: homeWins ? 800 : 600,
+                fontSize: { xs: '1.75rem', sm: '2rem' },
+                lineHeight: 1,
+                color: homeWins ? 'primary.main' : 'text.secondary',
+                fontVariantNumeric: 'tabular-nums',
+              }}
+            >
+              {prediction.predicted_home_score.toFixed(0)}
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6875rem', fontWeight: 600 }}>
+              {homeAbbr}
+            </Typography>
+          </Box>
+        </Box>
+      </Box>
 
-      {/* Summary: large win probability bar + predicted score */}
-      <PredictionSummary prediction={prediction} />
-
-      {/* Key drivers as inline pills */}
+      {/* ── KEY DRIVERS: always visible pills ─────────── */}
       {prediction.key_drivers && prediction.key_drivers.length > 0 && (
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mb: 2 }}>
-          {prediction.key_drivers.map((d, idx) => (
+        <Box sx={{ px: { xs: 2, sm: 2.5 }, pb: 1.5, display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+          {prediction.key_drivers.slice(0, 3).map((d, idx) => (
             <Chip
               key={idx}
               label={d.factor}
               size="small"
               sx={{
-                height: 26,
-                fontSize: '0.75rem',
-                fontWeight: typography.weight.medium,
-                backgroundColor: alpha(theme.palette.primary.main, 0.08),
-                border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+                height: 24,
+                fontSize: '0.6875rem',
+                fontWeight: 600,
+                backgroundColor: alpha(theme.palette.primary.main, 0.07),
+                color: 'text.secondary',
+                border: `1px solid ${alpha(theme.palette.primary.main, 0.15)}`,
+                borderRadius: 1,
               }}
             />
           ))}
         </Box>
       )}
 
-      {/* Predicted score one-liner */}
-      <Typography variant="caption" color="text.secondary" sx={{ mb: 1 }}>
-        Predicted: {getTeamAbbreviation(prediction.away_team_name)}{' '}
-        {prediction.predicted_away_score.toFixed(0)} —{' '}
-        {getTeamAbbreviation(prediction.home_team_name)}{' '}
-        {prediction.predicted_home_score.toFixed(0)}
-      </Typography>
-
-      {/* Tap to expand risk factors */}
-      {prediction.risk_factors && prediction.risk_factors.length > 0 && (
-        <Box sx={{ mt: 'auto', pt: 1, borderTop: '1px solid', borderColor: 'divider' }}>
+      {/* ── FOOTER: expand toggle + analysis ─────────── */}
+      {hasDetails && (
+        <>
           <Box
-            onClick={() => setRiskExpanded(e => !e)}
             sx={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
+              px: { xs: 2, sm: 2.5 },
+              py: 1,
+              borderTop: '1px solid',
+              borderColor: 'divider',
               cursor: 'pointer',
-              minHeight: 44,
-              py: 0.5,
-              '&:hover': { backgroundColor: alpha(theme.palette.primary.main, 0.04) },
-              borderRadius: 1,
+              '&:hover': { backgroundColor: 'action.hover' },
             }}
+            onClick={() => setExpanded(e => !e)}
           >
-            <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: '0.8125rem', color: '#FFB300' }}>
-              ⚠ Risk factors
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ fontWeight: 600, fontSize: '0.6875rem', letterSpacing: '0.05em' }}
+            >
+              {expanded ? 'HIDE ANALYSIS' : 'SHOW ANALYSIS'}
             </Typography>
-            <IconButton size="small" sx={{ p: 0.25 }}>
+            <IconButton size="small" sx={{ p: 0.25, color: 'text.secondary' }}>
               <ExpandMore
                 sx={{
-                  transform: riskExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                  fontSize: 18,
+                  transform: expanded ? 'rotate(180deg)' : 'none',
                   transition: 'transform 0.2s',
                 }}
               />
             </IconButton>
           </Box>
-          <Collapse in={riskExpanded}>
-            <Box sx={{ pt: 1 }}>
-              <RiskFactors risks={prediction.risk_factors} defaultExpanded={false} />
+
+          <Collapse in={expanded}>
+            <Box sx={{ px: { xs: 2, sm: 2.5 }, pb: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {/* Matchup narrative */}
+              {prediction.matchup_narrative && (
+                <Typography
+                  variant="body2"
+                  sx={{
+                    fontSize: '0.8125rem',
+                    lineHeight: 1.65,
+                    color: 'text.secondary',
+                    fontStyle: 'italic',
+                    pt: 1.5,
+                    borderTop: '1px solid',
+                    borderColor: 'divider',
+                  }}
+                >
+                  {prediction.matchup_narrative}
+                </Typography>
+              )}
+
+              {/* All key drivers with impact text */}
+              {prediction.key_drivers && prediction.key_drivers.length > 0 && (
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+                  <Typography variant="overline" sx={{ fontSize: '0.625rem', letterSpacing: '0.1em', color: 'text.disabled' }}>
+                    Key Factors
+                  </Typography>
+                  {prediction.key_drivers.map((d, idx) => (
+                    <Box key={idx} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 1 }}>
+                      <Typography variant="caption" sx={{ fontSize: '0.75rem', color: 'text.secondary', flex: 1, lineHeight: 1.4 }}>
+                        {d.factor}
+                        {d.impact ? ` — ${d.impact}` : ''}
+                      </Typography>
+                      <Chip
+                        label={d.magnitude}
+                        size="small"
+                        sx={{
+                          height: 18,
+                          fontSize: '0.5625rem',
+                          fontWeight: 700,
+                          letterSpacing: '0.04em',
+                          flexShrink: 0,
+                          backgroundColor:
+                            d.magnitude?.toLowerCase() === 'high'
+                              ? alpha(theme.palette.primary.main, 0.12)
+                              : alpha(theme.palette.text.secondary, 0.1),
+                          color:
+                            d.magnitude?.toLowerCase() === 'high' ? 'primary.main' : 'text.secondary',
+                          borderRadius: 0.75,
+                        }}
+                      />
+                    </Box>
+                  ))}
+                </Box>
+              )}
+
+              {/* Risk factors */}
+              {prediction.risk_factors && prediction.risk_factors.length > 0 && (
+                <Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.75 }}>
+                    <Warning sx={{ fontSize: 14, color: 'warning.main' }} />
+                    <Typography variant="overline" sx={{ fontSize: '0.625rem', letterSpacing: '0.1em', color: 'warning.main' }}>
+                      Risk Factors
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+                    {prediction.risk_factors.map((r, idx) => (
+                      <Typography key={idx} variant="caption" sx={{ fontSize: '0.75rem', color: 'text.secondary', lineHeight: 1.4 }}>
+                        · {r.factor}
+                        {r.explanation ? ` — ${r.explanation}` : ''}
+                      </Typography>
+                    ))}
+                  </Box>
+                </Box>
+              )}
             </Box>
           </Collapse>
-        </Box>
+        </>
       )}
     </Paper>
   );

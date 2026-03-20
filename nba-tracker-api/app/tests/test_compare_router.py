@@ -126,7 +126,9 @@ def test_compare_players_503_when_minimum_data_missing(mock_execute):
     mock_execute.return_value = result
     response = client.get("/api/v1/compare/2544/201566?season=2025-26&last_n_games=20")
     assert response.status_code == 503
-    assert "Unable to fetch required" in response.json().get("detail", "")
+    detail = response.json().get("detail", "")
+    assert "Unable to load comparison" in detail
+    assert "Player 1 profile" in detail
 
 
 @patch("app.routers.compare_router.pipeline.execute", new_callable=AsyncMock)

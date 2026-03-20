@@ -10,7 +10,6 @@ import { PredictionsResponse, GamePrediction } from '../types/predictions';
 import { format, parseISO } from 'date-fns';
 
 import { API_BASE_URL } from '../utils/apiConfig';
-import { getTeamAbbreviation } from '../utils/teamMappings';
 import PageContainer from '../components/PageContainer';
 
 // Helper function for clamp() typography
@@ -112,64 +111,44 @@ const Predictions = () => {
       }}
     >
       <PageContainer maxWidth={1400}>
-        {/* Header - full width */}
-        <Box sx={{ mb: 2 }}>
+        <Box sx={{ mb: 3 }}>
           <Box
             sx={{
               display: 'flex',
-              alignItems: 'center',
+              alignItems: 'flex-end',
               justifyContent: 'space-between',
-              mb: 2,
+              mb: 2.5,
               flexWrap: 'wrap',
-              gap: 2,
+              gap: 1,
             }}
           >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-              <Box>
-                <Typography
-                  variant="h5"
-                  sx={{
-                    fontWeight: typography.weight.bold,
-                    fontSize: {
-                      xs: 'clamp(1.25rem, 4vw, 1.5rem)',
-                      sm: 'clamp(1.25rem, 4vw, 1.5rem)',
-                    },
-                    color: 'text.primary',
-                  }}
-                >
-                  Predictions
-                </Typography>
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
-                  sx={{ fontSize: typography.editorial.helper.xs }}
-                >
-                  AI-powered game insights
-                </Typography>
-              </Box>
+            <Box>
+              <Typography
+                variant="h5"
+                sx={{
+                  fontWeight: 700,
+                  fontFamily: '"Barlow Condensed", sans-serif',
+                  fontSize: { xs: '1.5rem', sm: '1.75rem' },
+                  letterSpacing: '0.02em',
+                }}
+              >
+                Predictions
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                AI-powered game predictions · {format(parseISO(selectedDate), 'MMMM d, yyyy')}
+              </Typography>
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               {loading && cachedPredictions.length > 0 && (
+                <CircularProgress size={14} sx={{ color: 'text.secondary' }} />
+              )}
+              {cachedPredictions.length > 0 && (
                 <Chip
-                  icon={<CircularProgress size={12} />}
-                  label="Updating"
+                  label={`${cachedPredictions.length} Game${cachedPredictions.length !== 1 ? 's' : ''}`}
                   size="small"
-                  sx={{
-                    fontSize: clamp('0.7rem', '1.5vw', '0.75rem'),
-                    height: 24,
-                    backgroundColor: 'background.paper',
-                  }}
+                  sx={{ height: 24, fontSize: '0.6875rem', fontWeight: 600 }}
                 />
               )}
-              <Chip
-                label={`${cachedPredictions.length} Game${cachedPredictions.length !== 1 ? 's' : ''}`}
-                size="small"
-                sx={{
-                  backgroundColor: 'background.paper',
-                  fontWeight: typography.weight.medium,
-                  fontSize: clamp('0.7rem', '1.5vw', '0.75rem'),
-                }}
-              />
             </Box>
           </Box>
           <WeeklyCalendar selectedDate={selectedDate} setSelectedDate={handleDateChange} />
@@ -252,87 +231,25 @@ const Predictions = () => {
               </Typography>
             </Box>
           ) : (
-            // Content: two-column card grid on desktop (≥ md), summary sidebar on lg+
             <Box
               sx={{
                 display: 'grid',
-                gridTemplateColumns: { xs: '1fr', lg: '1fr 300px' },
-                gap: 3,
+                gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)', xl: 'repeat(3, 1fr)' },
+                gap: { xs: 2, sm: 2.5 },
                 alignItems: 'start',
               }}
             >
-              <Box
-                sx={{
-                  display: 'grid',
-                  gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' },
-                  gap: 2,
-                }}
-              >
-                {[...cachedPredictions]
-                  .sort((a, b) => b.home_win_probability - a.home_win_probability)
-                  .map(prediction => (
-                    <PredictionCard key={prediction.game_id} prediction={prediction} />
-                  ))}
-              </Box>
-              {/* Summary sidebar - lg+ only */}
-              <Box
-                sx={{
-                  display: { xs: 'none', lg: 'block' },
-                  position: 'sticky',
-                  top: 80,
-                }}
-              >
-                <Paper
-                  elevation={0}
-                  sx={{
-                    p: 2,
-                    border: '1px solid',
-                    borderColor: 'divider',
-                    borderRadius: borderRadius.lg,
-                    backgroundColor: 'background.paper',
-                  }}
-                >
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5 }}>
-                    Summary
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-                    {cachedPredictions.length} game{cachedPredictions.length !== 1 ? 's' : ''} today
-                  </Typography>
-                  {cachedPredictions.length > 0 &&
-                    (() => {
-                      const closest = [...cachedPredictions].sort(
-                        (a, b) =>
-                          Math.abs(a.home_win_probability - 0.5) -
-                          Math.abs(b.home_win_probability - 0.5),
-                      )[0];
-                      const mostConfident = [...cachedPredictions].sort(
-                        (a, b) =>
-                          Math.abs(b.home_win_probability - 0.5) -
-                          Math.abs(a.home_win_probability - 0.5),
-                      )[0];
-                      return (
-                        <>
-                          <Typography variant="caption" color="text.secondary" display="block">
-                            Closest: {getTeamAbbreviation(closest?.away_team_name ?? '')}–
-                            {getTeamAbbreviation(closest?.home_team_name ?? '')}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary" display="block">
-                            Most confident:{' '}
-                            {getTeamAbbreviation(mostConfident?.away_team_name ?? '')}–
-                            {getTeamAbbreviation(mostConfident?.home_team_name ?? '')} (
-                            {(
-                              Math.max(
-                                mostConfident?.home_win_probability ?? 0,
-                                mostConfident?.away_win_probability ?? 0,
-                              ) * 100
-                            ).toFixed(0)}
-                            %)
-                          </Typography>
-                        </>
-                      );
-                    })()}
-                </Paper>
-              </Box>
+              {[...cachedPredictions]
+                .sort((a, b) => {
+                  const tierOrder: Record<string, number> = { high: 0, medium: 1, low: 2 };
+                  const aTier = tierOrder[(a.confidence_tier || 'low').toLowerCase()] ?? 2;
+                  const bTier = tierOrder[(b.confidence_tier || 'low').toLowerCase()] ?? 2;
+                  if (aTier !== bTier) return aTier - bTier;
+                  return Math.abs(b.home_win_probability - 0.5) - Math.abs(a.home_win_probability - 0.5);
+                })
+                .map(prediction => (
+                  <PredictionCard key={prediction.game_id} prediction={prediction} />
+                ))}
             </Box>
           )}
         </Box>

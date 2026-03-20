@@ -76,6 +76,34 @@ export async function fetchWithRetry(
   throw lastError || new Error('Request failed after all retries');
 }
 
+/** Extract user-facing message from FastAPI-style JSON error bodies. */
+function parseFastApiErrorBody(text: string): string | null {
+  try {
+    const body = JSON.parse(text) as { detail?: unknown };
+    const d = body.detail;
+    if (typeof d === 'string') return d;
+    if (Array.isArray(d)) {
+      const msgs = d
+        .filter((x): x is Record<string, unknown> => x != null && typeof x === 'object')
+        .map((x) => (typeof x.msg === 'string' ? x.msg : ''))
+        .filter(Boolean);
+      if (msgs.length) return msgs.join(' ');
+    }
+    if (
+      d &&
+      typeof d === 'object' &&
+      d !== null &&
+      'message' in d &&
+      typeof (d as { message: unknown }).message === 'string'
+    ) {
+      return (d as { message: string }).message;
+    }
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
+
 // Fetch JSON with same retry logic
 export async function fetchJson<T>(
   url: string,
@@ -83,12 +111,14 @@ export async function fetchJson<T>(
   retryOptions: RetryOptions = {},
 ): Promise<T> {
   const response = await fetchWithRetry(url, options, retryOptions);
+  const text = await response.text();
 
   if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
+    const fromApi = parseFastApiErrorBody(text);
+    throw new Error(fromApi ?? `Request failed (${response.status})`);
   }
 
-  return response.json();
+  return JSON.parse(text) as T;
 }
 
 // Fetch league leaders for a specific stat category

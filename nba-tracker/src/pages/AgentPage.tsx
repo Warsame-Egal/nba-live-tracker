@@ -3,10 +3,14 @@ import {
   Box,
   Button,
   Chip,
+  IconButton,
   Paper,
   TextField,
+  Tooltip,
   Typography,
 } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
+import { useNavigate } from 'react-router-dom';
 import PageContainer from '../components/PageContainer';
 import { API_BASE_URL } from '../utils/apiConfig';
 
@@ -43,6 +47,7 @@ const SUGGESTIONS = [
 ];
 
 export default function AgentPage() {
+  const navigate = useNavigate();
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -214,8 +219,17 @@ export default function AgentPage() {
         flexDirection: 'column',
       }}
     >
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Box>
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          gap: 1,
+          mb: 2,
+          flexWrap: 'wrap',
+        }}
+      >
+        <Box sx={{ minWidth: 0, flex: '1 1 auto' }}>
           <Typography variant="h5" sx={{ fontFamily: '"Barlow Condensed", sans-serif', fontWeight: 700 }}>
             CourtIQ Agent
           </Typography>
@@ -223,9 +237,33 @@ export default function AgentPage() {
             Ask about live games, players, or standings
           </Typography>
         </Box>
-        <Button variant="outlined" onClick={() => setMessages([])} disabled={loading || messages.length === 0}>
-          Clear chat
-        </Button>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0, ml: 'auto' }}>
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={() => setMessages([])}
+            disabled={loading || messages.length === 0}
+          >
+            Clear
+          </Button>
+          <Tooltip title="Close">
+            <IconButton
+              color="inherit"
+              aria-label="Close agent and return to scoreboard"
+              onClick={() => navigate('/')}
+              edge="end"
+              size="medium"
+              sx={{
+                border: '1px solid',
+                borderColor: 'divider',
+                bgcolor: 'background.paper',
+                '&:hover': { bgcolor: 'action.hover', borderColor: 'text.secondary' },
+              }}
+            >
+              <CloseIcon />
+            </IconButton>
+          </Tooltip>
+        </Box>
       </Box>
 
       <Box

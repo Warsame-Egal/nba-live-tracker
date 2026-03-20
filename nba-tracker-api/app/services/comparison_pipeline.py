@@ -34,6 +34,16 @@ class FetchResult:
     cache_ttl_seconds: int | None = None
 
 
+_REQUIRED_KEYS = ("player1_bio", "player2_bio", "player1_splits", "player2_splits")
+
+_MISSING_KEY_LABELS = {
+    "player1_bio": "Player 1 profile",
+    "player2_bio": "Player 2 profile",
+    "player1_splits": "Player 1 season stats",
+    "player2_splits": "Player 2 season stats",
+}
+
+
 @dataclass
 class PipelineResult:
     """Aggregated result from all fetchers."""
@@ -43,12 +53,33 @@ class PipelineResult:
     @property
     def has_minimum_data(self) -> bool:
         """Check if we have enough data to return a useful comparison."""
-        required = ["player1_bio", "player2_bio", "player1_splits", "player2_splits"]
+        required = list(_REQUIRED_KEYS)
         return all(
             self.results.get(key, FetchResult(source=key, status=FetchStatus.FAILED)).status
             in (FetchStatus.SUCCESS, FetchStatus.CACHED)
             for key in required
         )
+
+    def missing_data_detail(self) -> str:
+        """Human-readable explanation for clients when has_minimum_data is false."""
+        parts: list[str] = []
+        for key in _REQUIRED_KEYS:
+            r = self.results.get(key)
+            ok = r and r.status in (FetchStatus.SUCCESS, FetchStatus.CACHED)
+            if ok:
+                continue
+            label = _MISSING_KEY_LABELS.get(key, key)
+            if r and r.error:
+                reason = r.error
+            elif r:
+                reason = r.status.value
+            else:
+                reason = "missing"
+            parts.append(f"{label}: {reason}")
+        hint = (
+            "Try another season, use search to pick valid NBA players, or retry later " "if the stats service is slow."
+        )
+        return "Unable to load comparison — " + "; ".join(parts) + ". " + hint
 
     @property
     def fetch_summary(self) -> dict:
