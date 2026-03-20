@@ -50,11 +50,11 @@ If every WebSocket client triggered its own NBA API request, 100 users would mea
 
 **Naive approach (and why it's wrong)**
 
-One Groq call per game for "insights" or "narrative" would mean 15 games → 15 requests in a short window. Groq enforces RPM and TPM limits (we use conservative defaults: **28 RPM**, **5800 TPM**). Bursts lead to 429s and failed requests.
+One Groq call per game for "insights" or "narrative" would mean 15 games → 15 requests in a short window. Groq enforces RPM and TPM limits (we use conservative defaults: **20 RPM**, **5500 TPM**). Bursts lead to 429s and failed requests.
 
 **Batched approach**
 
-- For **predictions**: we fetch standings and team stats once per season (cached 1 hour), then compute win probabilities and scores in-process. We make **one** Groq call per *date* (or per game only when we want enhanced narrative), not per game for basic prediction.
+- For **predictions**: we fetch standings and team stats once per season (cached 1 hour), then compute win probabilities and scores in-process. Predictions currently makes **two** Groq calls per *date* (batched insights + enhanced analysis), not one.
 - For **key moments**: we collect all moments that need "context" in a short window and send them in **one** Groq request with a structured prompt; the model returns context for each moment in one response.
 - For **batched insights**: we send multiple games' context in one prompt and get back insights for all of them.
 
@@ -71,12 +71,13 @@ Every cache has a **max size** and **LRU eviction** (oldest unused entry is drop
 | Cache                 | Max size / TTL        | Notes                          |
 |-----------------------|------------------------|--------------------------------|
 | Play-by-play          | 20 games               | LRU; finished games evicted    |
-| Win probability       | 20 games, 1 h TTL      | LRU                            |
+| Win probability       | 20 games, 30s (live) / 1h (final) TTL | LRU                   |
+| _player_stats_cache  | 500 entries, 1 h TTL   | LRU                            |
 | Predictions           | 100 date+season, 30 min TTL | LRU                      |
 | Key moments (list)    | Per game, 5 min window | Rolling; game finished → clear |
 | Moment context (AI)   | 1000 entries           | LRU                            |
 | Batched insights      | 50 batches, 20 lead-change | LRU                        |
-| Game summary (AI)     | 24 h TTL               | Per game_id                    |
+| Game summary (AI)     | 24 h TTL               | Per game_id; max 200 entries LRU |
 
 This keeps memory bounded on small instances (e.g. GCP free tier) and avoids unbounded growth over a long run.
 
@@ -147,7 +148,7 @@ For each new moment we can generate a short "why it matters" text via Groq. To a
             | Groq API client  |
             | (batched,        |
             |  rate-limited    |
-            |  28 RPM / 5800   |
+            |  20 RPM / 5500   |
             |  TPM)            |
             +------------------+
 ```
@@ -161,9 +162,11 @@ For each new moment we can generate a short "why it matters" text via Groq. To a
 | Scoreboard poll         | 8 s   |
 | Play-by-play poll       | 5 s   |
 | Play-by-play LRU size   | 20    |
-| NBA API min delay       | 600 ms |
-| Groq RPM (conservative) | 28    |
-| Groq TPM (conservative) | 5800  |
+| NBA API min delay       | >= 600 ms between calls (shared rate limiter) |
+| Groq RPM (conservative) | 20    |
+| Groq TPM (conservative) | 5500  |
 | Key moment context LRU  | 1000  |
 | Predictions cache TTL   | 30 min |
-| Win probability cache  | 20 games, 1 h TTL |
+| Win probability cache  | 20 games, 30s (live) / 1h (final) TTL |
+| Win prob poll          | 30 s |
+| Scoreboard fetch timeout | 50 s |

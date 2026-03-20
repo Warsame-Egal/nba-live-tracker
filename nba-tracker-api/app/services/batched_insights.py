@@ -176,6 +176,8 @@ class BatchedInsightsCache:
 
 
 _insights_cache = BatchedInsightsCache()
+_last_cleanup_time: float = 0.0
+_INSIGHTS_CACHE_CLEANUP_MIN_INTERVAL_SECONDS = 120.0  # avoid cleanup on every request
 
 
 async def generate_batched_insights(games: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -210,7 +212,12 @@ async def generate_batched_insights(games: List[Dict[str, Any]]) -> Dict[str, An
         cache_key_parts.append(f"{game_id}:{home_score}-{away_score}")
     cache_key = "|".join(sorted(cache_key_parts))
 
-    await _insights_cache.cleanup()
+    # Cleanup can be a bit expensive; gate it so we run it periodically instead
+    # of for every scoreboard broadcast/request.
+    now = time.time()
+    if now - _last_cleanup_time >= _INSIGHTS_CACHE_CLEANUP_MIN_INTERVAL_SECONDS:
+        _last_cleanup_time = now
+        await _insights_cache.cleanup()
 
     # Check cache
     cached = _insights_cache.get_batched_insights(cache_key)
@@ -237,6 +244,7 @@ async def generate_batched_insights(games: List[Dict[str, Any]]) -> Dict[str, An
                     system_message=system_message,
                     user_prompt=prompt,
                     rate_limiter=get_groq_rate_limiter(),
+                    max_tokens=800,
                 ),
                 timeout=10.0,  # 10 second timeout for batched insights
             )
@@ -339,13 +347,18 @@ async def generate_lead_change_explanation(
     Returns:
         Dict with summary and key_factors, or None if error
     """
-    # Check if lead actually changed
-    if not _insights_cache.detect_lead_change(game_id, current_home_score, current_away_score):
-        # Check cache for existing explanation
-        cached = _insights_cache.get_lead_change_explanation(game_id)
-        if cached:
-            logger.debug(f"Returning cached lead change explanation for game {game_id}")
-            return cached
+    # Detect if the lead changed; this may invalidate cached explanations.
+    lead_changed = _insights_cache.detect_lead_change(game_id, current_home_score, current_away_score)
+
+    # Always check cache after invalidation.
+    cached = _insights_cache.get_lead_change_explanation(game_id)
+    if cached:
+        logger.debug(f"Returning cached lead change explanation for game {game_id}")
+        return cached
+
+    # Only generate new explanation if lead actually changed.
+    if not lead_changed:
+        return None
 
     # Check if Groq is available
     if not GROQ_AVAILABLE:
@@ -378,6 +391,7 @@ async def generate_lead_change_explanation(
                     system_message=system_message,
                     user_prompt=prompt,
                     rate_limiter=get_groq_rate_limiter(),
+                    max_tokens=200,
                 ),
                 timeout=5.0,  # 5 second timeout for lead change explanation
             )

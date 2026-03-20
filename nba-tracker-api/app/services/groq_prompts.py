@@ -415,9 +415,8 @@ OUTPUT FORMAT (STRICT JSON):
   ]
 }}
 
-IMPORTANT: You MUST return at least one insight for each game provided, even if the change is minimal. 
-Only use type="none" if the game is not live or has no data.
-For live games with scores, always provide an insight describing the current game state."""
+Only return insights for games where something meaningful changed. If a game has no
+meaningful change, omit it from the response. Do not fabricate insights for unchanged games."""
 
     return prompt
 

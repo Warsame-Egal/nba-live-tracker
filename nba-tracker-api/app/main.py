@@ -64,6 +64,7 @@ from app.routers.schedule import router as schedule_router  # noqa: E402
 from app.routers.scoreboard import router as scoreboard_router  # noqa: E402
 from app.routers.standings import router as standings_router  # noqa: E402
 from app.routers.teams import router as team_router  # noqa: E402
+from app.routers.agent import router as agent_router  # noqa: E402
 from app.routers.search import router as search_router  # noqa: E402
 from app.routers.predictions import router as predictions_router  # noqa: E402
 from app.routers.league import router as league_router  # noqa: E402
@@ -196,3 +197,4 @@ app.include_router(predictions_router, prefix="/api/v1")
 app.include_router(league_router, prefix="/api/v1")
 app.include_router(compare_router)
 app.include_router(health_router)
+app.include_router(agent_router)

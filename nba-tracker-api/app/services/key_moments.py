@@ -24,10 +24,6 @@ from collections import OrderedDict
 from app.constants import GAME_STATUS_FINAL, GAME_STATUS_LIVE
 from app.services.data_cache import data_cache
 from app.services.groq_client import call_groq_api
-from app.services.groq_prompts import (
-    build_key_moment_context_prompt,
-    get_key_moment_system_message,
-)
 from app.config import get_groq_api_key
 from app.services.groq_client import groq_is_ready
 
@@ -642,7 +638,11 @@ async def generate_batched_moment_contexts(moments_with_game_info: List[Dict[str
         prompt = build_batched_moment_context_prompt(moments_needing_context)
 
         response = await call_groq_api(
-            api_key=api_key, system_message=system_message, user_prompt=prompt, rate_limiter=get_groq_rate_limiter()
+            api_key=api_key,
+            system_message=system_message,
+            user_prompt=prompt,
+            rate_limiter=get_groq_rate_limiter(),
+            max_tokens=600,
         )
 
         newly_generated_contexts: Dict[str, str] = {}
@@ -683,82 +683,6 @@ async def generate_batched_moment_contexts(moments_with_game_info: List[Dict[str
         logger.warning(f"Error generating batched moment contexts: {e}")
         # Return cached contexts even if Groq fails
         return cached_contexts
-
-
-async def generate_moment_context(moment: Dict[str, Any], game_info: Dict[str, Any]) -> Optional[str]:
-    """
-    Generate AI context for a key moment using Groq.
-
-    Once we detect a key moment, we use AI to explain why it matters. This gives users
-    a quick understanding of the significance - like "This shot tied the game with 2 minutes
-    left" or "The lead change gives the visiting team momentum heading into the final quarter."
-
-    We use Groq because it's fast - we want the context to appear quickly when a moment happens.
-    If Groq isn't available or fails, we just return None and the moment still gets shown,
-    just without the AI explanation.
-
-    Context is cached permanently by moment_id to avoid duplicate Groq API calls.
-    Once generated, the same context is returned for all subsequent requests.
-
-    Args:
-        moment: Key moment dictionary with type and play
-        game_info: Game information (home_team, away_team, scores, etc.)
-
-    Returns:
-        AI-generated context string or None if generation fails
-    """
-    # Create moment_id from moment data for caching
-    # Use game_id from game_info if available, otherwise use timestamp
-    game_id = game_info.get("game_id", "") or moment.get("game_id", "")
-    timestamp = moment.get("timestamp", "")
-    moment_id = f"{game_id}:{timestamp}" if game_id and timestamp else None
-
-    # Check cache first
-    if moment_id:
-        cached_context = _get_moment_context(moment_id)
-        if cached_context:
-            logger.debug(f"Returning cached context for moment {moment_id}")
-            return cached_context
-
-    try:
-        if not groq_is_ready():
-            logger.warning("Groq not available, skipping context generation")
-            return None
-
-        api_key = get_groq_api_key()
-        system_message = get_key_moment_system_message()
-        prompt = build_key_moment_context_prompt(moment, game_info)
-
-        response = await call_groq_api(api_key, system_message, prompt)
-
-        context = None
-        if response and response.get("content"):
-            # Parse JSON response
-            import json
-
-            try:
-                content = response["content"]
-                # Remove markdown code blocks if present
-                if "```json" in content:
-                    content = content.split("```json")[1].split("```")[0].strip()
-                elif "```" in content:
-                    content = content.split("```")[1].split("```")[0].strip()
-
-                parsed = json.loads(content)
-                context = parsed.get("context", "")
-            except json.JSONDecodeError:
-                # If not JSON, try to extract text directly
-                context = content.strip()
-
-        # Cache the context if we have a moment_id and context was generated
-        if moment_id and context:
-            _set_moment_context(moment_id, context)
-            logger.debug(f"Cached context for moment {moment_id}")
-
-        return context
-    except Exception as e:
-        logger.warning(f"Error generating moment context: {e}")
-        return None
 
 
 async def get_key_moments_for_game(game_id: str) -> List[Dict[str, Any]]:
@@ -812,7 +736,10 @@ async def get_key_moments_for_game(game_id: str) -> List[Dict[str, Any]]:
         moments_needing_context = []
         for moment in moments:
             if "context" not in moment:
-                moment_id = f"{game_id}:{moment.get('timestamp', 'unknown')}"
+                play = moment.get("play") or {}
+                action_number = play.get("action_number", 0)
+                moment_type = moment.get("type", "unknown")
+                moment_id = f"{game_id}:{action_number}:{moment_type}"
                 moments_needing_context.append(
                     {
                         "moment_id": moment_id,
@@ -899,7 +826,10 @@ async def process_live_games() -> None:
 
                         for moment in moments:
                             if "context" not in moment:
-                                moment_id = f"{game_id}:{moment.get('timestamp', 'unknown')}"
+                                play = moment.get("play") or {}
+                                action_number = play.get("action_number", 0)
+                                moment_type = moment.get("type", "unknown")
+                                moment_id = f"{game_id}:{action_number}:{moment_type}"
                                 all_moments_needing_context.append(
                                     {
                                         "moment_id": moment_id,

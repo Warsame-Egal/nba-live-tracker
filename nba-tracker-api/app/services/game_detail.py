@@ -6,6 +6,7 @@ key moments, and win probability in parallel with safe error handling.
 """
 
 import asyncio
+from collections import OrderedDict
 import logging
 import time
 from types import SimpleNamespace
@@ -27,8 +28,18 @@ from app.services.win_probability import get_win_probability
 logger = logging.getLogger(__name__)
 
 # 24h cache for AI game summaries: game_id -> (summary_text, timestamp)
-_game_summary_cache: Dict[str, Tuple[str, float]] = {}
+_game_summary_cache: OrderedDict[str, Tuple[str, float]] = OrderedDict()
 _GAME_SUMMARY_CACHE_TTL = 24 * 3600  # 24 hours
+_GAME_SUMMARY_CACHE_MAX_SIZE = 200
+
+
+def _store_game_summary(game_id: str, text: str) -> None:
+    """Store game summary in an LRU + TTL cache."""
+    now = time.time()
+    _game_summary_cache[game_id] = (text, now)
+    _game_summary_cache.move_to_end(game_id)
+    if len(_game_summary_cache) > _GAME_SUMMARY_CACHE_MAX_SIZE:
+        _game_summary_cache.popitem(last=False)
 
 
 def get_cached_summary(game_id: str) -> Optional[str]:
@@ -40,6 +51,7 @@ def get_cached_summary(game_id: str) -> Optional[str]:
     if now - ts >= _GAME_SUMMARY_CACHE_TTL:
         _game_summary_cache.pop(game_id, None)
         return None
+    _game_summary_cache.move_to_end(game_id)
     return text
 
 
@@ -292,6 +304,7 @@ async def _generate_game_summary(
     if game_id in _game_summary_cache:
         text, ts = _game_summary_cache[game_id]
         if now - ts < _GAME_SUMMARY_CACHE_TTL:
+            _game_summary_cache.move_to_end(game_id)
             return text
         _game_summary_cache.pop(game_id, None)
 
@@ -339,7 +352,7 @@ async def _generate_game_summary(
         )
         content = (response.get("content") or "").strip()
         if content:
-            _game_summary_cache[game_id] = (content, now)
+            _store_game_summary(game_id, content)
             return content
     except Exception as e:
         logger.warning(f"Game summary generation failed for {game_id}: {e}")

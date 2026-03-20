@@ -2,7 +2,7 @@ import asyncio
 import logging
 import re
 import time
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 from fastapi import HTTPException
 from nba_api.live.nba.endpoints import boxscore, playbyplay, scoreboard
@@ -35,7 +35,7 @@ from app.constants import GAME_STATUS_LIVE
 from app.utils.rate_limiter import rate_limit
 
 
-def format_games_for_insights(games: list) -> List[Dict]:
+def format_games_for_insights(games: list, win_prob_data: Optional[dict] = None) -> List[Dict]:
     """Format live game objects or dicts into the structure expected by generate_batched_insights."""
     result = []
     for game in games:
@@ -47,9 +47,18 @@ def format_games_for_insights(games: list) -> List[Dict]:
             home_score = home.get("score", 0) or 0
             away_score = away.get("score", 0) or 0
             total = home_score + away_score
+            game_id = game.get("gameId", "")
+            wp_key = str(game_id)
+
+            actual_wp = (win_prob_data or {}).get(wp_key)
+            if actual_wp and actual_wp.get("home_win_prob") is not None:
+                home_win_prob = actual_wp["home_win_prob"]
+            else:
+                home_win_prob = home_score / total if total > 0 else 0.5
+            away_win_prob = 1.0 - float(home_win_prob)
             result.append(
                 {
-                    "game_id": game.get("gameId", ""),
+                    "game_id": game_id,
                     "home_team": f"{home.get('teamCity', '')} {home.get('teamName', '')}".strip()
                     or home.get("teamName", ""),
                     "away_team": f"{away.get('teamCity', '')} {away.get('teamName', '')}".strip()
@@ -58,8 +67,8 @@ def format_games_for_insights(games: list) -> List[Dict]:
                     "away_score": away_score,
                     "quarter": game.get("period", 1),
                     "time_remaining": game.get("gameClock", ""),
-                    "win_prob_home": home_score / total if total > 0 else 0.5,
-                    "win_prob_away": away_score / total if total > 0 else 0.5,
+                    "win_prob_home": home_win_prob,
+                    "win_prob_away": away_win_prob,
                     "last_event": game.get("gameStatusText", ""),
                 }
             )
@@ -71,9 +80,18 @@ def format_games_for_insights(games: list) -> List[Dict]:
             home_score = getattr(home, "score", None) or 0
             away_score = getattr(away, "score", None) or 0
             total = home_score + away_score
+            game_id = getattr(game, "gameId", "")
+            wp_key = str(game_id)
+
+            actual_wp = (win_prob_data or {}).get(wp_key)
+            if actual_wp and actual_wp.get("home_win_prob") is not None:
+                home_win_prob = actual_wp["home_win_prob"]
+            else:
+                home_win_prob = home_score / total if total > 0 else 0.5
+            away_win_prob = 1.0 - float(home_win_prob)
             result.append(
                 {
-                    "game_id": getattr(game, "gameId", ""),
+                    "game_id": game_id,
                     "home_team": f"{getattr(home, 'teamCity', '')} {getattr(home, 'teamName', '')}".strip()
                     or getattr(home, "teamName", ""),
                     "away_team": f"{getattr(away, 'teamCity', '')} {getattr(away, 'teamName', '')}".strip()
@@ -82,8 +100,8 @@ def format_games_for_insights(games: list) -> List[Dict]:
                     "away_score": away_score,
                     "quarter": getattr(game, "period", 1),
                     "time_remaining": getattr(game, "gameClock", "") or "",
-                    "win_prob_home": home_score / total if total > 0 else 0.5,
-                    "win_prob_away": away_score / total if total > 0 else 0.5,
+                    "win_prob_home": home_win_prob,
+                    "win_prob_away": away_win_prob,
                     "last_event": getattr(game, "gameStatusText", "") or "",
                 }
             )

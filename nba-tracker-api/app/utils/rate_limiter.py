@@ -13,14 +13,18 @@ import time
 import logging
 from typing import Optional
 
+from app.constants import NBA_API_MIN_DELAY_SECONDS
+
 logger = logging.getLogger(__name__)
 
 # Track when we last made an API call
 _last_call_time: Optional[float] = None
 
+# Prevent concurrent coroutines from bypassing the delay.
+_lock = asyncio.Lock()
+
 # Minimum time to wait between API calls (600ms = 0.6 seconds)
-# This prevents the NBA API from throttling or blocking our requests
-_min_delay_seconds = 0.6
+_min_delay_seconds = NBA_API_MIN_DELAY_SECONDS
 
 
 async def rate_limit():
@@ -33,21 +37,22 @@ async def rate_limit():
 
     Call this function before every NBA API call to stay within rate limits.
     """
-    global _last_call_time
+    async with _lock:
+        global _last_call_time
 
-    current_time = time.time()
+        current_time = time.time()
 
-    # If we've made a call before, check if we need to wait
-    if _last_call_time is not None:
-        time_since_last_call = current_time - _last_call_time
+        # If we've made a call before, check if we need to wait
+        if _last_call_time is not None:
+            time_since_last_call = current_time - _last_call_time
 
-        # If less than 600ms has passed, wait for the remaining time
-        if time_since_last_call < _min_delay_seconds:
-            delay = _min_delay_seconds - time_since_last_call
-            await asyncio.sleep(delay)
+            # If less than 600ms has passed, wait for the remaining time
+            if time_since_last_call < _min_delay_seconds:
+                delay = _min_delay_seconds - time_since_last_call
+                await asyncio.sleep(delay)
 
-    # Update the last call time to now
-    _last_call_time = time.time()
+        # Update the last call time to now
+        _last_call_time = time.time()
 
 
 async def safe_api_call(coro, timeout: float = 10.0, max_retries: int = 2):

@@ -3,6 +3,7 @@ import { Suspense, lazy } from 'react';
 import { Box, Skeleton } from '@mui/material';
 import AppShell from './components/AppShell';
 import { LiveCountProvider } from './contexts/LiveCountContext';
+import AgentChat from './components/AgentChat';
 
 // Lazy load pages to improve initial load time
 // Pages are only loaded when the user navigates to them
@@ -18,45 +19,21 @@ const ComparePage = lazy(() => import('./pages/ComparePage'));
 const GameDetail = lazy(() => import('./pages/GameDetail'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
+const PageSkeleton = () => (
+  <Box sx={{ maxWidth: 1400, mx: 'auto', px: { xs: 1, sm: 2, md: 3 }, py: 2 }}>
+    <Skeleton variant="rectangular" height={80} sx={{ borderRadius: 2, mb: 2 }} />
+    <Skeleton variant="rectangular" height={200} sx={{ borderRadius: 2, mb: 2 }} />
+    <Skeleton variant="rectangular" height={400} sx={{ borderRadius: 2 }} />
+  </Box>
+);
+
 // Main app component with routing
 export default function App() {
   return (
     <Router>
       <LiveCountProvider>
         <AppShell>
-          <Suspense
-            fallback={
-              <Box
-                sx={{
-                  minHeight: '100dvh',
-                  backgroundColor: 'background.default',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  maxWidth: '100vw',
-                  overflowX: 'hidden',
-                  overflowY: 'visible',
-                  width: '100%',
-                }}
-              >
-                <Box
-                  sx={{
-                    maxWidth: '1400px',
-                    mx: 'auto',
-                    px: { xs: 1, sm: 2, md: 3, lg: 4 },
-                    py: { xs: 2, sm: 3 },
-                    width: '100%',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 2,
-                  }}
-                >
-                  <Skeleton variant="rectangular" height={80} sx={{ borderRadius: 2 }} />
-                  <Skeleton variant="rectangular" height={200} sx={{ borderRadius: 2 }} />
-                  <Skeleton variant="rectangular" height={400} sx={{ borderRadius: 2 }} />
-                </Box>
-              </Box>
-            }
-          >
+          <Suspense fallback={<PageSkeleton />}>
             {/* Define all the routes */}
             <Routes>
               {/* Home page - shows the scoreboard */}
@@ -86,6 +63,7 @@ export default function App() {
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
+          <AgentChat />
         </AppShell>
       </LiveCountProvider>
     </Router>

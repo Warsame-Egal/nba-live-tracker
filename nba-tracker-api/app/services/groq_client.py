@@ -158,8 +158,8 @@ class GroqRateLimiter:
 
 # Global Groq rate limiter instance
 # Conservative limits: 20 RPM (below 30) and 5500 TPM (below 6000, leaves 500 buffer)
-# Token estimation increased to 2000 to account for larger batched requests
-_groq_rate_limiter = GroqRateLimiter(max_requests_per_minute=20, max_tokens_per_minute=5500, tokens_per_request=2000)
+# Token estimation tuned down to match per-call max_tokens budgeting.
+_groq_rate_limiter = GroqRateLimiter(max_requests_per_minute=20, max_tokens_per_minute=5500, tokens_per_request=800)
 
 
 async def _raw_groq_call(

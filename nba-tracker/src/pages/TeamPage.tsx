@@ -581,10 +581,10 @@ const TeamPage = () => {
                 <TableRow>
                   <TableCell sx={{ fontWeight: typography.weight.bold }}>Lineup</TableCell>
                   <TableCell sx={{ fontWeight: typography.weight.bold }} align="right">
-                    MIN
+                    Minutes
                   </TableCell>
                   <TableCell sx={{ fontWeight: typography.weight.bold }} align="right">
-                    Net rating
+                    Net Rtg
                   </TableCell>
                 </TableRow>
               </TableHead>
@@ -600,16 +600,21 @@ const TeamPage = () => {
                   .map((row, i) => {
                     const r = row;
                     const groupName = String(r.GROUP_NAME ?? '').trim();
+                    const playerNames = groupName
+                      .split(',')
+                      .map(s => s.trim())
+                      .filter(Boolean);
+                    const lineupText = playerNames.length > 0 ? playerNames.join(', ') : '—';
                     const minutes = Number(r.MIN ?? 0);
                     const net = Number(r.NET_RATING ?? 0);
                     return (
                       <TableRow key={`best-${i}`}>
-                        <TableCell>{groupName || '—'}</TableCell>
+                        <TableCell>{lineupText}</TableCell>
                         <TableCell align="right">
-                          {Number.isNaN(minutes) ? '—' : minutes.toFixed(1)}
+                          {Number.isNaN(minutes) ? '—' : Math.round(minutes)}
                         </TableCell>
                         <TableCell align="right">
-                          {Number.isNaN(net) ? '—' : net.toFixed(1)}
+                          {Number.isNaN(net) ? '—' : `${net > 0 ? '+' : ''}${net.toFixed(1)}`}
                         </TableCell>
                       </TableRow>
                     );
@@ -631,10 +636,10 @@ const TeamPage = () => {
                     <TableRow>
                       <TableCell sx={{ fontWeight: typography.weight.bold }}>Lineup</TableCell>
                       <TableCell sx={{ fontWeight: typography.weight.bold }} align="right">
-                        MIN
+                        Minutes
                       </TableCell>
                       <TableCell sx={{ fontWeight: typography.weight.bold }} align="right">
-                        Net rating
+                        Net Rtg
                       </TableCell>
                     </TableRow>
                   </TableHead>
@@ -650,16 +655,21 @@ const TeamPage = () => {
                       .map((row, i) => {
                         const r = row;
                         const groupName = String(r.GROUP_NAME ?? '').trim();
+                        const playerNames = groupName
+                          .split(',')
+                          .map(s => s.trim())
+                          .filter(Boolean);
+                        const lineupText = playerNames.length > 0 ? playerNames.join(', ') : '—';
                         const minutes = Number(r.MIN ?? 0);
                         const net = Number(r.NET_RATING ?? 0);
                         return (
                           <TableRow key={`worst-${i}`}>
-                            <TableCell>{groupName || '—'}</TableCell>
+                            <TableCell>{lineupText}</TableCell>
                             <TableCell align="right">
-                              {Number.isNaN(minutes) ? '—' : minutes.toFixed(1)}
+                              {Number.isNaN(minutes) ? '—' : Math.round(minutes)}
                             </TableCell>
                             <TableCell align="right">
-                              {Number.isNaN(net) ? '—' : net.toFixed(1)}
+                              {Number.isNaN(net) ? '—' : `${net > 0 ? '+' : ''}${net.toFixed(1)}`}
                             </TableCell>
                           </TableRow>
                         );
@@ -692,13 +702,13 @@ const TeamPage = () => {
                 <TableRow>
                   <TableCell sx={{ fontWeight: typography.weight.bold }}>Player</TableCell>
                   <TableCell sx={{ fontWeight: typography.weight.bold }} align="right">
-                    On-court NRtg
+                    On Court
                   </TableCell>
                   <TableCell sx={{ fontWeight: typography.weight.bold }} align="right">
-                    Off-court NRtg
+                    Off Court
                   </TableCell>
                   <TableCell sx={{ fontWeight: typography.weight.bold }} align="right">
-                    Differential
+                    Impact
                   </TableCell>
                 </TableRow>
               </TableHead>

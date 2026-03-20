@@ -280,7 +280,20 @@ async def get_batched_insights():
         if not live_games:
             return {"timestamp": "", "insights": []}
 
-        games_for_insights = format_games_for_insights(live_games)
+        # Best-effort: use cached win probability payloads (architecture: DataCache-first).
+        win_prob_data = {}
+        try:
+            for g in live_games:
+                gid = getattr(g, "gameId", "")
+                if not gid:
+                    continue
+                cached = await data_cache.get_win_probability_cached(str(gid))
+                if cached is not None:
+                    win_prob_data[str(gid)] = cached
+        except Exception:
+            win_prob_data = {}
+
+        games_for_insights = format_games_for_insights(live_games, win_prob_data=win_prob_data)
         # Generate batched insights
         return await generate_batched_insights(games_for_insights)
 

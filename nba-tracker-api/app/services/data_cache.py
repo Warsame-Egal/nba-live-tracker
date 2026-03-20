@@ -91,11 +91,14 @@ class DataCache:
         self._scoreboard_cache: Optional[ScoreboardResponse] = None
         self._scoreboard_last_updated: float = 0.0  # Time when cache was last updated successfully
         self._playbyplay_cache = LRUCache(max_size=20)  # Limit to 20 active games (max 15 games/day in NBA)
+        self._win_prob_cache: OrderedDict[str, dict] = OrderedDict()
+        self._win_prob_task: Optional[asyncio.Task] = None
         self._lock = asyncio.Lock()
         self._active_game_ids: Set[str] = set()
 
         self.SCOREBOARD_POLL_INTERVAL = 8
         self.PLAYBYPLAY_POLL_INTERVAL = 5
+        self.WIN_PROB_POLL_INTERVAL = 30  # 30 seconds for live games
         self.CLEANUP_INTERVAL = 300  # 5 minutes
 
         self._scoreboard_task: Optional[asyncio.Task] = None
@@ -111,6 +114,44 @@ class DataCache:
         """Get latest cached play-by-play data for a game. Returns None if not available yet."""
         async with self._lock:
             return self._playbyplay_cache.get(game_id)
+
+    async def get_win_probability_cached(self, game_id: str) -> Optional[dict]:
+        """Get latest cached win-probability payload for a game (no API call)."""
+        async with self._lock:
+            return self._win_prob_cache.get(game_id)
+
+    async def _poll_win_probability(self) -> None:
+        """Background task polling win probability for all active live games."""
+        logger.info("Win probability polling started")
+
+        try:
+            from app.services.win_probability import get_win_probability
+        except Exception:
+            logger.error("Failed to import win_probability.get_win_probability", exc_info=True)
+            return
+
+        while True:
+            try:
+                async with self._lock:
+                    game_ids = list(self._active_game_ids)
+
+                for game_id in game_ids:
+                    try:
+                        data = await get_win_probability(game_id)
+                        if data:
+                            async with self._lock:
+                                self._win_prob_cache[game_id] = data
+                                if len(self._win_prob_cache) > 20:
+                                    self._win_prob_cache.popitem(last=False)
+                    except Exception as e:
+                        logger.debug(f"Win prob fetch failed for {game_id}: {e}")
+
+                await asyncio.sleep(self.WIN_PROB_POLL_INTERVAL)
+            except asyncio.CancelledError:
+                raise
+            except Exception as e:
+                logger.error(f"Win prob polling error: {e}")
+                await asyncio.sleep(5)
 
     async def _cleanup_finished_games(self) -> None:
         """Remove finished games from play-by-play cache immediately."""
@@ -323,6 +364,10 @@ class DataCache:
             self._playbyplay_task = asyncio.create_task(self._poll_playbyplay())
             logger.info("Started play-by-play polling")
 
+        if self._win_prob_task is None or self._win_prob_task.done():
+            self._win_prob_task = asyncio.create_task(self._poll_win_probability())
+            logger.info("Started win probability polling")
+
         if self._cleanup_task is None or self._cleanup_task.done():
             self._cleanup_task = asyncio.create_task(self._periodic_cleanup())
             logger.info("Started periodic cache cleanup")
@@ -342,6 +387,13 @@ class DataCache:
             self._playbyplay_task.cancel()
             try:
                 await self._playbyplay_task
+            except asyncio.CancelledError:
+                pass
+
+        if self._win_prob_task and not self._win_prob_task.done():
+            self._win_prob_task.cancel()
+            try:
+                await self._win_prob_task
             except asyncio.CancelledError:
                 pass
 

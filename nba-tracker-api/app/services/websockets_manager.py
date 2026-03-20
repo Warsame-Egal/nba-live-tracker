@@ -18,7 +18,6 @@ from app.services.data_cache import data_cache
 from app.services.scoreboard import format_games_for_insights
 from app.services.batched_insights import generate_batched_insights
 from app.services.key_moments import process_live_games, get_key_moments_for_game
-from app.services.win_probability import get_win_probability_for_multiple_games
 
 logger = logging.getLogger(__name__)
 
@@ -117,6 +116,42 @@ class ScoreboardWebSocketManager:
             if scoreboard_data:
                 games_data = scoreboard_data.model_dump()
                 await websocket.send_json(games_data)
+
+                # Also send cached key moments for live games to avoid "missing highlights"
+                # on initial connection (same message shape as broadcast updates).
+                try:
+                    live_game_ids = [
+                        g.gameId
+                        for g in scoreboard_data.scoreboard.games
+                        if getattr(g, "gameStatus", None) == GAME_STATUS_LIVE and getattr(g, "gameId", None)
+                    ]
+
+                    key_moments_by_game: Dict[str, List[Dict]] = {}
+                    if live_game_ids:
+                        from datetime import datetime, timedelta
+
+                        cutoff = datetime.utcnow() - timedelta(seconds=30)
+                        for game_id in live_game_ids:
+                            moments = await get_key_moments_for_game(str(game_id))
+                            if not moments:
+                                continue
+                            recent_moments = [
+                                m
+                                for m in moments
+                                if m.get("timestamp") and datetime.fromisoformat(m["timestamp"]) > cutoff
+                            ]
+                            if recent_moments:
+                                key_moments_by_game[str(game_id)] = recent_moments
+
+                    if key_moments_by_game:
+                        key_moments_message = {
+                            "type": "key_moments",
+                            "data": {"moments_by_game": key_moments_by_game},
+                        }
+                        await websocket.send_json(key_moments_message)
+                except Exception as e:
+                    # Key moments are non-critical; don't fail the entire connection.
+                    logger.debug(f"Could not send initial key moments: {e}", exc_info=True)
             else:
                 await websocket.send_json({"scoreboard": {"gameDate": "", "games": []}})
         except Exception as e:
@@ -190,10 +225,20 @@ class ScoreboardWebSocketManager:
 
                 # Generate batched insights for live games
                 insights_data = None
+                win_prob_data_for_insights: Dict[str, dict] = {}
                 try:
                     live_games = [g for g in self.current_games if g.get("gameStatus") == GAME_STATUS_LIVE]
                     if live_games:
-                        games_for_insights = format_games_for_insights(live_games)
+                        # Best-effort: attach cached win-probability payloads for accurate insights.
+                        game_ids = [g.get("gameId", "") for g in live_games if g.get("gameId")]
+                        for gid in game_ids:
+                            cached = await data_cache.get_win_probability_cached(gid)
+                            if cached is not None:
+                                win_prob_data_for_insights[gid] = cached
+
+                        games_for_insights = format_games_for_insights(
+                            live_games, win_prob_data=win_prob_data_for_insights
+                        )
                         # Generate batched insights (non-blocking)
                         insights_data = await generate_batched_insights(games_for_insights)
                         if insights_data:
@@ -242,6 +287,19 @@ class ScoreboardWebSocketManager:
                         except Exception as e:
                             logger.debug(f"Error getting key moments for game {game_id}: {e}")
 
+                # Build win probability payload once per broadcast cycle (not per connection).
+                win_prob_message = None
+                current_time = time.time()
+                if live_games and (current_time - self.last_win_prob_update) >= 8.0 and win_prob_data_for_insights:
+                    try:
+                        win_prob_message = {
+                            "type": "win_probability",
+                            "data": {"probabilities_by_game": win_prob_data_for_insights},
+                        }
+                        self.last_win_prob_update = current_time
+                    except Exception as e:
+                        logger.debug(f"Win probability fetch error (cache): {e}")
+
                 # Send scoreboard data with insights and key moments
                 disconnected_clients = []
                 for connection in list(self.active_connections):
@@ -265,30 +323,9 @@ class ScoreboardWebSocketManager:
                             }
                             await connection.send_json(key_moments_message)
 
-                        # Fetch and send win probability for live games
-                        # Updates every 8 seconds to show real-time probability shifts
-                        # (slightly less frequent than scoreboard updates to reduce API calls)
-                        current_time = time.time()
-                        if live_games and (current_time - self.last_win_prob_update) >= 8.0:
-                            try:
-                                game_ids = [game.get("gameId", "") for game in live_games if game.get("gameId")]
-                                if game_ids:
-                                    win_prob_data = await get_win_probability_for_multiple_games(game_ids)
-                                    # Filter out None values (games without probability data)
-                                    win_prob_by_game = {
-                                        game_id: prob_data
-                                        for game_id, prob_data in win_prob_data.items()
-                                        if prob_data is not None
-                                    }
-                                    if win_prob_by_game:
-                                        win_prob_message = {
-                                            "type": "win_probability",
-                                            "data": {"probabilities_by_game": win_prob_by_game},
-                                        }
-                                        await connection.send_json(win_prob_message)
-                                        self.last_win_prob_update = current_time
-                            except Exception as e:
-                                logger.debug(f"Error fetching win probability: {e}")
+                        # Send win probability if it was built for this broadcast cycle.
+                        if win_prob_message:
+                            await connection.send_json(win_prob_message)
                     except Exception as e:
                         logger.warning(f"Error sending update to client: {e}")
                         disconnected_clients.append(connection)

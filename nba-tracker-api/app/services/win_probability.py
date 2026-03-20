@@ -15,7 +15,7 @@ from collections import OrderedDict
 from nba_api.stats.endpoints import winprobabilitypbp
 
 from app.config import get_api_kwargs
-from app.constants import GAME_STATUS_FINAL
+from app.constants import GAME_STATUS_FINAL, GAME_STATUS_LIVE
 from app.utils.rate_limiter import rate_limit
 from app.services.data_cache import data_cache
 
@@ -25,8 +25,29 @@ logger = logging.getLogger(__name__)
 # Stores the latest win probability for each game
 # Limited to 20 active games with LRU eviction (max 15 games/day in NBA)
 _win_probability_cache = OrderedDict()
-WIN_PROBABILITY_CACHE_TTL = 3600.0  # 1 hour for active games
+# TTL split: live win probability changes frequently; once games are final,
+# the probability snapshot can be reused longer.
+WIN_PROBABILITY_CACHE_TTL_LIVE = 30.0  # 30 seconds — changes every play
+WIN_PROBABILITY_CACHE_TTL_FINAL = 3600.0  # 1 hour — completed games don't change
 WIN_PROBABILITY_CACHE_MAX_SIZE = 20  # Maximum 20 active games (max 15 games/day in NBA)
+
+
+async def _get_game_status(game_id: str) -> Optional[int]:
+    """
+    Best-effort: infer current game status from the DataCache scoreboard.
+    Returns None if the game cannot be found in the cache.
+    """
+    try:
+        scoreboard_data = await data_cache.get_scoreboard()
+        if not scoreboard_data or not scoreboard_data.scoreboard:
+            return None
+        for g in scoreboard_data.scoreboard.games:
+            if str(g.gameId) == str(game_id):
+                return getattr(g, "gameStatus", None)
+    except Exception:
+        # Cache lookup should never break win-probability generation.
+        logger.debug("Failed to infer game_status for win_probability cache", exc_info=True)
+    return None
 
 
 async def get_win_probability(game_id: str) -> Optional[dict]:
@@ -54,20 +75,22 @@ async def get_win_probability(game_id: str) -> Optional[dict]:
         # Clean up finished games first
         await _cleanup_finished_games()
 
-        # Check cache first
+        # Check cache first (use TTL based on stored game_status)
         current_time = time.time()
         if game_id in _win_probability_cache:
             cached_data = _win_probability_cache[game_id]
             # Move to end (most recently used)
             _win_probability_cache.move_to_end(game_id)
 
-            # Check if entry is still valid (within TTL)
-            if current_time - cached_data.get("timestamp_unix", 0) < WIN_PROBABILITY_CACHE_TTL:
-                # For live games, we may want fresh data, but return cached if recent
+            cached_game_status = cached_data.get("game_status")
+            game_is_live = cached_game_status == GAME_STATUS_LIVE
+            ttl = WIN_PROBABILITY_CACHE_TTL_LIVE if game_is_live else WIN_PROBABILITY_CACHE_TTL_FINAL
+
+            if current_time - cached_data.get("timestamp_unix", 0) < ttl:
                 return cached_data
-            else:
-                # Entry expired, remove it
-                _win_probability_cache.pop(game_id, None)
+
+            # Entry expired, remove it
+            _win_probability_cache.pop(game_id, None)
 
         # Fetch win probability data from NBA API
         api_kwargs = get_api_kwargs()
@@ -167,12 +190,14 @@ async def get_win_probability(game_id: str) -> Optional[dict]:
             except (IndexError, ValueError, TypeError):
                 continue
 
+        inferred_status = await _get_game_status(game_id)
         result = {
             "home_win_prob": home_win_prob,
             "away_win_prob": away_win_prob,
             "timestamp": datetime.utcnow().isoformat(),  # ISO timestamp for API response
             "timestamp_unix": time.time(),  # Unix timestamp for TTL checking
             "probability_history": probability_history,
+            "game_status": inferred_status if inferred_status is not None else GAME_STATUS_LIVE,
         }
 
         # Update cache with LRU eviction

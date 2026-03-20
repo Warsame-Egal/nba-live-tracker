@@ -198,6 +198,7 @@ const PlayerProfile: React.FC = () => {
   // Fetch profile sections when player and season are ready
   useEffect(() => {
     if (!playerId || !season) return;
+    let cancelled = false;
     setZonesData(null);
     setClutchData(null);
     setSplitsData(null);
@@ -217,9 +218,9 @@ const PlayerProfile: React.FC = () => {
             freq_pct: number;
           }>;
         }>(`${base}/shooting-zones${q}`, {}, { maxRetries: 1, timeout: 15000 });
-        setZonesData(res);
+        if (!cancelled) setZonesData(res);
       } catch {
-        setZonesData(null);
+        if (!cancelled) setZonesData(null);
       }
     };
     const fetchClutch = async () => {
@@ -229,9 +230,9 @@ const PlayerProfile: React.FC = () => {
           {},
           { maxRetries: 1, timeout: 15000 },
         );
-        setClutchData(res);
+        if (!cancelled) setClutchData(res);
       } catch {
-        setClutchData(null);
+        if (!cancelled) setClutchData(null);
       }
     };
     const fetchSplits = async () => {
@@ -241,9 +242,9 @@ const PlayerProfile: React.FC = () => {
           {},
           { maxRetries: 1, timeout: 15000 },
         );
-        setSplitsData(res);
+        if (!cancelled) setSplitsData(res);
       } catch {
-        setSplitsData(null);
+        if (!cancelled) setSplitsData(null);
       }
     };
     const fetchDefense = async () => {
@@ -253,9 +254,9 @@ const PlayerProfile: React.FC = () => {
           {},
           { maxRetries: 1, timeout: 15000 },
         );
-        setDefenseData(res);
+        if (!cancelled) setDefenseData(res);
       } catch {
-        setDefenseData(null);
+        if (!cancelled) setDefenseData(null);
       }
     };
     const fetchPassing = async () => {
@@ -265,9 +266,9 @@ const PlayerProfile: React.FC = () => {
           {},
           { maxRetries: 1, timeout: 15000 },
         );
-        setPassingData(res);
+        if (!cancelled) setPassingData(res);
       } catch {
-        setPassingData(null);
+        if (!cancelled) setPassingData(null);
       }
     };
     fetchZones();
@@ -275,6 +276,10 @@ const PlayerProfile: React.FC = () => {
     fetchSplits();
     fetchDefense();
     fetchPassing();
+
+    return () => {
+      cancelled = true;
+    };
   }, [playerId, season]);
 
   useEffect(() => {

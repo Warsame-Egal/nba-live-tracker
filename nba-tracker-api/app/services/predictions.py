@@ -4,9 +4,9 @@ import math
 import json
 import time
 from collections import OrderedDict
+from contextlib import nullcontext
 from typing import Optional, Dict, Tuple, List, Any
 
-import sentry_sdk
 from fastapi import HTTPException
 from nba_api.stats.endpoints import leaguestandingsv3, leaguedashteamstats
 from nba_api.stats.library.parameters import PerModeDetailed, SeasonTypeAllStar
@@ -24,6 +24,14 @@ from app.services.groq_prompts import (
 from app.utils.json_recovery import recover_truncated_json
 
 logger = logging.getLogger(__name__)
+
+try:
+    import sentry_sdk as _sentry_sdk
+
+    _SENTRY_AVAILABLE = True
+except ImportError:
+    _sentry_sdk = None
+    _SENTRY_AVAILABLE = False
 
 
 def fix_unterminated_strings(json_str: str) -> str:
@@ -142,6 +150,7 @@ async def get_recent_form(team_id: int, season: str, last_n: int = 10) -> float:
     """
     try:
         from nba_api.stats.endpoints import teamgamelog
+        from app.utils.rate_limiter import rate_limit
 
         def _fetch():
             log = teamgamelog.TeamGameLog(
@@ -151,6 +160,8 @@ async def get_recent_form(team_id: int, season: str, last_n: int = 10) -> float:
             ).get_data_frames()[0]
             return log
 
+        # Respect NBA API call rate limits when multiple prediction tasks run.
+        await rate_limit()
         log = await asyncio.wait_for(asyncio.to_thread(_fetch), timeout=10.0)
         if log.empty:
             return 0.5
@@ -223,161 +234,6 @@ def predict_score(win_prob: float) -> float:
         # Away team wins - home scores less
         home_score = avg_score - (0.5 - win_prob) * 15
         return round(home_score, 1)
-
-
-async def generate_ai_insights(
-    home_team_name: str,
-    away_team_name: str,
-    home_win_prob: float,
-    predicted_home_score: float,
-    predicted_away_score: float,
-    home_win_pct: float,
-    away_win_pct: float,
-    home_net_rating: Optional[float],
-    away_net_rating: Optional[float],
-) -> list[GamePredictionInsight]:
-    """
-    Generate AI-powered insights using Groq LLM.
-    Falls back to simple insights if Groq is unavailable or fails.
-
-    IMPORTANT: Only uses data visible in the UI (win probabilities, predicted scores).
-    Does NOT reference win percentages or net ratings that aren't displayed.
-
-    Args:
-        home_team_name: Home team name
-        away_team_name: Away team name
-        home_win_prob: Home team win probability (0-1) - VISIBLE IN UI
-        predicted_home_score: Predicted home team score - VISIBLE IN UI
-        predicted_away_score: Predicted away team score - VISIBLE IN UI
-        home_win_pct: Home team win percentage (0-1) - NOT VISIBLE, used for fallback only
-        away_win_pct: Away team win percentage (0-1) - NOT VISIBLE, used for fallback only
-        home_net_rating: Home team net rating (optional) - NOT VISIBLE, used for fallback only
-        away_net_rating: Away team net rating (optional) - NOT VISIBLE, used for fallback only
-
-    Returns:
-        List of insights (2-3 items)
-    """
-    if not groq_is_ready():
-        return generate_simple_insights(
-            home_team_name,
-            away_team_name,
-            home_win_prob,
-            predicted_home_score,
-            predicted_away_score,
-            home_win_pct,
-            away_win_pct,
-            home_net_rating,
-            away_net_rating,
-        )
-
-    groq_api_key = get_groq_api_key()
-    try:
-        # Prepare ONLY data that is visible in the UI
-        home_win_prob_pct = home_win_prob * 100
-        away_win_prob_pct = (1.0 - home_win_prob) * 100
-
-        # Calculate net rating difference if available
-        net_rating_diff_str = ""
-        if home_net_rating is not None and away_net_rating is not None:
-            net_rating_diff = home_net_rating - away_net_rating
-            net_rating_diff_str = f"\nNet Rating Difference: {net_rating_diff:+.1f} ({home_team_name if net_rating_diff > 0 else away_team_name})"
-
-        # Build prompt using groq_prompts module
-        prompt = build_insight_prompt(
-            home_team_name=home_team_name,
-            away_team_name=away_team_name,
-            home_win_prob_pct=home_win_prob_pct,
-            away_win_prob_pct=away_win_prob_pct,
-            predicted_home_score=predicted_home_score,
-            predicted_away_score=predicted_away_score,
-            net_rating_diff_str=net_rating_diff_str,
-        )
-
-        # Get system message
-        system_message = get_system_message()
-
-        # Call Groq API using groq_client module
-        response = await call_groq_api(
-            api_key=groq_api_key,
-            system_message=system_message,
-            user_prompt=prompt,
-            rate_limiter=get_groq_rate_limiter(),
-        )
-
-        # Parse response
-        content = response["content"]
-        parsed = recover_truncated_json(content)
-        if parsed is None:
-            insights_data = []
-        elif isinstance(parsed, list):
-            insights_data = parsed
-        else:
-            insights_data = parsed.get("insights", []) if isinstance(parsed, dict) else []
-
-        # Calculate which team is favored (for validation)
-        home_favored = home_win_prob_pct > away_win_prob_pct
-
-        # Determine which team should be mentioned as favored/winning
-        favored_team_lower = (home_team_name if home_favored else away_team_name).lower()
-        underdog_team_lower = (away_team_name if home_favored else home_team_name).lower()
-
-        # Convert to GamePredictionInsight objects and validate consistency
-        insights = []
-        for item in insights_data[:3]:  # Limit to 3
-            if isinstance(item, dict) and "title" in item and "description" in item:
-                title = item["title"]
-                description = item["description"]
-
-                # Validate that insights are consistent with the actual data
-                # Check if insight contradicts the favored team or predicted winner
-                text_lower = (title + " " + description).lower()
-
-                # Skip insights that contradict the data
-                # If it says underdog is favored when they're not, skip it
-                if underdog_team_lower in text_lower and any(
-                    word in text_lower for word in ["favored", "advantage", "likely to win", "expected to win"]
-                ):
-                    # Check if it's actually saying the underdog is favored (contradiction)
-                    if favored_team_lower not in text_lower or text_lower.find(underdog_team_lower) < text_lower.find(
-                        favored_team_lower
-                    ):
-                        logger.warning(f"Skipping contradictory insight: {title}")
-                        continue
-
-                insights.append(
-                    GamePredictionInsight(
-                        title=title, description=description, impact=""  # Impact field not used for AI insights
-                    )
-                )
-
-        if insights:
-            logger.debug(f"Generated {len(insights)} AI insights for {home_team_name} vs {away_team_name}")
-            return insights
-
-    except json.JSONDecodeError as e:
-        logger.warning(f"Failed to parse Groq JSON response: {e}")
-    except Exception as e:
-        error_str = str(e)
-        # Handle rate limit errors specifically
-        if "429" in error_str or "rate_limit" in error_str.lower() or "Rate limit" in error_str:
-            logger.warning(f"Groq rate limit hit, using fallback insights: {e}")
-            # Wait longer before next attempt to avoid hitting limit again
-            await asyncio.sleep(12)
-        else:
-            logger.warning(f"Error generating AI insights: {e}")
-
-    # Fallback to simple insights
-    return generate_simple_insights(
-        home_team_name,
-        away_team_name,
-        home_win_prob,
-        predicted_home_score,
-        predicted_away_score,
-        home_win_pct,
-        away_win_pct,
-        home_net_rating,
-        away_net_rating,
-    )
 
 
 def generate_simple_insights(
@@ -533,6 +389,7 @@ async def generate_batched_prediction_insights(
                     system_message=system_message,
                     user_prompt=prompt,
                     rate_limiter=get_groq_rate_limiter(),
+                    max_tokens=1500,
                 ),
                 timeout=30.0,  # 30 second timeout for batched insights (more games = more time)
             )
@@ -579,7 +436,6 @@ async def generate_batched_prediction_insights(
         # Handle rate limit errors specifically
         if "429" in error_str or "rate_limit" in error_str.lower() or "Rate limit" in error_str:
             logger.warning(f"Groq rate limit hit for batched prediction insights: {e}")
-            await asyncio.sleep(12)
         else:
             logger.warning(f"Error generating batched prediction insights: {e}")
         return {}
@@ -625,6 +481,7 @@ async def generate_enhanced_ai_analysis(predictions_data: List[Dict[str, Any]]) 
                     system_message=system_message,
                     user_prompt=prompt,
                     rate_limiter=get_groq_rate_limiter(),
+                    max_tokens=2500,
                 ),
                 timeout=30.0,  # 30 second timeout for enhanced analysis
             )
@@ -719,7 +576,6 @@ async def generate_enhanced_ai_analysis(predictions_data: List[Dict[str, Any]]) 
         # Handle rate limit errors specifically
         if "429" in error_str or "rate_limit" in error_str.lower() or "Rate limit" in error_str:
             logger.warning(f"Groq rate limit hit for enhanced prediction analysis: {e}")
-            await asyncio.sleep(12)
         else:
             logger.warning(f"Error generating enhanced prediction analysis: {e}")
         return {}
@@ -885,7 +741,13 @@ async def predict_games_for_date(date: str, season: str) -> PredictionsResponse:
             logger.debug(f"Predictions cache entry expired for {cache_key}")
 
     try:
-        with sentry_sdk.start_transaction(op="task", name=f"predict_games_{date}"):
+        transaction_cm = (
+            _sentry_sdk.start_transaction(op="task", name=f"predict_games_{date}")
+            if _SENTRY_AVAILABLE and _sentry_sdk
+            else nullcontext()
+        )
+
+        with transaction_cm:
             # Get games for the date (with timeout)
             try:
                 games_response = await asyncio.wait_for(getGamesForDate(date), timeout=30.0)
@@ -920,6 +782,23 @@ async def predict_games_for_date(date: str, season: str) -> PredictionsResponse:
             # STEP 1: Collect all prediction data (without calling Groq)
             predictions_data = []
             game_data_map = {}  # Map game_id to game data for later use
+
+            # Prefetch recent form for all unique team IDs in parallel
+            # (bounded to respect the NBA API rate limit).
+            all_team_ids = list({game.home_team.team_id for game in games} | {game.away_team.team_id for game in games})
+
+            semaphore = asyncio.Semaphore(3)
+
+            async def _fetch_form(tid: int) -> Tuple[int, float]:
+                async with semaphore:
+                    return tid, await get_recent_form(tid, season)
+
+            form_results = await asyncio.gather(*[_fetch_form(tid) for tid in all_team_ids], return_exceptions=True)
+            recent_forms: Dict[int, float] = {}
+            for result in form_results:
+                if isinstance(result, tuple) and len(result) == 2:
+                    tid, form = result
+                    recent_forms[int(tid)] = float(form)
 
             for idx, game in enumerate(games, 1):
                 try:
@@ -960,8 +839,8 @@ async def predict_games_for_date(date: str, season: str) -> PredictionsResponse:
                     away_net_rating = away_stats.get("net_rating")
 
                     # Recent form (last 10 games) for win probability
-                    home_recent_form = await get_recent_form(home_team_id, season)
-                    away_recent_form = await get_recent_form(away_team_id, season)
+                    home_recent_form = recent_forms.get(home_team_id, 0.5)
+                    away_recent_form = recent_forms.get(away_team_id, 0.5)
 
                     # Calculate win probability (season %, net rating, recent form, home court)
                     home_win_prob = calculate_win_probability(
