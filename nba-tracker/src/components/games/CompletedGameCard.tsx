@@ -58,6 +58,8 @@ const CompletedGameCard: React.FC<CompletedGameCardProps> = ({ game, onClick }) 
         display: 'flex',
         flexDirection: 'column',
         borderRadius: borderRadius.lg,
+        backgroundColor: '#111111',
+        border: '1px solid #222222',
         overflow: 'hidden',
         boxShadow: theme.palette.mode === 'dark' ? shadows.dark.sm : shadows.sm,
         transition: transitions.smooth,
@@ -79,7 +81,7 @@ const CompletedGameCard: React.FC<CompletedGameCardProps> = ({ game, onClick }) 
         }}
       >
         <Box sx={{ minWidth: 56, textAlign: 'center' }}>
-          <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+          <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', letterSpacing: '0.08em' }}>
             FINAL
           </Typography>
         </Box>
@@ -107,6 +109,7 @@ const CompletedGameCard: React.FC<CompletedGameCardProps> = ({ game, onClick }) 
               minWidth: 36,
               textAlign: 'right',
               color: awayWon ? 'text.primary' : 'text.secondary',
+              textDecoration: awayWon ? 'none' : 'line-through',
             }}
           >
             {awayScore}
@@ -136,6 +139,7 @@ const CompletedGameCard: React.FC<CompletedGameCardProps> = ({ game, onClick }) 
               minWidth: 36,
               textAlign: 'right',
               color: homeWon ? 'text.primary' : 'text.secondary',
+              textDecoration: homeWon ? 'none' : 'line-through',
             }}
           >
             {homeScore}

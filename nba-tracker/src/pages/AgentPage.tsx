@@ -3,7 +3,6 @@ import {
   Box,
   Button,
   Chip,
-  CircularProgress,
   Paper,
   TextField,
   Typography,
@@ -209,7 +208,7 @@ export default function AgentPage() {
     <PageContainer maxWidth={1400} sx={{ py: 2, height: 'calc(100dvh - 72px)' }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Box>
-          <Typography variant="h5" fontWeight={700}>
+          <Typography variant="h5" sx={{ fontFamily: '"Barlow Condensed", sans-serif', fontWeight: 700 }}>
             CourtIQ Agent
           </Typography>
           <Typography variant="body2" color="text.secondary">
@@ -222,20 +221,25 @@ export default function AgentPage() {
       </Box>
 
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '240px 1fr' }, gap: 2, height: '100%' }}>
-        <Paper sx={{ p: 2, display: { xs: 'none', md: 'block' } }}>
+        <Paper sx={{ p: 2, display: { xs: 'none', md: 'block' }, bgcolor: '#111111', borderColor: '#222222' }}>
           <Typography variant="subtitle2" sx={{ mb: 1 }}>
             Suggestions
           </Typography>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             {SUGGESTIONS.map((s) => (
-              <Button key={s} variant="text" sx={{ justifyContent: 'flex-start' }} onClick={() => handleSend(s)}>
+              <Button
+                key={s}
+                variant="text"
+                sx={{ justifyContent: 'flex-start', border: '1px solid #222222', '&:hover': { borderColor: 'primary.main' } }}
+                onClick={() => handleSend(s)}
+              >
                 {s}
               </Button>
             ))}
           </Box>
         </Paper>
 
-        <Paper sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+        <Paper sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', bgcolor: '#111111', borderColor: '#222222' }}>
           <Box sx={{ flex: 1, overflowY: 'auto', p: 2 }}>
             {messages.length === 0 ? (
               <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5 }}>
@@ -262,7 +266,7 @@ export default function AgentPage() {
                         borderRadius: 2,
                         px: 1.5,
                         py: 1,
-                        backgroundColor: isUser ? 'primary.main' : 'grey.800',
+                        backgroundColor: isUser ? 'primary.main' : '#1A1A1A',
                         color: isUser ? 'primary.contrastText' : 'common.white',
                         whiteSpace: 'pre-wrap',
                         wordBreak: 'break-word',
@@ -293,11 +297,24 @@ export default function AgentPage() {
             )}
 
             {loading && (
-              <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
-                <CircularProgress size={18} />
-                <Typography variant="caption" sx={{ ml: 1 }}>
-                  Thinking...
-                </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', mt: 1, gap: 0.5 }}>
+                {[0, 1, 2].map((i) => (
+                  <Box
+                    key={i}
+                    sx={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: '50%',
+                      backgroundColor: 'primary.main',
+                      animation: 'agentDots 0.9s ease-in-out infinite',
+                      animationDelay: `${i * 0.12}s`,
+                      '@keyframes agentDots': {
+                        '0%, 80%, 100%': { transform: 'scale(0.7)', opacity: 0.6 },
+                        '40%': { transform: 'scale(1)', opacity: 1 },
+                      },
+                    }}
+                  />
+                ))}
               </Box>
             )}
             <div ref={messagesEndRef} />

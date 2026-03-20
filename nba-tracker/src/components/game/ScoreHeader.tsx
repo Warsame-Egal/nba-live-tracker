@@ -114,7 +114,7 @@ const ScoreHeader: React.FC<ScoreHeaderProps> = ({ score, status, gradientColors
           <Box sx={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 1.5 }}>
             <Avatar
               src={getTeamLogo(away_team.name, away_team.abbreviation)}
-              sx={{ width: { xs: 40, sm: 56 }, height: { xs: 40, sm: 56 }, flexShrink: 0 }}
+              sx={{ width: { xs: 60, sm: 80 }, height: { xs: 60, sm: 80 }, flexShrink: 0 }}
               variant="rounded"
             />
             <Box sx={{ minWidth: 0 }}>
@@ -150,8 +150,9 @@ const ScoreHeader: React.FC<ScoreHeaderProps> = ({ score, status, gradientColors
           <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1.5, flexShrink: 0 }}>
             <Typography
               sx={{
+                fontFamily: '"Barlow Condensed", sans-serif',
                 fontWeight: 800,
-                fontSize: { xs: '2rem', sm: '2.75rem', md: '3.5rem' },
+                fontSize: '3.5rem',
                 lineHeight: 1,
                 fontVariantNumeric: 'tabular-nums',
                 minWidth: 44,
@@ -165,8 +166,9 @@ const ScoreHeader: React.FC<ScoreHeaderProps> = ({ score, status, gradientColors
             </Typography>
             <Typography
               sx={{
+                fontFamily: '"Barlow Condensed", sans-serif',
                 fontWeight: 800,
-                fontSize: { xs: '2rem', sm: '2.75rem', md: '3.5rem' },
+                fontSize: '3.5rem',
                 lineHeight: 1,
                 fontVariantNumeric: 'tabular-nums',
                 minWidth: 44,
@@ -218,7 +220,7 @@ const ScoreHeader: React.FC<ScoreHeaderProps> = ({ score, status, gradientColors
             </Box>
             <Avatar
               src={getTeamLogo(home_team.name, home_team.abbreviation)}
-              sx={{ width: { xs: 40, sm: 56 }, height: { xs: 40, sm: 56 }, flexShrink: 0 }}
+              sx={{ width: { xs: 60, sm: 80 }, height: { xs: 60, sm: 80 }, flexShrink: 0 }}
               variant="rounded"
             />
           </Box>
@@ -243,6 +245,7 @@ const ScoreHeader: React.FC<ScoreHeaderProps> = ({ score, status, gradientColors
                     borderColor: 'divider',
                   },
                   '& th': {
+                    fontFamily: '"Barlow Condensed", sans-serif',
                     fontWeight: typography.weight.semibold,
                     color: 'text.secondary',
                     fontSize: '0.75rem',
@@ -316,7 +319,9 @@ const ScoreHeader: React.FC<ScoreHeaderProps> = ({ score, status, gradientColors
         gap: 1.5,
         px: 2,
         py: 1,
-        backgroundColor: 'background.paper',
+        minHeight: 48,
+        backgroundColor: 'rgba(10,10,10,0.92)',
+        backdropFilter: 'blur(20px)',
         borderBottom: '1px solid',
         borderColor: 'divider',
         boxShadow: 1,

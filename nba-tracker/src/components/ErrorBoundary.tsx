@@ -19,19 +19,24 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   render() {
     if (this.state.hasError) {
       return (
-        <Box sx={{ p: 4, textAlign: 'center' }}>
-          <Typography variant="h5" sx={{ mb: 2 }}>
+        <Box sx={{ p: 4, textAlign: 'center', minHeight: '60vh', display: 'grid', placeItems: 'center' }}>
+          <Box>
+            <Typography sx={{ fontSize: '5rem', lineHeight: 1, color: 'primary.main', fontFamily: '"Barlow Condensed", sans-serif', fontWeight: 800, mb: 1 }}>
+              !
+            </Typography>
+            <Typography variant="h5" sx={{ mb: 2 }}>
             Something went wrong
-          </Typography>
-          <Button
-            variant="contained"
-            onClick={() => {
-              this.setState({ hasError: false });
-              window.location.href = '/';
-            }}
-          >
-            Go back home
-          </Button>
+            </Typography>
+            <Button
+              variant="contained"
+              onClick={() => {
+                this.setState({ hasError: false });
+                window.location.href = '/';
+              }}
+            >
+              Go back home
+            </Button>
+          </Box>
         </Box>
       );
     }

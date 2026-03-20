@@ -921,8 +921,8 @@ const Scoreboard = () => {
             </Box>
             <Box
               sx={{
-                display: 'flex',
-                flexDirection: 'column',
+                display: 'grid',
+                gridTemplateColumns: { xs: '1fr', md: '1fr 1fr', xl: '1fr 1fr 1fr' },
                 gap: { xs: 2, sm: 2.5, md: 3 },
                 minHeight: { xs: 200, sm: 300 },
               }}
@@ -1009,6 +1009,7 @@ const Scoreboard = () => {
             }}
           >
             <Box sx={{ flexShrink: 0 }}>
+              <Typography sx={{ fontWeight: 700, mb: 1 }}>Today's Games</Typography>
               <DateNavigator
                 selectedDate={selectedDate}
                 onDateChange={setSelectedDate}

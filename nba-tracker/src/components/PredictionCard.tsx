@@ -20,6 +20,7 @@ interface PredictionCardProps {
 const PredictionCard: React.FC<PredictionCardProps> = ({ prediction }) => {
   const theme = useTheme();
   const [riskExpanded, setRiskExpanded] = useState(false);
+  const [narrativeExpanded, setNarrativeExpanded] = useState(false);
 
   const confidenceColor =
     prediction.confidence_tier &&
@@ -30,9 +31,9 @@ const PredictionCard: React.FC<PredictionCardProps> = ({ prediction }) => {
         case 'medium':
           return theme.palette.warning.main;
         case 'low':
-          return theme.palette.error.main;
+          return theme.palette.text.secondary;
         default:
-          return theme.palette.primary.main;
+          return theme.palette.text.secondary;
       }
     })();
 
@@ -46,6 +47,8 @@ const PredictionCard: React.FC<PredictionCardProps> = ({ prediction }) => {
         borderRadius: borderRadius.md,
         border: '1px solid',
         borderColor: 'divider',
+        borderLeft: '4px solid',
+        borderLeftColor: confidenceColor || 'primary.main',
         backgroundColor: 'background.paper',
         p: { xs: 2.5, sm: 3 },
         minHeight: { xs: 380, sm: 420 },
@@ -63,9 +66,7 @@ const PredictionCard: React.FC<PredictionCardProps> = ({ prediction }) => {
       {prediction.confidence_tier && confidenceColor && (
         <Chip
           label={
-            prediction.confidence_tier.charAt(0).toUpperCase() +
-            prediction.confidence_tier.slice(1).toLowerCase() +
-            ' confidence'
+            prediction.confidence_tier.toUpperCase()
           }
           size="small"
           sx={{
@@ -75,6 +76,7 @@ const PredictionCard: React.FC<PredictionCardProps> = ({ prediction }) => {
             height: 24,
             fontSize: '0.6875rem',
             fontWeight: typography.weight.semibold,
+            fontFamily: '"Barlow Condensed", sans-serif',
             backgroundColor: alpha(confidenceColor, 0.15),
             color: confidenceColor,
             border: `1px solid ${alpha(confidenceColor, 0.3)}`,
@@ -85,19 +87,32 @@ const PredictionCard: React.FC<PredictionCardProps> = ({ prediction }) => {
 
       {/* Matchup narrative first */}
       {prediction.matchup_narrative && (
-        <Typography
-          variant="body2"
-          sx={{
-            mb: 2,
-            pr: prediction.confidence_tier ? 5 : 0,
-            lineHeight: 1.6,
-            color: 'text.primary',
-            fontWeight: typography.weight.medium,
-            fontSize: { xs: '0.875rem', sm: '0.9375rem' },
-          }}
-        >
-          {prediction.matchup_narrative}
-        </Typography>
+        <Box sx={{ mb: 1.5 }}>
+          <Box
+            onClick={() => setNarrativeExpanded(e => !e)}
+            sx={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}
+          >
+            <Typography variant="caption" color="text.secondary">
+              Matchup narrative
+            </Typography>
+          </Box>
+          <Collapse in={narrativeExpanded}>
+            <Typography
+              variant="body2"
+              sx={{
+                mt: 0.75,
+                pr: prediction.confidence_tier ? 5 : 0,
+                lineHeight: 1.6,
+                color: 'text.secondary',
+                fontStyle: 'italic',
+                fontWeight: typography.weight.regular,
+                fontSize: { xs: '0.875rem', sm: '0.9375rem' },
+              }}
+            >
+              {prediction.matchup_narrative}
+            </Typography>
+          </Collapse>
+        </Box>
       )}
 
       {/* Header: logos and matchup (no confidence — shown top-right) */}
@@ -150,8 +165,8 @@ const PredictionCard: React.FC<PredictionCardProps> = ({ prediction }) => {
               borderRadius: 1,
             }}
           >
-            <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: '0.8125rem' }}>
-              Risk factors
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: '0.8125rem', color: '#FFB300' }}>
+              ⚠ Risk factors
             </Typography>
             <IconButton size="small" sx={{ p: 0.25 }}>
               <ExpandMore

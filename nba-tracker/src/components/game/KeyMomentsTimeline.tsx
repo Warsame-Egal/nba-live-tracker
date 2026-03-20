@@ -91,15 +91,31 @@ const KeyMomentsTimeline: React.FC<KeyMomentsTimelineProps> = ({ moments }) => {
               borderLeft: '4px solid',
               borderLeftColor: teamColor,
               overflow: 'hidden',
+              opacity: 0,
+              animation: 'timelineFadeIn 260ms ease forwards',
+              animationDelay: `${i * 70}ms`,
+              '@keyframes timelineFadeIn': {
+                from: { opacity: 0, transform: 'translateY(6px)' },
+                to: { opacity: 1, transform: 'translateY(0)' },
+              },
             }}
           >
             <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, p: 2 }}>
-              <Typography
-                variant="caption"
-                sx={{ color: 'text.secondary', flexShrink: 0, minWidth: 56 }}
+              <Box
+                sx={{
+                  color: 'text.secondary',
+                  flexShrink: 0,
+                  minWidth: 56,
+                  fontSize: '0.7rem',
+                  px: 0.75,
+                  py: 0.25,
+                  border: '1px solid #222222',
+                  borderRadius: 999,
+                  backgroundColor: '#111111',
+                }}
               >
                 {quarterTime}
-              </Typography>
+              </Box>
               <Box sx={{ flex: 1, minWidth: 0 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.5 }}>
                   <Typography component="span" sx={{ fontSize: '1rem' }}>

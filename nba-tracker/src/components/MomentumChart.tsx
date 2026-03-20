@@ -249,8 +249,8 @@ const MomentumChart: React.FC<MomentumChartProps> = ({
   }, [plays]);
 
   // Define colors early for use in CustomTooltip
-  const homeColor = theme.palette.primary.main; // Blue for home team leading
-  const awayColor = theme.palette.warning.main || '#ff9800'; // Orange for away team leading
+  const homeColor = '#E8FF47';
+  const awayColor = '#00D4AA';
 
   // Custom tooltip component - broadcast-quality design
   const CustomTooltip = ({
@@ -692,6 +692,12 @@ const MomentumChart: React.FC<MomentumChartProps> = ({
                 strokeWidth={1}
                 strokeDasharray="4 4"
                 opacity={0.6}
+                label={{
+                  value: `Q${idx + 1}`,
+                  position: 'top',
+                  fill: textColor,
+                  fontSize: 10,
+                }}
               />
             ))}
 

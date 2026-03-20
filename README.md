@@ -1,186 +1,180 @@
-# NBA Live Tracker
+# CourtIQ
 
-Real-time NBA intelligence platform — live scores, AI-generated insights, and key moment detection, built on a cache-first event-driven backend.
+Real-time NBA intelligence platform. Live scores, AI insights, win probability, key moment detection, and player/team analytics — built on a cache-first WebSocket backend.
 
-**Live Demo:** [https://nba-live-tracker-one.vercel.app](https://nba-live-tracker-delta.vercel.app)
+**Live Demo:** [courtiq.vercel.app](https://nba-live-tracker-delta.vercel.app)
+
+---
+
+## What It Does
+
+| Feature | Description |
+|---------|-------------|
+| **Live Scoreboard** | Real-time scores via WebSocket. Updates every 2–8s when data changes. |
+| **AI Live Insights** | Groq-powered insights for all live games in one batched call per cycle. |
+| **Key Moments** | Automatic detection of game-tying shots, lead changes, scoring runs, clutch plays, big shots. Each gets a one-sentence AI explanation. |
+| **Win Probability** | Real-time NBA win probability, polled every 30s and pushed via WebSocket. |
+| **Predictions** | Win probability model (season %, recent form, net rating, home court) + AI narrative, key drivers, risk factors. |
+| **Player Profiles** | Season stats, game log, shooting zones, clutch performance, splits, defense, passing. |
+| **Team Pages** | Roster, game log, lineups, on/off splits, player stats — all loaded in parallel. |
+| **Player Compare** | Side-by-side comparison with radar chart, trend chart, scouting report, head-to-head. |
+| **CourtIQ Agent** | Natural-language NBA assistant. Ask about live scores, standings, stats, predictions. |
+| **MCP Server** | Exposes the NBA data pipeline to Claude Desktop and Cursor via Model Context Protocol. |
+| **Post-Game Recap** | Short AI recap for completed games, cached permanently. |
 
 ---
 
 ## Architecture
 
-The backend uses a **cache-first, poll-once** pattern:
+**Cache-first, poll-once pattern:**
 
-- A single background poller fetches from the NBA API at fixed intervals (scoreboard every 8s, play-by-play every 5s per live game).
-- All WebSocket connections read from this shared in-memory cache. **100 concurrent users = 1 API call, not 100.**
-- WebSocket handlers never call the NBA API directly; they only broadcast cached data.
-- Groq AI calls are batched (e.g. one call for all live game insights, one for all key moment contexts) to stay within rate limits.
-For the full architecture diagram, see [`docs/architecture.md`](docs/architecture.md).
+```
+NBA API  →  DataCache (background poller)  →  WebSocket Manager  →  Browser clients
+                                           →  HTTP endpoints
+Groq API ←  batched_insights, key_moments, predictions, agent
+```
 
-### Key Design Decisions
-
-| Decision                            | Reason                                                                                                                                                    |
-| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Separate polling intervals**      | Scoreboard (8s) and play-by-play (5s) have different update frequencies; decoupling avoids blocking.                                                      |
-| **Batch Groq calls**                | One call per game would blow rate limits. All insights for all games are batched into one request. Same for key moment context and prediction insights.   |
-| **LRU eviction everywhere**         | Bounded memory: play-by-play (20 games), predictions (100 entries), moment contexts (1000), win probability (20). Finished games are cleaned immediately. |
-| **WebSockets read-only from cache** | Ensures a single source of truth and no thundering herd on the NBA API.                                                                                   |
-
-### Key Moments Detection
-
-The backend analyzes play-by-play in real time and detects 5 moment types:
-
-| Type                | Detection Logic                                                      |
-| ------------------- | -------------------------------------------------------------------- |
-| **Game-Tying Shot** | Score tied now, was not tied before, and play is a scoring play      |
-| **Lead Change**     | Different team leading vs previous play                              |
-| **Scoring Run**     | 8+ unanswered points (turnovers/fouls/timeouts do not break the run) |
-| **Clutch Play**     | Scoring play in Q4+ with &lt;2 min left and score within 5           |
-| **Big Shot**        | 3-pointer that extends lead to 10+ or cuts deficit to 5 or less      |
-
-Each detected moment is sent to Groq in batch for a one-sentence explanation.
+- One background poller per data type. Scoreboard every 8s. Play-by-play every 5s per live game. Win probability every 30s.
+- All WebSocket connections read from the shared cache. **100 clients = 1 NBA API call.**
+- Groq calls are batched: one call for all live game insights, one for all key moment contexts, one for all prediction insights.
+- Rate limiter enforces 600ms minimum between NBA API calls with an asyncio lock (no race condition).
+- All caches are LRU-bounded (play-by-play: 20 games, predictions: 100, moment context: 1000, win prob: 20).
 
 ---
 
 ## Tech Stack
 
-**Backend:** FastAPI, Python, WebSockets, Groq (llama-3.1-8b-instant), [`nba_api`](https://github.com/swar/nba_api)  
-**Frontend:** React 19, TypeScript, Material UI, Recharts, Vite  
-**Observability:** `GET /api/v1/health` — cache state, polling status, WebSocket connection counts, Groq rate limit usage
+| Layer | Technology |
+|-------|-----------|
+| Backend | FastAPI, Python 3.12, asyncio, WebSockets |
+| AI | Groq API (llama-3.1-8b-instant) |
+| NBA Data | nba_api Python package |
+| Frontend | React 19, TypeScript, Material UI v6, Recharts, Vite |
+| Deployment | Vercel (frontend), GCP (backend) |
+| Observability | Sentry (errors), /api/v1/health (cache + Groq stats) |
+| Testing | pytest (backend), TypeScript strict mode (frontend) |
 
 ---
 
 ## Running Locally
 
-### Prerequisites
-
-- [Docker](https://docs.docker.com/get-docker/) (for Docker path); [Git](https://git-scm.com/downloads)
-
-### Quick Setup (Docker)
-
-1. Clone and set environment:
-
-   ```bash
-   git clone https://github.com/Warsame-Egal/nba-live-tracker.git
-   cd nba-live-tracker
-   cp .env.example .env
-   ```
-
-   Edit `.env` with your `GROQ_API_KEY` (see `.env.example`).
-
-2. Start the app:
-   ```bash
-   docker-compose up --build
-   ```
-   **Frontend** http://localhost:3000 · **API** http://localhost:8000 · **API Docs** http://localhost:8000/docs
-
-### Manual Setup
-
-**Backend:**
+### Docker (recommended)
 
 ```bash
+git clone https://github.com/Warsame-Egal/nba-live-tracker.git
+cd nba-live-tracker
+cp .env.example .env        # add your GROQ_API_KEY
+docker-compose up --build
+```
+
+Frontend: http://localhost:3000 · API: http://localhost:8000 · Swagger: http://localhost:8000/docs
+
+### Manual
+
+**Backend:**
+```bash
 cd nba-tracker-api
-python -m venv venv
-venv\Scripts\activate   # or source venv/bin/activate on macOS/Linux
+python -m venv venv && source venv/bin/activate   # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 cp .env.example .env
 uvicorn app.main:app --reload
 ```
 
 **Frontend:**
-
 ```bash
 cd nba-tracker
-npm install
-npm run dev
+npm install && npm run dev
 ```
-
-Frontend: http://localhost:3000
-
----
-
-## What It Does
-
-- **Live Scoreboard** — Real-time scores, play-by-play, AI insights, win probability
-- **Key Moments** — Game-tying shots, lead changes, scoring runs, clutch plays, big shots (with optional AI context)
-- **Momentum Chart** — Score differential over time with quarter markers
-- **Predictions** — Win probability (season + recent form + net rating), score prediction, matchup narrative, key drivers, risk factors
-- **Player & Team Stats** — Season leaders, team performance, game logs, comparisons
-- **Post-Game Recap** — Short AI recap for completed games (`GET /api/v1/game/{id}/recap`)
 
 ---
 
 ## API Reference
 
-- **Health:** `GET /api/v1/health` — Returns cache stats, polling status, WebSocket counts, Groq usage. Never throws.
-- **Game detail:** `GET /api/v1/game/{game_id}/detail` — Aggregated score, box score, player impacts, key moments, win probability.
-- **Post-game recap:** `GET /api/v1/game/{game_id}/recap` — AI recap for finished games (cached permanently).
-- **API Docs (Swagger):** http://localhost:8000/docs
+Full Swagger UI at http://localhost:8000/docs when running locally.
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /api/v1/health` | Cache stats, polling status, WebSocket counts, Groq usage |
+| `GET /api/v1/scoreboard/today` | Today's scoreboard from cache |
+| `GET /api/v1/scoreboard/game/{id}/boxscore` | Full box score |
+| `GET /api/v1/scoreboard/game/{id}/play-by-play` | Play-by-play events |
+| `GET /api/v1/scoreboard/game/{id}/key-moments` | Detected key moments with AI context |
+| `GET /api/v1/scoreboard/game/{id}/win-probability` | Win probability data |
+| `GET /api/v1/scoreboard/game/{id}/lead-change` | AI explanation of latest lead change |
+| `GET /api/v1/scoreboard/insights` | Batched AI insights for all live games |
+| `GET /api/v1/game/{id}/detail` | Aggregated: score + box score + key moments + win prob + AI summary |
+| `GET /api/v1/game/{id}/recap` | AI post-game recap (completed games only, cached) |
+| `GET /api/v1/game/{id}/summary` | AI game summary |
+| `GET /api/v1/predictions/date/{date}` | Predictions for all games on a date |
+| `GET /api/v1/player/{id}` | Player season stats + game log |
+| `GET /api/v1/players/search/{name}` | Player search |
+| `GET /api/v1/players/season-leaders` | Season stat leaders |
+| `GET /api/v1/teams/{id}` | Team info |
+| `GET /api/v1/teams/{id}/game-log` | Team game log |
+| `GET /api/v1/teams/{id}/lineups` | Team lineup data |
+| `GET /api/v1/teams/{id}/on-off` | Player on/off splits |
+| `GET /api/v1/standings/season/{season}` | Conference standings |
+| `GET /api/v1/compare/{p1}/{p2}` | Head-to-head player comparison |
+| `GET /api/v1/league/leaders` | League stat leaders |
+| `POST /api/v1/agent/ask` | Non-streaming agent query |
+| `POST /api/v1/agent/stream` | Streaming SSE agent query |
+| `WS /api/v1/ws` | Live scoreboard WebSocket |
+| `WS /api/v1/ws/{game_id}/play-by-play` | Per-game play-by-play WebSocket |
 
 ---
 
-## MCP Server — Use With Claude or Cursor
+## CourtIQ Agent
 
-The NBA Live Tracker exposes its data pipeline as an MCP (Model Context Protocol) server so AI assistants can query live NBA data.
+Ask natural language questions about NBA data via the `/agent` page or the POST endpoints.
 
-### Setup
+Rate limited to 5 requests/minute per IP. Makes 2 Groq calls per question (tool selection + answer generation). Both calls go through the shared Groq rate limiter.
 
-1. Start the backend locally (`uvicorn app.main:app --reload` from `nba-tracker-api`).
-2. Add to your Claude Desktop config (e.g. `claude_desktop_config.json`):
+Available tools: `get_live_scoreboard`, `get_player_stats`, `get_game_detail`, `get_standings`, `get_league_leaders`
+
+---
+
+## MCP Server
+
+Exposes NBA data to Claude Desktop and Cursor via [Model Context Protocol](https://modelcontextprotocol.io).
 
 ```json
 {
   "mcpServers": {
     "nba-tracker": {
       "command": "python",
-      "args": ["/path/to/nba-live-tracker/nba-tracker-api/app/mcp_server.py"],
-      "env": { "PYTHONPATH": "/path/to/nba-live-tracker/nba-tracker-api" }
+      "args": ["/path/to/nba-tracker-api/app/mcp_server.py"],
+      "env": { "PYTHONPATH": "/path/to/nba-tracker-api" }
     }
   }
 }
 ```
 
-3. Restart Claude Desktop.
+Does not use Groq. Does not affect web app users or rate limits.
 
-### What You Can Ask Claude
+---
 
-- "Which NBA games are live right now and what are the scores?"
-- "How is Stephen Curry performing this season compared to his career averages?"
-- "What does the model predict for tonight's Lakers game?"
-- "Show me the current Western Conference standings"
+## Testing
 
-The MCP server connects Claude directly to the same real-time data pipeline that powers the web app.
+```bash
+cd nba-tracker-api
+pytest app/tests/ -v
+```
 
-### Tools
+Tests cover: key moment detection, prediction model, data cache LRU, rate limiter, win probability TTL, batched insights cache, agent service, compare router.
 
-- **get_live_scoreboard** — Today's games with live scores
-- **get_player_stats** — Season stats and game log by player name
-- **get_game_detail** — Box score, key moments, win probability by game ID
-- **get_standings** — Conference standings
-- **get_predictions** — Win probability predictions by date
-- **get_league_leaders** — Season leaders by stat (PTS, REB, AST, STL, BLK)
+---
 
-### Verify
+## Key Moment Detection
 
-From `nba-tracker-api`: `python test_mcp.py` (backend must be running). See `mcp_config.json` at repo root for a full config example.
+| Type | Logic |
+|------|-------|
+| Game-tying shot | Score tied after play, was not tied before, scoring play |
+| Lead change | Different team leading vs previous play |
+| Scoring run | 8+ unanswered points over last ~20 plays |
+| Clutch play | Scoring play in Q4+, <2 min left, score within 5 |
+| Big shot | 3-pointer extending lead to 10+ or cutting deficit to ≤5 |
 
-## Documentation
+---
 
-- **Architecture:** [docs/architecture.md](docs/architecture.md)
-- **API Docs:** http://localhost:8000/docs
-- **Full API reference:** [nba-tracker-api/app/docs/API_DOCUMENTATION.md](nba-tracker-api/app/docs/API_DOCUMENTATION.md)
-- **Groq AI details:** [docs/groq-ai.md](docs/groq-ai.md)
-
-## Deployment
-
-- **Frontend:** Vercel
-- **Backend:** GCP
-
-## Data Source
-
-Uses the [`nba_api`](https://github.com/swar/nba_api) Python package.
-
-## Testing & CI
-
-- **Backend:** pytest in `nba-tracker-api/app/tests/`. Run: `pytest` from `nba-tracker-api`.
-
-Made by Warsame Egal
+Built by **Warsame Egal**
+---

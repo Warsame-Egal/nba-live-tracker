@@ -15,7 +15,7 @@ import { ChatBubbleOutline } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { Game } from '../../types/scoreboard';
 import { GameSummary } from '../../types/schedule';
-import { TEAM_LOGOS, getStatusLabel } from '../../utils/gameUtils';
+import { TEAM_LOGOS } from '../../utils/gameUtils';
 import { LIVE_DOT_STYLE } from '../../utils/gameVisuals';
 import { borderRadius, transitions, shadows } from '../../theme/designTokens';
 import KeyMomentBadge from '../KeyMomentBadge';
@@ -71,12 +71,13 @@ const LiveGameCard: React.FC<LiveGameCardProps> = ({
         display: 'flex',
         flexDirection: 'column',
         gap: 0,
-        borderRadius: borderRadius.lg,
+        borderRadius: borderRadius.md,
         overflow: 'hidden',
         boxShadow: theme.palette.mode === 'dark' ? shadows.dark.md : shadows.md,
         transition: transitions.smooth,
-        borderLeft: '3px solid',
-        borderLeftColor: 'error.main',
+        borderLeft: '4px solid',
+        borderLeftColor: 'primary.main',
+        backgroundColor: '#111111',
         '@keyframes livePulse': {
           '0%, 100%': { borderLeftColor: 'error.main' },
           '50%': { borderLeftColor: 'error.light' },
@@ -91,7 +92,8 @@ const LiveGameCard: React.FC<LiveGameCardProps> = ({
         }),
         '&:hover': {
           boxShadow: theme.palette.mode === 'dark' ? shadows.dark.lg : shadows.lg,
-          transform: 'translateY(-2px)',
+          transform: { md: 'translateY(-2px) scale(1.01)' },
+          backgroundColor: '#1A1A1A',
         },
       }}
     >
@@ -123,13 +125,17 @@ const LiveGameCard: React.FC<LiveGameCardProps> = ({
           <Typography
             variant="caption"
             sx={{
+              fontFamily: '"Barlow Condensed", sans-serif',
+              textTransform: 'uppercase',
+              letterSpacing: '0.08em',
               fontWeight: 600,
               color: 'error.main',
               textAlign: 'center',
               fontVariantNumeric: 'tabular-nums',
+              fontSize: '0.65rem',
             }}
           >
-            {getStatusLabel(game)}
+            LIVE
           </Typography>
         </Box>
 
@@ -156,8 +162,9 @@ const LiveGameCard: React.FC<LiveGameCardProps> = ({
           <Typography
             variant="h6"
             sx={{
-              fontWeight: 700,
-              fontSize: '1.25rem',
+              fontFamily: '"Barlow Condensed", sans-serif',
+              fontWeight: 800,
+              fontSize: { xs: '2rem', md: '2.5rem' },
               minWidth: 40,
               textAlign: 'right',
               fontVariantNumeric: 'tabular-nums',
@@ -190,8 +197,9 @@ const LiveGameCard: React.FC<LiveGameCardProps> = ({
           <Typography
             variant="h6"
             sx={{
-              fontWeight: 700,
-              fontSize: '1.25rem',
+              fontFamily: '"Barlow Condensed", sans-serif',
+              fontWeight: 800,
+              fontSize: { xs: '2rem', md: '2.5rem' },
               minWidth: 40,
               textAlign: 'right',
               fontVariantNumeric: 'tabular-nums',
@@ -219,22 +227,14 @@ const LiveGameCard: React.FC<LiveGameCardProps> = ({
             <Fade in timeout={300}>
               <Box
                 sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 0.75,
-                  px: 1.25,
-                  py: 0.5,
-                  borderRadius: borderRadius.xs,
-                  backgroundColor: alpha(theme.palette.primary.main, 0.1),
-                  border: `1px solid ${alpha(theme.palette.primary.main, 0.3)}`,
-                  height: 24,
+                  width: '100%',
                 }}
               >
                 <Box
                   sx={{
                     display: 'flex',
-                    width: 32,
-                    height: 4,
+                    width: '100%',
+                    height: 3,
                     borderRadius: borderRadius.xs,
                     overflow: 'hidden',
                     backgroundColor: alpha(theme.palette.primary.main, 0.15),
@@ -253,11 +253,6 @@ const LiveGameCard: React.FC<LiveGameCardProps> = ({
                     }}
                   />
                 </Box>
-                <Typography variant="caption" fontWeight={600} color="primary.main">
-                  {winProbability.home_win_prob > winProbability.away_win_prob
-                    ? `${(winProbability.home_win_prob * 100).toFixed(0)}%`
-                    : `${(winProbability.away_win_prob * 100).toFixed(0)}%`}
-                </Typography>
               </Box>
             </Fade>
           )}

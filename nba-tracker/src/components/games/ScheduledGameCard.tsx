@@ -41,15 +41,18 @@ const ScheduledGameCard: React.FC<ScheduledGameCardProps> = ({ game, onClick, ho
       sx={{
         display: 'flex',
         flexDirection: 'column',
-        borderRadius: borderRadius.lg,
+        borderRadius: borderRadius.md,
         overflow: 'hidden',
         boxShadow: theme.palette.mode === 'dark' ? shadows.dark.sm : shadows.sm,
         transition: transitions.smooth,
-        opacity: 0.9,
+        opacity: 0.92,
+        backgroundColor: '#111111',
+        border: '1px solid #222222',
         '&:hover': {
           boxShadow: theme.palette.mode === 'dark' ? shadows.dark.md : shadows.md,
-          transform: 'translateY(-2px)',
+          transform: { md: 'translateY(-2px)' },
           opacity: 1,
+          backgroundColor: '#1A1A1A',
         },
       }}
     >
@@ -65,7 +68,7 @@ const ScheduledGameCard: React.FC<ScheduledGameCardProps> = ({ game, onClick, ho
         }}
       >
         <Box sx={{ minWidth: 56, textAlign: 'center' }}>
-          <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+          <Typography variant="caption" sx={{ fontWeight: 700, color: 'primary.main' }}>
             {gameTime}
           </Typography>
         </Box>
@@ -77,7 +80,7 @@ const ScheduledGameCard: React.FC<ScheduledGameCardProps> = ({ game, onClick, ho
             onClick={e => handleTeamClick(e, awayId)}
             sx={{ width: 32, height: 32, cursor: awayId ? 'pointer' : 'default' }}
           />
-          <Typography variant="body2" fontWeight={600} noWrap>
+          <Typography variant="body2" fontWeight={600} noWrap sx={{ fontFamily: '"Barlow Condensed", sans-serif' }}>
             {awayTeam}
           </Typography>
         </Box>
@@ -93,7 +96,7 @@ const ScheduledGameCard: React.FC<ScheduledGameCardProps> = ({ game, onClick, ho
             onClick={e => handleTeamClick(e, homeId)}
             sx={{ width: 32, height: 32, cursor: homeId ? 'pointer' : 'default' }}
           />
-          <Typography variant="body2" fontWeight={600} noWrap>
+          <Typography variant="body2" fontWeight={600} noWrap sx={{ fontFamily: '"Barlow Condensed", sans-serif' }}>
             {homeTeam}
           </Typography>
         </Box>
@@ -101,15 +104,13 @@ const ScheduledGameCard: React.FC<ScheduledGameCardProps> = ({ game, onClick, ho
         {homeWinPercent != null && !isNaN(homeWinPercent) && (
           <Box
             sx={{
-              px: 1,
-              py: 0.5,
-              borderRadius: borderRadius.xs,
-              backgroundColor: alpha(theme.palette.primary.main, 0.1),
+              width: 56,
             }}
           >
-            <Typography variant="caption" fontWeight={700} color="primary.main">
-              {(homeWinPercent * 100).toFixed(0)}%
-            </Typography>
+            <Box sx={{ display: 'flex', width: '100%', height: 3, borderRadius: 999, overflow: 'hidden' }}>
+              <Box sx={{ flex: 1 - homeWinPercent, bgcolor: alpha(theme.palette.text.secondary, 0.35) }} />
+              <Box sx={{ flex: homeWinPercent, bgcolor: 'primary.main' }} />
+            </Box>
           </Box>
         )}
       </Box>

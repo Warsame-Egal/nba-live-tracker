@@ -72,12 +72,13 @@ Every cache has a **max size** and **LRU eviction** (oldest unused entry is drop
 |-----------------------|------------------------|--------------------------------|
 | Play-by-play          | 20 games               | LRU; finished games evicted    |
 | Win probability       | 20 games, 30s (live) / 1h (final) TTL | LRU                   |
+| Win probability polling loop | 30s live / 1h final | Poll interval + reuse policy |
 | _player_stats_cache  | 500 entries, 1 h TTL   | LRU                            |
 | Predictions           | 100 date+season, 30 min TTL | LRU                      |
 | Key moments (list)    | Per game, 5 min window | Rolling; game finished → clear |
 | Moment context (AI)   | 1000 entries           | LRU                            |
 | Batched insights      | 50 batches, 20 lead-change | LRU                        |
-| Game summary (AI)     | 24 h TTL               | Per game_id; max 200 entries LRU |
+| Game summary (AI)     | 200 entries LRU, 24 h TTL | Per game_id                  |
 
 This keeps memory bounded on small instances (e.g. GCP free tier) and avoids unbounded growth over a long run.
 
@@ -110,10 +111,11 @@ For each new moment we can generate a short "why it matters" text via Groq. To a
                     |   NBA API        |
                     | (scoreboard,     |
                     |  playbyplay,     |
+                    |  win prob,       |
                     |  box score, ...) |
                     +--------+---------+
                              |
-         asyncio.to_thread   | (poll every 8s / 5s)
+        asyncio.to_thread   | (poll every 8s / 5s / 30s)
                              v
                     +------------------+
                     |   DataCache      |

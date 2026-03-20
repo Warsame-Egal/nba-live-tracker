@@ -1,6 +1,5 @@
 import React from 'react';
-import { Chip, Fade } from '@mui/material';
-import { Whatshot, TrendingUp, SwapHoriz, SportsBasketball, FlashOn } from '@mui/icons-material';
+import { Chip, Slide, Fade } from '@mui/material';
 import { useTheme, alpha } from '@mui/material/styles';
 import { typography, transitions, borderRadius } from '../theme/designTokens';
 import { KeyMoment } from '../types/scoreboard';
@@ -28,52 +27,44 @@ const KeyMomentBadge: React.FC<KeyMomentBadgeProps> = ({ moment, onClick }) => {
   const getMomentConfig = () => {
     switch (moment.type) {
       case 'game_tying_shot':
-        return { icon: SwapHoriz, label: 'Tied', color: theme.palette.warning.main };
+        return { label: '🏀 Tied', color: '#E8FF47', textColor: '#0A0A0A' };
       case 'lead_change':
-        return { icon: TrendingUp, label: 'Lead Change', color: theme.palette.primary.main };
+        return { label: '🔄 Lead Change', color: '#00BCD4', textColor: '#0A0A0A' };
       case 'scoring_run':
-        return { icon: Whatshot, label: 'Run', color: theme.palette.error.main };
+        return { label: '🔥 Run', color: '#FF8A00', textColor: '#0A0A0A' };
       case 'clutch_play':
-        return { icon: FlashOn, label: 'Clutch', color: theme.palette.secondary.main };
+        return { label: '⚡ Clutch', color: '#9C27B0', textColor: '#F5F5F5' };
       case 'big_shot':
-        return { icon: SportsBasketball, label: 'Big Shot', color: theme.palette.info.main };
+        return { label: '💥 Big Shot', color: '#4CAF50', textColor: '#0A0A0A' };
       default:
-        return { icon: Whatshot, label: 'Key Moment', color: theme.palette.primary.main };
+        return { label: '🏀 Moment', color: theme.palette.primary.main, textColor: '#0A0A0A' };
     }
   };
 
-  const { icon: Icon, label, color } = getMomentConfig();
-  const mutedColor = alpha(color, 0.8);
+  const { label, color, textColor } = getMomentConfig();
 
   return (
-    <Fade in={true} timeout={300}>
-      <Chip
-        icon={<Icon sx={{ fontSize: 14, color: mutedColor }} />}
-        label={label}
-        onClick={onClick}
-        size="small"
-        sx={{
-          height: 24,
-          fontSize: typography.size.captionSmall,
-          fontWeight: typography.weight.semibold,
-          backgroundColor: alpha(color, 0.1),
-          color: mutedColor,
-          border: `1px solid ${alpha(color, 0.3)}`,
-          borderRadius: borderRadius.xs,
-          cursor: onClick ? 'pointer' : 'default',
-          transition: transitions.normal,
-          '&:hover': onClick
-            ? {
-                backgroundColor: alpha(color, 0.2),
-                borderColor: alpha(color, 0.5),
-              }
-            : {},
-          '& .MuiChip-icon': {
-            marginLeft: 0.5,
-          },
-        }}
-      />
-    </Fade>
+    <Slide in direction="up" timeout={220}>
+      <Fade in timeout={220}>
+        <Chip
+          label={label}
+          onClick={onClick}
+          size="small"
+          sx={{
+            height: 22,
+            px: 0.25,
+            fontSize: '0.7rem',
+            fontWeight: typography.weight.semibold,
+            backgroundColor: color,
+            color: textColor,
+            border: `1px solid ${alpha(color, 0.55)}`,
+            borderRadius: borderRadius.xs,
+            cursor: onClick ? 'pointer' : 'default',
+            transition: transitions.normal,
+          }}
+        />
+      </Fade>
+    </Slide>
   );
 };
 

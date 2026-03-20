@@ -226,6 +226,8 @@ const Teams = () => {
                       color: 'text.primary',
                       letterSpacing: typography.letterSpacing.tight,
                       minHeight: { xs: '1.5rem', sm: '1.75rem' },
+                      borderBottom: '1px solid #222222',
+                      pb: 0.75,
                     }}
                   >
                     {conference === 'East' ? 'Eastern Conference' : 'Western Conference'}
@@ -237,7 +239,7 @@ const Teams = () => {
                       if (teams.length === 0) return null;
 
                       return (
-                        <Grid item xs={12} sm={6} lg={4} key={division}>
+                        <Grid item xs={12} sm={6} md={6} lg={4} key={division}>
                           <Box
                             sx={{ mb: 3, display: 'flex', flexDirection: 'column', height: '100%' }}
                           >

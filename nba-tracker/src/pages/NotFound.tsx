@@ -14,11 +14,16 @@ const NotFound = () => (
       overflowY: 'visible',
     }}
   >
-    <Typography variant="h2" sx={{ fontWeight: 700, mb: 2 }}>
-      Page Not Found
+    <Typography
+      sx={{ fontFamily: '"Barlow Condensed", sans-serif', fontWeight: 800, mb: 1, fontSize: '6rem', color: 'primary.main' }}
+    >
+      404
+    </Typography>
+    <Typography variant="h5" sx={{ mb: 2 }}>
+      Page not found
     </Typography>
     <Button component={Link} to="/" variant="contained" size="large">
-      Go back home
+      Go home
     </Button>
   </Box>
 );

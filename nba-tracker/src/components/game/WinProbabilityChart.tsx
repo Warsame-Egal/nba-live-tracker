@@ -5,7 +5,6 @@ import {
   AreaChart,
   XAxis,
   YAxis,
-  CartesianGrid,
   Tooltip,
   ResponsiveContainer,
   ReferenceLine,
@@ -43,7 +42,8 @@ const WinProbabilityChart: React.FC<WinProbabilityChartProps> = ({
   status,
 }) => {
   const theme = useTheme();
-  const homeStroke = homeColor ?? theme.palette.primary.main;
+  const homeStroke = homeColor ?? '#E8FF47';
+  const awayStroke = '#BDBDBD';
 
   const chartData = useMemo((): ChartPoint[] => {
     const history = winProbability?.probability_history;
@@ -85,25 +85,24 @@ const WinProbabilityChart: React.FC<WinProbabilityChartProps> = ({
           border: '1px solid',
           borderColor: 'divider',
           borderRadius: borderRadius.lg,
-          backgroundColor: 'background.paper',
+          backgroundColor: 'transparent',
         }}
       >
         <Box sx={{ width: '100%', height: 220 }}>
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} />
               <XAxis
                 dataKey="label"
-                tick={{ fontSize: 11, fill: theme.palette.text.secondary }}
+                tick={{ fontSize: 10, fill: theme.palette.text.secondary, fontFamily: '"Barlow Condensed", sans-serif' }}
                 tickLine={false}
-                axisLine={{ stroke: theme.palette.divider }}
+                axisLine={false}
               />
               <YAxis
                 domain={[0, 100]}
-                tick={{ fontSize: 11, fill: theme.palette.text.secondary }}
+                tick={{ fontSize: 10, fill: theme.palette.text.secondary, fontFamily: '"Barlow Condensed", sans-serif' }}
                 tickFormatter={v => `${v}%`}
                 tickLine={false}
-                axisLine={{ stroke: theme.palette.divider }}
+                axisLine={false}
               />
               <Tooltip
                 formatter={(value: number | undefined) => [
@@ -119,8 +118,8 @@ const WinProbabilityChart: React.FC<WinProbabilityChartProps> = ({
                       variant="outlined"
                       sx={{
                         p: 1.5,
-                        backgroundColor: theme.palette.background.paper,
-                        borderColor: 'divider',
+                        backgroundColor: '#111111',
+                        borderColor: '#222222',
                       }}
                     >
                       <Typography variant="caption" display="block" fontWeight={600}>
@@ -145,6 +144,15 @@ const WinProbabilityChart: React.FC<WinProbabilityChartProps> = ({
                 fill={homeStroke}
                 fillOpacity={0.35}
                 strokeWidth={2}
+              />
+              <Area
+                type="monotone"
+                dataKey="awayPct"
+                name={awayTeamName}
+                stroke={awayStroke}
+                fill={awayStroke}
+                fillOpacity={0.06}
+                strokeWidth={1.5}
               />
             </AreaChart>
           </ResponsiveContainer>

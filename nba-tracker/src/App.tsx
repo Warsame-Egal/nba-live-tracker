@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { Suspense, lazy } from 'react';
 import { Box, Skeleton } from '@mui/material';
 import AppShell from './components/AppShell';
@@ -29,6 +29,31 @@ const PageSkeleton = () => (
   </Box>
 );
 
+function AnimatedRoutes() {
+  const location = useLocation();
+  return (
+    <Box className="page-enter-active">
+      <Routes location={location} key={location.pathname}>
+        <Route path="/" element={<Scoreboard />} />
+        <Route path="/team/:team_id" element={<TeamPage />} />
+        <Route path="/team/:team_id/roster" element={<RosterPage />} />
+        <Route path="/standings/:season" element={<Standings />} />
+        <Route path="/standings" element={<Standings />} />
+        <Route path="/players" element={<Players />} />
+        <Route path="/player/:playerId" element={<PlayerProfile />} />
+        <Route path="/teams" element={<Teams />} />
+        <Route path="/predictions" element={<Predictions />} />
+        <Route path="/compare" element={<ComparePage />} />
+        <Route path="/compare/:player1Id" element={<ComparePage />} />
+        <Route path="/compare/:player1Id/:player2Id" element={<ComparePage />} />
+        <Route path="/game/:gameId" element={<GameDetail />} />
+        <Route path="/agent" element={<AgentPage />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </Box>
+  );
+}
+
 // Main app component with routing
 export default function App() {
   return (
@@ -37,35 +62,7 @@ export default function App() {
         <ErrorBoundary>
           <AppShell>
             <Suspense fallback={<PageSkeleton />}>
-              {/* Define all the routes */}
-              <Routes>
-                {/* Home page - shows the scoreboard */}
-                <Route path="/" element={<Scoreboard />} />
-                {/* Team page - shows team details */}
-                <Route path="/team/:team_id" element={<TeamPage />} />
-                {/* Roster page - shows team roster */}
-                <Route path="/team/:team_id/roster" element={<RosterPage />} />
-                {/* Standings page - shows league standings */}
-                <Route path="/standings/:season" element={<Standings />} />
-                <Route path="/standings" element={<Standings />} />
-                {/* Players page - shows season leaders and player search */}
-                <Route path="/players" element={<Players />} />
-                {/* Player profile page - shows player details */}
-                <Route path="/player/:playerId" element={<PlayerProfile />} />
-                {/* Teams page - shows team statistics */}
-                <Route path="/teams" element={<Teams />} />
-                {/* Predictions page - shows AI-powered game predictions */}
-                <Route path="/predictions" element={<Predictions />} />
-                {/* Compare page - side-by-side player comparison */}
-                <Route path="/compare" element={<ComparePage />} />
-                <Route path="/compare/:player1Id" element={<ComparePage />} />
-                <Route path="/compare/:player1Id/:player2Id" element={<ComparePage />} />
-                {/* Game detail page - full game page with score, box score, key moments, AI summary */}
-                <Route path="/game/:gameId" element={<GameDetail />} />
-                <Route path="/agent" element={<AgentPage />} />
-                {/* 404 page - shows when user goes to a page that doesn't exist */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
+              <AnimatedRoutes />
             </Suspense>
             <AgentChat />
           </AppShell>

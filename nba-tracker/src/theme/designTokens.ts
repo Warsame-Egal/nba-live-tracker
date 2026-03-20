@@ -161,10 +161,19 @@ export const shadows = {
 
 // Transition timings for consistent animations
 export const transitions = {
-  fast: '0.15s ease-in-out',
-  normal: '0.2s ease-in-out',
-  slow: '0.3s ease-in-out',
-  smooth: '0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+  fast: 'all 0.12s ease',
+  normal: 'all 0.2s ease',
+  smooth: 'all 0.2s ease',
+  slow: 'all 0.35s ease',
+} as const;
+
+export const colors = {
+  accent: '#E8FF47',
+  live: '#FF3B3B',
+  success: '#00D4AA',
+  surface: '#111111',
+  surfaceElevated: '#1A1A1A',
+  border: '#222222',
 } as const;
 
 // Z-index scale for consistent layering

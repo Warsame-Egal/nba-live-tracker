@@ -491,6 +491,7 @@ const Standings = () => {
             variant="body1"
             sx={{
               fontWeight: typography.weight.bold,
+              fontFamily: '"Barlow Condensed", sans-serif',
               fontSize: typography.editorial.metric.xs,
               color: 'text.primary',
             }}
@@ -503,6 +504,7 @@ const Standings = () => {
             variant="body2"
             sx={{
               fontWeight: typography.weight.semibold,
+              fontFamily: '"Barlow Condensed", sans-serif',
               fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall.sm },
               color: 'text.secondary',
             }}
@@ -876,12 +878,12 @@ const Standings = () => {
                       colSpan={20}
                       sx={{
                         py: 0.75,
-                        backgroundColor: 'success.light',
-                        borderBottom: '2px solid',
-                        borderBottomColor: 'success.main',
+                        backgroundColor: 'transparent',
+                        borderBottom: '1px dashed',
+                        borderBottomColor: 'divider',
                         fontWeight: 700,
                         fontSize: '0.7rem',
-                        color: 'success.dark',
+                        color: 'text.secondary',
                       }}
                     >
                       PLAYOFF LINE

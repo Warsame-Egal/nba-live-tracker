@@ -8,16 +8,13 @@ import { createTheme, ThemeOptions } from '@mui/material/styles';
 const baseTheme: ThemeOptions = {
   typography: {
     fontFamily: [
+      '"DM Sans"',
       '-apple-system',
       'BlinkMacSystemFont',
       '"Segoe UI"',
-      'Roboto',
       '"Helvetica Neue"',
       'Arial',
       'sans-serif',
-      '"Apple Color Emoji"',
-      '"Segoe UI Emoji"',
-      '"Segoe UI Symbol"',
     ].join(','),
     h1: {
       fontWeight: 700,
@@ -105,7 +102,7 @@ const baseTheme: ThemeOptions = {
     },
   },
   shape: {
-    borderRadius: 12, // Material 3 base: 12dp (medium)
+    borderRadius: 8,
   },
   spacing: 8,
   components: {
@@ -134,8 +131,8 @@ const baseTheme: ThemeOptions = {
     MuiButton: {
       styleOverrides: {
         root: {
-          borderRadius: 20, // Material 3: 20dp (full button)
-          padding: '10px 24px',
+          borderRadius: 6,
+          padding: '8px 20px',
           fontWeight: 500, // Material 3: medium weight
           fontSize: '0.875rem',
           textTransform: 'none',
@@ -191,7 +188,7 @@ const baseTheme: ThemeOptions = {
     MuiPaper: {
       styleOverrides: {
         root: {
-          borderRadius: 12, // Material 3: 12dp (medium surface)
+          borderRadius: 8,
           border: '1px solid',
           borderColor: 'divider', // Material 3: outline color
           transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -217,17 +214,21 @@ const baseTheme: ThemeOptions = {
       styleOverrides: {
         root: {
           '& .MuiOutlinedInput-root': {
-            borderRadius: 12,
+            borderRadius: 8,
             transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+            backgroundColor: '#111111',
             '& fieldset': {
               borderWidth: '1.5px',
+              borderColor: '#222222',
               transition: 'border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
             },
             '&:hover fieldset': {
               borderWidth: '1.5px',
+              borderColor: '#E8FF47',
             },
             '&.Mui-focused fieldset': {
               borderWidth: '2px',
+              borderColor: '#E8FF47',
             },
           },
         },
@@ -303,11 +304,11 @@ const baseTheme: ThemeOptions = {
     MuiChip: {
       styleOverrides: {
         root: {
-          borderRadius: 8,
+          borderRadius: 6,
           fontWeight: 600,
-          fontSize: '0.8125rem',
-          height: 28,
-          padding: '0 8px',
+          fontSize: '0.75rem',
+          height: 24,
+          padding: '0 6px',
         },
       },
     },
@@ -407,35 +408,29 @@ export const darkTheme = createTheme({
   palette: {
     mode: 'dark',
     primary: {
-      main: '#1E88E5',
-      light: '#42A5F5',
-      dark: '#1565C0',
-      contrastText: '#FFFFFF',
-    },
-    secondary: {
-      main: '#FF6B35',
-      light: '#FF8C61',
-      dark: '#E55A2B',
-      contrastText: '#FFFFFF',
+      main: '#E8FF47',
+      light: '#F0FF83',
+      dark: '#D7EF2F',
+      contrastText: '#0A0A0A',
     },
     background: {
-      default: '#1E1E1E', // Material 3: dark surface (not pure black)
-      paper: '#2C2C2C', // Material 3: dark surface container
+      default: '#0A0A0A',
+      paper: '#111111',
     },
     text: {
-      primary: '#FFFFFF',
-      secondary: 'rgba(255, 255, 255, 0.7)',
+      primary: '#F5F5F5',
+      secondary: '#888888',
       disabled: 'rgba(255, 255, 255, 0.5)',
     },
     error: {
-      main: '#EF5350',
+      main: '#FF3B3B',
       light: '#FF6B6B',
-      dark: '#C62828',
+      dark: '#D92D2D',
     },
     success: {
-      main: '#66BB6A',
-      light: '#81C784',
-      dark: '#388E3C',
+      main: '#00D4AA',
+      light: '#2CE0BC',
+      dark: '#00B090',
     },
     warning: {
       main: '#FFA726',
@@ -447,7 +442,7 @@ export const darkTheme = createTheme({
       light: '#64B5F6',
       dark: '#1976D2',
     },
-    divider: 'rgba(255, 255, 255, 0.15)',
+    divider: '#222222',
     action: {
       hover: 'rgba(255, 255, 255, 0.08)',
       selected: 'rgba(255, 255, 255, 0.12)',
@@ -462,8 +457,8 @@ export const darkTheme = createTheme({
         root: {
           ...((baseTheme.components?.MuiCard?.styleOverrides?.root as Record<string, unknown>) ??
             {}),
-          backgroundColor: '#121212',
-          borderColor: 'rgba(255, 255, 255, 0.12)',
+          backgroundColor: '#111111',
+          borderColor: '#222222',
           '&:hover': {
             borderColor: 'rgba(255, 255, 255, 0.2)',
             boxShadow: '0 8px 24px rgba(0, 0, 0, 0.3)',
@@ -476,8 +471,8 @@ export const darkTheme = createTheme({
         root: {
           ...((baseTheme.components?.MuiPaper?.styleOverrides?.root as Record<string, unknown>) ??
             {}),
-          backgroundColor: '#121212',
-          borderColor: 'rgba(255, 255, 255, 0.12)',
+          backgroundColor: '#111111',
+          borderColor: '#222222',
         },
       },
     },
@@ -489,15 +484,15 @@ export const darkTheme = createTheme({
             unknown
           >) ?? {}),
           '& .MuiOutlinedInput-root': {
-            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+            backgroundColor: '#111111',
             '& fieldset': {
-              borderColor: 'rgba(255, 255, 255, 0.12)',
+              borderColor: '#222222',
             },
             '&:hover fieldset': {
-              borderColor: 'rgba(255, 255, 255, 0.2)',
+              borderColor: '#E8FF47',
             },
             '&.Mui-focused fieldset': {
-              borderColor: '#1E88E5',
+              borderColor: '#E8FF47',
             },
           },
         },
@@ -557,19 +552,13 @@ export const lightTheme = createTheme({
   palette: {
     mode: 'light',
     primary: {
-      main: '#1976D2',
-      light: '#42A5F5',
-      dark: '#1565C0',
-      contrastText: '#FFFFFF',
-    },
-    secondary: {
-      main: '#FF6B35',
-      light: '#FF8C61',
-      dark: '#E55A2B',
+      main: '#1A1A1A',
+      light: '#2A2A2A',
+      dark: '#000000',
       contrastText: '#FFFFFF',
     },
     background: {
-      default: '#F5F7FA',
+      default: '#FAFAFA',
       paper: '#FFFFFF',
     },
     text: {

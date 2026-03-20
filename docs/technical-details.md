@@ -22,6 +22,7 @@ All HTTP routes are under: `/api/v1`
 ### Agent (tool-calling + SSE)
 - `POST /api/v1/agent/ask`
 - `POST /api/v1/agent/stream` (SSE, `text/event-stream`)
+  - example: `POST /api/v1/agent/stream` with `{ "question": "Who is live right now?", "history": [] }`
 
 ### Live WebSockets
 - `WS /api/v1/ws` (scoreboard updates + AI messages)
@@ -35,11 +36,16 @@ All HTTP routes are under: `/api/v1`
 - `GET /api/v1/scoreboard/game/{game_id}/advanced`
 - `GET /api/v1/scoreboard/game/{game_id}/matchups`
 - `GET /api/v1/scoreboard/game/{game_id}/play-by-play`
+  - example: `GET /api/v1/scoreboard/game/0022400001/hustle`
+  - example: `GET /api/v1/scoreboard/game/0022400001/advanced`
+  - example: `GET /api/v1/scoreboard/game/0022400001/matchups`
 
 ### Game Detail + Summaries
 - `GET /api/v1/game/{game_id}/detail`
 - `GET /api/v1/game/{game_id}/summary`
 - `GET /api/v1/game/{game_id}/recap`
+  - example: `GET /api/v1/game/0022400001/summary`
+  - example: `GET /api/v1/game/0022400001/recap`
 
 ### Live AI (insights, lead change, key moments, win probability)
 - `GET /api/v1/scoreboard/insights`
@@ -54,6 +60,9 @@ All HTTP routes are under: `/api/v1`
 - `GET /api/v1/compare/search?q=...`
 - `GET /api/v1/compare/seasons/{player_id}`
 - `GET /api/v1/compare/{player1_id}/{player2_id}`
+  - example: `GET /api/v1/compare/search?q=lebron`
+  - example: `GET /api/v1/compare/seasons/2544`
+  - example: `GET /api/v1/compare/2544/203507?season1=2024-25&season2=2024-25&last_n_games=20`
 
 ### Player Advanced Endpoints
 - `GET /api/v1/player/{player_id}/shooting-zones`

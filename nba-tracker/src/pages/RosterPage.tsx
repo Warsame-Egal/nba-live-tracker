@@ -13,6 +13,7 @@ import {
   Skeleton,
   Alert,
   Avatar,
+  Chip,
 } from '@mui/material';
 import { TeamRoster, Player } from '../types/team';
 import { logger } from '../utils/logger';
@@ -165,10 +166,20 @@ const RosterPage = () => {
                             <Typography variant="body2">{player.name}</Typography>
                           </Box>
                         </TableCell>
-                        <TableCell>{player.position || '--'}</TableCell>
-                        <TableCell>{player.age || '--'}</TableCell>
+                        <TableCell>
+                          <Chip
+                            size="small"
+                            label={player.position || '--'}
+                            sx={{ height: 20, fontSize: '0.68rem', bgcolor: '#1A1A1A' }}
+                          />
+                        </TableCell>
+                        <TableCell sx={{ fontFamily: '"Barlow Condensed", sans-serif' }}>
+                          {player.age || '--'}
+                        </TableCell>
                         <TableCell>{player.height || '--'}</TableCell>
-                        <TableCell>{player.weight ? `${player.weight} lbs` : '--'}</TableCell>
+                        <TableCell sx={{ fontFamily: '"Barlow Condensed", sans-serif' }}>
+                          {player.weight ? `${player.weight} lbs` : '--'}
+                        </TableCell>
                         <TableCell>{player.experience || '--'}</TableCell>
                         <TableCell>{player.school || '--'}</TableCell>
                       </TableRow>

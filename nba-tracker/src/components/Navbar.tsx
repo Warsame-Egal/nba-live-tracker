@@ -11,11 +11,8 @@ import {
   Box,
   Typography,
   IconButton,
-  Tooltip,
   Menu,
   MenuItem,
-  useTheme,
-  alpha,
 } from '@mui/material';
 import { LightMode, DarkMode, Search, ExpandMore } from '@mui/icons-material';
 import { useThemeMode } from '../contexts/ThemeContext';
@@ -39,7 +36,6 @@ export default function Navbar() {
   const location = useLocation();
   const { mode, toggleColorMode } = useThemeMode();
   const { openSearch } = useSearchOverlay();
-  const theme = useTheme();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
   const isActive = (path: string) => {
@@ -53,8 +49,9 @@ export default function Navbar() {
       elevation={0}
       sx={{
         backgroundColor: 'background.paper',
-        borderBottom: '1px solid',
-        borderColor: 'divider',
+        borderBottom: '1px solid rgba(255,255,255,0.06)',
+        backdropFilter: 'blur(20px)',
+        background: 'rgba(10,10,10,0.95)',
       }}
     >
       <Toolbar
@@ -63,8 +60,8 @@ export default function Navbar() {
           justifyContent: 'space-between',
           alignItems: 'center',
           px: { xs: 2, sm: 3, md: 4 },
-          minHeight: { xs: 56, md: 64 },
-          height: { xs: 56, md: 64 },
+          minHeight: 56,
+          height: 56,
           gap: 2,
         }}
       >
@@ -73,8 +70,10 @@ export default function Navbar() {
           component={RouterLink}
           to="/"
           sx={{
-            fontWeight: typography.weight.bold,
-            fontSize: typography.editorial.pageTitle.xs,
+            fontFamily: '"Barlow Condensed", sans-serif',
+            fontWeight: 700,
+            fontSize: '1.25rem',
+            letterSpacing: '0.02em',
             color: 'text.primary',
             textDecoration: 'none',
             '&:hover': { color: 'primary.main' },
@@ -96,14 +95,16 @@ export default function Navbar() {
                 fontWeight: isActive(item.path)
                   ? typography.weight.semibold
                   : typography.weight.medium,
-                fontSize: typography.editorial.helper.xs,
+                fontSize: '0.72rem',
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
                 px: 2,
                 py: 1,
                 borderRadius: 0,
                 borderBottom: '2px solid',
                 borderBottomColor: isActive(item.path) ? 'primary.main' : 'transparent',
                 '&:hover': {
-                  backgroundColor: alpha(theme.palette.primary.main, 0.08),
+                  backgroundColor: 'transparent',
                   color: 'primary.main',
                   borderBottomColor: 'primary.main',
                 },
@@ -124,13 +125,15 @@ export default function Navbar() {
                   ? 'primary.main'
                   : 'text.secondary',
               fontWeight: typography.weight.medium,
-              fontSize: typography.editorial.helper.xs,
+              fontSize: '0.72rem',
+              textTransform: 'uppercase',
+              letterSpacing: '0.08em',
               px: 2,
               py: 1,
               borderBottom: '2px solid',
               borderBottomColor: 'transparent',
               '&:hover': {
-                backgroundColor: alpha(theme.palette.primary.main, 0.08),
+                backgroundColor: 'transparent',
                 color: 'primary.main',
               },
             }}
@@ -143,6 +146,13 @@ export default function Navbar() {
             onClose={() => setAnchorEl(null)}
             anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
             transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+            PaperProps={{
+              sx: {
+                backgroundColor: '#1A1A1A',
+                borderRadius: 1,
+                p: 0.5,
+              },
+            }}
           >
             {exploreItems.map(item => (
               <MenuItem
@@ -159,30 +169,21 @@ export default function Navbar() {
 
         {/* Search icon + theme toggle */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <Tooltip title="Search players and teams">
-            <IconButton
-              onClick={openSearch}
-              aria-label="open search"
-              size="medium"
-              sx={{ color: 'text.primary' }}
-            >
-              <Search />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title={mode === 'dark' ? 'Light mode' : 'Dark mode'}>
-            <IconButton
-              onClick={toggleColorMode}
-              aria-label="toggle theme"
-              size="medium"
-              sx={{
-                display: { xs: 'none', md: 'flex' },
-                color: 'text.secondary',
-                '&:hover': { color: 'text.primary' },
-              }}
-            >
-              {mode === 'dark' ? <LightMode /> : <DarkMode />}
-            </IconButton>
-          </Tooltip>
+          <IconButton onClick={openSearch} aria-label="open search" size="medium" sx={{ color: 'text.primary' }}>
+            <Search />
+          </IconButton>
+          <IconButton
+            onClick={toggleColorMode}
+            aria-label="toggle theme"
+            size="medium"
+            sx={{
+              display: { xs: 'none', md: 'flex' },
+              color: 'text.secondary',
+              '&:hover': { color: 'text.primary' },
+            }}
+          >
+            {mode === 'dark' ? <LightMode /> : <DarkMode />}
+          </IconButton>
         </Box>
       </Toolbar>
     </AppBar>

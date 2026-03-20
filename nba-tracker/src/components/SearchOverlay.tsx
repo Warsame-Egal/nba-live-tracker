@@ -117,7 +117,8 @@ export default function SearchOverlay() {
       onClose={handleClose}
       PaperProps={{
         sx: {
-          bgcolor: 'background.default',
+          bgcolor: 'rgba(0,0,0,0.92)',
+          backdropFilter: 'blur(10px)',
           maxWidth: '100%',
           margin: 0,
           borderRadius: 0,
@@ -141,7 +142,7 @@ export default function SearchOverlay() {
             placeholder="Search players and teams..."
             value={input}
             onChange={e => setInput(e.target.value)}
-            variant="outlined"
+            variant="standard"
             size="medium"
             InputProps={{
               startAdornment: (
@@ -155,7 +156,12 @@ export default function SearchOverlay() {
                 </InputAdornment>
               ) : null,
             }}
-            sx={{ '& .MuiOutlinedInput-root': { bgcolor: 'background.paper' } }}
+            sx={{
+              '& .MuiInputBase-root': { fontSize: '1.25rem' },
+              '& .MuiInput-underline:before': { borderBottomColor: 'divider' },
+              '& .MuiInput-underline:hover:before': { borderBottomColor: 'primary.main' },
+              '& .MuiInput-underline:after': { borderBottomColor: 'primary.main' },
+            }}
           />
           <IconButton
             onClick={handleClose}

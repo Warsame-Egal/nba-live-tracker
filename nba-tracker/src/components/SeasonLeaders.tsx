@@ -122,7 +122,8 @@ const LeaderRow: React.FC<LeaderRowProps> = ({ leader, rank, formattedValue }) =
           variant="body2"
           sx={{
             fontWeight: typography.weight.bold,
-            color: 'text.secondary',
+            color: rank === 1 ? '#E8FF47' : 'text.secondary',
+            fontFamily: '"Barlow Condensed", sans-serif',
             minWidth: 24,
             fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall },
           }}
@@ -163,6 +164,7 @@ const LeaderRow: React.FC<LeaderRowProps> = ({ leader, rank, formattedValue }) =
         sx={{
           fontWeight: typography.weight.bold,
           color: 'primary.main',
+          fontFamily: '"Barlow Condensed", sans-serif',
           fontSize: { xs: typography.size.bodySmall.xs, sm: typography.size.bodySmall },
           ml: 1,
         }}

@@ -32,7 +32,8 @@ const MatchupNarrative: React.FC<MatchupNarrativeProps> = ({ narrative }) => {
         sx={{
           fontSize: '0.875rem',
           lineHeight: 1.6,
-          color: 'text.primary',
+          color: 'text.secondary',
+          fontStyle: 'italic',
           fontWeight: typography.weight.regular,
         }}
       >

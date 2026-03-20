@@ -6,11 +6,13 @@ import { typography, borderRadius } from '../../theme/designTokens';
 function impactLabelColor(label: string): string {
   switch (label) {
     case 'Dominant':
-      return '#d4af37';
+      return '#E8FF47';
     case 'Strong':
-      return '#2e7d32';
+      return '#00D4AA';
+    case 'Solid':
+      return '#888888';
     default:
-      return 'text.secondary';
+      return '#888888';
   }
 }
 
@@ -71,7 +73,7 @@ const PlayerImpacts: React.FC<PlayerImpactsProps> = ({ player_impacts }) => {
             borderColor: 'divider',
           }}
         >
-          <Typography variant="body2" sx={{ fontWeight: typography.weight.semibold }}>
+          <Typography variant="body2" sx={{ fontWeight: 600, fontFamily: '"DM Sans", sans-serif' }}>
             {p.player_name}
           </Typography>
           <Typography variant="caption" color="text.secondary" display="block">
@@ -83,6 +85,8 @@ const PlayerImpacts: React.FC<PlayerImpactsProps> = ({ player_impacts }) => {
               sx={{
                 fontWeight: typography.weight.bold,
                 color: 'primary.main',
+                fontFamily: '"Barlow Condensed", sans-serif',
+                fontSize: '0.75rem',
               }}
             >
               Game Score: {p.game_score}

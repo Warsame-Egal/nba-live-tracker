@@ -90,8 +90,9 @@ export default function BottomNav() {
           right: 0,
           zIndex: 1100,
           height: 56,
-          borderTop: '1px solid',
-          borderColor: 'divider',
+          borderTop: '1px solid rgba(255,255,255,0.06)',
+          background: 'rgba(10,10,10,0.97)',
+          backdropFilter: 'blur(20px)',
         }}
         elevation={4}
       >
@@ -104,30 +105,7 @@ export default function BottomNav() {
                 idx === 0 && liveCount > 0 ? (
                   <Box sx={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
                     {tab.icon}
-                    <Box
-                      sx={{
-                        position: 'absolute',
-                        top: -4,
-                        right: -8,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 0.25,
-                        bgcolor: 'error.main',
-                        color: 'error.contrastText',
-                        px: 0.5,
-                        py: 0.25,
-                        borderRadius: 10,
-                        minWidth: 18,
-                        justifyContent: 'center',
-                        fontSize: 10,
-                        fontWeight: 700,
-                        fontVariantNumeric: 'tabular-nums',
-                        boxShadow: 1,
-                      }}
-                    >
-                      <Box component="span" sx={{ ...LIVE_DOT_STYLE, width: 4, height: 4 }} />
-                      {liveCount}
-                    </Box>
+                    <Box sx={{ position: 'absolute', top: -3, right: -6, ...LIVE_DOT_STYLE }} />
                   </Box>
                 ) : (
                   tab.icon
@@ -139,6 +117,8 @@ export default function BottomNav() {
                 '& .MuiBottomNavigationAction-label': {
                   fontSize: '0.7rem',
                 },
+                '&.Mui-selected': { color: 'primary.main' },
+                color: '#555555',
               }}
             />
           ))}
@@ -152,9 +132,10 @@ export default function BottomNav() {
         onOpen={() => setDrawerOpen(true)}
         sx={{
           '& .MuiDrawer-paper': {
-            borderTopLeftRadius: 16,
-            borderTopRightRadius: 16,
+            borderTopLeftRadius: 8,
+            borderTopRightRadius: 8,
             maxHeight: '70vh',
+            backgroundColor: '#111111',
           },
         }}
       >
@@ -170,7 +151,7 @@ export default function BottomNav() {
               key={item.path}
               button
               onClick={() => handleMoreItem(item.path)}
-              sx={{ borderRadius: 1, minHeight: 48 }}
+              sx={{ borderRadius: 1, minHeight: 44 }}
             >
               <ListItemIcon sx={{ minWidth: 40 }}>{item.icon}</ListItemIcon>
               <ListItemText primary={item.label} />
