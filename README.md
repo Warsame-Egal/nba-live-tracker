@@ -1,6 +1,6 @@
 # CourtIQ
 
-Real-time NBA intelligence platform. Live scores, AI insights, win probability, key moment detection, and player/team analytics — built on a cache-first WebSocket backend.
+NBA Live scores, AI insights, win probability, key moment detection, and player/team stats.
 
 **Live Demo:** [courtiq.vercel.app](https://nba-live-tracker-delta.vercel.app)
 
@@ -11,22 +11,20 @@ Real-time NBA intelligence platform. Live scores, AI insights, win probability, 
 | Feature | Description |
 |---------|-------------|
 | **Live Scoreboard** | Real-time scores via WebSocket. Updates every 2–8s when data changes. |
-| **AI Live Insights** | Groq-powered insights for all live games in one batched call per cycle. |
-| **Key Moments** | Automatic detection of game-tying shots, lead changes, scoring runs, clutch plays, big shots. Each gets a one-sentence AI explanation. |
+| **AI Live Insights** | Groq insights for all live games in one batched call. |
+| **Key Moments** | Detection of game-tying shots, lead changes, scoring runs, clutch plays, big shots. Each gets a one-sentence AI explanation. |
 | **Win Probability** | Real-time NBA win probability, polled every 30s and pushed via WebSocket. |
-| **Predictions** | Win probability model (season %, recent form, net rating, home court) + AI narrative, key drivers, risk factors. |
+| **Predictions** | Win probability (season %, recent form, net rating, home court) + AI narrative, key drivers, risk factors. |
 | **Player Profiles** | Season stats, game log, shooting zones, clutch performance, splits, defense, passing. |
-| **Team Pages** | Roster, game log, lineups, on/off splits, player stats — all loaded in parallel. |
+| **Team Pages** | Roster, game log, lineups, on/off splits, player stats. |
 | **Player Compare** | Side-by-side comparison with radar chart, trend chart, scouting report, head-to-head. |
-| **CourtIQ Agent** | Natural-language NBA assistant. Ask about live scores, standings, stats, predictions. |
-| **MCP Server** | Exposes the NBA data pipeline to Claude Desktop and Cursor via Model Context Protocol. |
+| **CourtIQ Agent** | Ask about live scores, standings, stats, predictions. |
+| **MCP Server** | NBA data to Claude Desktop and Cursor via Model Context Protocol. |
 | **Post-Game Recap** | Short AI recap for completed games, cached permanently. |
 
 ---
 
 ## Architecture
-
-**Cache-first, poll-once pattern:**
 
 ```
 NBA API  →  DataCache (background poller)  →  WebSocket Manager  →  Browser clients
@@ -125,7 +123,7 @@ Full Swagger UI at http://localhost:8000/docs when running locally.
 
 ## CourtIQ Agent
 
-Ask natural language questions about NBA data via the `/agent` page or the POST endpoints.
+Ask questions about NBA data via the `/agent` page or the POST endpoints.
 
 Rate limited to 5 requests/minute per IP. Makes 2 Groq calls per question (tool selection + answer generation). Both calls go through the shared Groq rate limiter.
 
@@ -149,8 +147,6 @@ Exposes NBA data to Claude Desktop and Cursor via [Model Context Protocol](https
 }
 ```
 
-Does not use Groq. Does not affect web app users or rate limits.
-
 ---
 
 ## Testing
@@ -159,9 +155,6 @@ Does not use Groq. Does not affect web app users or rate limits.
 cd nba-tracker-api
 pytest app/tests/ -v
 ```
-
-Tests cover: key moment detection, prediction model, data cache LRU, rate limiter, win probability TTL, batched insights cache, agent service, compare router.
-
 ---
 
 ## Key Moment Detection
