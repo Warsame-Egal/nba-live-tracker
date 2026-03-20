@@ -6,7 +6,7 @@ export default function AgentChat() {
   const navigate = useNavigate();
 
   return (
-    <Box sx={{ position: 'fixed', bottom: 24, right: 24, zIndex: 1300 }}>
+    <Box sx={{ position: 'fixed', bottom: { xs: 80, md: 24 }, right: 24, zIndex: 1300 }}>
       <Fab color="primary" onClick={() => navigate('/agent')} aria-label="Open CourtIQ Agent">
         <ChatIcon />
       </Fab>

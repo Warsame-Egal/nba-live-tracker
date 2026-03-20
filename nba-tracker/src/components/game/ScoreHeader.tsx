@@ -152,7 +152,7 @@ const ScoreHeader: React.FC<ScoreHeaderProps> = ({ score, status, gradientColors
               sx={{
                 fontFamily: '"Barlow Condensed", sans-serif',
                 fontWeight: 800,
-                fontSize: '3.5rem',
+                fontSize: { xs: '2.25rem', sm: '3rem', md: '3.5rem' },
                 lineHeight: 1,
                 fontVariantNumeric: 'tabular-nums',
                 minWidth: 44,
@@ -168,7 +168,7 @@ const ScoreHeader: React.FC<ScoreHeaderProps> = ({ score, status, gradientColors
               sx={{
                 fontFamily: '"Barlow Condensed", sans-serif',
                 fontWeight: 800,
-                fontSize: '3.5rem',
+                fontSize: { xs: '2.25rem', sm: '3rem', md: '3.5rem' },
                 lineHeight: 1,
                 fontVariantNumeric: 'tabular-nums',
                 minWidth: 44,

@@ -17,7 +17,6 @@ from app.config import get_api_kwargs, get_groq_api_key
 from app.services.groq_client import groq_is_ready, call_groq_api, get_groq_rate_limiter
 from app.services.groq_prompts import (
     get_system_message,
-    build_insight_prompt,
     build_batched_prediction_insights_prompt,
     build_enhanced_prediction_prompt,
 )

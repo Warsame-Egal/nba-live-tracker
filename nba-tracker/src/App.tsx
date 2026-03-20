@@ -32,8 +32,17 @@ const PageSkeleton = () => (
 function AnimatedRoutes() {
   const location = useLocation();
   return (
-    <Box className="page-enter-active">
-      <Routes location={location} key={location.pathname}>
+    <Box
+      key={location.pathname}
+      sx={{
+        animation: 'pageFadeIn 0.15s ease',
+        '@keyframes pageFadeIn': {
+          from: { opacity: 0, transform: 'translateY(6px)' },
+          to: { opacity: 1, transform: 'none' },
+        },
+      }}
+    >
+      <Routes location={location}>
         <Route path="/" element={<Scoreboard />} />
         <Route path="/team/:team_id" element={<TeamPage />} />
         <Route path="/team/:team_id/roster" element={<RosterPage />} />

@@ -168,7 +168,7 @@ export const transitions = {
 } as const;
 
 export const colors = {
-  accent: '#E8FF47',
+  accent: '#FF5722',
   live: '#FF3B3B',
   success: '#00D4AA',
   surface: '#111111',

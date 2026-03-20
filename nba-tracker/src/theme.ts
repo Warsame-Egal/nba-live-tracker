@@ -224,11 +224,11 @@ const baseTheme: ThemeOptions = {
             },
             '&:hover fieldset': {
               borderWidth: '1.5px',
-              borderColor: '#E8FF47',
+              borderColor: '#FF5722',
             },
             '&.Mui-focused fieldset': {
               borderWidth: '2px',
-              borderColor: '#E8FF47',
+              borderColor: '#FF5722',
             },
           },
         },
@@ -408,10 +408,10 @@ export const darkTheme = createTheme({
   palette: {
     mode: 'dark',
     primary: {
-      main: '#E8FF47',
-      light: '#F0FF83',
-      dark: '#D7EF2F',
-      contrastText: '#0A0A0A',
+      main: '#FF5722',
+      light: '#FF8A61',
+      dark: '#E64A19',
+      contrastText: '#FFFFFF',
     },
     background: {
       default: '#0A0A0A',
@@ -489,10 +489,10 @@ export const darkTheme = createTheme({
               borderColor: '#222222',
             },
             '&:hover fieldset': {
-              borderColor: '#E8FF47',
+              borderColor: '#FF5722',
             },
             '&.Mui-focused fieldset': {
-              borderColor: '#E8FF47',
+              borderColor: '#FF5722',
             },
           },
         },

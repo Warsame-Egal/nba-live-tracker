@@ -205,7 +205,15 @@ export default function AgentPage() {
   };
 
   return (
-    <PageContainer maxWidth={1400} sx={{ py: 2, height: 'calc(100dvh - 72px)' }}>
+    <PageContainer
+      maxWidth={1400}
+      sx={{
+        py: 2,
+        height: { xs: 'calc(100dvh - 112px)', md: 'calc(100dvh - 56px)' },
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+    >
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Box>
           <Typography variant="h5" sx={{ fontFamily: '"Barlow Condensed", sans-serif', fontWeight: 700 }}>
@@ -220,7 +228,15 @@ export default function AgentPage() {
         </Button>
       </Box>
 
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '240px 1fr' }, gap: 2, height: '100%' }}>
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', md: '240px 1fr' },
+          gap: 2,
+          flex: 1,
+          minHeight: 0,
+        }}
+      >
         <Paper sx={{ p: 2, display: { xs: 'none', md: 'block' }, bgcolor: '#111111', borderColor: '#222222' }}>
           <Typography variant="subtitle2" sx={{ mb: 1 }}>
             Suggestions

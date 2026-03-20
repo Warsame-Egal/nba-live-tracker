@@ -75,11 +75,6 @@ export const ThemeContextProvider = ({ children }: ThemeContextProviderProps) =>
     });
   };
 
-  // Save mode to localStorage whenever it changes
-  useEffect(() => {
-    localStorage.setItem('themeMode', mode);
-  }, [mode]);
-
   const theme = mode === 'dark' ? darkTheme : lightTheme;
 
   return (
