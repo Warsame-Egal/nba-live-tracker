@@ -1,26 +1,13 @@
 import { useState, useEffect, useMemo } from 'react';
-import {
-  Box,
-  Typography,
-  Grid,
-  Button,
-  Avatar,
-  Paper,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Skeleton,
-} from '@mui/material';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { Box, Typography, Grid, FormControl, InputLabel, Select, MenuItem, Skeleton } from '@mui/material';
+import { useSearchParams } from 'react-router-dom';
 import { getCurrentSeason, getSeasonOptions } from '../utils/season';
 import { fetchJson } from '../utils/apiClient';
 import { StandingRecord } from '../types/standings';
-import { typography, transitions, borderRadius } from '../theme/designTokens';
-import { getTeamInfo } from '../utils/teamMappings';
-
+import { typography, borderRadius, responsiveSpacing } from '../theme/designTokens';
 import { API_BASE_URL } from '../utils/apiConfig';
 import PageContainer from '../components/PageContainer';
+import StandingsStyleTeamList from '../components/StandingsStyleTeamList';
 
 // Helper function for clamp() typography
 const clamp = (min: string, preferred: string, max: string) =>
@@ -32,7 +19,6 @@ const clamp = (min: string, preferred: string, max: string) =>
  */
 const Teams = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const navigate = useNavigate();
   const [standings, setStandings] = useState<StandingRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -101,11 +87,6 @@ const Teams = () => {
     West: ['Northwest', 'Pacific', 'Southwest'],
   };
 
-  const getTeamLogo = (team: StandingRecord) => {
-    const fullName = `${team.team_city} ${team.team_name}`;
-    return getTeamInfo(fullName).logo;
-  };
-
   return (
     <Box
       sx={{
@@ -119,7 +100,7 @@ const Teams = () => {
         width: '100%',
       }}
     >
-      <PageContainer maxWidth={1400}>
+      <PageContainer maxWidth={1400} sx={{ px: responsiveSpacing.container, py: responsiveSpacing.containerVertical }}>
         {/* Page header - always rendered */}
         <Box
           sx={{
@@ -213,25 +194,26 @@ const Teams = () => {
             // Content - always show if data exists (even during loading/error)
             <>
               {(['East', 'West'] as const).map(conference => (
-                <Box
-                  key={conference}
-                  sx={{ mb: { xs: 3, sm: 4 }, minHeight: { xs: 400, sm: 500 } }}
-                >
-                  <Typography
-                    variant="h5"
+                <Box key={conference} sx={{ mb: { xs: 3, sm: 4 } }}>
+                  <Box
                     sx={{
-                      fontWeight: typography.weight.bold,
-                      mb: 2,
-                      fontSize: clamp('1rem', '3vw', '1.25rem'),
-                      color: 'text.primary',
-                      letterSpacing: typography.letterSpacing.tight,
-                      minHeight: { xs: '1.5rem', sm: '1.75rem' },
-                      borderBottom: '1px solid #222222',
-                      pb: 0.75,
+                      borderBottom: 1,
+                      borderColor: 'divider',
+                      mb: responsiveSpacing.element,
+                      pb: 1.5,
                     }}
                   >
-                    {conference === 'East' ? 'Eastern Conference' : 'Western Conference'}
-                  </Typography>
+                    <Typography
+                      variant="h6"
+                      sx={{
+                        fontWeight: typography.weight.semibold,
+                        fontSize: typography.editorial.sectionTitle.xs,
+                        color: 'text.secondary',
+                      }}
+                    >
+                      {conference === 'East' ? 'Eastern Conference' : 'Western Conference'}
+                    </Typography>
+                  </Box>
 
                   <Grid container spacing={2} alignItems="flex-start">
                     {divisions[conference].map(division => {
@@ -240,163 +222,25 @@ const Teams = () => {
 
                       return (
                         <Grid item xs={12} sm={6} md={6} lg={4} key={division}>
-                          <Box
-                            sx={{ mb: 3, display: 'flex', flexDirection: 'column', height: '100%' }}
-                          >
+                          <Box sx={{ mb: { xs: 2, sm: 3 }, minHeight: { xs: 200, sm: 250 } }}>
                             <Typography
-                              variant="subtitle1"
+                              variant="h6"
                               sx={{
                                 fontWeight: typography.weight.semibold,
-                                mb: 1.5,
-                                fontSize: clamp('0.875rem', '2vw', '1rem'),
-                                color: 'text.secondary',
-                                textTransform: 'uppercase',
-                                letterSpacing: '0.5px',
+                                mb: responsiveSpacing.element,
+                                fontSize: typography.editorial.sectionTitle.xs,
+                                color: 'text.primary',
                                 minHeight: { xs: '1.5rem', sm: '1.75rem' },
-                                lineHeight: 1.5,
+                                letterSpacing: typography.letterSpacing.normal,
                               }}
                             >
                               {division}
                             </Typography>
-                            <Paper
-                              elevation={0}
-                              sx={{
-                                border: '1px solid',
-                                borderColor: 'divider',
-                                borderRadius: borderRadius.md,
-                                overflow: 'hidden',
-                                backgroundColor: 'background.paper',
-                                minHeight: { xs: 300, sm: 400 },
-                              }}
-                            >
-                              {teams.map((team, index) => {
-                                const logo = getTeamLogo(team);
-                                const fullTeamName = `${team.team_city} ${team.team_name}`;
-
-                                return (
-                                  <Box
-                                    key={team.team_id}
-                                    sx={{
-                                      display: 'flex',
-                                      alignItems: 'flex-start',
-                                      gap: 1.5,
-                                      p: 2,
-                                      borderBottom: index < teams.length - 1 ? '1px solid' : 'none',
-                                      borderColor: 'divider',
-                                      transition: transitions.normal,
-                                      minHeight: 120,
-                                      '&:hover': {
-                                        backgroundColor: 'action.hover',
-                                      },
-                                    }}
-                                  >
-                                    <Avatar
-                                      src={logo}
-                                      alt={fullTeamName}
-                                      onClick={() => navigate(`/team/${team.team_id}`)}
-                                      sx={{
-                                        width: 40,
-                                        height: 40,
-                                        aspectRatio: '1/1',
-                                        backgroundColor: 'transparent',
-                                        border: '1px solid',
-                                        borderColor: 'divider',
-                                        cursor: 'pointer',
-                                        transition: transitions.normal,
-                                        flexShrink: 0,
-                                        mt: 0.25, // Align with first line of text
-                                        '&:hover': {
-                                          borderColor: 'primary.main',
-                                          transform: 'scale(1.05)',
-                                        },
-                                      }}
-                                      onError={e => {
-                                        const target = e.currentTarget as HTMLImageElement;
-                                        target.onerror = null;
-                                        target.src = '/logos/default.svg';
-                                      }}
-                                    />
-                                    <Box sx={{ flex: 1, minWidth: 0, mr: 1, overflow: 'hidden' }}>
-                                      <Typography
-                                        variant="body1"
-                                        sx={{
-                                          fontWeight: typography.weight.bold,
-                                          fontSize: clamp('0.875rem', '2vw', '1rem'),
-                                          mb: 0.25,
-                                          wordBreak: 'break-word',
-                                          overflowWrap: 'break-word',
-                                          display: 'block',
-                                          lineHeight: 1.4,
-                                        }}
-                                      >
-                                        {fullTeamName}
-                                      </Typography>
-                                    </Box>
-                                    <Box
-                                      sx={{
-                                        display: 'flex',
-                                        gap: 0.5,
-                                        flexShrink: 0,
-                                        ml: 'auto',
-                                        flexWrap: 'wrap',
-                                        alignItems: 'flex-start',
-                                      }}
-                                    >
-                                      <Button
-                                        size="small"
-                                        variant="text"
-                                        onClick={() => navigate(`/team/${team.team_id}`)}
-                                        sx={{
-                                          textTransform: 'none',
-                                          fontSize: clamp('0.7rem', '1.5vw', '0.8125rem'),
-                                          minWidth: { xs: 44, sm: 'auto' },
-                                          px: { xs: 1, sm: 1 },
-                                          py: { xs: 1, sm: 0.5 },
-                                          whiteSpace: 'nowrap',
-                                          minHeight: { xs: 44, sm: 36 },
-                                        }}
-                                      >
-                                        Profile
-                                      </Button>
-                                      <Button
-                                        size="small"
-                                        variant="text"
-                                        onClick={() => navigate(`/team/${team.team_id}?tab=stats`)}
-                                        sx={{
-                                          textTransform: 'none',
-                                          fontSize: clamp('0.7rem', '1.5vw', '0.8125rem'),
-                                          minWidth: { xs: 44, sm: 'auto' },
-                                          px: { xs: 1, sm: 1 },
-                                          py: { xs: 1, sm: 0.5 },
-                                          whiteSpace: 'nowrap',
-                                          minHeight: { xs: 44, sm: 36 },
-                                        }}
-                                      >
-                                        Stats
-                                      </Button>
-                                      <Button
-                                        size="small"
-                                        variant="text"
-                                        onClick={() =>
-                                          navigate(`/team/${team.team_id}?tab=schedule`)
-                                        }
-                                        sx={{
-                                          textTransform: 'none',
-                                          fontSize: clamp('0.7rem', '1.5vw', '0.8125rem'),
-                                          minWidth: { xs: 44, sm: 'auto' },
-                                          px: { xs: 1, sm: 1 },
-                                          py: { xs: 1, sm: 0.5 },
-                                          whiteSpace: 'nowrap',
-                                          minHeight: { xs: 44, sm: 36 },
-                                        }}
-                                      >
-                                        Schedule
-                                      </Button>
-                                    </Box>
-                                  </Box>
-                                );
-                              })}
-                            </Paper>
+                            <StandingsStyleTeamList
+                              teams={teams}
+                              showRank={false}
+                              showPlayoffLines={false}
+                            />
                           </Box>
                         </Grid>
                       );
