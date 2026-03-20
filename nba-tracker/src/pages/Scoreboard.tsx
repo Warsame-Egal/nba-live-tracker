@@ -555,12 +555,15 @@ const Scoreboard = () => {
    * Fetch games for a specific date when user selects a different date.
    * Only clear games when selectedDate actually changes so Strict Mode double-invoke
    * (or effect re-run) doesn't wipe the list after the first fetch has already populated it.
+   * Loading skeleton only shows on real date changes — not on duplicate effect runs after
+   * WebSocket may have already populated games (avoids blink when REST completes).
    */
   useEffect(() => {
     const dateChanged = lastFetchedDateRef.current !== selectedDate;
     if (dateChanged) {
       lastFetchedDateRef.current = selectedDate;
       setGames([]);
+      setLoading(true);
       previousScoresRef.current.clear();
       previousGameStatesRef.current.clear();
       setRecentlyUpdatedGames(new Set());
@@ -568,7 +571,6 @@ const Scoreboard = () => {
     }
 
     const fetchGamesByDate = async (date: string) => {
-      setLoading(true);
       try {
         const data = await fetchJson<GamesResponse>(
           `${API_BASE_URL}/api/v1/schedule/date/${date}`,
@@ -590,7 +592,25 @@ const Scoreboard = () => {
           setTodayScheduleGames([]);
         }
 
-        setGames(data.games);
+        // Merge REST with games WebSocket may have already set (keep WS for live scores).
+        setGames(prevGames => {
+          if (prevGames.length === 0) {
+            return data.games;
+          }
+          const wsMap = new Map(
+            prevGames.map(g => {
+              const key = 'gameId' in g ? g.gameId : g.game_id;
+              return [key, g] as [string, Game | GameSummary];
+            }),
+          );
+          data.games.forEach(restGame => {
+            const key = restGame.game_id;
+            if (!wsMap.has(key)) {
+              wsMap.set(key, restGame);
+            }
+          });
+          return Array.from(wsMap.values());
+        });
       } catch (err) {
         logger.error('Error fetching games for date', err);
       } finally {
@@ -803,6 +823,22 @@ const Scoreboard = () => {
 
   const today = getLocalISODate();
   const isToday = selectedDate === today;
+
+  /** Main heading: "Today's Games" only when the calendar date is today. */
+  const scoreboardGamesTitle = useMemo(() => {
+    if (selectedDate === today) return "Today's Games";
+    const parts = selectedDate.split('-').map(Number);
+    if (parts.length !== 3 || parts.some(n => Number.isNaN(n))) return 'Games';
+    const [y, m, d] = parts;
+    const date = new Date(y, m - 1, d);
+    const currentYear = new Date().getFullYear();
+    const formatted = date.toLocaleDateString(undefined, {
+      month: 'long',
+      day: 'numeric',
+      ...(date.getFullYear() !== currentYear ? { year: 'numeric' as const } : {}),
+    });
+    return `Games on ${formatted}`;
+  }, [selectedDate, today]);
 
   /**
    * Calculate game statistics from the current games list.
@@ -1021,7 +1057,7 @@ const Scoreboard = () => {
             }}
           >
             <Box sx={{ flexShrink: 0 }}>
-              <Typography sx={{ fontWeight: 700, mb: 1 }}>Today's Games</Typography>
+              <Typography sx={{ fontWeight: 700, mb: 1 }}>{scoreboardGamesTitle}</Typography>
               <DateNavigator
                 selectedDate={selectedDate}
                 onDateChange={setSelectedDate}

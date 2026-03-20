@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Avatar, Paper, useTheme } from '@mui/material';
+import { Box, Typography, Avatar, Button, Paper, useTheme } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { Game } from '../../types/scoreboard';
 import { GameSummary } from '../../types/schedule';
@@ -57,7 +57,7 @@ const CompletedGameCard: React.FC<CompletedGameCardProps> = ({ game, onClick }) 
       sx={{
         display: 'flex',
         flexDirection: 'column',
-        borderRadius: borderRadius.lg,
+        borderRadius: borderRadius.md,
         backgroundColor: 'background.paper',
         border: '1px solid',
         borderColor: 'divider',
@@ -73,141 +73,135 @@ const CompletedGameCard: React.FC<CompletedGameCardProps> = ({ game, onClick }) 
       <Box
         onClick={handleClick}
         sx={{
-          display: 'grid',
-          // Dedicated score column so totals never share a shrinking flex row with team names (avoids right-edge clipping)
-          gridTemplateColumns: { xs: '40px minmax(0, 1fr) minmax(52px, auto)', sm: '44px minmax(0, 1fr) minmax(56px, auto)' },
-          gridTemplateRows: 'auto auto',
-          columnGap: { xs: 1.5, sm: 2 },
-          rowGap: 1,
+          display: 'flex',
           alignItems: 'center',
+          gap: 2,
           p: { xs: 2, sm: 2.5 },
           cursor: 'pointer',
           '&:hover': { backgroundColor: 'action.hover' },
         }}
       >
-        {/* FINAL label — spans both team rows */}
+        {/* FINAL label */}
         <Typography
           variant="caption"
           sx={{
-            gridRow: '1 / 3',
-            gridColumn: 1,
             fontWeight: 700,
             color: 'text.secondary',
             letterSpacing: '0.08em',
+            width: 40,
+            flexShrink: 0,
             textAlign: 'center',
-            alignSelf: 'center',
           }}
         >
           FINAL
         </Typography>
 
-        {/* Away: logo + name (middle column) */}
-        <Box
-          sx={{
-            gridRow: 1,
-            gridColumn: 2,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1,
-            minWidth: 0,
-          }}
-        >
-          <Avatar
-            src={TEAM_LOGOS[awayTeam || 'NBA'] || TEAM_LOGOS['NBA']}
-            alt={awayTeam}
-            onClick={e => handleTeamClick(e, awayId)}
-            sx={{ width: 28, height: 28, flexShrink: 0, cursor: awayId ? 'pointer' : 'default' }}
-          />
-          <Typography
-            variant="body2"
-            fontWeight={awayWon ? 700 : 500}
-            color={awayWon ? 'text.primary' : 'text.secondary'}
-            sx={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-          >
-            {awayTeam}
-          </Typography>
-        </Box>
-        <Typography
-          sx={{
-            gridRow: 1,
-            gridColumn: 3,
-            fontFamily: '"Barlow Condensed", sans-serif',
-            fontWeight: awayWon ? 800 : 500,
-            fontSize: { xs: '1.25rem', sm: '1.375rem' },
-            color: awayWon ? 'text.primary' : 'text.secondary',
-            textAlign: 'right',
-            fontVariantNumeric: 'tabular-nums',
-            lineHeight: 1.1,
-            justifySelf: 'end',
-            width: '100%',
-          }}
-        >
-          {awayScore}
-        </Typography>
+        {/* Teams stacked — away top, home bottom */}
+        <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+          {/* Away row */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Avatar
+              src={TEAM_LOGOS[awayTeam || 'NBA'] || TEAM_LOGOS['NBA']}
+              alt={awayTeam}
+              onClick={e => handleTeamClick(e, awayId)}
+              sx={{ width: 32, height: 32, flexShrink: 0, cursor: awayId ? 'pointer' : 'default' }}
+            />
+            <Typography
+              variant="body2"
+              fontWeight={awayWon ? 700 : 500}
+              color={awayWon ? 'text.primary' : 'text.secondary'}
+              noWrap
+              sx={{ flex: 1, minWidth: 0 }}
+            >
+              {awayTeam}
+            </Typography>
+            <Typography
+              sx={{
+                fontFamily: '"Barlow Condensed", sans-serif',
+                fontWeight: awayWon ? 800 : 500,
+                fontSize: { xs: '1.25rem', sm: '1.375rem' },
+                color: awayWon ? 'text.primary' : 'text.secondary',
+                minWidth: 44,
+                textAlign: 'right',
+                flexShrink: 0,
+                fontVariantNumeric: 'tabular-nums',
+              }}
+            >
+              {awayScore}
+            </Typography>
+          </Box>
 
-        {/* Home: logo + name */}
-        <Box
-          sx={{
-            gridRow: 2,
-            gridColumn: 2,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1,
-            minWidth: 0,
-          }}
-        >
-          <Avatar
-            src={TEAM_LOGOS[homeTeam || 'NBA'] || TEAM_LOGOS['NBA']}
-            alt={homeTeam}
-            onClick={e => handleTeamClick(e, homeId)}
-            sx={{ width: 28, height: 28, flexShrink: 0, cursor: homeId ? 'pointer' : 'default' }}
-          />
-          <Typography
-            variant="body2"
-            fontWeight={homeWon ? 700 : 500}
-            color={homeWon ? 'text.primary' : 'text.secondary'}
-            sx={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-          >
-            {homeTeam}
-          </Typography>
+          {/* Home row */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Avatar
+              src={TEAM_LOGOS[homeTeam || 'NBA'] || TEAM_LOGOS['NBA']}
+              alt={homeTeam}
+              onClick={e => handleTeamClick(e, homeId)}
+              sx={{ width: 32, height: 32, flexShrink: 0, cursor: homeId ? 'pointer' : 'default' }}
+            />
+            <Typography
+              variant="body2"
+              fontWeight={homeWon ? 700 : 500}
+              color={homeWon ? 'text.primary' : 'text.secondary'}
+              noWrap
+              sx={{ flex: 1, minWidth: 0 }}
+            >
+              {homeTeam}
+            </Typography>
+            <Typography
+              sx={{
+                fontFamily: '"Barlow Condensed", sans-serif',
+                fontWeight: homeWon ? 800 : 500,
+                fontSize: { xs: '1.25rem', sm: '1.375rem' },
+                color: homeWon ? 'text.primary' : 'text.secondary',
+                minWidth: 44,
+                textAlign: 'right',
+                flexShrink: 0,
+                fontVariantNumeric: 'tabular-nums',
+              }}
+            >
+              {homeScore}
+            </Typography>
+          </Box>
         </Box>
-        <Typography
-          sx={{
-            gridRow: 2,
-            gridColumn: 3,
-            fontFamily: '"Barlow Condensed", sans-serif',
-            fontWeight: homeWon ? 800 : 500,
-            fontSize: { xs: '1.25rem', sm: '1.375rem' },
-            color: homeWon ? 'text.primary' : 'text.secondary',
-            textAlign: 'right',
-            fontVariantNumeric: 'tabular-nums',
-            lineHeight: 1.1,
-            justifySelf: 'end',
-            width: '100%',
-          }}
-        >
-          {homeScore}
-        </Typography>
       </Box>
 
-      {topPerformer && topPerformer.name && (
-        <Box
-          sx={{
-            px: 2,
-            pb: 1.25,
-            pt: 0.25,
-            borderTop: '1px solid',
-            borderColor: 'divider',
-          }}
-        >
-          <Typography variant="caption" color="text.secondary">
+      {/* Footer — matches LiveGameCard and ScheduledGameCard */}
+      <Box
+        sx={{
+          px: 2,
+          pb: 2,
+          pt: topPerformer && topPerformer.name ? 1 : 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: topPerformer && topPerformer.name ? 'space-between' : 'flex-end',
+          borderTop: topPerformer && topPerformer.name ? '0' : '1px solid',
+          borderColor: 'divider',
+          flexWrap: 'wrap',
+          gap: 1,
+        }}
+      >
+        {topPerformer && topPerformer.name && (
+          <Typography variant="caption" color="text.secondary" sx={{ flex: 1, minWidth: 0 }}>
             Top: {topPerformer.name} — {Math.round(topPerformer.points)} PTS
-            {typeof topPerformer.rebounds === 'number' &&
-              ` ${Math.round(topPerformer.rebounds)} REB`}
+            {typeof topPerformer.rebounds === 'number' && ` ${Math.round(topPerformer.rebounds)} REB`}
             {typeof topPerformer.assists === 'number' && ` ${Math.round(topPerformer.assists)} AST`}
           </Typography>
-        </Box>
-      )}
+        )}
+        <Button
+          variant="outlined"
+          size="small"
+          onClick={handleClick}
+          sx={{
+            borderRadius: 1,
+            textTransform: 'none',
+            fontWeight: 600,
+            ml: 'auto',
+          }}
+        >
+          View Game
+        </Button>
+      </Box>
     </Paper>
   );
 };

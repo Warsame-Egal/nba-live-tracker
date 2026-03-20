@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import re
 import traceback
 from dataclasses import dataclass
 from typing import Any, AsyncGenerator, Dict, List, Optional, Tuple
@@ -131,10 +132,19 @@ def _normalize_history(history: List[Dict[str, Any]]) -> List[Dict[str, str]]:
 
 def _system_prompt() -> str:
     return (
-        "You are the CourtIQ NBA agent for a live NBA tracker.\n"
-        "You must ONLY answer using the tool data you request and receive.\n"
-        "If tool data is missing or unclear, say so clearly.\n"
-        "Return a concise, helpful plain-text answer with no markdown."
+        "You are CourtIQ, an NBA assistant with access to live game data.\n"
+        "\n"
+        "RULES:\n"
+        "1. For NBA questions about games, scores, players, standings, or stats: "
+        "call the appropriate tool, then answer using the tool result.\n"
+        "2. For greetings or casual chat (e.g. 'hi', 'hello', 'thanks'): "
+        "respond directly WITHOUT calling any tool. Just greet them back warmly.\n"
+        "3. For non-NBA questions or gibberish: respond with exactly — "
+        "'I can help with NBA games, scores, players, and standings. What would you like to know?' "
+        "Do not call any tool.\n"
+        "4. Never call get_player_stats unless the user names a specific real NBA player.\n"
+        "5. Answer in plain text, no markdown, no bullet points.\n"
+        "6. Be concise — 2 to 4 sentences maximum."
     )
 
 
@@ -343,6 +353,16 @@ async def run_agent(question: str, conversation_history: List[Dict[str, Any]]) -
 
     _agent_requests_since_start += 1
 
+    # Pre-flight: handle pure gibberish without calling Groq
+    _clean = question.strip()
+    _real_words = re.findall(r"[a-zA-Z]{2,}", _clean)
+    if not _clean or len(_real_words) == 0:
+        return {
+            "answer": "I can help with NBA games, scores, players, and standings. What would you like to know?",
+            "tools_used": [],
+            "tool_results": [],
+        }
+
     api_key = None
     try:
         # get_groq_client requires api_key; groq_is_ready() implies it exists.
@@ -371,7 +391,7 @@ async def run_agent(question: str, conversation_history: List[Dict[str, Any]]) -
     # 1) Let the model decide tool calls.
     await get_groq_rate_limiter().wait_if_needed(estimated_tokens=800)
     resp = await client.chat.completions.create(
-        model="llama-3.1-8b-instant",
+        model="llama-3.3-70b-versatile",
         messages=messages,
         tools=AGENT_TOOLS,
         tool_choice="auto",
@@ -416,7 +436,7 @@ async def run_agent(question: str, conversation_history: List[Dict[str, Any]]) -
 
     await get_groq_rate_limiter().wait_if_needed(estimated_tokens=800)
     final_resp = await client.chat.completions.create(
-        model="llama-3.1-8b-instant",
+        model="llama-3.3-70b-versatile",
         messages=final_messages,
         temperature=0.2,
         max_tokens=500,
@@ -463,6 +483,17 @@ async def run_agent_streaming(
     global _agent_requests_since_start
     _agent_requests_since_start += 1
 
+    # Pre-flight: handle pure gibberish without calling Groq
+    _clean = question.strip()
+    _real_words = re.findall(r"[a-zA-Z]{2,}", _clean)
+    if not _clean or len(_real_words) == 0:
+        _fallback = "I can help with NBA games, scores, players, and standings. What would you like to know?"
+        for _tok in _fallback.split():
+            yield _format_sse_event("token", {"token": _tok + " "})
+            await asyncio.sleep(0)
+        yield _format_sse_event("done", {"answer": _fallback})
+        return
+
     from app.config import get_groq_api_key
 
     api_key = get_groq_api_key()
@@ -480,7 +511,7 @@ async def run_agent_streaming(
     try:
         await get_groq_rate_limiter().wait_if_needed(estimated_tokens=800)
         resp = await client.chat.completions.create(
-            model="llama-3.1-8b-instant",
+            model="llama-3.3-70b-versatile",
             messages=messages,
             tools=AGENT_TOOLS,
             tool_choice="auto",
@@ -523,7 +554,7 @@ async def run_agent_streaming(
 
         await get_groq_rate_limiter().wait_if_needed(estimated_tokens=800)
         final_resp = await client.chat.completions.create(
-            model="llama-3.1-8b-instant",
+            model="llama-3.3-70b-versatile",
             messages=final_messages,
             temperature=0.2,
             max_tokens=500,

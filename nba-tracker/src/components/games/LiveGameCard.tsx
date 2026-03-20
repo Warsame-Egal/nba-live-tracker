@@ -102,7 +102,7 @@ const LiveGameCard: React.FC<LiveGameCardProps> = ({
         sx={{
           display: 'flex',
           alignItems: 'center',
-          gap: { xs: 2, sm: 2.5 },
+          gap: 2,
           p: { xs: 2, sm: 2.5 },
           cursor: 'pointer',
           backgroundColor: isRecentlyUpdated
@@ -114,11 +114,12 @@ const LiveGameCard: React.FC<LiveGameCardProps> = ({
       >
         <Box
           sx={{
-            minWidth: 52,
+            minWidth: 40,
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             gap: 0.5,
+            flexShrink: 0,
           }}
         >
           <Box sx={LIVE_DOT_STYLE} />
@@ -153,7 +154,7 @@ const LiveGameCard: React.FC<LiveGameCardProps> = ({
               variant="body2"
               fontWeight={600}
               noWrap
-              sx={{ flex: 1, minWidth: 0 }}
+              sx={{ flex: 1, minWidth: 0, fontSize: '0.875rem' }}
             >
               {awayTeam}
             </Typography>
@@ -185,7 +186,7 @@ const LiveGameCard: React.FC<LiveGameCardProps> = ({
               variant="body2"
               fontWeight={600}
               noWrap
-              sx={{ flex: 1, minWidth: 0 }}
+              sx={{ flex: 1, minWidth: 0, fontSize: '0.875rem' }}
             >
               {homeTeam}
             </Typography>
@@ -267,6 +268,8 @@ const LiveGameCard: React.FC<LiveGameCardProps> = ({
           justifyContent: 'space-between',
           flexWrap: 'wrap',
           gap: 0.5,
+          borderTop: '1px solid',
+          borderColor: 'divider',
         }}
       >
         {hasInsight && (

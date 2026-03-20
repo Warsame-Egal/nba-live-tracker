@@ -36,16 +36,23 @@ interface PlayByPlayProps {
   gameId: string;
   isLiveGame?: boolean;
   scrollToGameTime?: number | null;
+  autoScrollToLatest?: boolean;
 }
 
 // Play-by-play timeline for game events
 // Uses WebSocket for live games, REST API for completed games
-const PlayByPlay = ({ gameId, isLiveGame = false, scrollToGameTime }: PlayByPlayProps) => {
+const PlayByPlay = ({
+  gameId,
+  isLiveGame = false,
+  scrollToGameTime,
+  autoScrollToLatest = false,
+}: PlayByPlayProps) => {
   const [actions, setActions] = useState<PlayByPlayEvent[]>([]);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [loading, setLoading] = useState(false);
   const socketRef = useRef<PlayByPlayWebSocketService | null>(null);
   const lastScrolledToRef = useRef<number | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!gameId || isLiveGame) return;
@@ -126,6 +133,14 @@ const PlayByPlay = ({ gameId, isLiveGame = false, scrollToGameTime }: PlayByPlay
       lastScrolledToRef.current = scrollToGameTime;
     }
   }, [scrollToGameTime, actions]);
+
+  useEffect(() => {
+    if (!autoScrollToLatest || !isLiveGame || actions.length === 0) return;
+    // Scroll to top since actions are in reverse order (latest first)
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [actions.length, autoScrollToLatest, isLiveGame]);
 
   // Show loading state with skeleton
   if (loading) {
@@ -223,7 +238,7 @@ const PlayByPlay = ({ gameId, isLiveGame = false, scrollToGameTime }: PlayByPlay
     .sort((a, b) => b - a); // Most recent period first
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 3, sm: 4 } }}>
+    <Box ref={scrollContainerRef} sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 3, sm: 4 } }}>
       {periods.map((period, periodIdx) => {
         const periodPlays = playsByPeriod[period];
         const periodLabel = period === 0 ? 'OT' : period > 4 ? `${period}OT` : `Q${period}`;
